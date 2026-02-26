@@ -7,21 +7,10 @@ import { TierConfigEditor } from "./TierConfigEditor";
 import { buttonVariants } from "@/components/ui/Button";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { GearIcon } from "@/components/ui/GearIcon";
-import type { TierConfig } from "@/types";
+import type { TierConfig, SessionLobbyData } from "@/types";
 
 interface SessionLobbyProps {
-  session: {
-    id: string;
-    name: string;
-    joinCode: string;
-    status: string;
-    bracketEnabled: boolean;
-    tierConfig: TierConfig[];
-    template: { name: string };
-    participants: { id: string; nickname: string; createdAt: string }[];
-    items: { id: string; label: string; imageUrl: string }[];
-    _count: { participants: number };
-  };
+  session: SessionLobbyData;
 }
 
 export function SessionLobby({ session }: SessionLobbyProps) {

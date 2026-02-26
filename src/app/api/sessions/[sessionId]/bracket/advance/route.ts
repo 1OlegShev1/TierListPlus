@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { withHandler, notFound, bracketMatchupInclude } from "@/lib/api-helpers";
-import { advanceWinnerToNextRound } from "@/lib/bracket-helpers";
+import { withHandler, notFound, bracketMatchupInclude, requireOpenSession, ApiError } from "@/lib/api-helpers";
 
 export const POST = withHandler(async (_request, { params }) => {
   const { sessionId } = await params;
+  await requireOpenSession(sessionId);
 
   const bracket = await prisma.bracket.findFirst({
     where: { sessionId },
@@ -32,43 +32,55 @@ export const POST = withHandler(async (_request, { params }) => {
   }
 
   if (currentRound === 0) {
-    return NextResponse.json({ message: "Bracket is already complete" });
+    throw new ApiError(409, "Bracket is already complete");
   }
 
   const roundMatchups = bracket.matchups.filter(
     (m) => m.round === currentRound
   );
 
-  // Tally votes and determine winners
-  for (const matchup of roundMatchups) {
-    if (matchup.winnerId || !matchup.itemAId || !matchup.itemBId) continue;
+  // Tally votes and determine winners in a transaction to prevent race conditions
+  await prisma.$transaction(async (tx) => {
+    for (const matchup of roundMatchups) {
+      if (matchup.winnerId || !matchup.itemAId || !matchup.itemBId) continue;
 
-    const votesForA = matchup.votes.filter(
-      (v) => v.chosenItemId === matchup.itemAId
-    ).length;
-    const votesForB = matchup.votes.filter(
-      (v) => v.chosenItemId === matchup.itemBId
-    ).length;
+      const votesForA = matchup.votes.filter(
+        (v) => v.chosenItemId === matchup.itemAId
+      ).length;
+      const votesForB = matchup.votes.filter(
+        (v) => v.chosenItemId === matchup.itemBId
+      ).length;
 
-    // Winner by majority; ties broken by random
-    let winnerId: string;
-    if (votesForA > votesForB) {
-      winnerId = matchup.itemAId;
-    } else if (votesForB > votesForA) {
-      winnerId = matchup.itemBId;
-    } else {
-      winnerId = Math.random() < 0.5 ? matchup.itemAId : matchup.itemBId;
+      // Winner by majority; ties broken by random
+      let winnerId: string;
+      if (votesForA > votesForB) {
+        winnerId = matchup.itemAId;
+      } else if (votesForB > votesForA) {
+        winnerId = matchup.itemBId;
+      } else {
+        winnerId = Math.random() < 0.5 ? matchup.itemAId : matchup.itemBId;
+      }
+
+      await tx.bracketMatchup.update({
+        where: { id: matchup.id },
+        data: { winnerId },
+      });
+
+      // Advance winner to next round
+      if (currentRound < bracket.rounds) {
+        const nextRound = currentRound + 1;
+        const nextPosition = Math.floor(matchup.position / 2);
+        const slot = matchup.position % 2 === 0 ? "itemAId" : "itemBId";
+
+        await tx.bracketMatchup.updateMany({
+          where: { bracketId: bracket.id, round: nextRound, position: nextPosition },
+          data: { [slot]: winnerId },
+        });
+      }
     }
+  });
 
-    await prisma.bracketMatchup.update({
-      where: { id: matchup.id },
-      data: { winnerId },
-    });
-
-    await advanceWinnerToNextRound(bracket.id, matchup.position, winnerId, currentRound, bracket.rounds);
-  }
-
-  // Fetch updated bracket
+  // Fetch updated bracket with full includes
   const updated = await prisma.bracket.findFirst({
     where: { sessionId },
     include: {

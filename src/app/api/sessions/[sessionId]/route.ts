@@ -22,6 +22,10 @@ export const GET = withHandler(async (_request, { params }) => {
 
 export const PATCH = withHandler(async (request, { params }) => {
   const { sessionId } = await params;
+
+  const existing = await prisma.session.findUnique({ where: { id: sessionId }, select: { id: true } });
+  if (!existing) notFound("Session not found");
+
   const data = await validateBody(request, updateSessionSchema);
 
   const updateData: Record<string, unknown> = {};

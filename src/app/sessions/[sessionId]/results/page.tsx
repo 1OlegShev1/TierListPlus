@@ -7,33 +7,35 @@ import { buttonVariants } from "@/components/ui/Button";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Loading } from "@/components/ui/Loading";
 import { ErrorMessage } from "@/components/ui/ErrorMessage";
+import { apiFetch, getErrorMessage } from "@/lib/api-client";
 import type { ConsensusTier, ConsensusItem } from "@/lib/consensus";
+
+interface SessionResult {
+  name: string;
+  participants: { id: string; nickname: string }[];
+}
 
 export default function ResultsPage() {
   const { sessionId } = useParams<{ sessionId: string }>();
   const [tiers, setTiers] = useState<ConsensusTier[]>([]);
-  const [session, setSession] = useState<{
-    name: string;
-    participants: { id: string; nickname: string }[];
-  } | null>(null);
+  const [session, setSession] = useState<SessionResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedItem, setSelectedItem] = useState<ConsensusItem | null>(null);
 
   useEffect(() => {
     Promise.all([
-      fetch(`/api/sessions/${sessionId}`).then((r) => r.json()),
-      fetch(`/api/sessions/${sessionId}/votes/consensus`).then((r) => r.json()),
+      apiFetch<SessionResult>(`/api/sessions/${sessionId}`),
+      apiFetch<ConsensusTier[]>(`/api/sessions/${sessionId}/votes/consensus`),
     ])
       .then(([sessionData, consensusData]) => {
         setSession(sessionData);
         setTiers(consensusData);
-        setLoading(false);
       })
-      .catch(() => {
-        setError("Failed to load results. Please try again.");
-        setLoading(false);
-      });
+      .catch((err) => {
+        setError(getErrorMessage(err, "Failed to load results. Please try again."));
+      })
+      .finally(() => setLoading(false));
   }, [sessionId]);
 
   if (loading) return <Loading message="Loading results..." />;

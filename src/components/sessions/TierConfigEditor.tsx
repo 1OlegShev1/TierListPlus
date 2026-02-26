@@ -5,6 +5,7 @@ import { TIER_COLORS, deriveTierKeys } from "@/lib/constants";
 import type { TierConfig } from "@/types";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { apiPatch, getErrorMessage } from "@/lib/api-client";
 
 interface TierConfigEditorProps {
   /** When provided, the editor shows a Save button and PATCHes the session. */
@@ -78,21 +79,10 @@ export function TierConfigEditor({
     const configToSave = deriveTierKeys(tiers);
 
     try {
-      const res = await fetch(`/api/sessions/${sessionId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tierConfig: configToSave }),
-      });
-
-      if (!res.ok) {
-        const data = await res.json();
-        setError(typeof data.error === "string" ? data.error : "Failed to save");
-        return;
-      }
-
+      await apiPatch(`/api/sessions/${sessionId}`, { tierConfig: configToSave });
       onSaved?.(configToSave);
-    } catch {
-      setError("Network error");
+    } catch (err) {
+      setError(getErrorMessage(err, "Failed to save"));
     } finally {
       setSaving(false);
     }

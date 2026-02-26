@@ -92,6 +92,22 @@ export async function verifyParticipant(
   return participant;
 }
 
+/**
+ * Verify a session exists and is OPEN.
+ * Returns the session, or throws 404/409 if not found or closed.
+ */
+export async function requireOpenSession(sessionId: string) {
+  const session = await prisma.session.findUnique({
+    where: { id: sessionId },
+    select: { id: true, status: true },
+  });
+  if (!session) notFound("Session not found");
+  if (session.status !== "OPEN") {
+    throw new ApiError(409, "Session is not accepting votes");
+  }
+  return session;
+}
+
 /** Shared Prisma include for bracket matchups with full item details + votes */
 export const bracketMatchupInclude = {
   itemA: { select: { id: true, label: true, imageUrl: true } },

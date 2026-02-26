@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { Loading } from "@/components/ui/Loading";
 import { ErrorMessage } from "@/components/ui/ErrorMessage";
 import { MatchupVoter } from "@/components/bracket/MatchupVoter";
+import { apiFetch, apiPost, ApiClientError, getErrorMessage } from "@/lib/api-client";
 import type { Matchup, BracketData } from "@/types";
 
 export default function BracketPage() {
@@ -21,20 +22,20 @@ export default function BracketPage() {
 
   const fetchBracket = useCallback(async () => {
     try {
-      const res = await fetch(`/api/sessions/${sessionId}/bracket`);
-      if (res.status === 404) {
-        const createRes = await fetch(`/api/sessions/${sessionId}/bracket`, {
-          method: "POST",
-        });
-        if (!createRes.ok) throw new Error("Failed to create bracket");
-        setBracket(await createRes.json());
-      } else if (!res.ok) {
-        throw new Error("Failed to load bracket");
+      const data = await apiFetch<BracketData>(`/api/sessions/${sessionId}/bracket`);
+      setBracket(data);
+    } catch (err) {
+      if (err instanceof ApiClientError && err.status === 404) {
+        // Bracket doesn't exist yet — create it
+        try {
+          const data = await apiPost<BracketData>(`/api/sessions/${sessionId}/bracket`, {});
+          setBracket(data);
+        } catch (createErr) {
+          setError(getErrorMessage(createErr, "Failed to create bracket."));
+        }
       } else {
-        setBracket(await res.json());
+        setError(getErrorMessage(err, "Failed to load bracket. Please try again."));
       }
-    } catch {
-      setError("Failed to load bracket. Please try again.");
     }
     setLoading(false);
   }, [sessionId]);
@@ -66,24 +67,17 @@ export default function BracketPage() {
     setVoting(true);
 
     try {
-      await fetch(`/api/sessions/${sessionId}/bracket/vote`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          matchupId: currentMatchup.id,
-          participantId,
-          chosenItemId,
-        }),
+      await apiPost(`/api/sessions/${sessionId}/bracket/vote`, {
+        matchupId: currentMatchup.id,
+        participantId,
+        chosenItemId,
       });
 
       if (currentMatchupIndex < myPendingMatchups.length - 1) {
         setCurrentMatchupIndex((i) => i + 1);
       } else {
-        await fetch(`/api/sessions/${sessionId}/bracket/advance`, {
-          method: "POST",
-        });
-        const res = await fetch(`/api/sessions/${sessionId}/bracket`);
-        const updated = await res.json();
+        await apiFetch(`/api/sessions/${sessionId}/bracket/advance`, { method: "POST" });
+        const updated = await apiFetch<BracketData>(`/api/sessions/${sessionId}/bracket`);
         setBracket(updated);
 
         const stillPending = updated.matchups.filter(
@@ -99,8 +93,8 @@ export default function BracketPage() {
           router.push(`/sessions/${sessionId}/vote`);
         }
       }
-    } catch {
-      setError("Failed to submit vote. Please try again.");
+    } catch (err) {
+      setError(getErrorMessage(err, "Failed to submit vote. Please try again."));
     } finally {
       setVoting(false);
     }

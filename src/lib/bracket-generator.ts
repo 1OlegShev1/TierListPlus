@@ -4,8 +4,18 @@ function nextPowerOf2(n: number): number {
   return p;
 }
 
+/** Fisher-Yates shuffle for unbiased randomization. */
+function shuffle<T>(array: T[]): T[] {
+  const result = [...array];
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [result[i], result[j]] = [result[j], result[i]];
+  }
+  return result;
+}
+
 export function generateBracket(itemIds: string[]) {
-  const shuffled = [...itemIds].sort(() => Math.random() - 0.5);
+  const shuffled = shuffle(itemIds);
   const bracketSize = nextPowerOf2(shuffled.length);
   const rounds = Math.log2(bracketSize);
   const matchups: {

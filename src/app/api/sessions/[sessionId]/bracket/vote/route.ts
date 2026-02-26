@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { bracketVoteSchema } from "@/lib/validators";
-import { withHandler, validateBody, verifyParticipant, notFound, badRequest } from "@/lib/api-helpers";
+import { withHandler, validateBody, verifyParticipant, notFound, badRequest, requireOpenSession } from "@/lib/api-helpers";
 
 export const POST = withHandler(async (request, { params }) => {
   const { sessionId } = await params;
+  await requireOpenSession(sessionId);
   const data = await validateBody(request, bracketVoteSchema);
 
   const { matchupId, participantId, chosenItemId } = data;

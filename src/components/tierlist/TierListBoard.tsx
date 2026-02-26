@@ -20,6 +20,7 @@ import { UnrankedPool } from "./UnrankedPool";
 import { DraggableItem } from "./DraggableItem";
 import { useTierListStore } from "@/hooks/useTierList";
 import { Button } from "@/components/ui/Button";
+import { apiPost, getErrorMessage } from "@/lib/api-client";
 import type { TierConfig, Item } from "@/types";
 
 interface TierListBoardProps {
@@ -42,6 +43,7 @@ export function TierListBoard({
   const { initialize, setActiveId, activeId, items, findContainer, tiers, unranked, getVotes } =
     useTierListStore();
   const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   useEffect(() => {
     initialize(
@@ -162,15 +164,12 @@ export function TierListBoard({
     if (votes.length === 0) return;
 
     setSubmitting(true);
+    setSubmitError(null);
     try {
-      const res = await fetch(`/api/sessions/${sessionId}/votes`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ participantId, votes }),
-      });
-      if (res.ok) {
-        onSubmitted();
-      }
+      await apiPost(`/api/sessions/${sessionId}/votes`, { participantId, votes });
+      onSubmitted();
+    } catch (err) {
+      setSubmitError(getErrorMessage(err, "Failed to submit votes. Please try again."));
     } finally {
       setSubmitting(false);
     }
@@ -226,6 +225,9 @@ export function TierListBoard({
           {rankedCount}/{totalItems} items ranked
         </span>
       </div>
+      {submitError && (
+        <p className="mt-2 text-sm text-red-400">{submitError}</p>
+      )}
     </div>
   );
 }

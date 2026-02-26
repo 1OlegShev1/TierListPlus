@@ -1,4 +1,6 @@
-export type { TierConfig } from "@/lib/constants";
+import type { TierConfig } from "@/lib/constants";
+
+export type { TierConfig };
 
 /** A displayable item with id, label, and image. Used throughout the app for session items, bracket items, template items. */
 export interface Item {
@@ -40,8 +42,22 @@ export interface SessionData {
   name: string;
   status: string;
   bracketEnabled: boolean;
-  tierConfig: import("@/lib/constants").TierConfig[];
+  tierConfig: TierConfig[];
   items: Item[];
+}
+
+/** Lobby session data with full details */
+export interface SessionLobbyData {
+  id: string;
+  name: string;
+  joinCode: string;
+  status: string;
+  bracketEnabled: boolean;
+  tierConfig: TierConfig[];
+  template: { name: string };
+  participants: { id: string; nickname: string; createdAt: string }[];
+  items: Item[];
+  _count: { participants: number };
 }
 
 /** Template summary for lists and dropdowns */

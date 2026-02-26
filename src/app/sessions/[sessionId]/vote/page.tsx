@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/Button";
 import { Loading } from "@/components/ui/Loading";
 import { ErrorMessage } from "@/components/ui/ErrorMessage";
 import { GearIcon } from "@/components/ui/GearIcon";
+import { apiFetch, getErrorMessage } from "@/lib/api-client";
 import type { SessionData } from "@/types";
 
 export default function VotePage() {
@@ -27,31 +28,27 @@ export default function VotePage() {
       return;
     }
 
-    fetch(`/api/sessions/${sessionId}`)
-      .then((r) => r.json())
-      .then(async (data: SessionData) => {
+    (async () => {
+      try {
+        const data = await apiFetch<SessionData>(`/api/sessions/${sessionId}`);
         setSession(data);
 
         if (data.bracketEnabled) {
           try {
-            const rankingsRes = await fetch(
+            const { seededTiers: seeds } = await apiFetch<{ seededTiers: Record<string, string[]> }>(
               `/api/sessions/${sessionId}/bracket/rankings`
             );
-            if (rankingsRes.ok) {
-              const { seededTiers: seeds } = await rankingsRes.json();
-              setSeededTiers(seeds);
-            }
+            setSeededTiers(seeds);
           } catch {
-            // Bracket rankings unavailable
+            // Bracket rankings unavailable — not critical
           }
         }
-
+      } catch (err) {
+        setError(getErrorMessage(err, "Failed to load session. Please try again."));
+      } finally {
         setLoading(false);
-      })
-      .catch(() => {
-        setError("Failed to load session. Please try again.");
-        setLoading(false);
-      });
+      }
+    })();
   }, [sessionId, participantId, router]);
 
   if (!participantId) return null;

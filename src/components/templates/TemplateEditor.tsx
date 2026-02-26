@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Textarea";
 import { ErrorMessage } from "@/components/ui/ErrorMessage";
+import { apiFetch, apiPost, apiPatch, getErrorMessage } from "@/lib/api-client";
 
 interface TemplateItem {
   id?: string;
@@ -59,40 +60,18 @@ export function TemplateEditor({
       let id = templateId;
 
       if (!id) {
-        const res = await fetch("/api/templates", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name, description }),
-        });
-        if (!res.ok) {
-          const data = await res.json();
-          setError(typeof data.error === "string" ? data.error : "Failed to create template");
-          return;
-        }
-        const template = await res.json();
+        const template = await apiPost<{ id: string }>("/api/templates", { name, description });
         id = template.id;
       } else {
-        const res = await fetch(`/api/templates/${id}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name, description }),
-        });
-        if (!res.ok) {
-          const data = await res.json();
-          setError(typeof data.error === "string" ? data.error : "Failed to update template");
-          return;
-        }
+        await apiPatch(`/api/templates/${id}`, { name, description });
       }
 
-      const existingItems = initialItems.filter((i) => i.id);
-      const existingIds = new Set(existingItems.map((i) => i.id));
+      const existingIds = new Set(initialItems.filter((i) => i.id).map((i) => i.id));
 
       // Delete removed items
       for (const existing of initialItems) {
         if (existing.id && !items.find((i) => i.id === existing.id)) {
-          await fetch(`/api/templates/${id}/items/${existing.id}`, {
-            method: "DELETE",
-          });
+          await apiFetch(`/api/templates/${id}/items/${existing.id}`, { method: "DELETE" });
         }
       }
 
@@ -100,27 +79,19 @@ export function TemplateEditor({
       for (let i = 0; i < items.length; i++) {
         const item = items[i];
         if (item.id && existingIds.has(item.id)) {
-          await fetch(`/api/templates/${id}/items/${item.id}`, {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ label: item.label, sortOrder: i }),
-          });
+          await apiPatch(`/api/templates/${id}/items/${item.id}`, { label: item.label, sortOrder: i });
         } else {
-          await fetch(`/api/templates/${id}/items`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              label: item.label,
-              imageUrl: item.imageUrl,
-              sortOrder: i,
-            }),
+          await apiPost(`/api/templates/${id}/items`, {
+            label: item.label,
+            imageUrl: item.imageUrl,
+            sortOrder: i,
           });
         }
       }
 
       router.push(`/templates/${id}`);
-    } catch {
-      setError("Network error. Please try again.");
+    } catch (err) {
+      setError(getErrorMessage(err, "Failed to save. Please try again."));
     } finally {
       setSaving(false);
     }

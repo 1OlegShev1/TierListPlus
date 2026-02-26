@@ -5,9 +5,15 @@ import { generateJoinCode } from "@/lib/nanoid";
 import { DEFAULT_TIER_CONFIG } from "@/lib/constants";
 import { withHandler, validateBody, notFound, badRequest } from "@/lib/api-helpers";
 
+const VALID_STATUSES = new Set(["OPEN", "CLOSED", "ARCHIVED"]);
+
 export const GET = withHandler(async (request) => {
   const { searchParams } = new URL(request.url);
   const status = searchParams.get("status");
+
+  if (status && !VALID_STATUSES.has(status)) {
+    badRequest("Invalid status filter. Must be OPEN, CLOSED, or ARCHIVED");
+  }
 
   const sessions = await prisma.session.findMany({
     where: status ? { status: status as "OPEN" | "CLOSED" | "ARCHIVED" } : undefined,

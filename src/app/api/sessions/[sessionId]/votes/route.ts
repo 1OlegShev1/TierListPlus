@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { submitVotesSchema } from "@/lib/validators";
-import { withHandler, validateBody, verifyParticipant } from "@/lib/api-helpers";
+import { withHandler, validateBody, verifyParticipant, requireOpenSession } from "@/lib/api-helpers";
 
 export const GET = withHandler(async (_request, { params }) => {
   const { sessionId } = await params;
@@ -18,6 +18,7 @@ export const GET = withHandler(async (_request, { params }) => {
 
 export const POST = withHandler(async (request, { params }) => {
   const { sessionId } = await params;
+  await requireOpenSession(sessionId);
   const data = await validateBody(request, submitVotesSchema);
 
   const { participantId, votes } = data;

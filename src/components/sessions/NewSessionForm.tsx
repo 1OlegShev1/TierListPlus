@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { ErrorMessage } from "@/components/ui/ErrorMessage";
 import { TierConfigEditor } from "./TierConfigEditor";
+import { apiFetch, apiPost, getErrorMessage } from "@/lib/api-client";
 import type { TierConfig, TemplateSummary } from "@/types";
 
 export function NewSessionForm() {
@@ -24,9 +25,7 @@ export function NewSessionForm() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    fetch("/api/templates")
-      .then((r) => r.json())
-      .then(setTemplates);
+    apiFetch<TemplateSummary[]>("/api/templates").then(setTemplates).catch(() => {});
   }, []);
 
   const create = async () => {
@@ -34,22 +33,15 @@ export function NewSessionForm() {
     setCreating(true);
     setError("");
     try {
-      const res = await fetch("/api/sessions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          templateId,
-          name,
-          tierConfig: deriveTierKeys(tierConfig),
-          bracketEnabled,
-        }),
+      const data = await apiPost<{ id: string }>("/api/sessions", {
+        templateId,
+        name,
+        tierConfig: deriveTierKeys(tierConfig),
+        bracketEnabled,
       });
-      const data = await res.json();
-      if (!res.ok) {
-        setError(typeof data.error === "string" ? data.error : "Failed to create session");
-        return;
-      }
       router.push(`/sessions/${data.id}`);
+    } catch (err) {
+      setError(getErrorMessage(err, "Failed to create session"));
     } finally {
       setCreating(false);
     }
