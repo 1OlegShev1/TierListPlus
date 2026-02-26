@@ -11,7 +11,6 @@ export const DEFAULT_TIER_CONFIG: TierConfig[] = [
   { key: "B", label: "B", color: "#ffdf7f", sortOrder: 2 },
   { key: "C", label: "C", color: "#ffff7f", sortOrder: 3 },
   { key: "D", label: "D", color: "#bfff7f", sortOrder: 4 },
-  { key: "F", label: "F", color: "#7fffff", sortOrder: 5 },
 ];
 
 /** Derive unique keys from tier labels. Call before saving tier config. */
