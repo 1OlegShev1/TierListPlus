@@ -73,3 +73,17 @@ export interface VotePayload {
   tierKey: string;
   rankInTier: number;
 }
+
+/** A template item (with optional id for new unsaved items) */
+export interface TemplateItemData {
+  id?: string;
+  label: string;
+  imageUrl: string;
+  sortOrder: number;
+}
+
+/** Session result summary for the results page */
+export interface SessionResult {
+  name: string;
+  participants: { id: string; nickname: string }[];
+}

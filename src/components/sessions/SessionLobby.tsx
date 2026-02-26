@@ -104,9 +104,9 @@ export function SessionLobby({ session }: SessionLobbyProps) {
 
           {!showTierConfig && (
             <div className="flex flex-wrap gap-1">
-              {tierConfig.map((t, i) => (
+              {tierConfig.map((t) => (
                 <span
-                  key={i}
+                  key={t.key}
                   className="rounded px-2 py-0.5 text-xs font-bold"
                   style={{ backgroundColor: t.color, color: "#000" }}
                 >

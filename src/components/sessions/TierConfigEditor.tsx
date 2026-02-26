@@ -96,7 +96,7 @@ export function TierConfigEditor({
     <div className="space-y-3">
       <div className="space-y-2">
         {tiers.map((tier, index) => (
-          <div key={index} className="flex items-center gap-2">
+          <div key={tier.key} className="flex items-center gap-2">
             {/* Color picker */}
             <input
               type="color"
@@ -104,6 +104,7 @@ export function TierConfigEditor({
               onChange={(e) => updateTier(index, "color", e.target.value)}
               className="h-8 w-8 cursor-pointer rounded border-0 bg-transparent"
               title="Tier color"
+              aria-label={`Color for ${tier.label}`}
             />
 
             {/* Label input */}
@@ -130,6 +131,7 @@ export function TierConfigEditor({
               disabled={index === 0}
               className="text-neutral-500 hover:text-neutral-300 disabled:opacity-30"
               title="Move up"
+              aria-label={`Move ${tier.label} up`}
             >
               <ChevronUpIcon />
             </button>
@@ -138,6 +140,7 @@ export function TierConfigEditor({
               disabled={index === tiers.length - 1}
               className="text-neutral-500 hover:text-neutral-300 disabled:opacity-30"
               title="Move down"
+              aria-label={`Move ${tier.label} down`}
             >
               <ChevronDownIcon />
             </button>
@@ -148,6 +151,7 @@ export function TierConfigEditor({
               disabled={tiers.length <= 2}
               className="text-neutral-500 hover:text-red-400 disabled:opacity-30"
               title="Remove tier"
+              aria-label={`Remove ${tier.label}`}
             >
               <CloseIcon />
             </button>

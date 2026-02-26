@@ -39,6 +39,7 @@ export function TierRow({ tierKey, label, color }: TierRowProps) {
               onClick={() => setShowBracket(true)}
               className="rounded bg-black/20 px-1.5 py-0.5 text-[10px] font-medium transition-colors hover:bg-black/40"
               title="Rank items with 1v1 bracket"
+              aria-label={`Rank items in ${label} tier using bracket`}
             >
               Rank
             </button>

@@ -44,7 +44,7 @@ export function mitBacktrackRanking(
   if (finalistId) queue.push(finalistId);
 
   while (queue.length > 0) {
-    const id = queue.shift()!;
+    const id = queue.shift() as string;
     if (seen.has(id)) continue;
     seen.add(id);
     ranked.push(id);

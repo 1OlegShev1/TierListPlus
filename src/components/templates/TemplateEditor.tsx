@@ -8,19 +8,13 @@ import { ErrorMessage } from "@/components/ui/ErrorMessage";
 import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Textarea";
 import { apiFetch, apiPatch, apiPost, getErrorMessage } from "@/lib/api-client";
-
-interface TemplateItem {
-  id?: string;
-  label: string;
-  imageUrl: string;
-  sortOrder: number;
-}
+import type { TemplateItemData } from "@/types";
 
 interface TemplateEditorProps {
   templateId?: string;
   initialName?: string;
   initialDescription?: string;
-  initialItems?: TemplateItem[];
+  initialItems?: TemplateItemData[];
 }
 
 export function TemplateEditor({
@@ -32,7 +26,7 @@ export function TemplateEditor({
   const router = useRouter();
   const [name, setName] = useState(initialName);
   const [description, setDescription] = useState(initialDescription);
-  const [items, setItems] = useState<TemplateItem[]>(initialItems);
+  const [items, setItems] = useState<TemplateItemData[]>(initialItems);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -127,6 +121,7 @@ export function TemplateEditor({
               <button
                 onClick={() => removeItem(index)}
                 className="absolute -right-2 -top-2 z-10 hidden h-5 w-5 items-center justify-center rounded-full bg-red-600 text-xs text-white group-hover:flex"
+                aria-label={`Remove ${item.label || "item"}`}
               >
                 x
               </button>

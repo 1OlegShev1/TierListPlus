@@ -54,7 +54,6 @@ model Session {
   participants Participant[]
   brackets     Bracket[]
 
-  @@index([joinCode])
   @@index([templateId])
 }
 

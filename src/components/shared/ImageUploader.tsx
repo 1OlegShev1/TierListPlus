@@ -10,17 +10,24 @@ interface ImageUploaderProps {
 export function ImageUploader({ onUploaded, className }: ImageUploaderProps) {
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const upload = useCallback(
     async (file: File) => {
       setUploading(true);
+      setError(null);
       try {
         const formData = new FormData();
         formData.append("file", file);
         const res = await fetch("/api/upload", { method: "POST", body: formData });
-        if (!res.ok) throw new Error("Upload failed");
+        if (!res.ok) {
+          const data = await res.json().catch(() => null);
+          throw new Error(data?.error ?? "Upload failed");
+        }
         const { url } = await res.json();
         onUploaded(url);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Upload failed");
       } finally {
         setUploading(false);
       }
@@ -67,9 +74,15 @@ export function ImageUploader({ onUploaded, className }: ImageUploaderProps) {
         className="hidden"
         onChange={handleFileInput}
         disabled={uploading}
+        aria-label="Upload image"
       />
       {uploading ? (
         <span className="text-sm text-neutral-400">Uploading...</span>
+      ) : error ? (
+        <>
+          <span className="text-xs text-red-400">{error}</span>
+          <span className="text-xs text-neutral-500">Click to retry</span>
+        </>
       ) : (
         <>
           <span className="text-2xl text-neutral-500">+</span>

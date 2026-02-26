@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { badRequest, withHandler } from "@/lib/api-helpers";
-import { saveUploadedImage } from "@/lib/upload";
+import { saveUploadedImage, validateImageBuffer } from "@/lib/upload";
 
 export const POST = withHandler(async (request) => {
   const formData = await request.formData();
@@ -10,6 +10,9 @@ export const POST = withHandler(async (request) => {
   if (!file.type.startsWith("image/")) badRequest("File must be an image");
   if (file.size > 10 * 1024 * 1024) badRequest("File too large (max 10MB)");
 
-  const url = await saveUploadedImage(file);
+  const buffer = Buffer.from(await file.arrayBuffer());
+  if (!validateImageBuffer(buffer)) badRequest("File is not a valid image");
+
+  const url = await saveUploadedImage(buffer);
   return NextResponse.json({ url });
 });

@@ -9,11 +9,7 @@ import { Loading } from "@/components/ui/Loading";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { apiFetch, getErrorMessage } from "@/lib/api-client";
 import type { ConsensusItem, ConsensusTier } from "@/lib/consensus";
-
-interface SessionResult {
-  name: string;
-  participants: { id: string; nickname: string }[];
-}
+import type { SessionResult } from "@/types";
 
 export default function ResultsPage() {
   const { sessionId } = useParams<{ sessionId: string }>();

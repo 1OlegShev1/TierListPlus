@@ -54,7 +54,7 @@ export function computeConsensus(
 
   // Enrich items with scores
   const enrichedItems: ConsensusItem[] = sessionItems.map((item) => {
-    const stats = itemStats.get(item.id)!;
+    const stats = itemStats.get(item.id) ?? { totalScore: 0, count: 0, distribution: {} };
     return {
       ...item,
       averageScore: stats.count > 0 ? stats.totalScore / stats.count : 0,

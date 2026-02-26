@@ -24,8 +24,13 @@ export const PATCH = withHandler(async (request, { params }) => {
 
 export const DELETE = withHandler(async (_request, { params }) => {
   const { templateId, itemId } = await params;
-  await prisma.templateItem.delete({
+
+  const existing = await prisma.templateItem.findFirst({
     where: { id: itemId, templateId },
+    select: { id: true },
   });
+  if (!existing) notFound("Template item not found");
+
+  await prisma.templateItem.delete({ where: { id: itemId } });
   return new Response(null, { status: 204 });
 });

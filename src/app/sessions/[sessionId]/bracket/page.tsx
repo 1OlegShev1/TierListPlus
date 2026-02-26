@@ -50,7 +50,22 @@ export default function BracketPage() {
 
   if (!participantId) return null;
   if (loading) return <Loading message="Loading bracket..." />;
-  if (error) return <ErrorMessage message={error} />;
+  if (error)
+    return (
+      <div className="flex flex-col items-center gap-4 py-20">
+        <ErrorMessage message={error} />
+        <Button
+          variant="secondary"
+          onClick={() => {
+            setError(null);
+            setLoading(true);
+            fetchBracket();
+          }}
+        >
+          Retry
+        </Button>
+      </div>
+    );
   if (!bracket) return null;
 
   const myPendingMatchups = bracket.matchups.filter(

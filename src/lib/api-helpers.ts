@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 import type { z } from "zod/v4";
 import { prisma } from "@/lib/prisma";
@@ -6,15 +7,16 @@ import { prisma } from "@/lib/prisma";
 export class ApiError extends Error {
   constructor(
     public status: number,
-    public details: unknown,
+    public details: string,
   ) {
-    super(typeof details === "string" ? details : JSON.stringify(details));
+    super(details);
   }
 }
 
 /**
  * Wraps an API route handler with try/catch.
- * Catches ApiError for structured 4xx responses, logs + returns 500 for unexpected errors.
+ * Catches ApiError for structured 4xx responses, Prisma errors for common DB issues,
+ * and logs + returns 500 for unexpected errors.
  */
 export function withHandler(
   fn: (req: Request, ctx: { params: Promise<Record<string, string>> }) => Promise<Response>,
@@ -25,6 +27,20 @@ export function withHandler(
     } catch (error) {
       if (error instanceof ApiError) {
         return NextResponse.json({ error: error.details }, { status: error.status });
+      }
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        if (error.code === "P2002") {
+          return NextResponse.json(
+            { error: "A record with that value already exists" },
+            { status: 409 },
+          );
+        }
+        if (error.code === "P2025") {
+          return NextResponse.json({ error: "Record not found" }, { status: 404 });
+        }
+        if (error.code === "P2003") {
+          return NextResponse.json({ error: "Referenced record not found" }, { status: 400 });
+        }
       }
       console.error("Unhandled API error:", error);
       return NextResponse.json({ error: "Internal server error" }, { status: 500 });
@@ -48,7 +64,14 @@ export async function validateBody<T extends z.ZodType>(
   }
   const parsed = schema.safeParse(body);
   if (!parsed.success) {
-    throw new ApiError(400, parsed.error.flatten());
+    const flat = parsed.error.flatten();
+    const messages = [
+      ...flat.formErrors,
+      ...Object.entries(flat.fieldErrors).map(
+        ([field, errs]) => `${field}: ${(errs as string[]).join(", ")}`,
+      ),
+    ];
+    throw new ApiError(400, messages.join("; ") || "Validation failed");
   }
   return parsed.data;
 }

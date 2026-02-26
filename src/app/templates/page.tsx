@@ -49,7 +49,8 @@ export default async function TemplatesPage() {
                     className="aspect-square w-full rounded object-cover"
                   />
                 ))}
-                {Array.from({ length: Math.max(0, 4 - template.items.length) }).map((_, i) => (
+                {Array.from({ length: Math.max(0, 4 - template.items.length) }, (_, i) => (
+                  // biome-ignore lint/suspicious/noArrayIndexKey: static empty placeholders never reorder
                   <div key={i} className="aspect-square w-full rounded bg-neutral-800" />
                 ))}
               </div>
