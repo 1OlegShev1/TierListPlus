@@ -14,16 +14,16 @@ export function NavBar() {
 
   return (
     <nav className="border-b border-neutral-800 bg-neutral-950">
-      <div className="mx-auto flex h-14 max-w-6xl items-center gap-6 px-4">
-        <Link href="/" className="text-lg font-bold text-white">
+      <div className="mx-auto flex h-16 max-w-6xl items-center gap-8 px-4">
+        <Link href="/" className="text-xl font-bold text-white">
           TierList<span className="text-amber-400">+</span>
         </Link>
-        <div className="flex gap-4">
+        <div className="flex gap-6">
           {links.map((link) => (
             <Link
               key={link.href}
               href={link.href}
-              className={`text-sm transition-colors ${
+              className={`text-base transition-colors ${
                 pathname.startsWith(link.href) ? "text-white" : "text-neutral-400 hover:text-white"
               }`}
             >

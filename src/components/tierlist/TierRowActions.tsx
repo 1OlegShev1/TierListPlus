@@ -75,13 +75,13 @@ export function TierRowActions({
         aria-label={`Actions for ${label} tier`}
         aria-expanded={open}
       >
-        <EllipsisVerticalIcon className="h-3.5 w-3.5" />
+        <EllipsisVerticalIcon className="h-4 w-4" />
       </button>
 
       {open && (
         <div
           ref={menuRef}
-          className={`absolute right-0 z-20 min-w-[152px] rounded-lg border border-neutral-700 bg-neutral-800 py-1 shadow-lg ${
+          className={`absolute right-0 z-20 min-w-[168px] rounded-lg border border-neutral-700 bg-neutral-800 py-1.5 shadow-lg ${
             openUpward ? "bottom-full mb-1" : "top-full mt-1"
           }`}
         >
@@ -89,13 +89,13 @@ export function TierRowActions({
             onClick={() => act(onInsertAbove)}
             className="flex w-full cursor-pointer items-center gap-2 px-3 py-1.5 text-left text-sm text-neutral-300 hover:bg-neutral-700"
           >
-            <PlusIcon className="h-3.5 w-3.5" /> Insert above
+            <PlusIcon className="h-4 w-4" /> Insert above
           </button>
           <button
             onClick={() => act(onInsertBelow)}
             className="flex w-full cursor-pointer items-center gap-2 px-3 py-1.5 text-left text-sm text-neutral-300 hover:bg-neutral-700"
           >
-            <PlusIcon className="h-3.5 w-3.5" /> Insert below
+            <PlusIcon className="h-4 w-4" /> Insert below
           </button>
           <hr className="my-1 border-neutral-700" />
           <button
@@ -103,7 +103,7 @@ export function TierRowActions({
             disabled={!canDelete}
             className="flex w-full cursor-pointer items-center gap-2 px-3 py-1.5 text-left text-sm text-red-400 hover:bg-neutral-700 disabled:cursor-default disabled:opacity-30 disabled:hover:bg-transparent"
           >
-            <CloseIcon className="h-3.5 w-3.5" /> Delete row
+            <CloseIcon className="h-4 w-4" /> Delete row
           </button>
         </div>
       )}

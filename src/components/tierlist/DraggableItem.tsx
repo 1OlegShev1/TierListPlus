@@ -30,12 +30,12 @@ export function DraggableItem({ id, label, imageUrl, overlay }: DraggableItemPro
       style={style}
       {...(overlay ? {} : attributes)}
       {...(overlay ? {} : listeners)}
-      className={`group relative h-[72px] w-[72px] flex-shrink-0 cursor-grab overflow-hidden rounded border border-neutral-700 active:cursor-grabbing ${
+      className={`group relative h-[96px] w-[96px] flex-shrink-0 cursor-grab overflow-hidden rounded-md border border-neutral-700 active:cursor-grabbing ${
         overlay ? "shadow-xl shadow-black/50 ring-2 ring-amber-400" : ""
       }`}
     >
       <img src={imageUrl} alt={label} className="h-full w-full object-cover" draggable={false} />
-      <span className="absolute inset-x-0 bottom-0 truncate bg-black/70 px-1 py-0.5 text-center text-[9px] leading-tight text-neutral-200 opacity-0 transition-opacity group-hover:opacity-100">
+      <span className="absolute inset-x-0 bottom-0 truncate bg-black/70 px-1 py-0.5 text-center text-[11px] leading-tight text-neutral-200 opacity-0 transition-opacity group-hover:opacity-100">
         {label}
       </span>
     </div>

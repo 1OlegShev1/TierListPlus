@@ -62,13 +62,13 @@ export default function VotePage() {
   }
 
   return (
-    <div>
-      <div className="mb-6">
+    <div className="-mt-4 flex h-[calc(100%+1rem)] min-h-0 flex-col">
+      <div className="mb-2 flex flex-shrink-0 items-baseline justify-between">
         <h1 className="text-2xl font-bold">{session.name}</h1>
         <p className="text-sm text-neutral-500">
           Voting as <span className="text-amber-400">{nickname}</span> &middot;{" "}
           {seededTiers
-            ? "Pre-filled from bracket results — adjust as needed"
+            ? "Pre-filled from bracket — adjust as needed"
             : "Drag items into tiers"}
         </p>
       </div>

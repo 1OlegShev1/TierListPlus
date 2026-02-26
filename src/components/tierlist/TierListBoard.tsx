@@ -15,16 +15,66 @@ import {
   useSensors,
 } from "@dnd-kit/core";
 import { useAutoAnimate } from "@formkit/auto-animate/react";
+import type { AutoAnimationPlugin } from "@formkit/auto-animate";
 import { nanoid } from "nanoid";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Button } from "@/components/ui/Button";
 import { useTierListStore } from "@/hooks/useTierList";
 import { apiPatch, apiPost, getErrorMessage } from "@/lib/api-client";
 import { TIER_COLORS } from "@/lib/constants";
 import type { Item, TierConfig } from "@/types";
 import { DraggableItem } from "./DraggableItem";
 import { TierRow } from "./TierRow";
-import { UnrankedPool } from "./UnrankedPool";
+import { UnrankedDropZone, UnrankedHeader } from "./UnrankedPool";
+
+/**
+ * Custom auto-animate plugin for tier row animations.
+ *
+ * The default add animation is nearly invisible (2% scale + delayed opacity fade).
+ * The default move has a heuristic that zeros out deltas when edges don't shift,
+ * which can suppress animations for full-width rows.
+ */
+const tierRowAnimation: AutoAnimationPlugin = (el, action, coordsA, coordsB) => {
+  if (action === "add") {
+    return new KeyframeEffect(
+      el,
+      [
+        { opacity: 0, transform: "translateY(-10px)" },
+        { opacity: 1, transform: "translateY(0)" },
+      ],
+      { duration: 250, easing: "ease-out" },
+    );
+  }
+
+  if (action === "remove") {
+    // Default styleReset (position:absolute) is applied automatically by auto-animate
+    return new KeyframeEffect(
+      el,
+      [
+        { opacity: 1, transform: "scale(1)" },
+        { opacity: 0, transform: "scale(0.96)" },
+      ],
+      { duration: 200, easing: "ease-out" },
+    );
+  }
+
+  // remain — FLIP slide from old position to new
+  if (coordsA && coordsB) {
+    const deltaX = coordsA.left - coordsB.left;
+    const deltaY = coordsA.top - coordsB.top;
+    if (deltaX !== 0 || deltaY !== 0) {
+      return new KeyframeEffect(
+        el,
+        [
+          { transform: `translate(${deltaX}px, ${deltaY}px)` },
+          { transform: "translate(0, 0)" },
+        ],
+        { duration: 300, easing: "ease-in-out" },
+      );
+    }
+  }
+
+  return new KeyframeEffect(el, [], { duration: 0 });
+};
 
 interface TierListBoardProps {
   sessionId: string;
@@ -58,7 +108,7 @@ export function TierListBoard({
   const [tierConfig, setTierConfig] = useState<TierConfig[]>(initialTierConfig);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [animateRef, enableAnimate] = useAutoAnimate({ duration: 200 });
+  const [animateRef, enableAnimate] = useAutoAnimate(tierRowAnimation);
 
   // Initialize Zustand store only once on mount
   const initializedRef = useRef(false);
@@ -270,7 +320,7 @@ export function TierListBoard({
   const rankedCount = Object.values(tiers).reduce((sum, ids) => sum + ids.length, 0);
 
   return (
-    <div>
+    <div className="flex min-h-0 flex-1 flex-col">
       <DndContext
         sensors={sensors}
         collisionDetection={collisionDetection}
@@ -279,30 +329,50 @@ export function TierListBoard({
         onDragEnd={handleDragEnd}
         onDragCancel={handleDragCancel}
       >
-        {/* Tier Rows */}
-        <div ref={animateRef} className="rounded-lg border border-neutral-800">
-          {tierConfig.map((tier, index) => (
-            <TierRow
-              key={tier.key}
-              tierKey={tier.key}
-              label={tier.label}
-              color={tier.color}
-              isFirst={index === 0}
-              isLast={index === tierConfig.length - 1}
-              canDelete={tierConfig.length > 2}
-              onLabelChange={(newLabel) => handleLabelChange(tier.key, newLabel)}
-              onColorChange={(newColor) => handleColorChange(tier.key, newColor)}
-              onMoveUp={() => handleMoveTier(index, -1)}
-              onMoveDown={() => handleMoveTier(index, 1)}
-              onInsertAbove={() => handleInsertTier(index)}
-              onInsertBelow={() => handleInsertTier(index + 1)}
-              onDelete={() => handleDeleteTier(tier.key)}
-            />
-          ))}
+        {/* Tier Rows — scrollable */}
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          <div ref={animateRef} className="rounded-lg border border-neutral-800">
+            {tierConfig.map((tier, index) => (
+              <TierRow
+                key={tier.key}
+                tierKey={tier.key}
+                label={tier.label}
+                color={tier.color}
+                isFirst={index === 0}
+                isLast={index === tierConfig.length - 1}
+                canDelete={tierConfig.length > 2}
+                onLabelChange={(newLabel) => handleLabelChange(tier.key, newLabel)}
+                onColorChange={(newColor) => handleColorChange(tier.key, newColor)}
+                onMoveUp={() => handleMoveTier(index, -1)}
+                onMoveDown={() => handleMoveTier(index, 1)}
+                onInsertAbove={() => handleInsertTier(index)}
+                onInsertBelow={() => handleInsertTier(index + 1)}
+                onDelete={() => handleDeleteTier(tier.key)}
+              />
+            ))}
+          </div>
         </div>
 
-        {/* Unranked Pool */}
-        <UnrankedPool />
+        {/* Unranked Pool + Submit — always visible */}
+        <div className="flex-shrink-0 pt-2">
+          <div className="mb-1.5 flex items-center justify-between">
+            <UnrankedHeader />
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-neutral-500">
+                {rankedCount}/{totalItems} ranked
+              </span>
+              <button
+                onClick={handleSubmit}
+                disabled={submitting || rankedCount === 0}
+                className="rounded-lg bg-amber-500 px-5 py-1.5 text-sm font-medium text-black transition-colors hover:bg-amber-400 disabled:opacity-50"
+              >
+                {submitting ? "Submitting..." : "Submit Votes"}
+              </button>
+            </div>
+          </div>
+          {submitError && <p className="mb-1 text-sm text-red-400">{submitError}</p>}
+          <UnrankedDropZone />
+        </div>
 
         {/* Drag Overlay */}
         <DragOverlay>
@@ -316,17 +386,6 @@ export function TierListBoard({
           ) : null}
         </DragOverlay>
       </DndContext>
-
-      {/* Submit */}
-      <div className="mt-6 flex items-center gap-4">
-        <Button onClick={handleSubmit} disabled={submitting || rankedCount === 0}>
-          {submitting ? "Submitting..." : "Submit Votes"}
-        </Button>
-        <span className="text-sm text-neutral-500">
-          {rankedCount}/{totalItems} items ranked
-        </span>
-      </div>
-      {submitError && <p className="mt-2 text-sm text-red-400">{submitError}</p>}
     </div>
   );
 }

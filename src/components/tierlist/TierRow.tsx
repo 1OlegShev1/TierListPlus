@@ -79,7 +79,7 @@ export function TierRow({
   return (
     <div>
       <div
-        className={`flex min-h-[80px] border-b border-neutral-800 ${isFirst ? "rounded-t-lg" : ""} ${isLast ? "rounded-b-lg border-b-0" : ""}`}
+        className={`flex min-h-[104px] border-b border-neutral-800 ${isFirst ? "rounded-t-lg" : ""} ${isLast ? "rounded-b-lg border-b-0" : ""}`}
       >
         {/* Color Strip (leftmost) */}
         <TierColorPicker
@@ -92,7 +92,7 @@ export function TierRow({
 
         {/* Tier Label */}
         <div
-          className="flex w-20 flex-shrink-0 items-center justify-center"
+          className="flex w-28 flex-shrink-0 items-center justify-center"
           style={{ backgroundColor: color, color: "#000" }}
         >
           {editingLabel ? (
@@ -109,13 +109,13 @@ export function TierRow({
                 }
               }}
               maxLength={20}
-              className="w-16 rounded bg-black/20 px-1 py-0.5 text-center text-sm font-bold text-inherit focus:outline-none focus:ring-1 focus:ring-black/40"
+              className="w-20 rounded bg-black/20 px-1.5 py-1 text-center text-base font-bold text-inherit focus:outline-none focus:ring-1 focus:ring-black/40"
               aria-label="Edit tier label"
             />
           ) : (
             <button
               onClick={() => setEditingLabel(true)}
-              className="cursor-text text-lg font-bold hover:underline"
+              className="cursor-text text-xl font-bold hover:underline"
               title="Click to edit label"
               aria-label={`Edit ${label} tier label`}
             >
@@ -127,7 +127,7 @@ export function TierRow({
         {/* Items Area */}
         <div
           ref={setNodeRef}
-          className={`flex flex-1 flex-wrap items-start gap-1 p-1 transition-colors ${
+          className={`flex flex-1 flex-wrap items-start gap-2 p-2 transition-colors ${
             isOver ? "bg-neutral-800/50" : ""
           }`}
         >
@@ -139,7 +139,7 @@ export function TierRow({
             })}
           </SortableContext>
           {items.length === 0 && !isOver && (
-            <span className="flex h-[72px] items-center px-4 text-sm text-neutral-600">
+            <span className="flex h-[96px] items-center px-4 text-sm text-neutral-600">
               Drop items here
             </span>
           )}
@@ -147,10 +147,10 @@ export function TierRow({
 
         {/* Rank button */}
         {items.length >= 2 && (
-          <div className="flex flex-shrink-0 items-center border-l border-neutral-800 px-1.5">
+          <div className="flex flex-shrink-0 items-center border-l border-neutral-800 px-2">
             <button
               onClick={() => setShowBracket(true)}
-              className="cursor-pointer rounded px-1.5 py-1 text-xs font-medium text-neutral-500 transition-colors hover:bg-neutral-800 hover:text-amber-400"
+              className="cursor-pointer rounded px-2 py-1.5 text-sm font-medium text-neutral-500 transition-colors hover:bg-neutral-800 hover:text-amber-400"
               title="Rank items with 1v1 bracket"
               aria-label={`Rank items in ${label} tier using bracket`}
             >
@@ -161,7 +161,7 @@ export function TierRow({
 
         {/* Row edit controls (right side) */}
         <div
-          className={`flex w-10 flex-shrink-0 flex-col items-center justify-center gap-0.5 border-l border-neutral-800 ${isFirst ? "rounded-tr-lg" : ""} ${isLast ? "rounded-br-lg" : ""}`}
+          className={`flex w-12 flex-shrink-0 flex-col items-center justify-center gap-1 border-l border-neutral-800 ${isFirst ? "rounded-tr-lg" : ""} ${isLast ? "rounded-br-lg" : ""}`}
         >
           <button
             onClick={onMoveUp}
@@ -170,7 +170,7 @@ export function TierRow({
             title="Move row up"
             aria-label={`Move ${label} tier up`}
           >
-            <ChevronUpIcon className="h-3.5 w-3.5" />
+            <ChevronUpIcon className="h-4 w-4" />
           </button>
 
           <TierRowActions
@@ -188,7 +188,7 @@ export function TierRow({
             title="Move row down"
             aria-label={`Move ${label} tier down`}
           >
-            <ChevronDownIcon className="h-3.5 w-3.5" />
+            <ChevronDownIcon className="h-4 w-4" />
           </button>
         </div>
       </div>

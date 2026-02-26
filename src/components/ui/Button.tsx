@@ -8,9 +8,9 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 
 export const buttonVariants: Record<ButtonVariant, string> = {
   primary:
-    "rounded-lg bg-amber-500 px-6 py-2 font-medium text-black transition-colors hover:bg-amber-400 disabled:opacity-50",
+    "rounded-lg bg-amber-500 px-8 py-2.5 text-base font-medium text-black transition-colors hover:bg-amber-400 disabled:opacity-50",
   secondary:
-    "rounded-lg border border-neutral-700 px-6 py-2 text-neutral-300 transition-colors hover:bg-neutral-800",
+    "rounded-lg border border-neutral-700 px-8 py-2.5 text-base text-neutral-300 transition-colors hover:bg-neutral-800",
   ghost: "text-sm text-neutral-500 transition-colors hover:text-neutral-300",
 };
 

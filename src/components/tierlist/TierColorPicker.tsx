@@ -41,14 +41,13 @@ export function TierColorPicker({
     <div ref={ref} className="relative flex self-stretch">
       <button
         onClick={() => setOpen((v) => !v)}
-        className={`flex w-4 cursor-pointer items-center justify-center transition-opacity hover:opacity-70 ${isFirst ? "rounded-tl-lg" : ""} ${isLast ? "rounded-bl-lg" : ""}`}
+        className={`flex w-5 cursor-pointer items-center justify-center transition-opacity hover:opacity-70 ${isFirst ? "rounded-tl-lg" : ""} ${isLast ? "rounded-bl-lg" : ""}`}
         style={{ backgroundColor: color }}
         title="Change color"
         aria-label={`Change color for ${label} tier`}
         aria-expanded={open}
-      >
-        <span className="text-[8px] text-black/40">&#x25cf;</span>
-      </button>
+      />
+      <div className="w-px self-stretch bg-neutral-800" />
 
       {open && (
         <div className="absolute top-full left-0 z-20 mt-1 w-44 rounded-lg border border-neutral-700 bg-neutral-800 p-2.5 shadow-lg">
