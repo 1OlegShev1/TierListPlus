@@ -9,23 +9,11 @@ interface TierListState {
   items: Map<string, Item>;
   activeId: string | null;
 
-  initialize: (
-    items: Item[],
-    tierKeys: string[],
-    seededTiers?: Record<string, string[]>
-  ) => void;
+  initialize: (items: Item[], tierKeys: string[], seededTiers?: Record<string, string[]>) => void;
   setActiveId: (id: string | null) => void;
   findContainer: (itemId: string) => string | null;
-  moveItem: (
-    itemId: string,
-    toContainer: string,
-    toIndex: number
-  ) => void;
-  reorderInContainer: (
-    container: string,
-    fromIndex: number,
-    toIndex: number
-  ) => void;
+  moveItem: (itemId: string, toContainer: string, toIndex: number) => void;
+  reorderInContainer: (container: string, fromIndex: number, toIndex: number) => void;
   reorderTier: (tierKey: string, orderedIds: string[]) => void;
   getVotes: () => VotePayload[];
 }
@@ -85,9 +73,7 @@ export const useTierListStore = create<TierListState>((set, get) => ({
       if (fromContainer === "unranked") {
         newUnranked = newUnranked.filter((id) => id !== itemId);
       } else {
-        newTiers[fromContainer] = newTiers[fromContainer].filter(
-          (id) => id !== itemId
-        );
+        newTiers[fromContainer] = newTiers[fromContainer].filter((id) => id !== itemId);
       }
 
       // Add to destination

@@ -28,7 +28,7 @@ export const tierConfigSchema = z.array(
     label: z.string().min(1).max(20),
     color: z.string().regex(/^#[0-9a-fA-F]{6}$/),
     sortOrder: z.number().int().min(0),
-  })
+  }),
 );
 
 export const createSessionSchema = z.object({
@@ -50,7 +50,7 @@ export const submitVotesSchema = z.object({
       sessionItemId: z.string().min(1),
       tierKey: z.string().min(1),
       rankInTier: z.number().int().min(0),
-    })
+    }),
   ),
 });
 

@@ -11,14 +11,10 @@ interface DraggableItemProps {
 }
 
 export function DraggableItem({ id, label, imageUrl, overlay }: DraggableItemProps) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id, disabled: overlay });
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id,
+    disabled: overlay,
+  });
 
   const style = overlay
     ? undefined

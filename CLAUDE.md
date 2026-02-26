@@ -8,6 +8,8 @@ TierList+ — collaborative tier list and bracket voting web app.
 
 - `npm run dev` — dev server (Turbopack, port 3000)
 - `npm run build` — production build (use to check for TS errors)
+- `npm run lint` — Biome lint check
+- `npm run lint:fix` — Biome auto-fix
 - `npx prisma migrate dev --name <name>` — create + apply migration
 - `npx prisma generate` — regenerate client after schema changes
 - `npx tsx prisma/seed.ts` — seed demo data
@@ -21,7 +23,7 @@ See `docs/ARCHITECTURE.md` for full details. Key points:
 - Prisma 7 with `@prisma/adapter-pg` driver adapter (not the old `url` in schema pattern)
 - `prisma.config.ts` holds the DB URL (with `dotenv/config` import)
 - `src/lib/prisma.ts` — singleton PrismaClient with PrismaPg adapter
-- Prisma JSON fields need `as unknown as T` casting
+- Prisma JSON fields validated with `tierConfigSchema.parse()` (not `as unknown as T`)
 - `useSearchParams()` must be wrapped in `<Suspense>`
 - Tailwind 4 with `@tailwindcss/postcss` plugin (not the old `tailwind.config.js` pattern)
 - Zod 4 — import from `zod/v4`
@@ -33,6 +35,8 @@ See `docs/ARCHITECTURE.md` for full details. Key points:
 - Client state for drag-and-drop managed by Zustand (`src/hooks/useTierList.ts`)
 - Participant identity in localStorage, no auth system
 - Images uploaded to `public/uploads/`, resized to 200x200 WebP via sharp
+- Biome for linting and formatting (not ESLint/Prettier)
+- Shared icon components in `src/components/ui/icons.tsx`
 
 ## Database
 

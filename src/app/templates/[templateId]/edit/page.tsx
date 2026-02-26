@@ -1,6 +1,6 @@
-import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import { TemplateEditor } from "@/components/templates/TemplateEditor";
+import { prisma } from "@/lib/prisma";
 
 export default async function EditTemplatePage({
   params,

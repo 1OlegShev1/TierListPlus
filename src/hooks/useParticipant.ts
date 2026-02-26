@@ -29,7 +29,7 @@ export function useParticipant(sessionId: string) {
       all[sessionId] = { participantId, nickname };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(all));
     },
-    [sessionId]
+    [sessionId],
   );
 
   const clear = useCallback(() => {

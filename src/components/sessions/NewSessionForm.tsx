@@ -1,15 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { DEFAULT_TIER_CONFIG, deriveTierKeys } from "@/lib/constants";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
+import { ErrorMessage } from "@/components/ui/ErrorMessage";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
-import { ErrorMessage } from "@/components/ui/ErrorMessage";
-import { TierConfigEditor } from "./TierConfigEditor";
 import { apiFetch, apiPost, getErrorMessage } from "@/lib/api-client";
-import type { TierConfig, TemplateSummary } from "@/types";
+import { DEFAULT_TIER_CONFIG, deriveTierKeys } from "@/lib/constants";
+import type { TemplateSummary, TierConfig } from "@/types";
+import { TierConfigEditor } from "./TierConfigEditor";
 
 export function NewSessionForm() {
   const router = useRouter();
@@ -25,7 +25,9 @@ export function NewSessionForm() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    apiFetch<TemplateSummary[]>("/api/templates").then(setTemplates).catch(() => {});
+    apiFetch<TemplateSummary[]>("/api/templates")
+      .then(setTemplates)
+      .catch(() => {});
   }, []);
 
   const create = async () => {
@@ -52,10 +54,8 @@ export function NewSessionForm() {
       <h1 className="mb-6 text-2xl font-bold">Start a Session</h1>
 
       <div className="space-y-6">
-        <div>
-          <label className="mb-2 block text-sm font-medium text-neutral-400">
-            Template
-          </label>
+        <label className="block">
+          <span className="mb-2 block text-sm font-medium text-neutral-400">Template</span>
           <Select
             value={templateId}
             onChange={(e) => setTemplateId(e.target.value)}
@@ -68,12 +68,10 @@ export function NewSessionForm() {
               </option>
             ))}
           </Select>
-        </div>
+        </label>
 
-        <div>
-          <label className="mb-2 block text-sm font-medium text-neutral-400">
-            Session Name
-          </label>
+        <label className="block">
+          <span className="mb-2 block text-sm font-medium text-neutral-400">Session Name</span>
           <Input
             type="text"
             placeholder="e.g., Friday Rankings"
@@ -81,16 +79,11 @@ export function NewSessionForm() {
             onChange={(e) => setName(e.target.value)}
             className="w-full"
           />
-        </div>
+        </label>
 
         <div>
-          <label className="mb-3 block text-sm font-medium text-neutral-400">
-            Tier Rows
-          </label>
-          <TierConfigEditor
-            initialConfig={tierConfig}
-            onChange={setTierConfig}
-          />
+          <span className="mb-3 block text-sm font-medium text-neutral-400">Tier Rows</span>
+          <TierConfigEditor initialConfig={tierConfig} onChange={setTierConfig} />
         </div>
 
         <label className="flex items-center gap-3 rounded-lg border border-neutral-800 bg-neutral-900 p-4">

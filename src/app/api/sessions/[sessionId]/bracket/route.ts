@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { badRequest, bracketMatchupInclude, notFound, withHandler } from "@/lib/api-helpers";
 import { generateBracket } from "@/lib/bracket-generator";
-import { withHandler, notFound, badRequest, bracketMatchupInclude } from "@/lib/api-helpers";
 import { advanceWinnerToNextRound } from "@/lib/bracket-helpers";
+import { prisma } from "@/lib/prisma";
 
 export const GET = withHandler(async (_request, { params }) => {
   const { sessionId } = await params;
@@ -48,11 +48,7 @@ export const POST = withHandler(async (_request, { params }) => {
           itemAId: m.itemAId,
           itemBId: m.itemBId,
           winnerId:
-            m.itemAId && !m.itemBId
-              ? m.itemAId
-              : !m.itemAId && m.itemBId
-              ? m.itemBId
-              : null,
+            m.itemAId && !m.itemBId ? m.itemAId : !m.itemAId && m.itemBId ? m.itemBId : null,
         })),
       },
     },

@@ -6,7 +6,7 @@ import { prisma } from "@/lib/prisma";
 export class ApiError extends Error {
   constructor(
     public status: number,
-    public details: unknown
+    public details: unknown,
   ) {
     super(typeof details === "string" ? details : JSON.stringify(details));
   }
@@ -17,29 +17,17 @@ export class ApiError extends Error {
  * Catches ApiError for structured 4xx responses, logs + returns 500 for unexpected errors.
  */
 export function withHandler(
-  fn: (
-    req: Request,
-    ctx: { params: Promise<Record<string, string>> }
-  ) => Promise<Response>
+  fn: (req: Request, ctx: { params: Promise<Record<string, string>> }) => Promise<Response>,
 ) {
-  return async (
-    req: Request,
-    ctx: { params: Promise<Record<string, string>> }
-  ) => {
+  return async (req: Request, ctx: { params: Promise<Record<string, string>> }) => {
     try {
       return await fn(req, ctx);
     } catch (error) {
       if (error instanceof ApiError) {
-        return NextResponse.json(
-          { error: error.details },
-          { status: error.status }
-        );
+        return NextResponse.json({ error: error.details }, { status: error.status });
       }
       console.error("Unhandled API error:", error);
-      return NextResponse.json(
-        { error: "Internal server error" },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: "Internal server error" }, { status: 500 });
     }
   };
 }
@@ -50,7 +38,7 @@ export function withHandler(
  */
 export async function validateBody<T extends z.ZodType>(
   request: Request,
-  schema: T
+  schema: T,
 ): Promise<z.infer<T>> {
   let body: unknown;
   try {
@@ -79,10 +67,7 @@ export function badRequest(message: string): never {
  * Verify a participant belongs to a session.
  * Returns the participant record, or throws 404 if not found.
  */
-export async function verifyParticipant(
-  participantId: string,
-  sessionId: string
-) {
+export async function verifyParticipant(participantId: string, sessionId: string) {
   const participant = await prisma.participant.findFirst({
     where: { id: participantId, sessionId },
   });

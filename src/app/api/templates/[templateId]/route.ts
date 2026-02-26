@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
+import { notFound, validateBody, withHandler } from "@/lib/api-helpers";
 import { prisma } from "@/lib/prisma";
 import { updateTemplateSchema } from "@/lib/validators";
-import { withHandler, validateBody, notFound } from "@/lib/api-helpers";
 
 export const GET = withHandler(async (_request, { params }) => {
   const { templateId } = await params;
@@ -18,7 +18,10 @@ export const GET = withHandler(async (_request, { params }) => {
 export const PATCH = withHandler(async (request, { params }) => {
   const { templateId } = await params;
 
-  const existing = await prisma.template.findUnique({ where: { id: templateId }, select: { id: true } });
+  const existing = await prisma.template.findUnique({
+    where: { id: templateId },
+    select: { id: true },
+  });
   if (!existing) notFound("Template not found");
 
   const data = await validateBody(request, updateTemplateSchema);
@@ -33,6 +36,13 @@ export const PATCH = withHandler(async (request, { params }) => {
 
 export const DELETE = withHandler(async (_request, { params }) => {
   const { templateId } = await params;
+
+  const existing = await prisma.template.findUnique({
+    where: { id: templateId },
+    select: { id: true },
+  });
+  if (!existing) notFound("Template not found");
+
   await prisma.template.delete({ where: { id: templateId } });
   return new Response(null, { status: 204 });
 });

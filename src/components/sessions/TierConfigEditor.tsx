@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-import { TIER_COLORS, deriveTierKeys } from "@/lib/constants";
-import type { TierConfig } from "@/types";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { ChevronDownIcon, ChevronUpIcon, CloseIcon } from "@/components/ui/icons";
 import { apiPatch, getErrorMessage } from "@/lib/api-client";
+import { deriveTierKeys, TIER_COLORS } from "@/lib/constants";
+import type { TierConfig } from "@/types";
 
 interface TierConfigEditorProps {
   /** When provided, the editor shows a Save button and PATCHes the session. */
@@ -51,15 +52,18 @@ export function TierConfigEditor({
     const nextOrder = tiers.length;
     setTiers((prev) => [
       ...prev,
-      { key: `T${nextOrder}`, label: `Tier ${nextOrder + 1}`, color: nextColor, sortOrder: nextOrder },
+      {
+        key: `T${nextOrder}`,
+        label: `Tier ${nextOrder + 1}`,
+        color: nextColor,
+        sortOrder: nextOrder,
+      },
     ]);
   };
 
   const removeTier = (index: number) => {
     if (tiers.length <= 2) return;
-    setTiers((prev) =>
-      prev.filter((_, i) => i !== index).map((t, i) => ({ ...t, sortOrder: i }))
-    );
+    setTiers((prev) => prev.filter((_, i) => i !== index).map((t, i) => ({ ...t, sortOrder: i })));
   };
 
   const moveTier = (index: number, direction: -1 | 1) => {
@@ -127,9 +131,7 @@ export function TierConfigEditor({
               className="text-neutral-500 hover:text-neutral-300 disabled:opacity-30"
               title="Move up"
             >
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-              </svg>
+              <ChevronUpIcon />
             </button>
             <button
               onClick={() => moveTier(index, 1)}
@@ -137,9 +139,7 @@ export function TierConfigEditor({
               className="text-neutral-500 hover:text-neutral-300 disabled:opacity-30"
               title="Move down"
             >
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
+              <ChevronDownIcon />
             </button>
 
             {/* Remove button */}
@@ -149,36 +149,24 @@ export function TierConfigEditor({
               className="text-neutral-500 hover:text-red-400 disabled:opacity-30"
               title="Remove tier"
             >
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
+              <CloseIcon />
             </button>
           </div>
         ))}
       </div>
 
       <div className="flex items-center gap-3">
-        <Button
-          variant="secondary"
-          onClick={addTier}
-          className="px-3 py-1 text-xs"
-        >
+        <Button variant="secondary" onClick={addTier} className="px-3 py-1 text-xs">
           + Add Row
         </Button>
         {sessionId && (
-          <Button
-            onClick={handleSave}
-            disabled={saving}
-            className="px-4 py-1 text-xs"
-          >
+          <Button onClick={handleSave} disabled={saving} className="px-4 py-1 text-xs">
             {saving ? "Saving..." : "Save Config"}
           </Button>
         )}
       </div>
 
-      {error && (
-        <p className="text-sm text-red-400">{error}</p>
-      )}
+      {error && <p className="text-sm text-red-400">{error}</p>}
     </div>
   );
 }

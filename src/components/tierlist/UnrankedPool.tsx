@@ -1,9 +1,9 @@
 "use client";
 
 import { useDroppable } from "@dnd-kit/core";
-import { SortableContext, rectSortingStrategy } from "@dnd-kit/sortable";
-import { DraggableItem } from "./DraggableItem";
+import { rectSortingStrategy, SortableContext } from "@dnd-kit/sortable";
 import { useTierListStore } from "@/hooks/useTierList";
+import { DraggableItem } from "./DraggableItem";
 
 export function UnrankedPool() {
   const unranked = useTierListStore((s) => s.unranked);
@@ -13,9 +13,7 @@ export function UnrankedPool() {
 
   return (
     <div className="mt-4">
-      <h3 className="mb-2 text-sm font-medium text-neutral-400">
-        Unranked ({unranked.length})
-      </h3>
+      <h3 className="mb-2 text-sm font-medium text-neutral-400">Unranked ({unranked.length})</h3>
       <div
         ref={setNodeRef}
         className={`flex min-h-[80px] flex-wrap gap-1 rounded-lg border border-neutral-800 bg-neutral-900 p-2 transition-colors ${
@@ -26,14 +24,7 @@ export function UnrankedPool() {
           {unranked.map((id) => {
             const item = itemMap.get(id);
             if (!item) return null;
-            return (
-              <DraggableItem
-                key={id}
-                id={id}
-                label={item.label}
-                imageUrl={item.imageUrl}
-              />
-            );
+            return <DraggableItem key={id} id={id} label={item.label} imageUrl={item.imageUrl} />;
           })}
         </SortableContext>
         {unranked.length === 0 && (

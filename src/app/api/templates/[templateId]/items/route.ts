@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
+import { validateBody, withHandler } from "@/lib/api-helpers";
 import { prisma } from "@/lib/prisma";
 import { addTemplateItemSchema } from "@/lib/validators";
-import { withHandler, validateBody } from "@/lib/api-helpers";
 
 export const POST = withHandler(async (request, { params }) => {
   const { templateId } = await params;

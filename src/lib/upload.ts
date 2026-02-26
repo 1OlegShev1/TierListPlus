@@ -1,7 +1,7 @@
-import path from "path";
-import fs from "fs/promises";
-import sharp from "sharp";
+import fs from "node:fs/promises";
+import path from "node:path";
 import { nanoid } from "nanoid";
+import sharp from "sharp";
 
 const UPLOAD_DIR = path.join(process.cwd(), "public", "uploads");
 
@@ -14,10 +14,7 @@ export async function saveUploadedImage(file: File): Promise<string> {
 
   const buffer = Buffer.from(await file.arrayBuffer());
 
-  await sharp(buffer)
-    .resize(200, 200, { fit: "cover" })
-    .webp({ quality: 80 })
-    .toFile(filepath);
+  await sharp(buffer).resize(200, 200, { fit: "cover" }).webp({ quality: 80 }).toFile(filepath);
 
   return `/uploads/${filename}`;
 }

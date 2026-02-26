@@ -6,7 +6,7 @@ export async function advanceWinnerToNextRound(
   matchupPosition: number,
   winnerId: string,
   currentRound: number,
-  totalRounds: number
+  totalRounds: number,
 ) {
   if (currentRound >= totalRounds) return;
 

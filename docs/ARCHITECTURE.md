@@ -121,7 +121,7 @@ npm run dev                     # http://localhost:3000
 - Server components for data fetching (templates list, session lobby)
 - Client components for interactivity (`"use client"` — editor, voting, join form)
 - `useSearchParams()` wrapped in `<Suspense>` (Next.js 16 requirement)
-- Prisma JSON fields cast with `as unknown as TierConfig[]` due to Prisma 7 strict typing
+- Prisma JSON fields validated at runtime with `tierConfigSchema.parse()` from Zod
 - Uploaded images stored in `public/uploads/` (local filesystem, gitignored)
 - Shared types in `src/types/index.ts` — all domain interfaces imported from one place
 - API route helpers (`validateBody`, `notFound`, `badRequest`, `verifyParticipant`) in `src/lib/api-helpers.ts`

@@ -41,9 +41,7 @@ export default function HomePage() {
         >
           <span className="text-3xl">&#8618;</span>
           <span className="font-medium">Join Session</span>
-          <span className="text-center text-xs text-neutral-500">
-            Enter a code to start voting
-          </span>
+          <span className="text-center text-xs text-neutral-500">Enter a code to start voting</span>
         </Link>
       </div>
 

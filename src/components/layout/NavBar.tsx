@@ -24,9 +24,7 @@ export function NavBar() {
               key={link.href}
               href={link.href}
               className={`text-sm transition-colors ${
-                pathname.startsWith(link.href)
-                  ? "text-white"
-                  : "text-neutral-400 hover:text-white"
+                pathname.startsWith(link.href) ? "text-white" : "text-neutral-400 hover:text-white"
               }`}
             >
               {link.label}

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
+import { badRequest, withHandler } from "@/lib/api-helpers";
 import { saveUploadedImage } from "@/lib/upload";
-import { withHandler, badRequest } from "@/lib/api-helpers";
 
 export const POST = withHandler(async (request) => {
   const formData = await request.formData();

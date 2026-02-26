@@ -1,12 +1,15 @@
 import { NextResponse } from "next/server";
+import { notFound, validateBody, withHandler } from "@/lib/api-helpers";
 import { prisma } from "@/lib/prisma";
 import { updateTemplateItemSchema } from "@/lib/validators";
-import { withHandler, validateBody, notFound } from "@/lib/api-helpers";
 
 export const PATCH = withHandler(async (request, { params }) => {
   const { templateId, itemId } = await params;
 
-  const existing = await prisma.templateItem.findFirst({ where: { id: itemId, templateId }, select: { id: true } });
+  const existing = await prisma.templateItem.findFirst({
+    where: { id: itemId, templateId },
+    select: { id: true },
+  });
   if (!existing) notFound("Template item not found");
 
   const data = await validateBody(request, updateTemplateItemSchema);

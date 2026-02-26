@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { useParticipant } from "@/hooks/useParticipant";
-import { TierConfigEditor } from "./TierConfigEditor";
 import { buttonVariants } from "@/components/ui/Button";
-import { StatusBadge } from "@/components/ui/StatusBadge";
 import { GearIcon } from "@/components/ui/GearIcon";
-import type { TierConfig, SessionLobbyData } from "@/types";
+import { ChevronDownIcon } from "@/components/ui/icons";
+import { StatusBadge } from "@/components/ui/StatusBadge";
+import { useParticipant } from "@/hooks/useParticipant";
+import type { SessionLobbyData, TierConfig } from "@/types";
+import { TierConfigEditor } from "./TierConfigEditor";
 
 interface SessionLobbyProps {
   session: SessionLobbyData;
@@ -48,9 +49,7 @@ export function SessionLobby({ session }: SessionLobbyProps) {
         >
           {session.joinCode}
         </button>
-        <p className="mt-2 text-xs text-neutral-500">
-          {copied ? "Copied!" : "Click to copy"}
-        </p>
+        <p className="mt-2 text-xs text-neutral-500">{copied ? "Copied!" : "Click to copy"}</p>
       </div>
 
       {/* Status */}
@@ -98,12 +97,9 @@ export function SessionLobby({ session }: SessionLobbyProps) {
           >
             <GearIcon className="h-4 w-4" />
             Tier Configuration
-            <svg
+            <ChevronDownIcon
               className={`h-3 w-3 transition-transform ${showTierConfig ? "rotate-180" : ""}`}
-              fill="none" stroke="currentColor" viewBox="0 0 24 24"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
+            />
           </button>
 
           {!showTierConfig && (

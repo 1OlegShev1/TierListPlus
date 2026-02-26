@@ -25,7 +25,7 @@ export function ImageUploader({ onUploaded, className }: ImageUploaderProps) {
         setUploading(false);
       }
     },
-    [onUploaded]
+    [onUploaded],
   );
 
   const handleDrop = useCallback(
@@ -35,7 +35,7 @@ export function ImageUploader({ onUploaded, className }: ImageUploaderProps) {
       const file = e.dataTransfer.files[0];
       if (file?.type.startsWith("image/")) upload(file);
     },
-    [upload]
+    [upload],
   );
 
   const handleFileInput = useCallback(
@@ -44,7 +44,7 @@ export function ImageUploader({ onUploaded, className }: ImageUploaderProps) {
       if (file) upload(file);
       e.target.value = "";
     },
-    [upload]
+    [upload],
   );
 
   return (

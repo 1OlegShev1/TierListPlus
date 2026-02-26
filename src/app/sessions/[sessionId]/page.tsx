@@ -1,12 +1,8 @@
-import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import { SessionLobby } from "@/components/sessions/SessionLobby";
+import { prisma } from "@/lib/prisma";
 
-export default async function SessionPage({
-  params,
-}: {
-  params: Promise<{ sessionId: string }>;
-}) {
+export default async function SessionPage({ params }: { params: Promise<{ sessionId: string }> }) {
   const { sessionId } = await params;
   const session = await prisma.session.findUnique({
     where: { id: sessionId },

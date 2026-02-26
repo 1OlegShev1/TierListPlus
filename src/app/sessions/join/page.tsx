@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { saveParticipant } from "@/hooks/useParticipant";
+import { useState } from "react";
 import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
 import { ErrorMessage } from "@/components/ui/ErrorMessage";
+import { Input } from "@/components/ui/Input";
+import { saveParticipant } from "@/hooks/useParticipant";
 
 export default function JoinSessionPage() {
   const router = useRouter();
@@ -49,10 +49,8 @@ export default function JoinSessionPage() {
       <h1 className="mb-6 text-center text-2xl font-bold">Join a Session</h1>
 
       <div className="space-y-4">
-        <div>
-          <label className="mb-2 block text-sm font-medium text-neutral-400">
-            Join Code
-          </label>
+        <label className="block">
+          <span className="mb-2 block text-sm font-medium text-neutral-400">Join Code</span>
           <Input
             type="text"
             placeholder="e.g., ABCD1234"
@@ -61,12 +59,10 @@ export default function JoinSessionPage() {
             maxLength={20}
             className="w-full py-3 text-center text-xl font-mono tracking-widest"
           />
-        </div>
+        </label>
 
-        <div>
-          <label className="mb-2 block text-sm font-medium text-neutral-400">
-            Your Nickname
-          </label>
+        <label className="block">
+          <span className="mb-2 block text-sm font-medium text-neutral-400">Your Nickname</span>
           <Input
             type="text"
             placeholder="e.g., Alex"
@@ -75,7 +71,7 @@ export default function JoinSessionPage() {
             maxLength={30}
             className="w-full"
           />
-        </div>
+        </label>
 
         {error && <ErrorMessage message={error} />}
 

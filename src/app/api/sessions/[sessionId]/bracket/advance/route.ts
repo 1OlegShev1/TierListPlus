@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server";
+import {
+  ApiError,
+  bracketMatchupInclude,
+  notFound,
+  requireOpenSession,
+  withHandler,
+} from "@/lib/api-helpers";
 import { prisma } from "@/lib/prisma";
-import { withHandler, notFound, bracketMatchupInclude, requireOpenSession, ApiError } from "@/lib/api-helpers";
 
 export const POST = withHandler(async (_request, { params }) => {
   const { sessionId } = await params;
@@ -22,9 +28,7 @@ export const POST = withHandler(async (_request, { params }) => {
   let currentRound = 0;
   for (let r = 1; r <= bracket.rounds; r++) {
     const roundMatchups = bracket.matchups.filter((m) => m.round === r);
-    const hasUndecided = roundMatchups.some(
-      (m) => m.itemAId && m.itemBId && !m.winnerId
-    );
+    const hasUndecided = roundMatchups.some((m) => m.itemAId && m.itemBId && !m.winnerId);
     if (hasUndecided) {
       currentRound = r;
       break;
@@ -35,21 +39,15 @@ export const POST = withHandler(async (_request, { params }) => {
     throw new ApiError(409, "Bracket is already complete");
   }
 
-  const roundMatchups = bracket.matchups.filter(
-    (m) => m.round === currentRound
-  );
+  const roundMatchups = bracket.matchups.filter((m) => m.round === currentRound);
 
   // Tally votes and determine winners in a transaction to prevent race conditions
   await prisma.$transaction(async (tx) => {
     for (const matchup of roundMatchups) {
       if (matchup.winnerId || !matchup.itemAId || !matchup.itemBId) continue;
 
-      const votesForA = matchup.votes.filter(
-        (v) => v.chosenItemId === matchup.itemAId
-      ).length;
-      const votesForB = matchup.votes.filter(
-        (v) => v.chosenItemId === matchup.itemBId
-      ).length;
+      const votesForA = matchup.votes.filter((v) => v.chosenItemId === matchup.itemAId).length;
+      const votesForB = matchup.votes.filter((v) => v.chosenItemId === matchup.itemBId).length;
 
       // Winner by majority; ties broken by random
       let winnerId: string;

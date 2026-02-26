@@ -1,13 +1,13 @@
 "use client";
 
-import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { ImageUploader } from "@/components/shared/ImageUploader";
 import { Button } from "@/components/ui/Button";
+import { ErrorMessage } from "@/components/ui/ErrorMessage";
 import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Textarea";
-import { ErrorMessage } from "@/components/ui/ErrorMessage";
-import { apiFetch, apiPost, apiPatch, getErrorMessage } from "@/lib/api-client";
+import { apiFetch, apiPatch, apiPost, getErrorMessage } from "@/lib/api-client";
 
 interface TemplateItem {
   id?: string;
@@ -37,10 +37,7 @@ export function TemplateEditor({
   const [error, setError] = useState<string | null>(null);
 
   const addItem = (imageUrl: string) => {
-    setItems((prev) => [
-      ...prev,
-      { label: "", imageUrl, sortOrder: prev.length },
-    ]);
+    setItems((prev) => [...prev, { label: "", imageUrl, sortOrder: prev.length }]);
   };
 
   const updateItemLabel = (index: number, label: string) => {
@@ -79,7 +76,10 @@ export function TemplateEditor({
       for (let i = 0; i < items.length; i++) {
         const item = items[i];
         if (item.id && existingIds.has(item.id)) {
-          await apiPatch(`/api/templates/${id}/items/${item.id}`, { label: item.label, sortOrder: i });
+          await apiPatch(`/api/templates/${id}/items/${item.id}`, {
+            label: item.label,
+            sortOrder: i,
+          });
         } else {
           await apiPost(`/api/templates/${id}/items`, {
             label: item.label,
@@ -117,9 +117,7 @@ export function TemplateEditor({
       </div>
 
       <div>
-        <h3 className="mb-3 text-sm font-medium text-neutral-400">
-          Items ({items.length})
-        </h3>
+        <h3 className="mb-3 text-sm font-medium text-neutral-400">Items ({items.length})</h3>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
           {items.map((item, index) => (
             <div

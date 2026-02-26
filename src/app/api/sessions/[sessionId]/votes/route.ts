@@ -1,7 +1,12 @@
 import { NextResponse } from "next/server";
+import {
+  requireOpenSession,
+  validateBody,
+  verifyParticipant,
+  withHandler,
+} from "@/lib/api-helpers";
 import { prisma } from "@/lib/prisma";
 import { submitVotesSchema } from "@/lib/validators";
-import { withHandler, validateBody, verifyParticipant, requireOpenSession } from "@/lib/api-helpers";
 
 export const GET = withHandler(async (_request, { params }) => {
   const { sessionId } = await params;
@@ -45,8 +50,8 @@ export const POST = withHandler(async (request, { params }) => {
           tierKey: vote.tierKey,
           rankInTier: vote.rankInTier,
         },
-      })
-    )
+      }),
+    ),
   );
 
   return NextResponse.json(result);

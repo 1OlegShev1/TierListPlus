@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
+import { validateBody, withHandler } from "@/lib/api-helpers";
 import { prisma } from "@/lib/prisma";
 import { createTemplateSchema } from "@/lib/validators";
-import { withHandler, validateBody } from "@/lib/api-helpers";
 
 export const GET = withHandler(async () => {
   const templates = await prisma.template.findMany({

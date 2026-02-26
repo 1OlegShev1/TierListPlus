@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
+import { verifyParticipant, withHandler } from "@/lib/api-helpers";
 import { prisma } from "@/lib/prisma";
-import { withHandler, verifyParticipant } from "@/lib/api-helpers";
 
 export const GET = withHandler(async (_request, { params }) => {
   const { sessionId, participantId } = await params;

@@ -1,27 +1,27 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
 import {
+  type CollisionDetection,
   DndContext,
-  DragOverlay,
-  pointerWithin,
   type DragEndEvent,
   type DragOverEvent,
+  DragOverlay,
   type DragStartEvent,
+  KeyboardSensor,
+  PointerSensor,
+  pointerWithin,
+  rectIntersection,
   useSensor,
   useSensors,
-  PointerSensor,
-  KeyboardSensor,
-  type CollisionDetection,
-  rectIntersection,
 } from "@dnd-kit/core";
+import { useCallback, useEffect, useState } from "react";
+import { Button } from "@/components/ui/Button";
+import { useTierListStore } from "@/hooks/useTierList";
+import { apiPost, getErrorMessage } from "@/lib/api-client";
+import type { Item, TierConfig } from "@/types";
+import { DraggableItem } from "./DraggableItem";
 import { TierRow } from "./TierRow";
 import { UnrankedPool } from "./UnrankedPool";
-import { DraggableItem } from "./DraggableItem";
-import { useTierListStore } from "@/hooks/useTierList";
-import { Button } from "@/components/ui/Button";
-import { apiPost, getErrorMessage } from "@/lib/api-client";
-import type { TierConfig, Item } from "@/types";
 
 interface TierListBoardProps {
   sessionId: string;
@@ -40,7 +40,7 @@ export function TierListBoard({
   seededTiers,
   onSubmitted,
 }: TierListBoardProps) {
-  const { initialize, setActiveId, activeId, items, findContainer, tiers, unranked, getVotes } =
+  const { initialize, setActiveId, activeId, items, findContainer, tiers, getVotes } =
     useTierListStore();
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -49,34 +49,31 @@ export function TierListBoard({
     initialize(
       sessionItems,
       tierConfig.map((t) => t.key),
-      seededTiers
+      seededTiers,
     );
   }, [sessionItems, tierConfig, seededTiers, initialize]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-    useSensor(KeyboardSensor)
+    useSensor(KeyboardSensor),
   );
 
   // Custom collision detection: prefer pointerWithin for containers, closestCenter for items
-  const collisionDetection: CollisionDetection = useCallback(
-    (args) => {
-      // First check if pointer is within a droppable
-      const pointerCollisions = pointerWithin(args);
-      if (pointerCollisions.length > 0) {
-        return pointerCollisions;
-      }
-      // Fall back to rect intersection
-      return rectIntersection(args);
-    },
-    []
-  );
+  const collisionDetection: CollisionDetection = useCallback((args) => {
+    // First check if pointer is within a droppable
+    const pointerCollisions = pointerWithin(args);
+    if (pointerCollisions.length > 0) {
+      return pointerCollisions;
+    }
+    // Fall back to rect intersection
+    return rectIntersection(args);
+  }, []);
 
   const handleDragStart = useCallback(
     (event: DragStartEvent) => {
       setActiveId(event.active.id as string);
     },
-    [setActiveId]
+    [setActiveId],
   );
 
   const handleDragOver = useCallback(
@@ -89,11 +86,8 @@ export function TierListBoard({
 
       const activeContainer = findContainer(activeId);
       // Check if overId is a container (tier key or "unranked")
-      const isOverContainer =
-        overId === "unranked" || tierConfig.some((t) => t.key === overId);
-      const overContainer = isOverContainer
-        ? overId
-        : findContainer(overId);
+      const isOverContainer = overId === "unranked" || tierConfig.some((t) => t.key === overId);
+      const overContainer = isOverContainer ? overId : findContainer(overId);
 
       if (!activeContainer || !overContainer || activeContainer === overContainer) {
         return;
@@ -102,9 +96,7 @@ export function TierListBoard({
       // Move between containers on drag over for responsive feel
       const store = useTierListStore.getState();
       const overItems =
-        overContainer === "unranked"
-          ? store.unranked
-          : store.tiers[overContainer] ?? [];
+        overContainer === "unranked" ? store.unranked : (store.tiers[overContainer] ?? []);
 
       let newIndex: number;
       if (isOverContainer) {
@@ -117,7 +109,7 @@ export function TierListBoard({
 
       store.moveItem(activeId, overContainer, newIndex);
     },
-    [findContainer, tierConfig]
+    [findContainer, tierConfig],
   );
 
   const handleDragEnd = useCallback(
@@ -131,11 +123,8 @@ export function TierListBoard({
       const overId = over.id as string;
 
       const activeContainer = findContainer(activeId);
-      const isOverContainer =
-        overId === "unranked" || tierConfig.some((t) => t.key === overId);
-      const overContainer = isOverContainer
-        ? overId
-        : findContainer(overId);
+      const isOverContainer = overId === "unranked" || tierConfig.some((t) => t.key === overId);
+      const overContainer = isOverContainer ? overId : findContainer(overId);
 
       if (!activeContainer || !overContainer) return;
 
@@ -143,9 +132,7 @@ export function TierListBoard({
         // Reorder within the same container
         const store = useTierListStore.getState();
         const containerItems =
-          activeContainer === "unranked"
-            ? store.unranked
-            : store.tiers[activeContainer] ?? [];
+          activeContainer === "unranked" ? store.unranked : (store.tiers[activeContainer] ?? []);
 
         const oldIndex = containerItems.indexOf(activeId);
         const newIndex = containerItems.indexOf(overId);
@@ -156,7 +143,7 @@ export function TierListBoard({
       }
       // Cross-container moves are already handled in handleDragOver
     },
-    [findContainer, setActiveId, tierConfig]
+    [findContainer, setActiveId, tierConfig],
   );
 
   const handleSubmit = async () => {
@@ -191,12 +178,7 @@ export function TierListBoard({
         {/* Tier Rows */}
         <div className="overflow-hidden rounded-lg border border-neutral-800">
           {tierConfig.map((tier) => (
-            <TierRow
-              key={tier.key}
-              tierKey={tier.key}
-              label={tier.label}
-              color={tier.color}
-            />
+            <TierRow key={tier.key} tierKey={tier.key} label={tier.label} color={tier.color} />
           ))}
         </div>
 
@@ -225,9 +207,7 @@ export function TierListBoard({
           {rankedCount}/{totalItems} items ranked
         </span>
       </div>
-      {submitError && (
-        <p className="mt-2 text-sm text-red-400">{submitError}</p>
-      )}
+      {submitError && <p className="mt-2 text-sm text-red-400">{submitError}</p>}
     </div>
   );
 }

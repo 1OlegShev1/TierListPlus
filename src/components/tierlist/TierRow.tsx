@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
 import { useDroppable } from "@dnd-kit/core";
-import { SortableContext, rectSortingStrategy } from "@dnd-kit/sortable";
-import { DraggableItem } from "./DraggableItem";
+import { rectSortingStrategy, SortableContext } from "@dnd-kit/sortable";
+import { useState } from "react";
 import { BracketModal } from "@/components/bracket/BracketModal";
 import { useTierListStore } from "@/hooks/useTierList";
+import { DraggableItem } from "./DraggableItem";
 
 interface TierRowProps {
   tierKey: string;
@@ -56,14 +56,7 @@ export function TierRow({ tierKey, label, color }: TierRowProps) {
             {items.map((id) => {
               const item = itemMap.get(id);
               if (!item) return null;
-              return (
-                <DraggableItem
-                  key={id}
-                  id={id}
-                  label={item.label}
-                  imageUrl={item.imageUrl}
-                />
-              );
+              return <DraggableItem key={id} id={id} label={item.label} imageUrl={item.imageUrl} />;
             })}
           </SortableContext>
           {items.length === 0 && !isOver && (

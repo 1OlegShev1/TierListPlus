@@ -1,14 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
 import Link from "next/link";
+import { useParams } from "next/navigation";
+import { useEffect, useState } from "react";
 import { buttonVariants } from "@/components/ui/Button";
-import { PageHeader } from "@/components/ui/PageHeader";
-import { Loading } from "@/components/ui/Loading";
 import { ErrorMessage } from "@/components/ui/ErrorMessage";
+import { Loading } from "@/components/ui/Loading";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { apiFetch, getErrorMessage } from "@/lib/api-client";
-import type { ConsensusTier, ConsensusItem } from "@/lib/consensus";
+import type { ConsensusItem, ConsensusTier } from "@/lib/consensus";
 
 interface SessionResult {
   name: string;
@@ -58,7 +58,10 @@ export default function ResultsPage() {
       {/* Consensus Tier List */}
       <div className="overflow-hidden rounded-lg border border-neutral-800">
         {tiers.map((tier) => (
-          <div key={tier.key} className="flex min-h-[80px] border-b border-neutral-800 last:border-b-0">
+          <div
+            key={tier.key}
+            className="flex min-h-[80px] border-b border-neutral-800 last:border-b-0"
+          >
             <div
               className="flex w-20 flex-shrink-0 items-center justify-center text-lg font-bold"
               style={{ backgroundColor: tier.color, color: "#000" }}
@@ -108,8 +111,8 @@ export default function ResultsPage() {
             <div>
               <h3 className="font-medium">{selectedItem.label}</h3>
               <p className="text-sm text-neutral-500">
-                Avg score: {selectedItem.averageScore.toFixed(2)} &middot;{" "}
-                {selectedItem.totalVotes} vote{selectedItem.totalVotes !== 1 ? "s" : ""}
+                Avg score: {selectedItem.averageScore.toFixed(2)} &middot; {selectedItem.totalVotes}{" "}
+                vote{selectedItem.totalVotes !== 1 ? "s" : ""}
               </p>
             </div>
           </div>
@@ -120,10 +123,7 @@ export default function ResultsPage() {
               const pct = totalParticipants > 0 ? (count / totalParticipants) * 100 : 0;
               return (
                 <div key={tier.key} className="flex items-center gap-2">
-                  <span
-                    className="w-8 text-right text-xs font-bold"
-                    style={{ color: tier.color }}
-                  >
+                  <span className="w-8 text-right text-xs font-bold" style={{ color: tier.color }}>
                     {tier.label}
                   </span>
                   <div className="flex-1 rounded-full bg-neutral-800 h-4">
@@ -147,9 +147,7 @@ export default function ResultsPage() {
       {/* Participants */}
       {session && session.participants.length > 0 && (
         <div className="mt-6">
-          <h2 className="mb-3 text-sm font-medium text-neutral-400">
-            Individual Votes
-          </h2>
+          <h2 className="mb-3 text-sm font-medium text-neutral-400">Individual Votes</h2>
           <div className="flex flex-wrap gap-2">
             {session.participants.map((p) => (
               <Link

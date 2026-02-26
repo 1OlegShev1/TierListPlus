@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { withHandler, notFound } from "@/lib/api-helpers";
+import { notFound, withHandler } from "@/lib/api-helpers";
 import { mitBacktrackRanking } from "@/lib/bracket-ranking";
-import type { TierConfig } from "@/types";
+import { prisma } from "@/lib/prisma";
+import { tierConfigSchema } from "@/lib/validators";
 
 /**
  * Returns bracket results mapped to tier placements using
@@ -33,7 +33,7 @@ export const GET = withHandler(async (_request, { params }) => {
 
   if (!bracket || !session) notFound("Bracket or session not found");
 
-  const tierConfig = session.tierConfig as unknown as TierConfig[];
+  const tierConfig = tierConfigSchema.parse(session.tierConfig);
   const allItemIds = session.items.map((i) => i.id);
   const totalRounds = bracket.rounds;
 

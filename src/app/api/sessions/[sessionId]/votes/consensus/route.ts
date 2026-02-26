@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { notFound, withHandler } from "@/lib/api-helpers";
 import { computeConsensus } from "@/lib/consensus";
-import { withHandler, notFound } from "@/lib/api-helpers";
-import type { TierConfig } from "@/types";
+import { prisma } from "@/lib/prisma";
+import { tierConfigSchema } from "@/lib/validators";
 
 export const GET = withHandler(async (_request, { params }) => {
   const { sessionId } = await params;
@@ -21,7 +21,7 @@ export const GET = withHandler(async (_request, { params }) => {
     select: { sessionItemId: true, tierKey: true },
   });
 
-  const tierConfig = session.tierConfig as unknown as TierConfig[];
+  const tierConfig = tierConfigSchema.parse(session.tierConfig);
   const consensus = computeConsensus(votes, tierConfig, session.items);
 
   return NextResponse.json(consensus);

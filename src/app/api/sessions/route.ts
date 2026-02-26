@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
+import { badRequest, notFound, validateBody, withHandler } from "@/lib/api-helpers";
+import { DEFAULT_TIER_CONFIG } from "@/lib/constants";
+import { generateJoinCode } from "@/lib/nanoid";
 import { prisma } from "@/lib/prisma";
 import { createSessionSchema } from "@/lib/validators";
-import { generateJoinCode } from "@/lib/nanoid";
-import { DEFAULT_TIER_CONFIG } from "@/lib/constants";
-import { withHandler, validateBody, notFound, badRequest } from "@/lib/api-helpers";
 
 const VALID_STATUSES = new Set(["OPEN", "CLOSED", "ARCHIVED"]);
 

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
+import { badRequest, notFound, validateBody, withHandler } from "@/lib/api-helpers";
 import { prisma } from "@/lib/prisma";
 import { joinSessionSchema } from "@/lib/validators";
-import { withHandler, validateBody, notFound, badRequest } from "@/lib/api-helpers";
 
 export const POST = withHandler(async (request) => {
   const data = await validateBody(request, joinSessionSchema);

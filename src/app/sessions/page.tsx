@@ -1,10 +1,10 @@
 import Link from "next/link";
+import { buttonVariants } from "@/components/ui/Button";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { StatusBadge } from "@/components/ui/StatusBadge";
 import { prisma } from "@/lib/prisma";
 import { formatDate } from "@/lib/utils";
-import { buttonVariants } from "@/components/ui/Button";
-import { PageHeader } from "@/components/ui/PageHeader";
-import { EmptyState } from "@/components/ui/EmptyState";
-import { StatusBadge } from "@/components/ui/StatusBadge";
 
 export const dynamic = "force-dynamic";
 
@@ -44,9 +44,8 @@ export default async function SessionsPage() {
               <div>
                 <h3 className="font-medium">{session.name}</h3>
                 <p className="text-sm text-neutral-500">
-                  {session.template.name} &middot;{" "}
-                  {session._count.participants} participants &middot;{" "}
-                  {formatDate(session.createdAt)}
+                  {session.template.name} &middot; {session._count.participants} participants
+                  &middot; {formatDate(session.createdAt)}
                 </p>
               </div>
               <StatusBadge status={session.status} />

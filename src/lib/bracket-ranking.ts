@@ -14,7 +14,7 @@ import type { MatchupRow } from "@/types";
 export function mitBacktrackRanking(
   matchups: MatchupRow[],
   totalRounds: number,
-  allItemIds: string[]
+  allItemIds: string[],
 ): string[] {
   const finalMatchup = matchups.find((m) => m.round === totalRounds);
   if (!finalMatchup?.winnerId) {
@@ -40,9 +40,7 @@ export function mitBacktrackRanking(
   // Start with winner, then finalist
   const queue: string[] = [finalMatchup.winnerId];
   const finalistId =
-    finalMatchup.winnerId === finalMatchup.itemAId
-      ? finalMatchup.itemBId
-      : finalMatchup.itemAId;
+    finalMatchup.winnerId === finalMatchup.itemAId ? finalMatchup.itemBId : finalMatchup.itemAId;
   if (finalistId) queue.push(finalistId);
 
   while (queue.length > 0) {
@@ -74,7 +72,7 @@ export function mitBacktrackRanking(
 function fallbackRanking(
   matchups: MatchupRow[],
   totalRounds: number,
-  allItemIds: string[]
+  allItemIds: string[],
 ): string[] {
   const eliminatedInRound = new Map<string, number>();
 
@@ -96,6 +94,6 @@ function fallbackRanking(
   }
 
   return [...allItemIds].sort(
-    (a, b) => (eliminatedInRound.get(b) ?? 0) - (eliminatedInRound.get(a) ?? 0)
+    (a, b) => (eliminatedInRound.get(b) ?? 0) - (eliminatedInRound.get(a) ?? 0),
   );
 }

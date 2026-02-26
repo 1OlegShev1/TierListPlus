@@ -35,7 +35,7 @@ export function generateBracket(itemIds: string[]) {
 
   // Subsequent rounds (empty, filled as winners advance)
   for (let round = 2; round <= rounds; round++) {
-    const roundMatchups = bracketSize / Math.pow(2, round);
+    const roundMatchups = bracketSize / 2 ** round;
     for (let i = 0; i < roundMatchups; i++) {
       matchups.push({ round, position: i, itemAId: null, itemBId: null });
     }

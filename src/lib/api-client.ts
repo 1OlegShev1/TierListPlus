@@ -2,17 +2,14 @@
 export class ApiClientError extends Error {
   constructor(
     public status: number,
-    public details: unknown
+    public details: unknown,
   ) {
     super(typeof details === "string" ? details : "Request failed");
   }
 }
 
 /** Fetch JSON from an API route, throwing ApiClientError on non-ok responses. */
-export async function apiFetch<T = unknown>(
-  url: string,
-  options?: RequestInit
-): Promise<T> {
+export async function apiFetch<T = unknown>(url: string, options?: RequestInit): Promise<T> {
   const res = await fetch(url, options);
 
   if (!res.ok) {

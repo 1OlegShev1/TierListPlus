@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useCallback, useMemo, useState } from "react";
+import { MatchupVoter } from "@/components/bracket/MatchupVoter";
+import { Button } from "@/components/ui/Button";
 import { generateBracket } from "@/lib/bracket-generator";
 import { mitBacktrackRanking } from "@/lib/bracket-ranking";
-import { Button } from "@/components/ui/Button";
-import { MatchupVoter } from "@/components/bracket/MatchupVoter";
 import type { Item, MatchupRow } from "@/types";
 
 interface BracketModalProps {
@@ -13,15 +13,8 @@ interface BracketModalProps {
   onCancel: () => void;
 }
 
-export function BracketModal({
-  items,
-  onComplete,
-  onCancel,
-}: BracketModalProps) {
-  const itemMap = useMemo(
-    () => new Map(items.map((i) => [i.id, i])),
-    [items]
-  );
+export function BracketModal({ items, onComplete, onCancel }: BracketModalProps) {
+  const itemMap = useMemo(() => new Map(items.map((i) => [i.id, i])), [items]);
 
   const [bracketState, setBracketState] = useState(() => {
     const { rounds, matchups } = generateBracket(items.map((i) => i.id));
@@ -51,7 +44,7 @@ export function BracketModal({
 
   // Find current votable matchup
   const pendingMatchups = bracketState.matchups.filter(
-    (m) => m.itemAId && m.itemBId && !m.winnerId
+    (m) => m.itemAId && m.itemBId && !m.winnerId,
   );
 
   const currentMatchup = pendingMatchups[0];
@@ -63,9 +56,7 @@ export function BracketModal({
       setBracketState((prev) => {
         const updated = prev.matchups.map((m) => ({ ...m }));
         const idx = updated.findIndex(
-          (m) =>
-            m.round === currentMatchup.round &&
-            m.position === currentMatchup.position
+          (m) => m.round === currentMatchup.round && m.position === currentMatchup.position,
         );
         if (idx === -1) return prev;
 
@@ -79,38 +70,32 @@ export function BracketModal({
         return { ...prev, matchups: updated };
       });
     },
-    [currentMatchup]
+    [currentMatchup],
   );
 
   // Check if bracket is complete
-  const finalMatchup = bracketState.matchups.find(
-    (m) => m.round === bracketState.rounds
-  );
+  const finalMatchup = bracketState.matchups.find((m) => m.round === bracketState.rounds);
   const isComplete = finalMatchup?.winnerId != null;
 
-  // When complete, derive ranking and call onComplete
+  // Derive ranking once bracket is complete
   const allItemIds = useMemo(() => items.map((i) => i.id), [items]);
+  const ranked = useMemo(
+    () =>
+      isComplete ? mitBacktrackRanking(bracketState.matchups, bracketState.rounds, allItemIds) : [],
+    [isComplete, bracketState.matchups, bracketState.rounds, allItemIds],
+  );
   const handleFinish = useCallback(() => {
-    const ranked = mitBacktrackRanking(bracketState.matchups, bracketState.rounds, allItemIds);
     onComplete(ranked);
-  }, [bracketState, allItemIds, onComplete]);
+  }, [ranked, onComplete]);
 
   // Progress
-  const totalVotable = bracketState.matchups.filter(
-    (m) => m.itemAId && m.itemBId
-  ).length;
-  const totalDecided = bracketState.matchups.filter(
-    (m) => m.winnerId
-  ).length;
+  const totalVotable = bracketState.matchups.filter((m) => m.itemAId && m.itemBId).length;
+  const totalDecided = bracketState.matchups.filter((m) => m.winnerId).length;
 
   const currentRound = currentMatchup?.round ?? bracketState.rounds;
 
-  const itemA = currentMatchup?.itemAId
-    ? itemMap.get(currentMatchup.itemAId)
-    : null;
-  const itemB = currentMatchup?.itemBId
-    ? itemMap.get(currentMatchup.itemBId)
-    : null;
+  const itemA = currentMatchup?.itemAId ? itemMap.get(currentMatchup.itemAId) : null;
+  const itemB = currentMatchup?.itemBId ? itemMap.get(currentMatchup.itemBId) : null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
@@ -125,42 +110,31 @@ export function BracketModal({
         </div>
 
         {!isComplete && itemA && itemB && (
-          <MatchupVoter
-            itemA={itemA}
-            itemB={itemB}
-            size="sm"
-            onVote={handleVote}
-          />
+          <MatchupVoter itemA={itemA} itemB={itemB} size="sm" onVote={handleVote} />
         )}
 
         {isComplete && (
           <div className="space-y-2">
-            <p className="text-center text-sm text-neutral-400">
-              Final ranking:
-            </p>
+            <p className="text-center text-sm text-neutral-400">Final ranking:</p>
             <ol className="space-y-1">
-              {mitBacktrackRanking(bracketState.matchups, bracketState.rounds, allItemIds).map(
-                (id, i) => {
-                  const item = itemMap.get(id);
-                  if (!item) return null;
-                  return (
-                    <li
-                      key={id}
-                      className="flex items-center gap-3 rounded-lg bg-neutral-900 px-3 py-2"
-                    >
-                      <span className="w-6 text-right text-sm font-bold text-amber-400">
-                        {i + 1}
-                      </span>
-                      <img
-                        src={item.imageUrl}
-                        alt={item.label}
-                        className="h-8 w-8 rounded object-cover"
-                      />
-                      <span className="text-sm">{item.label}</span>
-                    </li>
-                  );
-                }
-              )}
+              {ranked.map((id, i) => {
+                const item = itemMap.get(id);
+                if (!item) return null;
+                return (
+                  <li
+                    key={id}
+                    className="flex items-center gap-3 rounded-lg bg-neutral-900 px-3 py-2"
+                  >
+                    <span className="w-6 text-right text-sm font-bold text-amber-400">{i + 1}</span>
+                    <img
+                      src={item.imageUrl}
+                      alt={item.label}
+                      className="h-8 w-8 rounded object-cover"
+                    />
+                    <span className="text-sm">{item.label}</span>
+                  </li>
+                );
+              })}
             </ol>
           </div>
         )}
@@ -192,20 +166,14 @@ export function BracketModal({
 }
 
 /** Advance a matchup's winner into the next round slot */
-function advanceWinner(
-  matchups: MatchupRow[],
-  source: MatchupRow,
-  totalRounds: number
-) {
+function advanceWinner(matchups: MatchupRow[], source: MatchupRow, totalRounds: number) {
   if (!source.winnerId || source.round >= totalRounds) return;
 
   const nextRound = source.round + 1;
   const nextPosition = Math.floor(source.position / 2);
   const slot = source.position % 2 === 0 ? "itemAId" : "itemBId";
 
-  const target = matchups.find(
-    (m) => m.round === nextRound && m.position === nextPosition
-  );
+  const target = matchups.find((m) => m.round === nextRound && m.position === nextPosition);
   if (target) {
     target[slot] = source.winnerId;
 
@@ -219,4 +187,3 @@ function advanceWinner(
     }
   }
 }
-

@@ -79,9 +79,11 @@ model SessionItem {
   bracketVotesAsItemA BracketMatchup[] @relation("MatchupItemA")
   bracketVotesAsItemB BracketMatchup[] @relation("MatchupItemB")
   bracketWins         BracketMatchup[] @relation("MatchupWinner")
+  bracketVoteChoices  BracketVote[]    @relation("BracketVoteChoice")
 
   @@unique([sessionId, templateItemId])
   @@index([sessionId])
+  @@index([templateItemId])
 }
 
 // ─── PARTICIPANTS ────────────────────────────────────────────
@@ -148,6 +150,9 @@ model BracketMatchup {
   votes BracketVote[]
 
   @@index([bracketId, round])
+  @@index([itemAId])
+  @@index([itemBId])
+  @@index([winnerId])
 }
 
 model BracketVote {
@@ -158,7 +163,9 @@ model BracketVote {
 
   matchup     BracketMatchup @relation(fields: [matchupId], references: [id], onDelete: Cascade)
   participant Participant    @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  chosenItem  SessionItem    @relation("BracketVoteChoice", fields: [chosenItemId], references: [id])
 
   @@unique([matchupId, participantId])
   @@index([matchupId])
+  @@index([chosenItemId])
 }

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
+import { notFound, validateBody, withHandler } from "@/lib/api-helpers";
 import { prisma } from "@/lib/prisma";
 import { updateSessionSchema } from "@/lib/validators";
-import { withHandler, validateBody, notFound } from "@/lib/api-helpers";
 
 export const GET = withHandler(async (_request, { params }) => {
   const { sessionId } = await params;
@@ -23,7 +23,10 @@ export const GET = withHandler(async (_request, { params }) => {
 export const PATCH = withHandler(async (request, { params }) => {
   const { sessionId } = await params;
 
-  const existing = await prisma.session.findUnique({ where: { id: sessionId }, select: { id: true } });
+  const existing = await prisma.session.findUnique({
+    where: { id: sessionId },
+    select: { id: true },
+  });
   if (!existing) notFound("Session not found");
 
   const data = await validateBody(request, updateSessionSchema);

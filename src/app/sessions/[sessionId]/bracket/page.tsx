@@ -1,14 +1,14 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { useParticipant } from "@/hooks/useParticipant";
-import { Button } from "@/components/ui/Button";
-import { Loading } from "@/components/ui/Loading";
-import { ErrorMessage } from "@/components/ui/ErrorMessage";
+import { useCallback, useEffect, useState } from "react";
 import { MatchupVoter } from "@/components/bracket/MatchupVoter";
-import { apiFetch, apiPost, ApiClientError, getErrorMessage } from "@/lib/api-client";
-import type { Matchup, BracketData } from "@/types";
+import { Button } from "@/components/ui/Button";
+import { ErrorMessage } from "@/components/ui/ErrorMessage";
+import { Loading } from "@/components/ui/Loading";
+import { useParticipant } from "@/hooks/useParticipant";
+import { ApiClientError, apiFetch, apiPost, getErrorMessage } from "@/lib/api-client";
+import type { BracketData, Matchup } from "@/types";
 
 export default function BracketPage() {
   const { sessionId } = useParams<{ sessionId: string }>();
@@ -54,10 +54,7 @@ export default function BracketPage() {
   if (!bracket) return null;
 
   const myPendingMatchups = bracket.matchups.filter(
-    (m) =>
-      m.itemA &&
-      m.itemB &&
-      !(m.votes ?? []).some((v) => v.participantId === participantId)
+    (m) => m.itemA && m.itemB && !(m.votes ?? []).some((v) => v.participantId === participantId),
   );
 
   const currentMatchup = myPendingMatchups[currentMatchupIndex];
@@ -84,7 +81,9 @@ export default function BracketPage() {
           (m: Matchup) =>
             m.itemA &&
             m.itemB &&
-            !(m.votes ?? []).some((v: { participantId: string }) => v.participantId === participantId)
+            !(m.votes ?? []).some(
+              (v: { participantId: string }) => v.participantId === participantId,
+            ),
         );
 
         if (stillPending.length > 0) {
@@ -104,9 +103,7 @@ export default function BracketPage() {
     return (
       <div className="flex flex-col items-center gap-4 py-20">
         <h2 className="text-xl font-bold">Bracket Voting Complete</h2>
-        <p className="text-neutral-500">
-          All matchups decided. Proceed to tier ranking.
-        </p>
+        <p className="text-neutral-500">All matchups decided. Proceed to tier ranking.</p>
         <Button onClick={() => router.push(`/sessions/${sessionId}/vote`)}>
           Continue to Tier List
         </Button>
@@ -114,11 +111,9 @@ export default function BracketPage() {
     );
   }
 
-  const totalVotable = bracket.matchups.filter(
-    (m) => m.itemA && m.itemB
-  ).length;
+  const totalVotable = bracket.matchups.filter((m) => m.itemA && m.itemB).length;
   const totalVoted = bracket.matchups.filter((m) =>
-    (m.votes ?? []).some((v) => v.participantId === participantId)
+    (m.votes ?? []).some((v) => v.participantId === participantId),
   ).length;
 
   return (
@@ -134,7 +129,7 @@ export default function BracketPage() {
         </p>
       </div>
 
-      {currentMatchup && currentMatchup.itemA && currentMatchup.itemB && (
+      {currentMatchup?.itemA && currentMatchup.itemB && (
         <MatchupVoter
           itemA={currentMatchup.itemA}
           itemB={currentMatchup.itemB}

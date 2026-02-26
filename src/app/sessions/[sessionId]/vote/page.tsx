@@ -1,14 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { useParticipant } from "@/hooks/useParticipant";
-import { TierListBoard } from "@/components/tierlist/TierListBoard";
+import { useEffect, useState } from "react";
 import { TierConfigEditor } from "@/components/sessions/TierConfigEditor";
+import { TierListBoard } from "@/components/tierlist/TierListBoard";
 import { Button } from "@/components/ui/Button";
-import { Loading } from "@/components/ui/Loading";
 import { ErrorMessage } from "@/components/ui/ErrorMessage";
 import { GearIcon } from "@/components/ui/GearIcon";
+import { Loading } from "@/components/ui/Loading";
+import { useParticipant } from "@/hooks/useParticipant";
 import { apiFetch, getErrorMessage } from "@/lib/api-client";
 import type { SessionData } from "@/types";
 
@@ -35,12 +35,12 @@ export default function VotePage() {
 
         if (data.bracketEnabled) {
           try {
-            const { seededTiers: seeds } = await apiFetch<{ seededTiers: Record<string, string[]> }>(
-              `/api/sessions/${sessionId}/bracket/rankings`
-            );
+            const { seededTiers: seeds } = await apiFetch<{
+              seededTiers: Record<string, string[]>;
+            }>(`/api/sessions/${sessionId}/bracket/rankings`);
             setSeededTiers(seeds);
-          } catch {
-            // Bracket rankings unavailable — not critical
+          } catch (err) {
+            console.warn("Bracket rankings unavailable:", err);
           }
         }
       } catch (err) {
@@ -59,9 +59,7 @@ export default function VotePage() {
     return (
       <div className="flex flex-col items-center gap-3 py-20">
         <p className="text-lg text-neutral-400">This session is no longer accepting votes</p>
-        <Button onClick={() => router.push(`/sessions/${sessionId}/results`)}>
-          View Results
-        </Button>
+        <Button onClick={() => router.push(`/sessions/${sessionId}/results`)}>View Results</Button>
       </div>
     );
   }
