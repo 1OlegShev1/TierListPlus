@@ -118,7 +118,7 @@ export function TierListBoard({
     if (!el) return;
     flipRef.current = {
       positions: snapshotPositions(el),
-      keys: new Set(Array.from(el.children).map((c) => (c as HTMLElement).dataset.tierKey!)),
+      keys: new Set(Array.from(el.children).map((c) => (c as HTMLElement).dataset.tierKey ?? "")),
     };
   }, []);
 
@@ -132,7 +132,7 @@ export function TierListBoard({
     }
     if (!snap || !containerRef.current) return;
     flipAnimate(containerRef.current, snap.positions, snap.keys);
-  }, [tierConfig]);
+  });
 
   // Initialize Zustand store only once on mount (restore draft if available)
   const initializedRef = useRef(false);

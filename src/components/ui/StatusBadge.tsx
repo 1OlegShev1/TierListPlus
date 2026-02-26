@@ -7,7 +7,7 @@ const statusStyles: Record<string, string> = {
 export function StatusBadge({ status }: { status: string }) {
   return (
     <span
-      className={`rounded-full px-3 py-1 text-xs font-medium ${
+      className={`rounded-full px-4 py-1.5 text-sm font-medium ${
         statusStyles[status] ?? statusStyles.ARCHIVED
       }`}
     >

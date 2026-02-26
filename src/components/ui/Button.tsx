@@ -15,5 +15,5 @@ export const buttonVariants: Record<ButtonVariant, string> = {
 };
 
 export function Button({ variant = "primary", className, ...props }: ButtonProps) {
-  return <button className={cn(buttonVariants[variant], className)} {...props} />;
+  return <button className={cn("cursor-pointer", buttonVariants[variant], className)} {...props} />;
 }
