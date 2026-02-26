@@ -19,6 +19,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react
 import { useTierListStore } from "@/hooks/useTierList";
 import { apiPatch, apiPost, getErrorMessage } from "@/lib/api-client";
 import { TIER_COLORS } from "@/lib/constants";
+import { clearDraft, getDraft, saveDraft } from "@/lib/vote-draft";
 import type { Item, TierConfig } from "@/types";
 import { DraggableItem } from "./DraggableItem";
 import { TierRow } from "./TierRow";
@@ -63,10 +64,10 @@ function flipAnimate(
       // Existing row — animate if it moved
       const dy = oldRect.top - newRect.top;
       if (Math.abs(dy) > 1) {
-        el.animate(
-          [{ transform: `translateY(${dy}px)` }, { transform: "translateY(0)" }],
-          { duration: 300, easing: "ease-in-out" },
-        );
+        el.animate([{ transform: `translateY(${dy}px)` }, { transform: "translateY(0)" }], {
+          duration: 300,
+          easing: "ease-in-out",
+        });
       }
     } else if (!oldKeys.has(key)) {
       // New row — slide in
@@ -104,6 +105,7 @@ export function TierListBoard({
   const [tierConfig, setTierConfig] = useState<TierConfig[]>(initialTierConfig);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [draftRestored, setDraftRestored] = useState(false);
 
   // ---- FLIP refs ----
   const containerRef = useRef<HTMLDivElement>(null);
@@ -132,17 +134,59 @@ export function TierListBoard({
     flipAnimate(containerRef.current, snap.positions, snap.keys);
   }, [tierConfig]);
 
-  // Initialize Zustand store only once on mount
+  // Initialize Zustand store only once on mount (restore draft if available)
   const initializedRef = useRef(false);
   useEffect(() => {
     if (initializedRef.current) return;
     initializedRef.current = true;
+
+    const validIds = new Set(sessionItems.map((i) => i.id));
+    const draft = getDraft(sessionId, participantId, validIds);
+
     initialize(
       sessionItems,
       initialTierConfig.map((t) => t.key),
       seededTiers,
+      draft,
     );
-  }, [sessionItems, initialTierConfig, seededTiers, initialize]);
+
+    if (draft) setDraftRestored(true);
+  }, [sessionItems, initialTierConfig, seededTiers, initialize, sessionId, participantId]);
+
+  // Auto-save draft to localStorage on every tier/unranked change
+  useEffect(() => {
+    // Skip until store is initialized
+    if (!initializedRef.current) return;
+
+    let timeout: ReturnType<typeof setTimeout>;
+    const unsub = useTierListStore.subscribe((state) => {
+      clearTimeout(timeout);
+      timeout = setTimeout(() => {
+        saveDraft(sessionId, participantId, {
+          tiers: state.tiers,
+          unranked: state.unranked,
+        });
+      }, 300);
+    });
+
+    return () => {
+      clearTimeout(timeout);
+      unsub();
+    };
+  }, [sessionId, participantId]);
+
+  // Warn before leaving with unsaved ranked items
+  const rankedCount = Object.values(tiers).reduce((sum, ids) => sum + ids.length, 0);
+  useEffect(() => {
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+    };
+
+    if (rankedCount > 0) {
+      window.addEventListener("beforeunload", handler);
+    }
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [rankedCount]);
 
   // ---- Debounced auto-save ----
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -398,6 +442,7 @@ export function TierListBoard({
     setSubmitError(null);
     try {
       await apiPost(`/api/sessions/${sessionId}/votes`, { participantId, votes });
+      clearDraft(sessionId, participantId);
       onSubmitted();
     } catch (err) {
       setSubmitError(getErrorMessage(err, "Failed to submit votes. Please try again."));
@@ -408,10 +453,21 @@ export function TierListBoard({
 
   const activeItem = activeId ? items.get(activeId) : null;
   const totalItems = sessionItems.length;
-  const rankedCount = Object.values(tiers).reduce((sum, ids) => sum + ids.length, 0);
+
+  // Auto-dismiss draft restored indicator
+  useEffect(() => {
+    if (!draftRestored) return;
+    const t = setTimeout(() => setDraftRestored(false), 3000);
+    return () => clearTimeout(t);
+  }, [draftRestored]);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
+      {draftRestored && (
+        <div className="mb-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-sm text-amber-400">
+          Draft restored from your previous session
+        </div>
+      )}
       <DndContext
         sensors={sensors}
         collisionDetection={collisionDetection}

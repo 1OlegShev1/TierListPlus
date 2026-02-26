@@ -9,7 +9,12 @@ interface TierListState {
   items: Map<string, Item>;
   activeId: string | null;
 
-  initialize: (items: Item[], tierKeys: string[], seededTiers?: Record<string, string[]>) => void;
+  initialize: (
+    items: Item[],
+    tierKeys: string[],
+    seededTiers?: Record<string, string[]>,
+    draft?: { tiers: Record<string, string[]>; unranked: string[] } | null,
+  ) => void;
   setActiveId: (id: string | null) => void;
   findContainer: (itemId: string) => string | null;
   moveItem: (itemId: string, toContainer: string, toIndex: number) => void;
@@ -26,10 +31,45 @@ export const useTierListStore = create<TierListState>((set, get) => ({
   items: new Map(),
   activeId: null,
 
-  initialize: (items, tierKeys, seededTiers) => {
+  initialize: (items, tierKeys, seededTiers, draft) => {
     const itemMap = new Map<string, Item>();
     for (const item of items) {
       itemMap.set(item.id, item);
+    }
+
+    // Draft takes priority over seededTiers when present
+    if (draft) {
+      const currentTierKeySet = new Set(tierKeys);
+      const tiers: Record<string, string[]> = {};
+      const orphaned: string[] = [];
+
+      // Rebuild tiers — only keep keys that still exist
+      for (const key of tierKeys) {
+        tiers[key] = draft.tiers[key] ?? [];
+      }
+
+      // Collect items from draft tiers that no longer exist
+      for (const [key, ids] of Object.entries(draft.tiers)) {
+        if (!currentTierKeySet.has(key)) {
+          orphaned.push(...ids);
+        }
+      }
+
+      // Find items that exist in the session but are missing from the draft entirely
+      const draftItemIds = new Set([
+        ...draft.unranked,
+        ...Object.values(draft.tiers).flat(),
+      ]);
+      const missing = items
+        .filter((i) => !draftItemIds.has(i.id))
+        .map((i) => i.id);
+
+      set({
+        items: itemMap,
+        unranked: [...draft.unranked, ...orphaned, ...missing],
+        tiers,
+      });
+      return;
     }
 
     const tiers: Record<string, string[]> = {};
