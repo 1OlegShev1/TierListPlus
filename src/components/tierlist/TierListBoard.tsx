@@ -4,7 +4,6 @@ import { useCallback, useEffect, useState } from "react";
 import {
   DndContext,
   DragOverlay,
-  closestCenter,
   pointerWithin,
   type DragEndEvent,
   type DragOverEvent,
@@ -15,9 +14,7 @@ import {
   KeyboardSensor,
   type CollisionDetection,
   rectIntersection,
-  getFirstCollision,
 } from "@dnd-kit/core";
-import { arrayMove } from "@dnd-kit/sortable";
 import { TierRow } from "./TierRow";
 import { UnrankedPool } from "./UnrankedPool";
 import { DraggableItem } from "./DraggableItem";
@@ -35,6 +32,7 @@ interface TierListBoardProps {
   participantId: string;
   tierConfig: TierConfig[];
   sessionItems: SessionItem[];
+  seededTiers?: Record<string, string[]>;
   onSubmitted: () => void;
 }
 
@@ -43,6 +41,7 @@ export function TierListBoard({
   participantId,
   tierConfig,
   sessionItems,
+  seededTiers,
   onSubmitted,
 }: TierListBoardProps) {
   const { initialize, setActiveId, activeId, items, findContainer, tiers, unranked, getVotes } =
@@ -52,9 +51,10 @@ export function TierListBoard({
   useEffect(() => {
     initialize(
       sessionItems,
-      tierConfig.map((t) => t.key)
+      tierConfig.map((t) => t.key),
+      seededTiers
     );
-  }, [sessionItems, tierConfig, initialize]);
+  }, [sessionItems, tierConfig, seededTiers, initialize]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),

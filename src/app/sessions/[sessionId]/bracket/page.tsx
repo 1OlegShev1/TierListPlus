@@ -111,7 +111,7 @@ export default function BracketPage() {
         (m: Matchup) =>
           m.itemA &&
           m.itemB &&
-          !m.votes.some((v: { participantId: string }) => v.participantId === participantId)
+          !(m.votes ?? []).some((v: { participantId: string }) => v.participantId === participantId)
       );
 
       if (stillPending.length > 0) {
@@ -144,7 +144,7 @@ export default function BracketPage() {
     (m) => m.itemA && m.itemB
   ).length;
   const totalVoted = bracket.matchups.filter((m) =>
-    m.votes.some((v) => v.participantId === participantId)
+    (m.votes ?? []).some((v) => v.participantId === participantId)
   ).length;
 
   return (

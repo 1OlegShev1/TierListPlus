@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { tierConfigSchema } from "@/lib/validators";
 
 export async function GET(
   _request: Request,
@@ -30,11 +31,33 @@ export async function PATCH(
   const { sessionId } = await params;
   const body = await request.json();
 
+  const data: Record<string, unknown> = {};
+
+  if (body.status) {
+    const validStatuses = ["OPEN", "CLOSED", "ARCHIVED"];
+    if (!validStatuses.includes(body.status)) {
+      return NextResponse.json(
+        { error: "Invalid status. Must be OPEN, CLOSED, or ARCHIVED" },
+        { status: 400 }
+      );
+    }
+    data.status = body.status;
+  }
+
+  if (body.tierConfig) {
+    const parsed = tierConfigSchema.safeParse(body.tierConfig);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: "Invalid tier config", details: parsed.error.flatten() },
+        { status: 400 }
+      );
+    }
+    data.tierConfig = JSON.parse(JSON.stringify(parsed.data));
+  }
+
   const session = await prisma.session.update({
     where: { id: sessionId },
-    data: {
-      status: body.status,
-    },
+    data,
   });
 
   return NextResponse.json(session);

@@ -16,7 +16,8 @@ interface TierListState {
 
   initialize: (
     items: SessionItem[],
-    tierKeys: string[]
+    tierKeys: string[],
+    seededTiers?: Record<string, string[]>
   ) => void;
   setActiveId: (id: string | null) => void;
   findContainer: (itemId: string) => string | null;
@@ -30,6 +31,7 @@ interface TierListState {
     fromIndex: number,
     toIndex: number
   ) => void;
+  reorderTier: (tierKey: string, orderedIds: string[]) => void;
   getVotes: () => { sessionItemId: string; tierKey: string; rankInTier: number }[];
 }
 
@@ -39,18 +41,30 @@ export const useTierListStore = create<TierListState>((set, get) => ({
   items: new Map(),
   activeId: null,
 
-  initialize: (items, tierKeys) => {
+  initialize: (items, tierKeys, seededTiers) => {
     const itemMap = new Map<string, SessionItem>();
-    const ids: string[] = [];
     for (const item of items) {
       itemMap.set(item.id, item);
-      ids.push(item.id);
     }
+
     const tiers: Record<string, string[]> = {};
+    const seededIds = new Set<string>();
+
     for (const key of tierKeys) {
-      tiers[key] = [];
+      if (seededTiers?.[key]) {
+        // Only include IDs that actually exist in items
+        const valid = seededTiers[key].filter((id) => itemMap.has(id));
+        tiers[key] = valid;
+        for (const id of valid) seededIds.add(id);
+      } else {
+        tiers[key] = [];
+      }
     }
-    set({ items: itemMap, unranked: ids, tiers });
+
+    // Anything not seeded goes to unranked
+    const unranked = items.filter((i) => !seededIds.has(i.id)).map((i) => i.id);
+
+    set({ items: itemMap, unranked, tiers });
   },
 
   setActiveId: (id) => set({ activeId: id }),
@@ -107,6 +121,14 @@ export const useTierListStore = create<TierListState>((set, get) => ({
       const [item] = arr.splice(fromIndex, 1);
       arr.splice(toIndex, 0, item);
       newTiers[container] = arr;
+      return { tiers: newTiers };
+    });
+  },
+
+  reorderTier: (tierKey, orderedIds) => {
+    set((state) => {
+      const newTiers = { ...state.tiers };
+      newTiers[tierKey] = orderedIds;
       return { tiers: newTiers };
     });
   },
