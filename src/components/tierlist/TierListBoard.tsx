@@ -14,10 +14,8 @@ import {
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
-import { useAutoAnimate } from "@formkit/auto-animate/react";
-import type { AutoAnimationPlugin } from "@formkit/auto-animate";
 import { nanoid } from "nanoid";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useTierListStore } from "@/hooks/useTierList";
 import { apiPatch, apiPost, getErrorMessage } from "@/lib/api-client";
 import { TIER_COLORS } from "@/lib/constants";
@@ -26,56 +24,6 @@ import { DraggableItem } from "./DraggableItem";
 import { TierRow } from "./TierRow";
 import { UnrankedDropZone, UnrankedHeader } from "./UnrankedPool";
 
-/**
- * Custom auto-animate plugin for tier row animations.
- *
- * The default add animation is nearly invisible (2% scale + delayed opacity fade).
- * The default move has a heuristic that zeros out deltas when edges don't shift,
- * which can suppress animations for full-width rows.
- */
-const tierRowAnimation: AutoAnimationPlugin = (el, action, coordsA, coordsB) => {
-  if (action === "add") {
-    return new KeyframeEffect(
-      el,
-      [
-        { opacity: 0, transform: "translateY(-10px)" },
-        { opacity: 1, transform: "translateY(0)" },
-      ],
-      { duration: 250, easing: "ease-out" },
-    );
-  }
-
-  if (action === "remove") {
-    // Default styleReset (position:absolute) is applied automatically by auto-animate
-    return new KeyframeEffect(
-      el,
-      [
-        { opacity: 1, transform: "scale(1)" },
-        { opacity: 0, transform: "scale(0.96)" },
-      ],
-      { duration: 200, easing: "ease-out" },
-    );
-  }
-
-  // remain — FLIP slide from old position to new
-  if (coordsA && coordsB) {
-    const deltaX = coordsA.left - coordsB.left;
-    const deltaY = coordsA.top - coordsB.top;
-    if (deltaX !== 0 || deltaY !== 0) {
-      return new KeyframeEffect(
-        el,
-        [
-          { transform: `translate(${deltaX}px, ${deltaY}px)` },
-          { transform: "translate(0, 0)" },
-        ],
-        { duration: 300, easing: "ease-in-out" },
-      );
-    }
-  }
-
-  return new KeyframeEffect(el, [], { duration: 0 });
-};
-
 interface TierListBoardProps {
   sessionId: string;
   participantId: string;
@@ -83,6 +31,54 @@ interface TierListBoardProps {
   sessionItems: Item[];
   seededTiers?: Record<string, string[]>;
   onSubmitted: () => void;
+}
+
+// ---- FLIP animation helpers ----
+
+/** Snapshot positions of all direct children keyed by data-tier-key. */
+function snapshotPositions(container: HTMLElement): Map<string, DOMRect> {
+  const map = new Map<string, DOMRect>();
+  for (const child of container.children) {
+    const key = (child as HTMLElement).dataset.tierKey;
+    if (key) map.set(key, child.getBoundingClientRect());
+  }
+  return map;
+}
+
+/** Play FLIP move/add animations by comparing old vs new positions. */
+function flipAnimate(
+  container: HTMLElement,
+  oldPositions: Map<string, DOMRect>,
+  oldKeys: Set<string>,
+) {
+  for (const child of container.children) {
+    const el = child as HTMLElement;
+    const key = el.dataset.tierKey;
+    if (!key) continue;
+
+    const newRect = el.getBoundingClientRect();
+    const oldRect = oldPositions.get(key);
+
+    if (oldKeys.has(key) && oldRect) {
+      // Existing row — animate if it moved
+      const dy = oldRect.top - newRect.top;
+      if (Math.abs(dy) > 1) {
+        el.animate(
+          [{ transform: `translateY(${dy}px)` }, { transform: "translateY(0)" }],
+          { duration: 300, easing: "ease-in-out" },
+        );
+      }
+    } else if (!oldKeys.has(key)) {
+      // New row — slide in
+      el.animate(
+        [
+          { opacity: 0, transform: "translateY(-10px)" },
+          { opacity: 1, transform: "translateY(0)" },
+        ],
+        { duration: 250, easing: "ease-out" },
+      );
+    }
+  }
 }
 
 export function TierListBoard({
@@ -108,7 +104,33 @@ export function TierListBoard({
   const [tierConfig, setTierConfig] = useState<TierConfig[]>(initialTierConfig);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [animateRef, enableAnimate] = useAutoAnimate(tierRowAnimation);
+
+  // ---- FLIP refs ----
+  const containerRef = useRef<HTMLDivElement>(null);
+  const flipRef = useRef<{ positions: Map<string, DOMRect>; keys: Set<string> } | null>(null);
+  const skipFlipRef = useRef(false);
+
+  /** Call before any setTierConfig to snapshot current positions. */
+  const captureFlip = useCallback(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    flipRef.current = {
+      positions: snapshotPositions(el),
+      keys: new Set(Array.from(el.children).map((c) => (c as HTMLElement).dataset.tierKey!)),
+    };
+  }, []);
+
+  /** After React commits the DOM, run the FLIP animation. */
+  useLayoutEffect(() => {
+    const snap = flipRef.current;
+    flipRef.current = null;
+    if (skipFlipRef.current) {
+      skipFlipRef.current = false;
+      return;
+    }
+    if (!snap || !containerRef.current) return;
+    flipAnimate(containerRef.current, snap.positions, snap.keys);
+  }, [tierConfig]);
 
   // Initialize Zustand store only once on mount
   const initializedRef = useRef(false);
@@ -155,18 +177,23 @@ export function TierListBoard({
     setTierConfig((prev) => prev.map((t) => (t.key === key ? { ...t, color: newColor } : t)));
   }, []);
 
-  const handleMoveTier = useCallback((index: number, direction: -1 | 1) => {
-    setTierConfig((prev) => {
-      const target = index + direction;
-      if (target < 0 || target >= prev.length) return prev;
-      const updated = [...prev];
-      [updated[index], updated[target]] = [updated[target], updated[index]];
-      return updated.map((t, i) => ({ ...t, sortOrder: i }));
-    });
-  }, []);
+  const handleMoveTier = useCallback(
+    (index: number, direction: -1 | 1) => {
+      captureFlip();
+      setTierConfig((prev) => {
+        const target = index + direction;
+        if (target < 0 || target >= prev.length) return prev;
+        const updated = [...prev];
+        [updated[index], updated[target]] = [updated[target], updated[index]];
+        return updated.map((t, i) => ({ ...t, sortOrder: i }));
+      });
+    },
+    [captureFlip],
+  );
 
   const handleInsertTier = useCallback(
     (atIndex: number) => {
+      captureFlip();
       const newKey = `t_${nanoid(4)}`;
       setTierConfig((prev) => {
         const nextColor = TIER_COLORS[prev.length % TIER_COLORS.length];
@@ -182,18 +209,75 @@ export function TierListBoard({
       });
       addTierToStore(newKey);
     },
-    [addTierToStore],
+    [addTierToStore, captureFlip],
   );
 
   const handleDeleteTier = useCallback(
     (key: string) => {
-      setTierConfig((prev) => {
-        if (prev.length <= 2) return prev;
-        removeTierFromStore(key);
-        return prev.filter((t) => t.key !== key).map((t, i) => ({ ...t, sortOrder: i }));
+      if (tierConfig.length <= 2) return;
+
+      const container = containerRef.current;
+      if (!container) return;
+
+      // Snapshot before anything changes
+      const oldPositions = snapshotPositions(container);
+
+      // Find the row to delete
+      const target = Array.from(container.children).find(
+        (c) => (c as HTMLElement).dataset.tierKey === key,
+      ) as HTMLElement | undefined;
+
+      if (!target) return;
+
+      // Pull it out of flow so siblings collapse
+      const rect = target.getBoundingClientRect();
+      const containerRect = container.getBoundingClientRect();
+      Object.assign(target.style, {
+        position: "absolute",
+        top: `${rect.top - containerRect.top + container.scrollTop}px`,
+        left: "0",
+        right: "0",
+        zIndex: "10",
+        pointerEvents: "none",
       });
+
+      // Fade it out
+      target.animate(
+        [
+          { opacity: 1, transform: "scale(1)" },
+          { opacity: 0, transform: "scale(0.96)" },
+        ],
+        { duration: 200, easing: "ease-out", fill: "forwards" },
+      );
+
+      // FLIP siblings into their new positions
+      for (const child of container.children) {
+        const el = child as HTMLElement;
+        if (el === target) continue;
+        const k = el.dataset.tierKey;
+        if (!k) continue;
+        const oldRect = oldPositions.get(k);
+        if (!oldRect) continue;
+        const newRect = el.getBoundingClientRect();
+        const dy = oldRect.top - newRect.top;
+        if (Math.abs(dy) > 1) {
+          el.animate([{ transform: `translateY(${dy}px)` }, { transform: "translateY(0)" }], {
+            duration: 300,
+            easing: "ease-in-out",
+          });
+        }
+      }
+
+      // After animation, actually remove from state
+      setTimeout(() => {
+        skipFlipRef.current = true;
+        removeTierFromStore(key);
+        setTierConfig((prev) =>
+          prev.filter((t) => t.key !== key).map((t, i) => ({ ...t, sortOrder: i })),
+        );
+      }, 300);
     },
-    [removeTierFromStore],
+    [tierConfig.length, removeTierFromStore],
   );
 
   // ---- Drag and drop ----
@@ -211,10 +295,9 @@ export function TierListBoard({
 
   const handleDragStart = useCallback(
     (event: DragStartEvent) => {
-      enableAnimate(false);
       setActiveId(event.active.id as string);
     },
-    [setActiveId, enableAnimate],
+    [setActiveId],
   );
 
   const handleDragOver = useCallback(
@@ -251,7 +334,6 @@ export function TierListBoard({
   const handleDragEnd = useCallback(
     (event: DragEndEvent) => {
       const { active, over } = event;
-      enableAnimate(true);
       setActiveId(null);
 
       if (!over) return;
@@ -278,13 +360,12 @@ export function TierListBoard({
         }
       }
     },
-    [enableAnimate, findContainer, setActiveId, tierConfig],
+    [findContainer, setActiveId, tierConfig],
   );
 
   const handleDragCancel = useCallback(() => {
-    enableAnimate(true);
     setActiveId(null);
-  }, [enableAnimate, setActiveId]);
+  }, [setActiveId]);
 
   // ---- Submit ----
 
@@ -331,24 +412,25 @@ export function TierListBoard({
       >
         {/* Tier Rows — scrollable */}
         <div className="min-h-0 flex-1 overflow-y-auto">
-          <div ref={animateRef} className="rounded-lg border border-neutral-800">
+          <div ref={containerRef} className="relative rounded-lg border border-neutral-800">
             {tierConfig.map((tier, index) => (
-              <TierRow
-                key={tier.key}
-                tierKey={tier.key}
-                label={tier.label}
-                color={tier.color}
-                isFirst={index === 0}
-                isLast={index === tierConfig.length - 1}
-                canDelete={tierConfig.length > 2}
-                onLabelChange={(newLabel) => handleLabelChange(tier.key, newLabel)}
-                onColorChange={(newColor) => handleColorChange(tier.key, newColor)}
-                onMoveUp={() => handleMoveTier(index, -1)}
-                onMoveDown={() => handleMoveTier(index, 1)}
-                onInsertAbove={() => handleInsertTier(index)}
-                onInsertBelow={() => handleInsertTier(index + 1)}
-                onDelete={() => handleDeleteTier(tier.key)}
-              />
+              <div key={tier.key} data-tier-key={tier.key}>
+                <TierRow
+                  tierKey={tier.key}
+                  label={tier.label}
+                  color={tier.color}
+                  isFirst={index === 0}
+                  isLast={index === tierConfig.length - 1}
+                  canDelete={tierConfig.length > 2}
+                  onLabelChange={(newLabel) => handleLabelChange(tier.key, newLabel)}
+                  onColorChange={(newColor) => handleColorChange(tier.key, newColor)}
+                  onMoveUp={() => handleMoveTier(index, -1)}
+                  onMoveDown={() => handleMoveTier(index, 1)}
+                  onInsertAbove={() => handleInsertTier(index)}
+                  onInsertBelow={() => handleInsertTier(index + 1)}
+                  onDelete={() => handleDeleteTier(tier.key)}
+                />
+              </div>
             ))}
           </div>
         </div>
