@@ -45,6 +45,11 @@ export function apiPatch<T = unknown>(url: string, body: unknown): Promise<T> {
   });
 }
 
+/** DELETE an API route. */
+export function apiDelete<T = void>(url: string): Promise<T> {
+  return apiFetch<T>(url, { method: "DELETE" });
+}
+
 /** Extract a user-friendly error message from an unknown error. */
 export function getErrorMessage(error: unknown, fallback = "Something went wrong"): string {
   if (error instanceof ApiClientError) {

@@ -7,9 +7,11 @@ import { ErrorMessage } from "@/components/ui/ErrorMessage";
 import { Input } from "@/components/ui/Input";
 import { Loading } from "@/components/ui/Loading";
 import { saveParticipant } from "@/hooks/useParticipant";
+import { useUser } from "@/hooks/useUser";
 
 function JoinSessionForm() {
   const router = useRouter();
+  const { userId } = useUser();
   const searchParams = useSearchParams();
   const codeFromUrl = searchParams.get("code") ?? "";
 
@@ -30,6 +32,7 @@ function JoinSessionForm() {
         body: JSON.stringify({
           joinCode: joinCode.trim().toUpperCase(),
           nickname: nickname.trim(),
+          userId,
         }),
       });
 

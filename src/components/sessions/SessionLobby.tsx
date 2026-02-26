@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { DeleteSessionButton } from "@/components/sessions/DeleteSessionButton";
 import { buttonVariants } from "@/components/ui/Button";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { useParticipant } from "@/hooks/useParticipant";
@@ -28,11 +29,14 @@ export function SessionLobby({ session }: SessionLobbyProps) {
 
   return (
     <div className="mx-auto max-w-2xl">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold">{session.name}</h1>
-        <p className="text-sm text-neutral-500">
-          Template: {session.template.name} &middot; {session.items.length} items
-        </p>
+      <div className="mb-6 flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">{session.name}</h1>
+          <p className="text-sm text-neutral-500">
+            Template: {session.template.name} &middot; {session.items.length} items
+          </p>
+        </div>
+        <DeleteSessionButton sessionId={session.id} creatorId={session.creatorId} />
       </div>
 
       {/* Join Code */}

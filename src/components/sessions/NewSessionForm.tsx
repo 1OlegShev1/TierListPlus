@@ -7,11 +7,13 @@ import { ErrorMessage } from "@/components/ui/ErrorMessage";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { saveParticipant } from "@/hooks/useParticipant";
+import { useUser } from "@/hooks/useUser";
 import { apiFetch, apiPost, getErrorMessage } from "@/lib/api-client";
 import type { TemplateSummary } from "@/types";
 
 export function NewSessionForm() {
   const router = useRouter();
+  const { userId } = useUser();
   const searchParams = useSearchParams();
   const preselectedTemplateId = searchParams.get("templateId");
 
@@ -44,6 +46,7 @@ export function NewSessionForm() {
         name,
         nickname: nickname.trim(),
         bracketEnabled,
+        creatorId: userId,
       });
 
       saveParticipant(data.id, data.participantId, data.participantNickname);

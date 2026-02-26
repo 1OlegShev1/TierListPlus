@@ -12,7 +12,9 @@ export const GET = withHandler(async () => {
 });
 
 export const POST = withHandler(async (request) => {
-  const data = await validateBody(request, createTemplateSchema);
-  const template = await prisma.template.create({ data });
+  const { name, description, creatorId } = await validateBody(request, createTemplateSchema);
+  const template = await prisma.template.create({
+    data: { name, description, creatorId: creatorId ?? undefined },
+  });
   return NextResponse.json(template, { status: 201 });
 });

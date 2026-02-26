@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { notFound, validateBody, withHandler } from "@/lib/api-helpers";
+import { badRequest, notFound, requireOwner, validateBody, withHandler } from "@/lib/api-helpers";
 import { prisma } from "@/lib/prisma";
 import { updateTemplateSchema } from "@/lib/validators";
 
@@ -34,14 +34,22 @@ export const PATCH = withHandler(async (request, { params }) => {
   return NextResponse.json(template);
 });
 
-export const DELETE = withHandler(async (_request, { params }) => {
+export const DELETE = withHandler(async (request, { params }) => {
   const { templateId } = await params;
+  const userId = new URL(request.url).searchParams.get("userId");
 
   const existing = await prisma.template.findUnique({
     where: { id: templateId },
-    select: { id: true },
+    select: { id: true, creatorId: true, _count: { select: { sessions: true } } },
   });
   if (!existing) notFound("Template not found");
+  requireOwner(existing.creatorId, userId);
+
+  if (existing._count.sessions > 0) {
+    badRequest(
+      `Cannot delete: ${existing._count.sessions} session(s) use this template. Delete those sessions first.`,
+    );
+  }
 
   await prisma.template.delete({ where: { id: templateId } });
   return new Response(null, { status: 204 });

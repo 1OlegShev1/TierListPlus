@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { ErrorMessage } from "@/components/ui/ErrorMessage";
 import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Textarea";
+import { useUser } from "@/hooks/useUser";
 import { apiFetch, apiPatch, apiPost, getErrorMessage } from "@/lib/api-client";
 import type { TemplateItemData } from "@/types";
 
@@ -24,6 +25,7 @@ export function TemplateEditor({
   initialItems = [],
 }: TemplateEditorProps) {
   const router = useRouter();
+  const { userId } = useUser();
   const [name, setName] = useState(initialName);
   const [description, setDescription] = useState(initialDescription);
   const [items, setItems] = useState<TemplateItemData[]>(initialItems);
@@ -51,7 +53,11 @@ export function TemplateEditor({
       let id = templateId;
 
       if (!id) {
-        const template = await apiPost<{ id: string }>("/api/templates", { name, description });
+        const template = await apiPost<{ id: string }>("/api/templates", {
+          name,
+          description,
+          creatorId: userId,
+        });
         id = template.id;
       } else {
         await apiPatch(`/api/templates/${id}`, { name, description });

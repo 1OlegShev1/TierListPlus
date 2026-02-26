@@ -137,7 +137,7 @@ export default function BracketPage() {
   ).length;
 
   return (
-    <div className="mx-auto max-w-2xl">
+    <div className="mx-auto max-w-3xl">
       <div className="mb-8 text-center">
         <h1 className="text-2xl font-bold">Bracket Voting</h1>
         <p className="mt-1 text-sm text-neutral-500">

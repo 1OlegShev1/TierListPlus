@@ -11,11 +11,11 @@ const sizeConfig = {
     label: "text-sm font-medium",
   },
   lg: {
-    container: "gap-6",
-    card: "w-52 gap-3 p-6",
-    img: "h-32 w-32",
-    vs: "text-2xl",
-    label: "font-medium",
+    container: "gap-8",
+    card: "w-64 gap-4 p-6",
+    img: "h-48 w-48",
+    vs: "text-3xl",
+    label: "text-lg font-medium",
   },
 };
 

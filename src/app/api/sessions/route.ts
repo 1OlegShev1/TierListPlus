@@ -30,7 +30,7 @@ export const GET = withHandler(async (request) => {
 export const POST = withHandler(async (request) => {
   const data = await validateBody(request, createSessionSchema);
 
-  const { templateId, name, tierConfig, bracketEnabled, nickname } = data;
+  const { templateId, name, tierConfig, bracketEnabled, nickname, creatorId } = data;
 
   // Verify template exists and get its items
   const template = await prisma.template.findUnique({
@@ -48,6 +48,7 @@ export const POST = withHandler(async (request) => {
       name,
       templateId,
       joinCode,
+      creatorId: creatorId ?? undefined,
       tierConfig: JSON.parse(JSON.stringify(tierConfig ?? DEFAULT_TIER_CONFIG)),
       bracketEnabled: bracketEnabled ?? false,
       items: {
@@ -71,7 +72,7 @@ export const POST = withHandler(async (request) => {
 
   if (nickname) {
     const participant = await prisma.participant.create({
-      data: { sessionId: session.id, nickname },
+      data: { sessionId: session.id, nickname, userId: creatorId ?? undefined },
     });
     participantId = participant.id;
     participantNickname = participant.nickname;

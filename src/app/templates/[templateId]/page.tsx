@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { DeleteTemplateButton } from "@/components/templates/DeleteTemplateButton";
 import { buttonVariants } from "@/components/ui/Button";
 import { prisma } from "@/lib/prisma";
 
@@ -25,7 +26,8 @@ export default async function TemplateDetailPage({
             <p className="mt-1 text-sm text-neutral-400">{template.description}</p>
           )}
         </div>
-        <div className="flex gap-3">
+        <div className="flex items-center gap-3">
+          <DeleteTemplateButton templateId={templateId} creatorId={template.creatorId} />
           <Link href={`/templates/${templateId}/edit`} className={buttonVariants.secondary}>
             Edit
           </Link>

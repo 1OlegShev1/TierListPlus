@@ -56,13 +56,8 @@ export const useTierListStore = create<TierListState>((set, get) => ({
       }
 
       // Find items that exist in the session but are missing from the draft entirely
-      const draftItemIds = new Set([
-        ...draft.unranked,
-        ...Object.values(draft.tiers).flat(),
-      ]);
-      const missing = items
-        .filter((i) => !draftItemIds.has(i.id))
-        .map((i) => i.id);
+      const draftItemIds = new Set([...draft.unranked, ...Object.values(draft.tiers).flat()]);
+      const missing = items.filter((i) => !draftItemIds.has(i.id)).map((i) => i.id);
 
       set({
         items: itemMap,

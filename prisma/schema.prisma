@@ -6,17 +6,34 @@ datasource db {
   provider = "postgresql"
 }
 
+// ─── USERS ──────────────────────────────────────────────────
+
+model User {
+  id           String   @id @default(cuid())
+  nickname     String?
+  recoveryCode String?  @unique
+  createdAt    DateTime @default(now())
+
+  templates    Template[]
+  sessions     Session[]
+  participants Participant[]
+}
+
 // ─── TEMPLATES ───────────────────────────────────────────────
 
 model Template {
   id          String   @id @default(cuid())
   name        String
   description String?
+  creatorId   String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  creator  User?          @relation(fields: [creatorId], references: [id])
   items    TemplateItem[]
   sessions Session[]
+
+  @@index([creatorId])
 }
 
 model TemplateItem {
@@ -40,6 +57,7 @@ model Session {
   name       String
   joinCode   String        @unique
   status     SessionStatus @default(OPEN)
+  creatorId  String?
   createdAt  DateTime      @default(now())
   updatedAt  DateTime      @updatedAt
 
@@ -50,11 +68,13 @@ model Session {
   bracketEnabled Boolean @default(false)
 
   template     Template      @relation(fields: [templateId], references: [id])
+  creator      User?         @relation(fields: [creatorId], references: [id])
   items        SessionItem[]
   participants Participant[]
   brackets     Bracket[]
 
   @@index([templateId])
+  @@index([creatorId])
 }
 
 enum SessionStatus {
@@ -91,14 +111,17 @@ model Participant {
   id        String   @id @default(cuid())
   sessionId String
   nickname  String
+  userId    String?
   createdAt DateTime @default(now())
 
   session      Session       @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  user         User?         @relation(fields: [userId], references: [id])
   tierVotes    TierVote[]
   bracketVotes BracketVote[]
 
   @@unique([sessionId, nickname])
   @@index([sessionId])
+  @@index([userId])
 }
 
 // ─── TIER VOTES ──────────────────────────────────────────────

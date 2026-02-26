@@ -86,6 +86,18 @@ export function badRequest(message: string): never {
   throw new ApiError(400, message);
 }
 
+/** Throw a 403 ApiError */
+export function forbidden(message = "Not authorized"): never {
+  throw new ApiError(403, message);
+}
+
+/** Verify the requesting user owns a resource. Throws 403 if not. */
+export function requireOwner(creatorId: string | null, requestUserId: string | null) {
+  if (!creatorId || !requestUserId || creatorId !== requestUserId) {
+    forbidden("You are not the owner of this resource");
+  }
+}
+
 /**
  * Verify a participant belongs to a session.
  * Returns the participant record, or throws 404 if not found.

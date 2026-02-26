@@ -6,7 +6,7 @@ import { joinSessionSchema } from "@/lib/validators";
 export const POST = withHandler(async (request) => {
   const data = await validateBody(request, joinSessionSchema);
 
-  const { joinCode, nickname } = data;
+  const { joinCode, nickname, userId } = data;
 
   const session = await prisma.session.findUnique({
     where: { joinCode: joinCode.toUpperCase() },
@@ -23,10 +23,11 @@ export const POST = withHandler(async (request) => {
         nickname,
       },
     },
-    update: {},
+    update: { userId: userId ?? undefined },
     create: {
       sessionId: session.id,
       nickname,
+      userId: userId ?? undefined,
     },
   });
 

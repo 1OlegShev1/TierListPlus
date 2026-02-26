@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { notFound, validateBody, withHandler } from "@/lib/api-helpers";
+import { notFound, requireOwner, validateBody, withHandler } from "@/lib/api-helpers";
 import { prisma } from "@/lib/prisma";
 import { updateSessionSchema } from "@/lib/validators";
 
@@ -41,4 +41,19 @@ export const PATCH = withHandler(async (request, { params }) => {
   });
 
   return NextResponse.json(session);
+});
+
+export const DELETE = withHandler(async (request, { params }) => {
+  const { sessionId } = await params;
+  const userId = new URL(request.url).searchParams.get("userId");
+
+  const existing = await prisma.session.findUnique({
+    where: { id: sessionId },
+    select: { id: true, creatorId: true },
+  });
+  if (!existing) notFound("Session not found");
+  requireOwner(existing.creatorId, userId);
+
+  await prisma.session.delete({ where: { id: sessionId } });
+  return new Response(null, { status: 204 });
 });
