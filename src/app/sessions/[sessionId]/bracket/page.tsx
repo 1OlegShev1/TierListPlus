@@ -74,7 +74,7 @@ export default function BracketPage() {
     (m) =>
       m.itemA &&
       m.itemB &&
-      !m.votes.some((v) => v.participantId === participantId)
+      !(m.votes ?? []).some((v) => v.participantId === participantId)
   );
 
   const currentMatchup = myPendingMatchups[currentMatchupIndex];

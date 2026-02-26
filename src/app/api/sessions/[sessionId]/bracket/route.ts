@@ -85,6 +85,7 @@ export async function POST(
         include: {
           itemA: { select: { id: true, label: true, imageUrl: true } },
           itemB: { select: { id: true, label: true, imageUrl: true } },
+          votes: { select: { participantId: true, chosenItemId: true } },
         },
         orderBy: [{ round: "asc" }, { position: "asc" }],
       },

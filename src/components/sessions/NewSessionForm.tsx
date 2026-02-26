@@ -53,17 +53,32 @@ export function NewSessionForm() {
     );
   };
 
+  const [error, setError] = useState("");
+
   const create = async () => {
     if (!templateId || !name.trim()) return;
     setCreating(true);
+    setError("");
     try {
       const res = await fetch("/api/sessions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ templateId, name, tierConfig, bracketEnabled }),
+        body: JSON.stringify({
+          templateId,
+          name,
+          tierConfig: tierConfig.map((t) => ({
+            ...t,
+            key: t.label.replace(/\s+/g, "_") || t.key,
+          })),
+          bracketEnabled,
+        }),
       });
-      const session = await res.json();
-      router.push(`/sessions/${session.id}`);
+      const data = await res.json();
+      if (!res.ok) {
+        setError(typeof data.error === "string" ? data.error : JSON.stringify(data.error));
+        return;
+      }
+      router.push(`/sessions/${data.id}`);
     } finally {
       setCreating(false);
     }
@@ -111,7 +126,7 @@ export function NewSessionForm() {
           </label>
           <div className="space-y-2">
             {tierConfig.map((tier, index) => (
-              <div key={tier.key} className="flex items-center gap-2">
+              <div key={index} className="flex items-center gap-2">
                 <input
                   type="color"
                   value={tier.color}
@@ -122,10 +137,7 @@ export function NewSessionForm() {
                   type="text"
                   value={tier.label}
                   onChange={(e) =>
-                    updateTier(index, {
-                      label: e.target.value,
-                      key: e.target.value.replace(/\s+/g, "_"),
-                    })
+                    updateTier(index, { label: e.target.value })
                   }
                   className="flex-1 rounded border border-neutral-700 bg-neutral-800 px-3 py-1 text-sm text-white focus:border-amber-500 focus:outline-none"
                 />
@@ -161,6 +173,12 @@ export function NewSessionForm() {
             </p>
           </div>
         </label>
+
+        {error && (
+          <p className="rounded-lg bg-red-500/10 px-4 py-2 text-sm text-red-400">
+            {error}
+          </p>
+        )}
 
         <div className="flex gap-3">
           <button
