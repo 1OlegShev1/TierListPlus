@@ -48,6 +48,7 @@ src/
       sessions/                 # Session CRUD, join, votes, bracket, consensus
     templates/                  # Template pages (list, new, detail, edit)
     sessions/                   # Session pages (list, new, join, lobby, vote, bracket, results)
+                                #   results: consensus view + ?participant=<id> for individual votes
   components/
     layout/NavBar.tsx           # Top navigation
     templates/                  # TemplateEditor, ImageUploader

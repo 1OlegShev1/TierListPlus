@@ -1,19 +1,61 @@
 "use client";
 
 import Link from "next/link";
-import { useParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useParams, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
 import { buttonVariants } from "@/components/ui/Button";
 import { ErrorMessage } from "@/components/ui/ErrorMessage";
 import { Loading } from "@/components/ui/Loading";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { apiFetch, getErrorMessage } from "@/lib/api-client";
 import type { ConsensusItem, ConsensusTier } from "@/lib/consensus";
-import type { SessionResult } from "@/types";
+import type { Item, SessionResult, TierConfig } from "@/types";
 
-export default function ResultsPage() {
+interface ParticipantVote {
+  tierKey: string;
+  rankInTier: number;
+  sessionItem: Item;
+}
+
+interface ParticipantVotesResponse {
+  participant: { id: string; nickname: string };
+  votes: ParticipantVote[];
+}
+
+/** Build display tiers from a single participant's votes */
+function buildParticipantTiers(
+  votes: ParticipantVote[],
+  tierConfig: TierConfig[],
+): ConsensusTier[] {
+  const grouped = new Map<string, Item[]>();
+  for (const tier of tierConfig) {
+    grouped.set(tier.key, []);
+  }
+  for (const vote of votes) {
+    const items = grouped.get(vote.tierKey);
+    if (items) items.push(vote.sessionItem);
+  }
+  return tierConfig.map((tier) => ({
+    ...tier,
+    items: (grouped.get(tier.key) ?? []).map((item) => ({
+      ...item,
+      averageScore: 0,
+      voteDistribution: {},
+      totalVotes: 0,
+    })),
+  }));
+}
+
+function ResultsContent() {
   const { sessionId } = useParams<{ sessionId: string }>();
-  const [tiers, setTiers] = useState<ConsensusTier[]>([]);
+  const searchParams = useSearchParams();
+  const participantId = searchParams.get("participant");
+
+  const [consensusTiers, setConsensusTiers] = useState<ConsensusTier[]>([]);
+  const [participantTiers, setParticipantTiers] = useState<ConsensusTier[] | null>(null);
+  const [participantName, setParticipantName] = useState<string | null>(null);
+  const [participantLoading, setParticipantLoading] = useState(false);
+  const [participantError, setParticipantError] = useState<string | null>(null);
   const [session, setSession] = useState<SessionResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -26,7 +68,7 @@ export default function ResultsPage() {
     ])
       .then(([sessionData, consensusData]) => {
         setSession(sessionData);
-        setTiers(consensusData);
+        setConsensusTiers(consensusData);
       })
       .catch((err) => {
         setError(getErrorMessage(err, "Failed to load results. Please try again."));
@@ -34,69 +76,124 @@ export default function ResultsPage() {
       .finally(() => setLoading(false));
   }, [sessionId]);
 
+  useEffect(() => {
+    if (!participantId || !session) {
+      setParticipantTiers(null);
+      setParticipantName(null);
+      setParticipantError(null);
+      return;
+    }
+
+    let stale = false;
+    setSelectedItem(null);
+    setParticipantLoading(true);
+    setParticipantError(null);
+
+    apiFetch<ParticipantVotesResponse>(`/api/sessions/${sessionId}/votes/${participantId}`)
+      .then((data) => {
+        if (stale) return;
+        setParticipantName(data.participant.nickname);
+        setParticipantTiers(buildParticipantTiers(data.votes, session.tierConfig));
+      })
+      .catch((err) => {
+        if (stale) return;
+        setParticipantError(getErrorMessage(err, "Failed to load participant votes."));
+        setParticipantTiers(null);
+        setParticipantName(null);
+      })
+      .finally(() => {
+        if (!stale) setParticipantLoading(false);
+      });
+
+    return () => {
+      stale = true;
+    };
+  }, [participantId, session, sessionId]);
+
   if (loading) return <Loading message="Loading results..." />;
   if (error) return <ErrorMessage message={error} />;
 
   const totalParticipants = session?.participants.length ?? 0;
+  const isIndividualView = !!participantId;
+  const displayTiers = participantTiers ?? consensusTiers;
 
   return (
     <div>
       <PageHeader
         title={`${session?.name} — Results`}
-        subtitle={`Consensus from ${totalParticipants} voter${totalParticipants !== 1 ? "s" : ""}`}
+        subtitle={
+          isIndividualView
+            ? participantName
+              ? `${participantName}'s votes`
+              : "Loading votes..."
+            : `Consensus from ${totalParticipants} voter${totalParticipants !== 1 ? "s" : ""}`
+        }
         actions={
-          <Link href={`/sessions/${sessionId}`} className={buttonVariants.secondary}>
-            Back to Lobby
-          </Link>
+          <div className="flex gap-2">
+            {isIndividualView && (
+              <Link href={`/sessions/${sessionId}/results`} className={buttonVariants.secondary}>
+                Back to Consensus
+              </Link>
+            )}
+            <Link href={`/sessions/${sessionId}`} className={buttonVariants.secondary}>
+              Back to Lobby
+            </Link>
+          </div>
         }
       />
 
-      {/* Consensus Tier List */}
-      <div className="overflow-hidden rounded-lg border border-neutral-800">
-        {tiers.map((tier) => (
-          <div
-            key={tier.key}
-            className="flex min-h-[80px] border-b border-neutral-800 last:border-b-0"
-          >
-            <div
-              className="flex w-20 flex-shrink-0 items-center justify-center text-lg font-bold"
-              style={{ backgroundColor: tier.color, color: "#000" }}
-            >
-              {tier.label}
-            </div>
-            <div className="flex flex-1 flex-wrap items-start gap-1 p-1">
-              {tier.items.map((item) => (
-                <button
-                  key={item.id}
-                  onClick={() => setSelectedItem(item)}
-                  className={`flex h-[72px] w-[72px] flex-shrink-0 flex-col items-center gap-1 rounded-lg border p-1 transition-colors ${
-                    selectedItem?.id === item.id
-                      ? "border-amber-400 bg-neutral-700"
-                      : "border-neutral-700 bg-neutral-800 hover:border-neutral-500"
-                  }`}
-                >
-                  <img
-                    src={item.imageUrl}
-                    alt={item.label}
-                    className="h-[48px] w-[48px] rounded object-cover"
-                  />
-                  <span className="w-full truncate text-center text-[10px] leading-tight text-neutral-300">
-                    {item.label}
-                  </span>
-                </button>
-              ))}
-              {tier.items.length === 0 && (
-                <span className="flex h-[72px] items-center px-4 text-sm text-neutral-600">
-                  No items
-                </span>
-              )}
-            </div>
-          </div>
-        ))}
-      </div>
+      {/* Participant loading/error */}
+      {participantLoading && <Loading message="Loading votes..." />}
+      {participantError && <ErrorMessage message={participantError} />}
 
-      {/* Item Detail Panel */}
-      {selectedItem && (
+      {/* Tier List */}
+      {!participantLoading && !participantError && (
+        <div className="overflow-hidden rounded-lg border border-neutral-800">
+          {displayTiers.map((tier) => (
+            <div
+              key={tier.key}
+              className="flex min-h-[104px] border-b border-neutral-800 last:border-b-0"
+            >
+              <div
+                className="flex w-28 flex-shrink-0 items-center justify-center px-2 text-center text-xl font-bold"
+                style={{ backgroundColor: tier.color, color: "#000" }}
+              >
+                {tier.label}
+              </div>
+              <div className="flex flex-1 flex-wrap items-start gap-2 p-2">
+                {tier.items.map((item) => (
+                  <button
+                    key={item.id}
+                    onClick={() => !isIndividualView && setSelectedItem(item)}
+                    className={`group relative h-[96px] w-[96px] flex-shrink-0 overflow-hidden rounded-md border transition-colors ${
+                      !isIndividualView && selectedItem?.id === item.id
+                        ? "border-amber-400 ring-2 ring-amber-400"
+                        : "border-neutral-700 hover:border-neutral-500"
+                    } ${isIndividualView ? "cursor-default" : "cursor-pointer"}`}
+                  >
+                    <img
+                      src={item.imageUrl}
+                      alt={item.label}
+                      className="h-full w-full object-cover"
+                    />
+                    <span className="absolute inset-x-0 bottom-0 truncate bg-black/70 px-1 py-0.5 text-center text-[11px] leading-tight text-neutral-200 opacity-0 transition-opacity group-hover:opacity-100">
+                      {item.label}
+                    </span>
+                  </button>
+                ))}
+                {tier.items.length === 0 && (
+                  <span className="flex h-[96px] items-center px-4 text-sm text-neutral-600">
+                    No items
+                  </span>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Item Detail Panel (consensus view only) */}
+      {!isIndividualView && selectedItem && (
         <div className="mt-6 rounded-xl border border-neutral-800 bg-neutral-900 p-4">
           <div className="mb-3 flex items-center gap-3">
             <img
@@ -114,7 +211,7 @@ export default function ResultsPage() {
           </div>
 
           <div className="space-y-1">
-            {tiers.map((tier) => {
+            {consensusTiers.map((tier) => {
               const count = selectedItem.voteDistribution[tier.key] ?? 0;
               const pct = totalParticipants > 0 ? (count / totalParticipants) * 100 : 0;
               return (
@@ -148,8 +245,16 @@ export default function ResultsPage() {
             {session.participants.map((p) => (
               <Link
                 key={p.id}
-                href={`/sessions/${sessionId}/results?participant=${p.id}`}
-                className="rounded-full border border-neutral-700 px-3 py-1 text-sm text-neutral-300 transition-colors hover:border-amber-500 hover:text-amber-400"
+                href={
+                  participantId === p.id
+                    ? `/sessions/${sessionId}/results`
+                    : `/sessions/${sessionId}/results?participant=${p.id}`
+                }
+                className={`rounded-full border px-3 py-1 text-sm transition-colors ${
+                  participantId === p.id
+                    ? "border-amber-500 bg-amber-500/10 text-amber-400"
+                    : "border-neutral-700 text-neutral-300 hover:border-amber-500 hover:text-amber-400"
+                }`}
               >
                 {p.nickname}
               </Link>
@@ -158,5 +263,13 @@ export default function ResultsPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function ResultsPage() {
+  return (
+    <Suspense fallback={<Loading message="Loading results..." />}>
+      <ResultsContent />
+    </Suspense>
   );
 }

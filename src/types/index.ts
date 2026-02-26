@@ -53,6 +53,7 @@ export interface SessionLobbyData {
   name: string;
   joinCode: string;
   status: string;
+  creatorId: string | null;
   bracketEnabled: boolean;
   tierConfig: TierConfig[];
   template: { name: string };
@@ -86,5 +87,6 @@ export interface TemplateItemData {
 /** Session result summary for the results page */
 export interface SessionResult {
   name: string;
+  tierConfig: TierConfig[];
   participants: { id: string; nickname: string }[];
 }
