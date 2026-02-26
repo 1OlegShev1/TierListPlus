@@ -18,7 +18,12 @@ export const GET = withHandler(async (_request, { params }) => {
 
   const votes = await prisma.tierVote.findMany({
     where: { sessionItem: { sessionId } },
-    select: { sessionItemId: true, tierKey: true },
+    select: {
+      participantId: true,
+      sessionItemId: true,
+      tierKey: true,
+      rankInTier: true,
+    },
   });
 
   const tierConfig = tierConfigSchema.parse(session.tierConfig);

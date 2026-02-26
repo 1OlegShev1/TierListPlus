@@ -27,22 +27,24 @@ function buildParticipantTiers(
   votes: ParticipantVote[],
   tierConfig: TierConfig[],
 ): ConsensusTier[] {
-  const grouped = new Map<string, Item[]>();
+  const grouped = new Map<string, ParticipantVote[]>();
   for (const tier of tierConfig) {
     grouped.set(tier.key, []);
   }
   for (const vote of votes) {
-    const items = grouped.get(vote.tierKey);
-    if (items) items.push(vote.sessionItem);
+    const bucket = grouped.get(vote.tierKey);
+    if (bucket) bucket.push(vote);
   }
   return tierConfig.map((tier) => ({
     ...tier,
-    items: (grouped.get(tier.key) ?? []).map((item) => ({
-      ...item,
-      averageScore: 0,
-      voteDistribution: {},
-      totalVotes: 0,
-    })),
+    items: (grouped.get(tier.key) ?? [])
+      .sort((a, b) => a.rankInTier - b.rankInTier)
+      .map((v) => ({
+        ...v.sessionItem,
+        averageScore: 0,
+        voteDistribution: {},
+        totalVotes: 0,
+      })),
   }));
 }
 
