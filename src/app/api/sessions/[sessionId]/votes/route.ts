@@ -1,12 +1,9 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { submitVotesSchema } from "@/lib/validators";
-import { validateBody, verifyParticipant } from "@/lib/api-helpers";
+import { withHandler, validateBody, verifyParticipant } from "@/lib/api-helpers";
 
-export async function GET(
-  _request: Request,
-  { params }: { params: Promise<{ sessionId: string }> }
-) {
+export const GET = withHandler(async (_request, { params }) => {
   const { sessionId } = await params;
   const votes = await prisma.tierVote.findMany({
     where: { sessionItem: { sessionId } },
@@ -17,21 +14,15 @@ export async function GET(
   });
 
   return NextResponse.json(votes);
-}
+});
 
-export async function POST(
-  request: Request,
-  { params }: { params: Promise<{ sessionId: string }> }
-) {
+export const POST = withHandler(async (request, { params }) => {
   const { sessionId } = await params;
   const data = await validateBody(request, submitVotesSchema);
-  if (data instanceof NextResponse) return data;
 
   const { participantId, votes } = data;
 
-  // Verify participant belongs to this session
-  const participant = await verifyParticipant(participantId, sessionId);
-  if (participant instanceof NextResponse) return participant;
+  await verifyParticipant(participantId, sessionId);
 
   // Upsert all votes in a transaction
   const result = await prisma.$transaction(
@@ -58,4 +49,4 @@ export async function POST(
   );
 
   return NextResponse.json(result);
-}
+});

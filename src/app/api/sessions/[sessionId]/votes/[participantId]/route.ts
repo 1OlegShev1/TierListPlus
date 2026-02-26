@@ -1,15 +1,11 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { verifyParticipant } from "@/lib/api-helpers";
+import { withHandler, verifyParticipant } from "@/lib/api-helpers";
 
-export async function GET(
-  _request: Request,
-  { params }: { params: Promise<{ sessionId: string; participantId: string }> }
-) {
+export const GET = withHandler(async (_request, { params }) => {
   const { sessionId, participantId } = await params;
 
   const participant = await verifyParticipant(participantId, sessionId);
-  if (participant instanceof NextResponse) return participant;
 
   const votes = await prisma.tierVote.findMany({
     where: { participantId },
@@ -20,4 +16,4 @@ export async function GET(
   });
 
   return NextResponse.json({ participant, votes });
-}
+});

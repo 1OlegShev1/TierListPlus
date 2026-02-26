@@ -1,22 +1,15 @@
 import { NextResponse } from "next/server";
 import { saveUploadedImage } from "@/lib/upload";
+import { withHandler, badRequest } from "@/lib/api-helpers";
 
-export async function POST(request: Request) {
+export const POST = withHandler(async (request) => {
   const formData = await request.formData();
   const file = formData.get("file") as File | null;
 
-  if (!file) {
-    return NextResponse.json({ error: "No file provided" }, { status: 400 });
-  }
-
-  if (!file.type.startsWith("image/")) {
-    return NextResponse.json({ error: "File must be an image" }, { status: 400 });
-  }
-
-  if (file.size > 10 * 1024 * 1024) {
-    return NextResponse.json({ error: "File too large (max 10MB)" }, { status: 400 });
-  }
+  if (!file) badRequest("No file provided");
+  if (!file.type.startsWith("image/")) badRequest("File must be an image");
+  if (file.size > 10 * 1024 * 1024) badRequest("File too large (max 10MB)");
 
   const url = await saveUploadedImage(file);
   return NextResponse.json({ url });
-}
+});

@@ -1,15 +1,11 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { addTemplateItemSchema } from "@/lib/validators";
-import { validateBody } from "@/lib/api-helpers";
+import { withHandler, validateBody } from "@/lib/api-helpers";
 
-export async function POST(
-  request: Request,
-  { params }: { params: Promise<{ templateId: string }> }
-) {
+export const POST = withHandler(async (request, { params }) => {
   const { templateId } = await params;
   const data = await validateBody(request, addTemplateItemSchema);
-  if (data instanceof NextResponse) return data;
 
   // Auto-set sortOrder if not provided
   let sortOrder = data.sortOrder;
@@ -30,4 +26,4 @@ export async function POST(
   });
 
   return NextResponse.json(item, { status: 201 });
-}
+});

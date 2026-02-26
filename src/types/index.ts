@@ -50,3 +50,10 @@ export interface TemplateSummary {
   name: string;
   _count: { items: number };
 }
+
+/** A single vote placement (item in a tier at a rank) */
+export interface VotePayload {
+  sessionItemId: string;
+  tierKey: string;
+  rankInTier: number;
+}

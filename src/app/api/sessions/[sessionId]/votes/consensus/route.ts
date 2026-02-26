@@ -1,13 +1,10 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { computeConsensus } from "@/lib/consensus";
-import { notFound } from "@/lib/api-helpers";
+import { withHandler, notFound } from "@/lib/api-helpers";
 import type { TierConfig } from "@/types";
 
-export async function GET(
-  _request: Request,
-  { params }: { params: Promise<{ sessionId: string }> }
-) {
+export const GET = withHandler(async (_request, { params }) => {
   const { sessionId } = await params;
 
   const session = await prisma.session.findUnique({
@@ -17,7 +14,7 @@ export async function GET(
     },
   });
 
-  if (!session) return notFound("Session not found");
+  if (!session) notFound("Session not found");
 
   const votes = await prisma.tierVote.findMany({
     where: { sessionItem: { sessionId } },
@@ -28,4 +25,4 @@ export async function GET(
   const consensus = computeConsensus(votes, tierConfig, session.items);
 
   return NextResponse.json(consensus);
-}
+});

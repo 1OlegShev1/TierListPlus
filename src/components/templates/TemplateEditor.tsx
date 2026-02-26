@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { ImageUploader } from "@/components/shared/ImageUploader";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { Textarea } from "@/components/ui/Textarea";
+import { ErrorMessage } from "@/components/ui/ErrorMessage";
 
 interface TemplateItem {
   id?: string;
@@ -31,6 +33,7 @@ export function TemplateEditor({
   const [description, setDescription] = useState(initialDescription);
   const [items, setItems] = useState<TemplateItem[]>(initialItems);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const addItem = (imageUrl: string) => {
     setItems((prev) => [
@@ -50,30 +53,37 @@ export function TemplateEditor({
   const save = async () => {
     if (!name.trim()) return;
     setSaving(true);
+    setError(null);
 
     try {
       let id = templateId;
 
       if (!id) {
-        // Create template
         const res = await fetch("/api/templates", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ name, description }),
         });
+        if (!res.ok) {
+          const data = await res.json();
+          setError(typeof data.error === "string" ? data.error : "Failed to create template");
+          return;
+        }
         const template = await res.json();
         id = template.id;
       } else {
-        // Update template
-        await fetch(`/api/templates/${id}`, {
+        const res = await fetch(`/api/templates/${id}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ name, description }),
         });
+        if (!res.ok) {
+          const data = await res.json();
+          setError(typeof data.error === "string" ? data.error : "Failed to update template");
+          return;
+        }
       }
 
-      // Save items (for simplicity, delete existing and re-add)
-      // For existing templates, we'd ideally diff, but batch create is simpler for MVP
       const existingItems = initialItems.filter((i) => i.id);
       const existingIds = new Set(existingItems.map((i) => i.id));
 
@@ -86,21 +96,16 @@ export function TemplateEditor({
         }
       }
 
-      // Add new items
+      // Create or update items
       for (let i = 0; i < items.length; i++) {
         const item = items[i];
         if (item.id && existingIds.has(item.id)) {
-          // Update existing
           await fetch(`/api/templates/${id}/items/${item.id}`, {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              label: item.label,
-              sortOrder: i,
-            }),
+            body: JSON.stringify({ label: item.label, sortOrder: i }),
           });
         } else {
-          // Create new
           await fetch(`/api/templates/${id}/items`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -114,6 +119,8 @@ export function TemplateEditor({
       }
 
       router.push(`/templates/${id}`);
+    } catch {
+      setError("Network error. Please try again.");
     } finally {
       setSaving(false);
     }
@@ -129,12 +136,12 @@ export function TemplateEditor({
           onChange={(e) => setName(e.target.value)}
           className="w-full text-lg"
         />
-        <textarea
+        <Textarea
           placeholder="Description (optional)"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           rows={2}
-          className="w-full rounded-lg border border-neutral-700 bg-neutral-900 px-4 py-2 text-sm text-white placeholder:text-neutral-500 focus:border-amber-500 focus:outline-none"
+          className="w-full text-sm"
         />
       </div>
 
@@ -171,6 +178,8 @@ export function TemplateEditor({
           <ImageUploader onUploaded={addItem} className="aspect-square" />
         </div>
       </div>
+
+      {error && <ErrorMessage message={error} />}
 
       <div className="flex gap-3">
         <Button onClick={save} disabled={saving || !name.trim() || items.length === 0}>

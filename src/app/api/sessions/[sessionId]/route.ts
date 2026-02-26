@@ -1,12 +1,9 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { updateSessionSchema } from "@/lib/validators";
-import { validateBody, notFound } from "@/lib/api-helpers";
+import { withHandler, validateBody, notFound } from "@/lib/api-helpers";
 
-export async function GET(
-  _request: Request,
-  { params }: { params: Promise<{ sessionId: string }> }
-) {
+export const GET = withHandler(async (_request, { params }) => {
   const { sessionId } = await params;
   const session = await prisma.session.findUnique({
     where: { id: sessionId },
@@ -18,18 +15,14 @@ export async function GET(
     },
   });
 
-  if (!session) return notFound("Session not found");
+  if (!session) notFound("Session not found");
 
   return NextResponse.json(session);
-}
+});
 
-export async function PATCH(
-  request: Request,
-  { params }: { params: Promise<{ sessionId: string }> }
-) {
+export const PATCH = withHandler(async (request, { params }) => {
   const { sessionId } = await params;
   const data = await validateBody(request, updateSessionSchema);
-  if (data instanceof NextResponse) return data;
 
   const updateData: Record<string, unknown> = {};
   if (data.status) updateData.status = data.status;
@@ -41,4 +34,4 @@ export async function PATCH(
   });
 
   return NextResponse.json(session);
-}
+});

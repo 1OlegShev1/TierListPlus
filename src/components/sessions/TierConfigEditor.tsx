@@ -1,24 +1,41 @@
 "use client";
 
-import { useState } from "react";
-import { TIER_COLORS, type TierConfig } from "@/lib/constants";
+import { useState, useRef, useEffect } from "react";
+import { TIER_COLORS, deriveTierKeys } from "@/lib/constants";
+import type { TierConfig } from "@/types";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 
 interface TierConfigEditorProps {
-  sessionId: string;
+  /** When provided, the editor shows a Save button and PATCHes the session. */
+  sessionId?: string;
   initialConfig: TierConfig[];
-  onSaved: (config: TierConfig[]) => void;
+  /** Called after a successful save (connected mode). */
+  onSaved?: (config: TierConfig[]) => void;
+  /** Called on every change (controlled mode, when no sessionId). */
+  onChange?: (config: TierConfig[]) => void;
 }
 
 export function TierConfigEditor({
   sessionId,
   initialConfig,
   onSaved,
+  onChange,
 }: TierConfigEditorProps) {
   const [tiers, setTiers] = useState<TierConfig[]>(initialConfig);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const isFirstRender = useRef(true);
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
+
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    onChangeRef.current?.(tiers);
+  }, [tiers]);
 
   const updateTier = (index: number, field: keyof TierConfig, value: string | number) => {
     setTiers((prev) => {
@@ -58,25 +75,7 @@ export function TierConfigEditor({
     setSaving(true);
     setError(null);
 
-    // Derive keys from labels at save time
-    const configToSave = tiers.map((t, i) => ({
-      key: t.label.replace(/[^a-zA-Z0-9]/g, "").slice(0, 10) || `T${i}`,
-      label: t.label,
-      color: t.color,
-      sortOrder: i,
-    }));
-
-    // Ensure unique keys
-    const seen = new Set<string>();
-    for (const tier of configToSave) {
-      let k = tier.key;
-      let n = 1;
-      while (seen.has(k)) {
-        k = `${tier.key}${n++}`;
-      }
-      tier.key = k;
-      seen.add(k);
-    }
+    const configToSave = deriveTierKeys(tiers);
 
     try {
       const res = await fetch(`/api/sessions/${sessionId}`, {
@@ -87,11 +86,11 @@ export function TierConfigEditor({
 
       if (!res.ok) {
         const data = await res.json();
-        setError(data.error || "Failed to save");
+        setError(typeof data.error === "string" ? data.error : "Failed to save");
         return;
       }
 
-      onSaved(configToSave);
+      onSaved?.(configToSave);
     } catch {
       setError("Network error");
     } finally {
@@ -176,13 +175,15 @@ export function TierConfigEditor({
         >
           + Add Row
         </Button>
-        <Button
-          onClick={handleSave}
-          disabled={saving}
-          className="px-4 py-1 text-xs"
-        >
-          {saving ? "Saving..." : "Save Config"}
-        </Button>
+        {sessionId && (
+          <Button
+            onClick={handleSave}
+            disabled={saving}
+            className="px-4 py-1 text-xs"
+          >
+            {saving ? "Saving..." : "Save Config"}
+          </Button>
+        )}
       </div>
 
       {error && (

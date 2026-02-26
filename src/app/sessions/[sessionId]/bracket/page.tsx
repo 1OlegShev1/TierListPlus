@@ -4,6 +4,9 @@ import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useParticipant } from "@/hooks/useParticipant";
 import { Button } from "@/components/ui/Button";
+import { Loading } from "@/components/ui/Loading";
+import { ErrorMessage } from "@/components/ui/ErrorMessage";
+import { MatchupVoter } from "@/components/bracket/MatchupVoter";
 import type { Matchup, BracketData } from "@/types";
 
 export default function BracketPage() {
@@ -12,21 +15,26 @@ export default function BracketPage() {
   const { participantId, nickname } = useParticipant(sessionId);
   const [bracket, setBracket] = useState<BracketData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [currentMatchupIndex, setCurrentMatchupIndex] = useState(0);
   const [voting, setVoting] = useState(false);
 
   const fetchBracket = useCallback(async () => {
-    const res = await fetch(`/api/sessions/${sessionId}/bracket`);
-    if (res.status === 404) {
-      // Create bracket
-      const createRes = await fetch(`/api/sessions/${sessionId}/bracket`, {
-        method: "POST",
-      });
-      const data = await createRes.json();
-      setBracket(data);
-    } else {
-      const data = await res.json();
-      setBracket(data);
+    try {
+      const res = await fetch(`/api/sessions/${sessionId}/bracket`);
+      if (res.status === 404) {
+        const createRes = await fetch(`/api/sessions/${sessionId}/bracket`, {
+          method: "POST",
+        });
+        if (!createRes.ok) throw new Error("Failed to create bracket");
+        setBracket(await createRes.json());
+      } else if (!res.ok) {
+        throw new Error("Failed to load bracket");
+      } else {
+        setBracket(await res.json());
+      }
+    } catch {
+      setError("Failed to load bracket. Please try again.");
     }
     setLoading(false);
   }, [sessionId]);
@@ -40,16 +48,10 @@ export default function BracketPage() {
   }, [participantId, fetchBracket, router]);
 
   if (!participantId) return null;
+  if (loading) return <Loading message="Loading bracket..." />;
+  if (error) return <ErrorMessage message={error} />;
+  if (!bracket) return null;
 
-  if (loading || !bracket) {
-    return (
-      <div className="flex items-center justify-center py-20 text-neutral-500">
-        Loading bracket...
-      </div>
-    );
-  }
-
-  // Get matchups I need to vote on (have both items, I haven't voted yet)
   const myPendingMatchups = bracket.matchups.filter(
     (m) =>
       m.itemA &&
@@ -63,43 +65,44 @@ export default function BracketPage() {
     if (!currentMatchup || voting) return;
     setVoting(true);
 
-    await fetch(`/api/sessions/${sessionId}/bracket/vote`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        matchupId: currentMatchup.id,
-        participantId,
-        chosenItemId,
-      }),
-    });
-
-    setVoting(false);
-
-    if (currentMatchupIndex < myPendingMatchups.length - 1) {
-      setCurrentMatchupIndex((i) => i + 1);
-    } else {
-      // All voted — advance bracket then redirect to tier list
-      await fetch(`/api/sessions/${sessionId}/bracket/advance`, {
+    try {
+      await fetch(`/api/sessions/${sessionId}/bracket/vote`, {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          matchupId: currentMatchup.id,
+          participantId,
+          chosenItemId,
+        }),
       });
-      // Re-fetch to check if more rounds opened up
-      const res = await fetch(`/api/sessions/${sessionId}/bracket`);
-      const updated = await res.json();
-      setBracket(updated);
 
-      const stillPending = updated.matchups.filter(
-        (m: Matchup) =>
-          m.itemA &&
-          m.itemB &&
-          !(m.votes ?? []).some((v: { participantId: string }) => v.participantId === participantId)
-      );
-
-      if (stillPending.length > 0) {
-        setCurrentMatchupIndex(0);
+      if (currentMatchupIndex < myPendingMatchups.length - 1) {
+        setCurrentMatchupIndex((i) => i + 1);
       } else {
-        // Bracket complete — proceed to tier list
-        router.push(`/sessions/${sessionId}/vote`);
+        await fetch(`/api/sessions/${sessionId}/bracket/advance`, {
+          method: "POST",
+        });
+        const res = await fetch(`/api/sessions/${sessionId}/bracket`);
+        const updated = await res.json();
+        setBracket(updated);
+
+        const stillPending = updated.matchups.filter(
+          (m: Matchup) =>
+            m.itemA &&
+            m.itemB &&
+            !(m.votes ?? []).some((v: { participantId: string }) => v.participantId === participantId)
+        );
+
+        if (stillPending.length > 0) {
+          setCurrentMatchupIndex(0);
+        } else {
+          router.push(`/sessions/${sessionId}/vote`);
+        }
       }
+    } catch {
+      setError("Failed to submit vote. Please try again.");
+    } finally {
+      setVoting(false);
     }
   };
 
@@ -138,41 +141,12 @@ export default function BracketPage() {
       </div>
 
       {currentMatchup && currentMatchup.itemA && currentMatchup.itemB && (
-        <div className="flex items-center justify-center gap-6">
-          {/* Item A */}
-          <button
-            onClick={() => handleVote(currentMatchup.itemA!.id)}
-            disabled={voting}
-            className="group flex w-52 flex-col items-center gap-3 rounded-2xl border-2 border-neutral-700 bg-neutral-900 p-6 transition-all hover:border-amber-400 hover:bg-neutral-800 disabled:opacity-50"
-          >
-            <img
-              src={currentMatchup.itemA.imageUrl}
-              alt={currentMatchup.itemA.label}
-              className="h-32 w-32 rounded-xl object-cover transition-transform group-hover:scale-105"
-            />
-            <span className="text-center font-medium">
-              {currentMatchup.itemA.label}
-            </span>
-          </button>
-
-          <span className="text-2xl font-bold text-neutral-600">VS</span>
-
-          {/* Item B */}
-          <button
-            onClick={() => handleVote(currentMatchup.itemB!.id)}
-            disabled={voting}
-            className="group flex w-52 flex-col items-center gap-3 rounded-2xl border-2 border-neutral-700 bg-neutral-900 p-6 transition-all hover:border-amber-400 hover:bg-neutral-800 disabled:opacity-50"
-          >
-            <img
-              src={currentMatchup.itemB.imageUrl}
-              alt={currentMatchup.itemB.label}
-              className="h-32 w-32 rounded-xl object-cover transition-transform group-hover:scale-105"
-            />
-            <span className="text-center font-medium">
-              {currentMatchup.itemB.label}
-            </span>
-          </button>
-        </div>
+        <MatchupVoter
+          itemA={currentMatchup.itemA}
+          itemB={currentMatchup.itemB}
+          disabled={voting}
+          onVote={handleVote}
+        />
       )}
 
       <div className="mt-8 text-center">

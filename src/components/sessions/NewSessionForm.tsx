@@ -2,9 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { DEFAULT_TIER_CONFIG, TIER_COLORS } from "@/lib/constants";
+import { DEFAULT_TIER_CONFIG, deriveTierKeys } from "@/lib/constants";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { Select } from "@/components/ui/Select";
+import { ErrorMessage } from "@/components/ui/ErrorMessage";
+import { TierConfigEditor } from "./TierConfigEditor";
 import type { TierConfig, TemplateSummary } from "@/types";
 
 export function NewSessionForm() {
@@ -18,39 +21,13 @@ export function NewSessionForm() {
   const [tierConfig, setTierConfig] = useState<TierConfig[]>(DEFAULT_TIER_CONFIG);
   const [bracketEnabled, setBracketEnabled] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     fetch("/api/templates")
       .then((r) => r.json())
       .then(setTemplates);
   }, []);
-
-  const addTier = () => {
-    const nextOrder = tierConfig.length;
-    const color = TIER_COLORS[nextOrder % TIER_COLORS.length];
-    setTierConfig([
-      ...tierConfig,
-      {
-        key: `T${nextOrder}`,
-        label: `Tier ${nextOrder + 1}`,
-        color,
-        sortOrder: nextOrder,
-      },
-    ]);
-  };
-
-  const removeTier = (index: number) => {
-    if (tierConfig.length <= 2) return;
-    setTierConfig(tierConfig.filter((_, i) => i !== index).map((t, i) => ({ ...t, sortOrder: i })));
-  };
-
-  const updateTier = (index: number, updates: Partial<TierConfig>) => {
-    setTierConfig(
-      tierConfig.map((t, i) => (i === index ? { ...t, ...updates } : t))
-    );
-  };
-
-  const [error, setError] = useState("");
 
   const create = async () => {
     if (!templateId || !name.trim()) return;
@@ -63,16 +40,13 @@ export function NewSessionForm() {
         body: JSON.stringify({
           templateId,
           name,
-          tierConfig: tierConfig.map((t) => ({
-            ...t,
-            key: t.label.replace(/\s+/g, "_") || t.key,
-          })),
+          tierConfig: deriveTierKeys(tierConfig),
           bracketEnabled,
         }),
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(typeof data.error === "string" ? data.error : JSON.stringify(data.error));
+        setError(typeof data.error === "string" ? data.error : "Failed to create session");
         return;
       }
       router.push(`/sessions/${data.id}`);
@@ -90,10 +64,10 @@ export function NewSessionForm() {
           <label className="mb-2 block text-sm font-medium text-neutral-400">
             Template
           </label>
-          <select
+          <Select
             value={templateId}
             onChange={(e) => setTemplateId(e.target.value)}
-            className="w-full rounded-lg border border-neutral-700 bg-neutral-900 px-4 py-2 text-white focus:border-amber-500 focus:outline-none"
+            className="w-full"
           >
             <option value="">Select a template...</option>
             {templates.map((t) => (
@@ -101,7 +75,7 @@ export function NewSessionForm() {
                 {t.name} ({t._count.items} items)
               </option>
             ))}
-          </select>
+          </Select>
         </div>
 
         <div>
@@ -118,42 +92,13 @@ export function NewSessionForm() {
         </div>
 
         <div>
-          <label className="mb-2 block text-sm font-medium text-neutral-400">
+          <label className="mb-3 block text-sm font-medium text-neutral-400">
             Tier Rows
           </label>
-          <div className="space-y-2">
-            {tierConfig.map((tier, index) => (
-              <div key={index} className="flex items-center gap-2">
-                <input
-                  type="color"
-                  value={tier.color}
-                  onChange={(e) => updateTier(index, { color: e.target.value })}
-                  className="h-8 w-8 cursor-pointer rounded border-0 bg-transparent"
-                />
-                <input
-                  type="text"
-                  value={tier.label}
-                  onChange={(e) =>
-                    updateTier(index, { label: e.target.value })
-                  }
-                  className="flex-1 rounded border border-neutral-700 bg-neutral-800 px-3 py-1 text-sm text-white focus:border-amber-500 focus:outline-none"
-                />
-                <button
-                  onClick={() => removeTier(index)}
-                  disabled={tierConfig.length <= 2}
-                  className="text-sm text-neutral-500 hover:text-red-400 disabled:opacity-30"
-                >
-                  Remove
-                </button>
-              </div>
-            ))}
-          </div>
-          <button
-            onClick={addTier}
-            className="mt-2 text-sm text-amber-400 hover:text-amber-300"
-          >
-            + Add tier
-          </button>
+          <TierConfigEditor
+            initialConfig={tierConfig}
+            onChange={setTierConfig}
+          />
         </div>
 
         <label className="flex items-center gap-3 rounded-lg border border-neutral-800 bg-neutral-900 p-4">
@@ -171,11 +116,7 @@ export function NewSessionForm() {
           </div>
         </label>
 
-        {error && (
-          <p className="rounded-lg bg-red-500/10 px-4 py-2 text-sm text-red-400">
-            {error}
-          </p>
-        )}
+        {error && <ErrorMessage message={error} />}
 
         <div className="flex gap-3">
           <Button onClick={create} disabled={creating || !templateId || !name.trim()}>

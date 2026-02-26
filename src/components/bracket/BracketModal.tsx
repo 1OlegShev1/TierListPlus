@@ -2,7 +2,9 @@
 
 import { useState, useMemo, useCallback } from "react";
 import { generateBracket } from "@/lib/bracket-generator";
+import { mitBacktrackRanking } from "@/lib/bracket-ranking";
 import { Button } from "@/components/ui/Button";
+import { MatchupVoter } from "@/components/bracket/MatchupVoter";
 import type { Item, MatchupRow } from "@/types";
 
 interface BracketModalProps {
@@ -87,10 +89,11 @@ export function BracketModal({
   const isComplete = finalMatchup?.winnerId != null;
 
   // When complete, derive ranking and call onComplete
+  const allItemIds = useMemo(() => items.map((i) => i.id), [items]);
   const handleFinish = useCallback(() => {
-    const ranked = deriveRanking(bracketState.matchups, bracketState.rounds);
+    const ranked = mitBacktrackRanking(bracketState.matchups, bracketState.rounds, allItemIds);
     onComplete(ranked);
-  }, [bracketState, onComplete]);
+  }, [bracketState, allItemIds, onComplete]);
 
   // Progress
   const totalVotable = bracketState.matchups.filter(
@@ -122,37 +125,12 @@ export function BracketModal({
         </div>
 
         {!isComplete && itemA && itemB && (
-          <div className="flex items-center justify-center gap-4">
-            <button
-              onClick={() => handleVote(itemA.id)}
-              className="group flex w-44 flex-col items-center gap-2 rounded-2xl border-2 border-neutral-700 bg-neutral-900 p-4 transition-all hover:border-amber-400 hover:bg-neutral-800"
-            >
-              <img
-                src={itemA.imageUrl}
-                alt={itemA.label}
-                className="h-24 w-24 rounded-xl object-cover transition-transform group-hover:scale-105"
-              />
-              <span className="text-center text-sm font-medium">
-                {itemA.label}
-              </span>
-            </button>
-
-            <span className="text-xl font-bold text-neutral-600">VS</span>
-
-            <button
-              onClick={() => handleVote(itemB.id)}
-              className="group flex w-44 flex-col items-center gap-2 rounded-2xl border-2 border-neutral-700 bg-neutral-900 p-4 transition-all hover:border-amber-400 hover:bg-neutral-800"
-            >
-              <img
-                src={itemB.imageUrl}
-                alt={itemB.label}
-                className="h-24 w-24 rounded-xl object-cover transition-transform group-hover:scale-105"
-              />
-              <span className="text-center text-sm font-medium">
-                {itemB.label}
-              </span>
-            </button>
-          </div>
+          <MatchupVoter
+            itemA={itemA}
+            itemB={itemB}
+            size="sm"
+            onVote={handleVote}
+          />
         )}
 
         {isComplete && (
@@ -161,7 +139,7 @@ export function BracketModal({
               Final ranking:
             </p>
             <ol className="space-y-1">
-              {deriveRanking(bracketState.matchups, bracketState.rounds).map(
+              {mitBacktrackRanking(bracketState.matchups, bracketState.rounds, allItemIds).map(
                 (id, i) => {
                   const item = itemMap.get(id);
                   if (!item) return null;
@@ -242,128 +220,3 @@ function advanceWinner(
   }
 }
 
-/**
- * MIT Backtracking ranking algorithm.
- *
- * 1. The final winner gets rank 1, the finalist gets rank 2.
- * 2. Then we backtrack: whoever lost to rank 1 and rank 2 get ranks 3 and 4
- *    (respectively — losing to a higher-ranked opponent gives you a better rank).
- * 3. Then whoever lost to ranks 3 and 4 get ranks 5–8, and so on.
- *
- * This ensures that within the same elimination round, items that lost to
- * stronger opponents rank higher — fixing the bias where the 2nd-best item
- * could end up ranked low due to an unlucky draw.
- */
-function deriveRanking(matchups: MatchupRow[], totalRounds: number): string[] {
-  // Build a map: winnerId → list of loserIds they defeated
-  const defeated = new Map<string, string[]>();
-
-  for (const m of matchups) {
-    if (!m.winnerId) continue;
-    const loserId = m.winnerId === m.itemAId ? m.itemBId : m.itemAId;
-    if (loserId) {
-      const list = defeated.get(m.winnerId) ?? [];
-      list.push(loserId);
-      defeated.set(m.winnerId, list);
-    }
-  }
-
-  // Start with the final: winner = rank 1, finalist = rank 2
-  const finalMatchup = matchups.find((m) => m.round === totalRounds);
-  if (!finalMatchup?.winnerId) {
-    // Bracket not complete — fall back to elimination-round ordering
-    return fallbackRanking(matchups, totalRounds);
-  }
-
-  const ranked: string[] = [];
-  // BFS-like: process ranks in order. For each ranked item, find who they
-  // beat in earlier rounds and queue them for ranking.
-  const queue: string[] = [finalMatchup.winnerId];
-
-  // Finalist
-  const finalistId =
-    finalMatchup.winnerId === finalMatchup.itemAId
-      ? finalMatchup.itemBId
-      : finalMatchup.itemAId;
-  if (finalistId) queue.push(finalistId);
-
-  const seen = new Set<string>();
-
-  while (queue.length > 0) {
-    const id = queue.shift()!;
-    if (seen.has(id)) continue;
-    seen.add(id);
-    ranked.push(id);
-
-    // Find items this player defeated (excluding the one already ranked
-    // from the final matchup progression), ordered so that earlier-round
-    // losses come later in the ranking.
-    const losses = defeated.get(id) ?? [];
-    // Items defeated by this player, not yet ranked, sorted by round
-    // (later rounds first = they lasted longer before losing to this player)
-    const unrankedLosses = losses
-      .filter((lid) => !seen.has(lid))
-      .sort((a, b) => {
-        // Find which round they lost in
-        const roundA = matchups.find(
-          (m) =>
-            m.winnerId === id &&
-            (m.itemAId === a || m.itemBId === a)
-        )?.round ?? 0;
-        const roundB = matchups.find(
-          (m) =>
-            m.winnerId === id &&
-            (m.itemAId === b || m.itemBId === b)
-        )?.round ?? 0;
-        return roundB - roundA; // later round = better rank
-      });
-
-    for (const lid of unrankedLosses) {
-      queue.push(lid);
-    }
-  }
-
-  // Catch any items missed (byes that never played a real match, etc.)
-  const allIds = new Set<string>();
-  for (const m of matchups) {
-    if (m.itemAId) allIds.add(m.itemAId);
-    if (m.itemBId) allIds.add(m.itemBId);
-  }
-  for (const id of allIds) {
-    if (!seen.has(id)) ranked.push(id);
-  }
-
-  return ranked;
-}
-
-/** Fallback: simple elimination-round ranking (used if bracket is incomplete) */
-function fallbackRanking(matchups: MatchupRow[], totalRounds: number): string[] {
-  const eliminatedInRound = new Map<string, number>();
-
-  const finalMatchup = matchups.find((m) => m.round === totalRounds);
-  if (finalMatchup?.winnerId) {
-    eliminatedInRound.set(finalMatchup.winnerId, totalRounds + 1);
-  }
-
-  for (const m of matchups) {
-    if (!m.winnerId) continue;
-    const loserId = m.winnerId === m.itemAId ? m.itemBId : m.itemAId;
-    if (loserId && !eliminatedInRound.has(loserId)) {
-      eliminatedInRound.set(loserId, m.round);
-    }
-  }
-
-  const allIds = new Set<string>();
-  for (const m of matchups) {
-    if (m.itemAId) allIds.add(m.itemAId);
-    if (m.itemBId) allIds.add(m.itemBId);
-  }
-
-  for (const id of allIds) {
-    if (!eliminatedInRound.has(id)) eliminatedInRound.set(id, 0);
-  }
-
-  return [...allIds].sort((a, b) => {
-    return (eliminatedInRound.get(b) ?? 0) - (eliminatedInRound.get(a) ?? 0);
-  });
-}

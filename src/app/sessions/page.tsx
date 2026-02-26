@@ -2,6 +2,9 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { formatDate } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/Button";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { StatusBadge } from "@/components/ui/StatusBadge";
 
 export const dynamic = "force-dynamic";
 
@@ -16,18 +19,20 @@ export default async function SessionsPage() {
 
   return (
     <div>
-      <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Sessions</h1>
-        <Link href="/sessions/new" className={buttonVariants.primary}>
-          + New Session
-        </Link>
-      </div>
+      <PageHeader
+        title="Sessions"
+        actions={
+          <Link href="/sessions/new" className={buttonVariants.primary}>
+            + New Session
+          </Link>
+        }
+      />
 
       {sessions.length === 0 ? (
-        <div className="flex flex-col items-center gap-3 py-20 text-neutral-500">
-          <p className="text-lg">No sessions yet</p>
-          <p className="text-sm">Create a template first, then start a session</p>
-        </div>
+        <EmptyState
+          title="No sessions yet"
+          description="Create a template first, then start a session"
+        />
       ) : (
         <div className="space-y-3">
           {sessions.map((session) => (
@@ -44,17 +49,7 @@ export default async function SessionsPage() {
                   {formatDate(session.createdAt)}
                 </p>
               </div>
-              <span
-                className={`rounded-full px-3 py-1 text-xs font-medium ${
-                  session.status === "OPEN"
-                    ? "bg-green-500/20 text-green-400"
-                    : session.status === "CLOSED"
-                    ? "bg-red-500/20 text-red-400"
-                    : "bg-neutral-500/20 text-neutral-400"
-                }`}
-              >
-                {session.status}
-              </span>
+              <StatusBadge status={session.status} />
             </Link>
           ))}
         </div>

@@ -2,6 +2,8 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { formatDate } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/Button";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 export const dynamic = "force-dynamic";
 
@@ -16,18 +18,20 @@ export default async function TemplatesPage() {
 
   return (
     <div>
-      <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Templates</h1>
-        <Link href="/templates/new" className={buttonVariants.primary}>
-          + New Template
-        </Link>
-      </div>
+      <PageHeader
+        title="Templates"
+        actions={
+          <Link href="/templates/new" className={buttonVariants.primary}>
+            + New Template
+          </Link>
+        }
+      />
 
       {templates.length === 0 ? (
-        <div className="flex flex-col items-center gap-3 py-20 text-neutral-500">
-          <p className="text-lg">No templates yet</p>
-          <p className="text-sm">Create your first template to get started</p>
-        </div>
+        <EmptyState
+          title="No templates yet"
+          description="Create your first template to get started"
+        />
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {templates.map((template) => (

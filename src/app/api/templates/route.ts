@@ -1,21 +1,18 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { createTemplateSchema } from "@/lib/validators";
-import { validateBody } from "@/lib/api-helpers";
+import { withHandler, validateBody } from "@/lib/api-helpers";
 
-export async function GET() {
+export const GET = withHandler(async () => {
   const templates = await prisma.template.findMany({
     include: { _count: { select: { items: true } } },
     orderBy: { createdAt: "desc" },
   });
   return NextResponse.json(templates);
-}
+});
 
-export async function POST(request: Request) {
+export const POST = withHandler(async (request) => {
   const data = await validateBody(request, createTemplateSchema);
-  if (data instanceof NextResponse) return data;
-
   const template = await prisma.template.create({ data });
-
   return NextResponse.json(template, { status: 201 });
-}
+});

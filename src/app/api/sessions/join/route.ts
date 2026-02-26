@@ -1,11 +1,10 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { joinSessionSchema } from "@/lib/validators";
-import { validateBody, notFound, badRequest } from "@/lib/api-helpers";
+import { withHandler, validateBody, notFound, badRequest } from "@/lib/api-helpers";
 
-export async function POST(request: Request) {
+export const POST = withHandler(async (request) => {
   const data = await validateBody(request, joinSessionSchema);
-  if (data instanceof NextResponse) return data;
 
   const { joinCode, nickname } = data;
 
@@ -13,11 +12,8 @@ export async function POST(request: Request) {
     where: { joinCode: joinCode.toUpperCase() },
   });
 
-  if (!session) return notFound("Session not found");
-
-  if (session.status !== "OPEN") {
-    return badRequest("Session is no longer accepting votes");
-  }
+  if (!session) notFound("Session not found");
+  if (session.status !== "OPEN") badRequest("Session is no longer accepting votes");
 
   // Upsert participant (same nickname in same session returns existing)
   const participant = await prisma.participant.upsert({
@@ -39,4 +35,4 @@ export async function POST(request: Request) {
     participantId: participant.id,
     nickname: participant.nickname,
   });
-}
+});

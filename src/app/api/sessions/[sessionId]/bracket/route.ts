@@ -1,12 +1,10 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { generateBracket } from "@/lib/bracket-generator";
-import { notFound, badRequest, bracketMatchupInclude } from "@/lib/api-helpers";
+import { withHandler, notFound, badRequest, bracketMatchupInclude } from "@/lib/api-helpers";
+import { advanceWinnerToNextRound } from "@/lib/bracket-helpers";
 
-export async function GET(
-  _request: Request,
-  { params }: { params: Promise<{ sessionId: string }> }
-) {
+export const GET = withHandler(async (_request, { params }) => {
   const { sessionId } = await params;
   const bracket = await prisma.bracket.findFirst({
     where: { sessionId },
@@ -18,27 +16,24 @@ export async function GET(
     },
   });
 
-  if (!bracket) return notFound("No bracket found");
+  if (!bracket) notFound("No bracket found");
 
   return NextResponse.json(bracket);
-}
+});
 
-export async function POST(
-  _request: Request,
-  { params }: { params: Promise<{ sessionId: string }> }
-) {
+export const POST = withHandler(async (_request, { params }) => {
   const { sessionId } = await params;
 
   // Check if bracket already exists
   const existing = await prisma.bracket.findFirst({ where: { sessionId } });
-  if (existing) return badRequest("Bracket already exists");
+  if (existing) badRequest("Bracket already exists");
 
   const items = await prisma.sessionItem.findMany({
     where: { sessionId },
     orderBy: { sortOrder: "asc" },
   });
 
-  if (items.length < 2) return badRequest("Need at least 2 items for a bracket");
+  if (items.length < 2) badRequest("Need at least 2 items for a bracket");
 
   const { rounds, matchups } = generateBracket(items.map((i) => i.id));
 
@@ -52,7 +47,6 @@ export async function POST(
           position: m.position,
           itemAId: m.itemAId,
           itemBId: m.itemBId,
-          // Auto-advance byes (matchups with only one item)
           winnerId:
             m.itemAId && !m.itemBId
               ? m.itemAId
@@ -71,28 +65,16 @@ export async function POST(
   });
 
   // Auto-advance bye winners to next round
-  await advanceByes(bracket.id, rounds);
-
-  return NextResponse.json(bracket, { status: 201 });
-}
-
-async function advanceByes(bracketId: string, totalRounds: number) {
-  const matchups = await prisma.bracketMatchup.findMany({
-    where: { bracketId, round: 1 },
+  const byeMatchups = await prisma.bracketMatchup.findMany({
+    where: { bracketId: bracket.id, round: 1 },
     orderBy: { position: "asc" },
   });
 
-  for (const matchup of matchups) {
-    if (matchup.winnerId && totalRounds > 1) {
-      // Place winner in next round
-      const nextRound = 2;
-      const nextPosition = Math.floor(matchup.position / 2);
-      const slot = matchup.position % 2 === 0 ? "itemAId" : "itemBId";
-
-      await prisma.bracketMatchup.updateMany({
-        where: { bracketId, round: nextRound, position: nextPosition },
-        data: { [slot]: matchup.winnerId },
-      });
+  for (const matchup of byeMatchups) {
+    if (matchup.winnerId) {
+      await advanceWinnerToNextRound(bracket.id, matchup.position, matchup.winnerId, 1, rounds);
     }
   }
-}
+
+  return NextResponse.json(bracket, { status: 201 });
+});

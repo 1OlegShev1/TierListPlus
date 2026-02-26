@@ -4,6 +4,9 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { buttonVariants } from "@/components/ui/Button";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { Loading } from "@/components/ui/Loading";
+import { ErrorMessage } from "@/components/ui/ErrorMessage";
 import type { ConsensusTier, ConsensusItem } from "@/lib/consensus";
 
 export default function ResultsPage() {
@@ -14,43 +17,41 @@ export default function ResultsPage() {
     participants: { id: string; nickname: string }[];
   } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [selectedItem, setSelectedItem] = useState<ConsensusItem | null>(null);
 
   useEffect(() => {
     Promise.all([
       fetch(`/api/sessions/${sessionId}`).then((r) => r.json()),
       fetch(`/api/sessions/${sessionId}/votes/consensus`).then((r) => r.json()),
-    ]).then(([sessionData, consensusData]) => {
-      setSession(sessionData);
-      setTiers(consensusData);
-      setLoading(false);
-    });
+    ])
+      .then(([sessionData, consensusData]) => {
+        setSession(sessionData);
+        setTiers(consensusData);
+        setLoading(false);
+      })
+      .catch(() => {
+        setError("Failed to load results. Please try again.");
+        setLoading(false);
+      });
   }, [sessionId]);
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20 text-neutral-500">
-        Loading results...
-      </div>
-    );
-  }
+  if (loading) return <Loading message="Loading results..." />;
+  if (error) return <ErrorMessage message={error} />;
 
   const totalParticipants = session?.participants.length ?? 0;
 
   return (
     <div>
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">{session?.name} — Results</h1>
-          <p className="text-sm text-neutral-500">
-            Consensus from {totalParticipants} voter
-            {totalParticipants !== 1 ? "s" : ""}
-          </p>
-        </div>
-        <Link href={`/sessions/${sessionId}`} className={buttonVariants.secondary}>
-          Back to Lobby
-        </Link>
-      </div>
+      <PageHeader
+        title={`${session?.name} — Results`}
+        subtitle={`Consensus from ${totalParticipants} voter${totalParticipants !== 1 ? "s" : ""}`}
+        actions={
+          <Link href={`/sessions/${sessionId}`} className={buttonVariants.secondary}>
+            Back to Lobby
+          </Link>
+        }
+      />
 
       {/* Consensus Tier List */}
       <div className="overflow-hidden rounded-lg border border-neutral-800">
@@ -111,7 +112,6 @@ export default function ResultsPage() {
             </div>
           </div>
 
-          {/* Vote Distribution Bar */}
           <div className="space-y-1">
             {tiers.map((tier) => {
               const count = selectedItem.voteDistribution[tier.key] ?? 0;

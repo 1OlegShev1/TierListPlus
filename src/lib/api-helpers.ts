@@ -2,38 +2,82 @@ import { NextResponse } from "next/server";
 import type { z } from "zod/v4";
 import { prisma } from "@/lib/prisma";
 
+/** Structured error for API routes. Thrown by helpers, caught by withHandler. */
+export class ApiError extends Error {
+  constructor(
+    public status: number,
+    public details: unknown
+  ) {
+    super(typeof details === "string" ? details : JSON.stringify(details));
+  }
+}
+
+/**
+ * Wraps an API route handler with try/catch.
+ * Catches ApiError for structured 4xx responses, logs + returns 500 for unexpected errors.
+ */
+export function withHandler(
+  fn: (
+    req: Request,
+    ctx: { params: Promise<Record<string, string>> }
+  ) => Promise<Response>
+) {
+  return async (
+    req: Request,
+    ctx: { params: Promise<Record<string, string>> }
+  ) => {
+    try {
+      return await fn(req, ctx);
+    } catch (error) {
+      if (error instanceof ApiError) {
+        return NextResponse.json(
+          { error: error.details },
+          { status: error.status }
+        );
+      }
+      console.error("Unhandled API error:", error);
+      return NextResponse.json(
+        { error: "Internal server error" },
+        { status: 500 }
+      );
+    }
+  };
+}
+
 /**
  * Parse request JSON body and validate against a Zod schema.
- * Returns the parsed data on success, or a 400 NextResponse on failure.
+ * Throws ApiError on malformed JSON or validation failure.
  */
 export async function validateBody<T extends z.ZodType>(
   request: Request,
   schema: T
-): Promise<z.infer<T> | NextResponse> {
-  const body = await request.json();
+): Promise<z.infer<T>> {
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    throw new ApiError(400, "Invalid JSON body");
+  }
   const parsed = schema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json(
-      { error: parsed.error.flatten() },
-      { status: 400 }
-    );
+    throw new ApiError(400, parsed.error.flatten());
   }
   return parsed.data;
 }
 
-/** Return a 404 JSON response */
-export function notFound(message: string): NextResponse {
-  return NextResponse.json({ error: message }, { status: 404 });
+/** Throw a 404 ApiError */
+export function notFound(message: string): never {
+  throw new ApiError(404, message);
 }
 
-/** Return a 400 JSON response */
-export function badRequest(message: string): NextResponse {
-  return NextResponse.json({ error: message }, { status: 400 });
+/** Throw a 400 ApiError */
+export function badRequest(message: string): never {
+  throw new ApiError(400, message);
 }
 
 /**
  * Verify a participant belongs to a session.
- * Returns the participant record, or a 404 NextResponse if not found.
+ * Returns the participant record, or throws 404 if not found.
  */
 export async function verifyParticipant(
   participantId: string,
@@ -43,7 +87,7 @@ export async function verifyParticipant(
     where: { id: participantId, sessionId },
   });
   if (!participant) {
-    return notFound("Participant not found in this session");
+    notFound("Participant not found in this session");
   }
   return participant;
 }

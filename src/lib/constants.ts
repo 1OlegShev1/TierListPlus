@@ -14,6 +14,28 @@ export const DEFAULT_TIER_CONFIG: TierConfig[] = [
   { key: "F", label: "F", color: "#7fffff", sortOrder: 5 },
 ];
 
+/** Derive unique keys from tier labels. Call before saving tier config. */
+export function deriveTierKeys(tiers: TierConfig[]): TierConfig[] {
+  const result = tiers.map((t, i) => ({
+    ...t,
+    key: t.label.replace(/[^a-zA-Z0-9]/g, "").slice(0, 10) || `T${i}`,
+    sortOrder: i,
+  }));
+
+  const seen = new Set<string>();
+  for (const tier of result) {
+    let k = tier.key;
+    let n = 1;
+    while (seen.has(k)) {
+      k = `${tier.key}${n++}`;
+    }
+    tier.key = k;
+    seen.add(k);
+  }
+
+  return result;
+}
+
 export const TIER_COLORS = [
   "#ff7f7f",
   "#ffbf7f",

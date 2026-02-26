@@ -13,6 +13,13 @@ function getParticipants(): Record<string, { participantId: string; nickname: st
   }
 }
 
+/** Save participant data for a session (can be called outside of hooks) */
+export function saveParticipant(sessionId: string, participantId: string, nickname: string) {
+  const all = getParticipants();
+  all[sessionId] = { participantId, nickname };
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(all));
+}
+
 export function useParticipant(sessionId: string) {
   const data = getParticipants()[sessionId];
 

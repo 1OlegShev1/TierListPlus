@@ -6,6 +6,9 @@ import { useParticipant } from "@/hooks/useParticipant";
 import { TierListBoard } from "@/components/tierlist/TierListBoard";
 import { TierConfigEditor } from "@/components/sessions/TierConfigEditor";
 import { Button } from "@/components/ui/Button";
+import { Loading } from "@/components/ui/Loading";
+import { ErrorMessage } from "@/components/ui/ErrorMessage";
+import { GearIcon } from "@/components/ui/GearIcon";
 import type { SessionData } from "@/types";
 
 export default function VotePage() {
@@ -15,11 +18,12 @@ export default function VotePage() {
   const [session, setSession] = useState<SessionData | null>(null);
   const [seededTiers, setSeededTiers] = useState<Record<string, string[]> | undefined>(undefined);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [showSettings, setShowSettings] = useState(false);
 
   useEffect(() => {
     if (!participantId) {
-      router.push(`/sessions/join?code=`);
+      router.push(`/sessions/join`);
       return;
     }
 
@@ -28,7 +32,6 @@ export default function VotePage() {
       .then(async (data: SessionData) => {
         setSession(data);
 
-        // If bracket voting was enabled, fetch rankings to pre-populate tiers
         if (data.bracketEnabled) {
           try {
             const rankingsRes = await fetch(
@@ -39,27 +42,23 @@ export default function VotePage() {
               setSeededTiers(seeds);
             }
           } catch {
-            // Bracket rankings unavailable — start with blank tiers
+            // Bracket rankings unavailable
           }
         }
 
         setLoading(false);
+      })
+      .catch(() => {
+        setError("Failed to load session. Please try again.");
+        setLoading(false);
       });
   }, [sessionId, participantId, router]);
 
-  if (!participantId) {
-    return null;
-  }
+  if (!participantId) return null;
+  if (loading) return <Loading />;
+  if (error) return <ErrorMessage message={error} />;
 
-  if (loading || !session) {
-    return (
-      <div className="flex items-center justify-center py-20 text-neutral-500">
-        Loading...
-      </div>
-    );
-  }
-
-  if (session.status !== "OPEN") {
+  if (!session || session.status !== "OPEN") {
     return (
       <div className="flex flex-col items-center gap-3 py-20">
         <p className="text-lg text-neutral-400">This session is no longer accepting votes</p>
@@ -91,10 +90,7 @@ export default function VotePage() {
           }`}
           title="Tier settings"
         >
-          <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-          </svg>
+          <GearIcon />
         </button>
       </div>
 

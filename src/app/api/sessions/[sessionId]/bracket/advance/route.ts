@@ -1,11 +1,9 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { notFound, bracketMatchupInclude } from "@/lib/api-helpers";
+import { withHandler, notFound, bracketMatchupInclude } from "@/lib/api-helpers";
+import { advanceWinnerToNextRound } from "@/lib/bracket-helpers";
 
-export async function POST(
-  _request: Request,
-  { params }: { params: Promise<{ sessionId: string }> }
-) {
+export const POST = withHandler(async (_request, { params }) => {
   const { sessionId } = await params;
 
   const bracket = await prisma.bracket.findFirst({
@@ -18,7 +16,7 @@ export async function POST(
     },
   });
 
-  if (!bracket) return notFound("No bracket found");
+  if (!bracket) notFound("No bracket found");
 
   // Find the current active round (first round with undecided matchups that have both items)
   let currentRound = 0;
@@ -62,27 +60,12 @@ export async function POST(
       winnerId = Math.random() < 0.5 ? matchup.itemAId : matchup.itemBId;
     }
 
-    // Update winner
     await prisma.bracketMatchup.update({
       where: { id: matchup.id },
       data: { winnerId },
     });
 
-    // Advance winner to next round
-    if (currentRound < bracket.rounds) {
-      const nextRound = currentRound + 1;
-      const nextPosition = Math.floor(matchup.position / 2);
-      const slot = matchup.position % 2 === 0 ? "itemAId" : "itemBId";
-
-      await prisma.bracketMatchup.updateMany({
-        where: {
-          bracketId: bracket.id,
-          round: nextRound,
-          position: nextPosition,
-        },
-        data: { [slot]: winnerId },
-      });
-    }
+    await advanceWinnerToNextRound(bracket.id, matchup.position, winnerId, currentRound, bracket.rounds);
   }
 
   // Fetch updated bracket
@@ -97,4 +80,4 @@ export async function POST(
   });
 
   return NextResponse.json(updated);
-}
+});

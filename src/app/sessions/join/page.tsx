@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useParticipant } from "@/hooks/useParticipant";
+import { saveParticipant } from "@/hooks/useParticipant";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { ErrorMessage } from "@/components/ui/ErrorMessage";
 
 export default function JoinSessionPage() {
   const router = useRouter();
@@ -13,7 +14,6 @@ export default function JoinSessionPage() {
   const [error, setError] = useState("");
   const [joining, setJoining] = useState(false);
 
-  // We don't know the session ID yet, so we'll save after joining
   const join = async () => {
     if (!joinCode.trim() || !nickname.trim()) return;
     setJoining(true);
@@ -31,18 +31,13 @@ export default function JoinSessionPage() {
 
       if (!res.ok) {
         const data = await res.json();
-        setError(data.error || "Failed to join");
+        setError(typeof data.error === "string" ? data.error : "Failed to join");
         return;
       }
 
       const { sessionId, participantId, nickname: savedNickname } = await res.json();
 
-      // Save to localStorage
-      const storageKey = "tierlistplus_participants";
-      const all = JSON.parse(localStorage.getItem(storageKey) || "{}");
-      all[sessionId] = { participantId, nickname: savedNickname };
-      localStorage.setItem(storageKey, JSON.stringify(all));
-
+      saveParticipant(sessionId, participantId, savedNickname);
       router.push(`/sessions/${sessionId}`);
     } finally {
       setJoining(false);
@@ -82,11 +77,7 @@ export default function JoinSessionPage() {
           />
         </div>
 
-        {error && (
-          <p className="rounded-lg bg-red-500/10 px-4 py-2 text-sm text-red-400">
-            {error}
-          </p>
-        )}
+        {error && <ErrorMessage message={error} />}
 
         <Button
           onClick={join}

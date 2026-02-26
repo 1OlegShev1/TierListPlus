@@ -1,14 +1,8 @@
-import type { TierConfig } from "./constants";
+import type { TierConfig, Item } from "@/types";
 
 interface VoteData {
   sessionItemId: string;
   tierKey: string;
-}
-
-interface SessionItemData {
-  id: string;
-  label: string;
-  imageUrl: string;
 }
 
 export interface ConsensusItem {
@@ -31,7 +25,7 @@ export interface ConsensusTier {
 export function computeConsensus(
   votes: VoteData[],
   tierConfig: TierConfig[],
-  sessionItems: SessionItemData[]
+  sessionItems: Item[]
 ): ConsensusTier[] {
   // Assign numeric scores: top tier gets highest score
   const maxSort = Math.max(...tierConfig.map((t) => t.sortOrder));

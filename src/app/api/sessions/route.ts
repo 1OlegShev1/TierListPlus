@@ -3,9 +3,9 @@ import { prisma } from "@/lib/prisma";
 import { createSessionSchema } from "@/lib/validators";
 import { generateJoinCode } from "@/lib/nanoid";
 import { DEFAULT_TIER_CONFIG } from "@/lib/constants";
-import { validateBody, notFound, badRequest } from "@/lib/api-helpers";
+import { withHandler, validateBody, notFound, badRequest } from "@/lib/api-helpers";
 
-export async function GET(request: Request) {
+export const GET = withHandler(async (request) => {
   const { searchParams } = new URL(request.url);
   const status = searchParams.get("status");
 
@@ -19,11 +19,10 @@ export async function GET(request: Request) {
   });
 
   return NextResponse.json(sessions);
-}
+});
 
-export async function POST(request: Request) {
+export const POST = withHandler(async (request) => {
   const data = await validateBody(request, createSessionSchema);
-  if (data instanceof NextResponse) return data;
 
   const { templateId, name, tierConfig, bracketEnabled } = data;
 
@@ -33,11 +32,8 @@ export async function POST(request: Request) {
     include: { items: { orderBy: { sortOrder: "asc" } } },
   });
 
-  if (!template) return notFound("Template not found");
-
-  if (template.items.length === 0) {
-    return badRequest("Template has no items");
-  }
+  if (!template) notFound("Template not found");
+  if (template.items.length === 0) badRequest("Template has no items");
 
   const joinCode = generateJoinCode();
 
@@ -64,4 +60,4 @@ export async function POST(request: Request) {
   });
 
   return NextResponse.json(session, { status: 201 });
-}
+});

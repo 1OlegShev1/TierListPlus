@@ -1,7 +1,7 @@
 "use client";
 
 import { create } from "zustand";
-import type { Item } from "@/types";
+import type { Item, VotePayload } from "@/types";
 
 interface TierListState {
   tiers: Record<string, string[]>; // tierKey -> sessionItemId[]
@@ -27,7 +27,7 @@ interface TierListState {
     toIndex: number
   ) => void;
   reorderTier: (tierKey: string, orderedIds: string[]) => void;
-  getVotes: () => { sessionItemId: string; tierKey: string; rankInTier: number }[];
+  getVotes: () => VotePayload[];
 }
 
 export const useTierListStore = create<TierListState>((set, get) => ({
@@ -130,7 +130,7 @@ export const useTierListStore = create<TierListState>((set, get) => ({
 
   getVotes: () => {
     const { tiers } = get();
-    const votes: { sessionItemId: string; tierKey: string; rankInTier: number }[] = [];
+    const votes: VotePayload[] = [];
     for (const [tierKey, ids] of Object.entries(tiers)) {
       for (let i = 0; i < ids.length; i++) {
         votes.push({ sessionItemId: ids[i], tierKey, rankInTier: i });
