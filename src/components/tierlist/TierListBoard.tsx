@@ -353,6 +353,16 @@ export function TierListBoard({
           activeContainer === "unranked" ? store.unranked : (store.tiers[activeContainer] ?? []);
 
         const oldIndex = containerItems.indexOf(activeId);
+
+        // Dropped on the container itself (empty space) — move to end
+        if (isOverContainer) {
+          const lastIndex = containerItems.length - 1;
+          if (oldIndex >= 0 && oldIndex !== lastIndex) {
+            store.reorderInContainer(activeContainer, oldIndex, lastIndex);
+          }
+          return;
+        }
+
         const newIndex = containerItems.indexOf(overId);
 
         if (oldIndex !== newIndex && oldIndex >= 0 && newIndex >= 0) {
