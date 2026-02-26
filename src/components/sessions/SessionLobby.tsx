@@ -43,8 +43,10 @@ export function SessionLobby({ session }: SessionLobbyProps) {
       <div className="mb-8 rounded-xl border border-neutral-800 bg-neutral-900 p-6 text-center">
         <p className="mb-2 text-sm text-neutral-400">Share this code with your team</p>
         <button
+          type="button"
           onClick={copyCode}
-          className="text-4xl font-mono font-bold tracking-[0.3em] text-amber-400 transition-colors hover:text-amber-300"
+          title="Click to copy"
+          className="cursor-pointer rounded-lg px-4 py-2 text-4xl font-mono font-bold tracking-[0.3em] text-amber-400 transition-all hover:bg-amber-400/10 hover:text-amber-300"
         >
           {session.joinCode}
         </button>

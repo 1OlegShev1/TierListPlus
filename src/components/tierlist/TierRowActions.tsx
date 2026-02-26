@@ -6,6 +6,7 @@ import { CloseIcon, EllipsisVerticalIcon, PlusIcon } from "@/components/ui/icons
 interface TierRowActionsProps {
   label: string;
   canDelete: boolean;
+  isLast: boolean;
   onInsertAbove: () => void;
   onInsertBelow: () => void;
   onDelete: () => void;
@@ -14,6 +15,7 @@ interface TierRowActionsProps {
 export function TierRowActions({
   label,
   canDelete,
+  isLast,
   onInsertAbove,
   onInsertBelow,
   onDelete,
@@ -52,9 +54,13 @@ export function TierRowActions({
 
   const toggle = () => {
     if (!open) {
-      const rect = buttonRef.current?.getBoundingClientRect();
-      if (rect) {
-        setOpenUpward(window.innerHeight - rect.bottom < 180);
+      if (isLast) {
+        setOpenUpward(true);
+      } else {
+        const rect = buttonRef.current?.getBoundingClientRect();
+        if (rect) {
+          setOpenUpward(window.innerHeight - rect.bottom < 180);
+        }
       }
     }
     setOpen((v) => !v);

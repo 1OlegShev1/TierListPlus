@@ -176,6 +176,7 @@ export function TierRow({
           <TierRowActions
             label={label}
             canDelete={canDelete}
+            isLast={isLast}
             onInsertAbove={onInsertAbove}
             onInsertBelow={onInsertBelow}
             onDelete={onDelete}

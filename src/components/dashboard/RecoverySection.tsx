@@ -75,7 +75,7 @@ export function RecoverySection() {
             <code className="rounded-lg bg-neutral-800 px-4 py-2 font-mono text-lg tracking-wider text-amber-400">
               {recoveryCode}
             </code>
-            <Button variant="secondary" onClick={copyCode} className="px-4">
+            <Button variant="secondary" onClick={copyCode} className="cursor-pointer px-4">
               {copied ? "Copied!" : "Copy"}
             </Button>
           </div>
