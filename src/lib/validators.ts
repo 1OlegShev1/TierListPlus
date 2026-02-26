@@ -11,13 +11,13 @@ export const updateTemplateSchema = z.object({
 });
 
 export const addTemplateItemSchema = z.object({
-  label: z.string().min(1).max(100),
+  label: z.string().max(100),
   imageUrl: z.string().min(1),
   sortOrder: z.number().int().min(0).optional(),
 });
 
 export const updateTemplateItemSchema = z.object({
-  label: z.string().min(1).max(100).optional(),
+  label: z.string().max(100).optional(),
   imageUrl: z.string().min(1).optional(),
   sortOrder: z.number().int().min(0).optional(),
 });

@@ -2,46 +2,124 @@
 
 import { useDroppable } from "@dnd-kit/core";
 import { rectSortingStrategy, SortableContext } from "@dnd-kit/sortable";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { BracketModal } from "@/components/bracket/BracketModal";
+import { ChevronDownIcon, ChevronUpIcon } from "@/components/ui/icons";
 import { useTierListStore } from "@/hooks/useTierList";
 import { DraggableItem } from "./DraggableItem";
+import { TierColorPicker } from "./TierColorPicker";
+import { TierRowActions } from "./TierRowActions";
 
 interface TierRowProps {
   tierKey: string;
   label: string;
   color: string;
+  isFirst: boolean;
+  isLast: boolean;
+  canDelete: boolean;
+  onLabelChange: (newLabel: string) => void;
+  onColorChange: (newColor: string) => void;
+  onMoveUp: () => void;
+  onMoveDown: () => void;
+  onInsertAbove: () => void;
+  onInsertBelow: () => void;
+  onDelete: () => void;
 }
 
-export function TierRow({ tierKey, label, color }: TierRowProps) {
+export function TierRow({
+  tierKey,
+  label,
+  color,
+  isFirst,
+  isLast,
+  canDelete,
+  onLabelChange,
+  onColorChange,
+  onMoveUp,
+  onMoveDown,
+  onInsertAbove,
+  onInsertBelow,
+  onDelete,
+}: TierRowProps) {
   const items = useTierListStore((s) => s.tiers[tierKey] ?? []);
   const itemMap = useTierListStore((s) => s.items);
   const reorderTier = useTierListStore((s) => s.reorderTier);
   const [showBracket, setShowBracket] = useState(false);
+  const [editingLabel, setEditingLabel] = useState(false);
+  const [localLabel, setLocalLabel] = useState(label);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const { setNodeRef, isOver } = useDroppable({ id: tierKey });
+
+  useEffect(() => {
+    setLocalLabel(label);
+  }, [label]);
+
+  useEffect(() => {
+    if (editingLabel) {
+      inputRef.current?.focus();
+      inputRef.current?.select();
+    }
+  }, [editingLabel]);
+
+  const commitLabel = () => {
+    setEditingLabel(false);
+    const trimmed = localLabel.trim();
+    if (trimmed && trimmed !== label) {
+      onLabelChange(trimmed);
+    } else {
+      setLocalLabel(label);
+    }
+  };
 
   const bracketItems = items
     .map((id) => itemMap.get(id))
     .filter((i): i is { id: string; label: string; imageUrl: string } => !!i);
 
   return (
-    <>
-      <div className="flex min-h-[80px] border-b border-neutral-800">
+    <div>
+      <div
+        className={`flex min-h-[80px] border-b border-neutral-800 ${isFirst ? "rounded-t-lg" : ""} ${isLast ? "rounded-b-lg border-b-0" : ""}`}
+      >
+        {/* Color Strip (leftmost) */}
+        <TierColorPicker
+          color={color}
+          label={label}
+          isFirst={isFirst}
+          isLast={isLast}
+          onColorChange={onColorChange}
+        />
+
         {/* Tier Label */}
         <div
-          className="flex w-20 flex-shrink-0 flex-col items-center justify-center gap-1"
+          className="flex w-20 flex-shrink-0 items-center justify-center"
           style={{ backgroundColor: color, color: "#000" }}
         >
-          <span className="text-lg font-bold">{label}</span>
-          {items.length >= 2 && (
+          {editingLabel ? (
+            <input
+              ref={inputRef}
+              value={localLabel}
+              onChange={(e) => setLocalLabel(e.target.value)}
+              onBlur={commitLabel}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") commitLabel();
+                if (e.key === "Escape") {
+                  setLocalLabel(label);
+                  setEditingLabel(false);
+                }
+              }}
+              maxLength={20}
+              className="w-16 rounded bg-black/20 px-1 py-0.5 text-center text-sm font-bold text-inherit focus:outline-none focus:ring-1 focus:ring-black/40"
+              aria-label="Edit tier label"
+            />
+          ) : (
             <button
-              onClick={() => setShowBracket(true)}
-              className="rounded bg-black/20 px-1.5 py-0.5 text-[10px] font-medium transition-colors hover:bg-black/40"
-              title="Rank items with 1v1 bracket"
-              aria-label={`Rank items in ${label} tier using bracket`}
+              onClick={() => setEditingLabel(true)}
+              className="cursor-text text-lg font-bold hover:underline"
+              title="Click to edit label"
+              aria-label={`Edit ${label} tier label`}
             >
-              Rank
+              {label}
             </button>
           )}
         </div>
@@ -66,6 +144,53 @@ export function TierRow({ tierKey, label, color }: TierRowProps) {
             </span>
           )}
         </div>
+
+        {/* Rank button */}
+        {items.length >= 2 && (
+          <div className="flex flex-shrink-0 items-center border-l border-neutral-800 px-1.5">
+            <button
+              onClick={() => setShowBracket(true)}
+              className="cursor-pointer rounded px-1.5 py-1 text-xs font-medium text-neutral-500 transition-colors hover:bg-neutral-800 hover:text-amber-400"
+              title="Rank items with 1v1 bracket"
+              aria-label={`Rank items in ${label} tier using bracket`}
+            >
+              Rank
+            </button>
+          </div>
+        )}
+
+        {/* Row edit controls (right side) */}
+        <div
+          className={`flex w-10 flex-shrink-0 flex-col items-center justify-center gap-0.5 border-l border-neutral-800 ${isFirst ? "rounded-tr-lg" : ""} ${isLast ? "rounded-br-lg" : ""}`}
+        >
+          <button
+            onClick={onMoveUp}
+            disabled={isFirst}
+            className="cursor-pointer p-1 text-neutral-500 hover:text-neutral-200 disabled:cursor-default disabled:opacity-30"
+            title="Move row up"
+            aria-label={`Move ${label} tier up`}
+          >
+            <ChevronUpIcon className="h-3.5 w-3.5" />
+          </button>
+
+          <TierRowActions
+            label={label}
+            canDelete={canDelete}
+            onInsertAbove={onInsertAbove}
+            onInsertBelow={onInsertBelow}
+            onDelete={onDelete}
+          />
+
+          <button
+            onClick={onMoveDown}
+            disabled={isLast}
+            className="cursor-pointer p-1 text-neutral-500 hover:text-neutral-200 disabled:cursor-default disabled:opacity-30"
+            title="Move row down"
+            aria-label={`Move ${label} tier down`}
+          >
+            <ChevronDownIcon className="h-3.5 w-3.5" />
+          </button>
+        </div>
       </div>
 
       {showBracket && (
@@ -78,6 +203,6 @@ export function TierRow({ tierKey, label, color }: TierRowProps) {
           onCancel={() => setShowBracket(false)}
         />
       )}
-    </>
+    </div>
   );
 }

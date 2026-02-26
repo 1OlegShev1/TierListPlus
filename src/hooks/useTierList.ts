@@ -15,6 +15,8 @@ interface TierListState {
   moveItem: (itemId: string, toContainer: string, toIndex: number) => void;
   reorderInContainer: (container: string, fromIndex: number, toIndex: number) => void;
   reorderTier: (tierKey: string, orderedIds: string[]) => void;
+  addTier: (key: string) => void;
+  removeTier: (key: string) => void;
   getVotes: () => VotePayload[];
 }
 
@@ -111,6 +113,22 @@ export const useTierListStore = create<TierListState>((set, get) => ({
       const newTiers = { ...state.tiers };
       newTiers[tierKey] = orderedIds;
       return { tiers: newTiers };
+    });
+  },
+
+  addTier: (key) => {
+    set((state) => ({
+      tiers: { ...state.tiers, [key]: [] },
+    }));
+  },
+
+  removeTier: (key) => {
+    set((state) => {
+      const { [key]: removedItems, ...remainingTiers } = state.tiers;
+      return {
+        tiers: remainingTiers,
+        unranked: [...state.unranked, ...(removedItems ?? [])],
+      };
     });
   },
 

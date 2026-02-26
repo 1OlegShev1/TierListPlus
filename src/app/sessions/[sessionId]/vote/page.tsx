@@ -2,11 +2,9 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { TierConfigEditor } from "@/components/sessions/TierConfigEditor";
 import { TierListBoard } from "@/components/tierlist/TierListBoard";
 import { Button } from "@/components/ui/Button";
 import { ErrorMessage } from "@/components/ui/ErrorMessage";
-import { GearIcon } from "@/components/ui/GearIcon";
 import { Loading } from "@/components/ui/Loading";
 import { useParticipant } from "@/hooks/useParticipant";
 import { apiFetch, getErrorMessage } from "@/lib/api-client";
@@ -20,7 +18,6 @@ export default function VotePage() {
   const [seededTiers, setSeededTiers] = useState<Record<string, string[]> | undefined>(undefined);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [showSettings, setShowSettings] = useState(false);
 
   useEffect(() => {
     if (!participantId) {
@@ -66,42 +63,15 @@ export default function VotePage() {
 
   return (
     <div>
-      <div className="mb-6 flex items-start justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">{session.name}</h1>
-          <p className="text-sm text-neutral-500">
-            Voting as <span className="text-amber-400">{nickname}</span> &middot;
-            {seededTiers
-              ? "Pre-filled from bracket results — adjust as needed"
-              : "Drag items into tiers"}
-          </p>
-        </div>
-        <button
-          onClick={() => setShowSettings((v) => !v)}
-          className={`rounded-lg border p-2 transition-colors ${
-            showSettings
-              ? "border-amber-500 bg-amber-500/10 text-amber-400"
-              : "border-neutral-700 text-neutral-400 hover:bg-neutral-800 hover:text-neutral-200"
-          }`}
-          title="Tier settings"
-        >
-          <GearIcon />
-        </button>
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold">{session.name}</h1>
+        <p className="text-sm text-neutral-500">
+          Voting as <span className="text-amber-400">{nickname}</span> &middot;{" "}
+          {seededTiers
+            ? "Pre-filled from bracket results — adjust as needed"
+            : "Drag items into tiers"}
+        </p>
       </div>
-
-      {showSettings && (
-        <div className="mb-6 rounded-xl border border-neutral-800 bg-neutral-900 p-4">
-          <h3 className="mb-3 text-sm font-medium text-neutral-300">Tier Settings</h3>
-          <TierConfigEditor
-            sessionId={sessionId}
-            initialConfig={session.tierConfig}
-            onSaved={(config) => {
-              setSession({ ...session, tierConfig: config });
-              setShowSettings(false);
-            }}
-          />
-        </div>
-      )}
 
       <TierListBoard
         sessionId={sessionId}
