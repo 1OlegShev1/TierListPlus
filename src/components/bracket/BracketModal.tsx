@@ -165,6 +165,18 @@ export function BracketModal({ items, onComplete, onCancel }: BracketModalProps)
   );
 }
 
+/** Check recursively whether a matchup slot will ever produce a winner */
+function willProduceWinner(matchups: MatchupRow[], round: number, position: number): boolean {
+  const matchup = matchups.find((m) => m.round === round && m.position === position);
+  if (!matchup) return false;
+  if (matchup.itemAId || matchup.itemBId) return true;
+  if (round <= 1) return false;
+  return (
+    willProduceWinner(matchups, round - 1, position * 2) ||
+    willProduceWinner(matchups, round - 1, position * 2 + 1)
+  );
+}
+
 /** Advance a matchup's winner into the next round slot */
 function advanceWinner(matchups: MatchupRow[], source: MatchupRow, totalRounds: number) {
   if (!source.winnerId || source.round >= totalRounds) return;
@@ -174,16 +186,19 @@ function advanceWinner(matchups: MatchupRow[], source: MatchupRow, totalRounds: 
   const slot = source.position % 2 === 0 ? "itemAId" : "itemBId";
 
   const target = matchups.find((m) => m.round === nextRound && m.position === nextPosition);
-  if (target) {
-    target[slot] = source.winnerId;
+  if (!target) return;
 
-    // If target now has only one item (other is a bye), auto-resolve
-    if (target.itemAId && !target.itemBId) {
-      target.winnerId = target.itemAId;
-      advanceWinner(matchups, target, totalRounds);
-    } else if (!target.itemAId && target.itemBId) {
-      target.winnerId = target.itemBId;
-      advanceWinner(matchups, target, totalRounds);
-    }
+  target[slot] = source.winnerId;
+
+  // Only auto-resolve as bye if the other slot's feeder is truly empty
+  const emptySlot = target.itemAId && !target.itemBId ? "itemBId" : !target.itemAId && target.itemBId ? "itemAId" : null;
+  if (!emptySlot) return;
+
+  const feederPosition = emptySlot === "itemAId" ? nextPosition * 2 : nextPosition * 2 + 1;
+  const isTrueBye = !willProduceWinner(matchups, nextRound - 1, feederPosition);
+
+  if (isTrueBye) {
+    target.winnerId = target[emptySlot === "itemAId" ? "itemBId" : "itemAId"];
+    advanceWinner(matchups, target, totalRounds);
   }
 }
