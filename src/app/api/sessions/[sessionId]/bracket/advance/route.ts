@@ -12,37 +12,37 @@ export const POST = withHandler(async (_request, { params }) => {
   const { sessionId } = await params;
   await requireOpenSession(sessionId);
 
-  const bracket = await prisma.bracket.findFirst({
-    where: { sessionId },
-    include: {
-      matchups: {
-        include: { votes: true },
-        orderBy: [{ round: "asc" }, { position: "asc" }],
-      },
-    },
-  });
-
-  if (!bracket) notFound("No bracket found");
-
-  // Find the current active round (first round with undecided matchups that have both items)
-  let currentRound = 0;
-  for (let r = 1; r <= bracket.rounds; r++) {
-    const roundMatchups = bracket.matchups.filter((m) => m.round === r);
-    const hasUndecided = roundMatchups.some((m) => m.itemAId && m.itemBId && !m.winnerId);
-    if (hasUndecided) {
-      currentRound = r;
-      break;
-    }
-  }
-
-  if (currentRound === 0) {
-    throw new ApiError(409, "Bracket is already complete");
-  }
-
-  const roundMatchups = bracket.matchups.filter((m) => m.round === currentRound);
-
-  // Tally votes and determine winners in a transaction to prevent race conditions
+  // Read bracket and tally inside a single transaction to prevent concurrent double-advance
   await prisma.$transaction(async (tx) => {
+    const bracket = await tx.bracket.findFirst({
+      where: { sessionId },
+      include: {
+        matchups: {
+          include: { votes: true },
+          orderBy: [{ round: "asc" }, { position: "asc" }],
+        },
+      },
+    });
+
+    if (!bracket) notFound("No bracket found");
+
+    // Find the current active round (first round with undecided matchups that have both items)
+    let currentRound = 0;
+    for (let r = 1; r <= bracket.rounds; r++) {
+      const roundMatchups = bracket.matchups.filter((m) => m.round === r);
+      const hasUndecided = roundMatchups.some((m) => m.itemAId && m.itemBId && !m.winnerId);
+      if (hasUndecided) {
+        currentRound = r;
+        break;
+      }
+    }
+
+    if (currentRound === 0) {
+      throw new ApiError(409, "Bracket is already complete");
+    }
+
+    const roundMatchups = bracket.matchups.filter((m) => m.round === currentRound);
+
     for (const matchup of roundMatchups) {
       if (matchup.winnerId || !matchup.itemAId || !matchup.itemBId) continue;
 
@@ -59,10 +59,13 @@ export const POST = withHandler(async (_request, { params }) => {
         winnerId = Math.random() < 0.5 ? matchup.itemAId : matchup.itemBId;
       }
 
-      await tx.bracketMatchup.update({
-        where: { id: matchup.id },
+      // Atomic conditional update — only sets winnerId if still null,
+      // so a concurrent request that already decided this matchup is safely skipped
+      const { count } = await tx.bracketMatchup.updateMany({
+        where: { id: matchup.id, winnerId: null },
         data: { winnerId },
       });
+      if (count === 0) continue;
 
       // Advance winner to next round
       if (currentRound < bracket.rounds) {

@@ -17,12 +17,14 @@ export const GET = withHandler(async (_request, { params }) => {
 
 export const PATCH = withHandler(async (request, { params }) => {
   const { templateId } = await params;
+  const userId = new URL(request.url).searchParams.get("userId");
 
   const existing = await prisma.template.findUnique({
     where: { id: templateId },
-    select: { id: true },
+    select: { id: true, creatorId: true },
   });
   if (!existing) notFound("Template not found");
+  requireOwner(existing.creatorId, userId);
 
   const data = await validateBody(request, updateTemplateSchema);
 

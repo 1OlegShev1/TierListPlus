@@ -60,7 +60,7 @@ export function TemplateEditor({
         });
         id = template.id;
       } else {
-        await apiPatch(`/api/templates/${id}`, { name, description });
+        await apiPatch(`/api/templates/${id}?userId=${userId}`, { name, description });
       }
 
       const existingIds = new Set(initialItems.filter((i) => i.id).map((i) => i.id));
