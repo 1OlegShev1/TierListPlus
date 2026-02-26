@@ -1,0 +1,164 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── TEMPLATES ───────────────────────────────────────────────
+
+model Template {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  items    TemplateItem[]
+  sessions Session[]
+}
+
+model TemplateItem {
+  id         String @id @default(cuid())
+  templateId String
+  label      String
+  imageUrl   String
+  sortOrder  Int    @default(0)
+
+  template     Template      @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  sessionItems SessionItem[]
+
+  @@index([templateId])
+}
+
+// ─── SESSIONS ────────────────────────────────────────────────
+
+model Session {
+  id         String        @id @default(cuid())
+  templateId String
+  name       String
+  joinCode   String        @unique
+  status     SessionStatus @default(OPEN)
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  // Tier configuration stored as JSON
+  // Shape: [{ key: string, label: string, color: string, sortOrder: number }]
+  tierConfig Json
+
+  bracketEnabled Boolean @default(false)
+
+  template     Template      @relation(fields: [templateId], references: [id])
+  items        SessionItem[]
+  participants Participant[]
+  brackets     Bracket[]
+
+  @@index([joinCode])
+  @@index([templateId])
+}
+
+enum SessionStatus {
+  OPEN
+  CLOSED
+  ARCHIVED
+}
+
+model SessionItem {
+  id             String @id @default(cuid())
+  sessionId      String
+  templateItemId String
+  label          String
+  imageUrl       String
+  sortOrder      Int    @default(0)
+
+  session      Session      @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  templateItem TemplateItem @relation(fields: [templateItemId], references: [id])
+
+  tierVotes           TierVote[]
+  bracketVotesAsItemA BracketMatchup[] @relation("MatchupItemA")
+  bracketVotesAsItemB BracketMatchup[] @relation("MatchupItemB")
+  bracketWins         BracketMatchup[] @relation("MatchupWinner")
+
+  @@unique([sessionId, templateItemId])
+  @@index([sessionId])
+}
+
+// ─── PARTICIPANTS ────────────────────────────────────────────
+
+model Participant {
+  id        String   @id @default(cuid())
+  sessionId String
+  nickname  String
+  createdAt DateTime @default(now())
+
+  session      Session       @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  tierVotes    TierVote[]
+  bracketVotes BracketVote[]
+
+  @@unique([sessionId, nickname])
+  @@index([sessionId])
+}
+
+// ─── TIER VOTES ──────────────────────────────────────────────
+
+model TierVote {
+  id            String @id @default(cuid())
+  participantId String
+  sessionItemId String
+  tierKey       String
+  rankInTier    Int    @default(0)
+
+  participant Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  sessionItem SessionItem @relation(fields: [sessionItemId], references: [id], onDelete: Cascade)
+
+  @@unique([participantId, sessionItemId])
+  @@index([participantId])
+  @@index([sessionItemId])
+}
+
+// ─── BRACKET VOTING ──────────────────────────────────────────
+
+model Bracket {
+  id        String   @id @default(cuid())
+  sessionId String
+  rounds    Int
+  createdAt DateTime @default(now())
+
+  session  Session          @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  matchups BracketMatchup[]
+
+  @@index([sessionId])
+}
+
+model BracketMatchup {
+  id        String  @id @default(cuid())
+  bracketId String
+  round     Int
+  position  Int
+  itemAId   String?
+  itemBId   String?
+  winnerId  String?
+
+  bracket Bracket      @relation(fields: [bracketId], references: [id], onDelete: Cascade)
+  itemA   SessionItem? @relation("MatchupItemA", fields: [itemAId], references: [id])
+  itemB   SessionItem? @relation("MatchupItemB", fields: [itemBId], references: [id])
+  winner  SessionItem? @relation("MatchupWinner", fields: [winnerId], references: [id])
+
+  votes BracketVote[]
+
+  @@index([bracketId, round])
+}
+
+model BracketVote {
+  id            String @id @default(cuid())
+  matchupId     String
+  participantId String
+  chosenItemId  String
+
+  matchup     BracketMatchup @relation(fields: [matchupId], references: [id], onDelete: Cascade)
+  participant Participant    @relation(fields: [participantId], references: [id], onDelete: Cascade)
+
+  @@unique([matchupId, participantId])
+  @@index([matchupId])
+}
