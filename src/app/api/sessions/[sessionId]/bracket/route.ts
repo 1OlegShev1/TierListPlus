@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { generateBracket } from "@/lib/bracket-generator";
+import { notFound, badRequest, bracketMatchupInclude } from "@/lib/api-helpers";
 
 export async function GET(
   _request: Request,
@@ -11,22 +12,13 @@ export async function GET(
     where: { sessionId },
     include: {
       matchups: {
-        include: {
-          itemA: { select: { id: true, label: true, imageUrl: true } },
-          itemB: { select: { id: true, label: true, imageUrl: true } },
-          winner: { select: { id: true, label: true, imageUrl: true } },
-          votes: {
-            select: { participantId: true, chosenItemId: true },
-          },
-        },
+        include: bracketMatchupInclude,
         orderBy: [{ round: "asc" }, { position: "asc" }],
       },
     },
   });
 
-  if (!bracket) {
-    return NextResponse.json({ error: "No bracket found" }, { status: 404 });
-  }
+  if (!bracket) return notFound("No bracket found");
 
   return NextResponse.json(bracket);
 }
@@ -39,24 +31,14 @@ export async function POST(
 
   // Check if bracket already exists
   const existing = await prisma.bracket.findFirst({ where: { sessionId } });
-  if (existing) {
-    return NextResponse.json(
-      { error: "Bracket already exists" },
-      { status: 400 }
-    );
-  }
+  if (existing) return badRequest("Bracket already exists");
 
   const items = await prisma.sessionItem.findMany({
     where: { sessionId },
     orderBy: { sortOrder: "asc" },
   });
 
-  if (items.length < 2) {
-    return NextResponse.json(
-      { error: "Need at least 2 items for a bracket" },
-      { status: 400 }
-    );
-  }
+  if (items.length < 2) return badRequest("Need at least 2 items for a bracket");
 
   const { rounds, matchups } = generateBracket(items.map((i) => i.id));
 
@@ -82,11 +64,7 @@ export async function POST(
     },
     include: {
       matchups: {
-        include: {
-          itemA: { select: { id: true, label: true, imageUrl: true } },
-          itemB: { select: { id: true, label: true, imageUrl: true } },
-          votes: { select: { participantId: true, chosenItemId: true } },
-        },
+        include: bracketMatchupInclude,
         orderBy: [{ round: "asc" }, { position: "asc" }],
       },
     },

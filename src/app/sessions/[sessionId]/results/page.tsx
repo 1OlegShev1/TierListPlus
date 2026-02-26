@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import { buttonVariants } from "@/components/ui/Button";
 import type { ConsensusTier, ConsensusItem } from "@/lib/consensus";
 
 export default function ResultsPage() {
@@ -46,10 +47,7 @@ export default function ResultsPage() {
             {totalParticipants !== 1 ? "s" : ""}
           </p>
         </div>
-        <Link
-          href={`/sessions/${sessionId}`}
-          className="rounded-lg border border-neutral-700 px-4 py-2 text-sm text-neutral-300 transition-colors hover:bg-neutral-800"
-        >
+        <Link href={`/sessions/${sessionId}`} className={buttonVariants.secondary}>
           Back to Lobby
         </Link>
       </div>

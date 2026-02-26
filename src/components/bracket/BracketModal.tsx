@@ -2,32 +2,20 @@
 
 import { useState, useMemo, useCallback } from "react";
 import { generateBracket } from "@/lib/bracket-generator";
+import { Button } from "@/components/ui/Button";
+import type { Item, MatchupRow } from "@/types";
 
-interface BracketItem {
-  id: string;
-  label: string;
-  imageUrl: string;
-}
-
-interface LocalMatchup {
-  round: number;
-  position: number;
-  itemAId: string | null;
-  itemBId: string | null;
-  winnerId: string | null;
-}
-
-interface TierBracketModalProps {
-  items: BracketItem[];
+interface BracketModalProps {
+  items: Item[];
   onComplete: (rankedIds: string[]) => void;
   onCancel: () => void;
 }
 
-export function TierBracketModal({
+export function BracketModal({
   items,
   onComplete,
   onCancel,
-}: TierBracketModalProps) {
+}: BracketModalProps) {
   const itemMap = useMemo(
     () => new Map(items.map((i) => [i.id, i])),
     [items]
@@ -35,7 +23,7 @@ export function TierBracketModal({
 
   const [bracketState, setBracketState] = useState(() => {
     const { rounds, matchups } = generateBracket(items.map((i) => i.id));
-    const local: LocalMatchup[] = matchups.map((m) => ({
+    const local: MatchupRow[] = matchups.map((m) => ({
       ...m,
       winnerId: null,
     }));
@@ -211,19 +199,13 @@ export function TierBracketModal({
 
         {/* Actions */}
         <div className="mt-4 flex justify-end gap-3">
-          <button
-            onClick={onCancel}
-            className="rounded-lg border border-neutral-700 px-4 py-2 text-sm text-neutral-400 transition-colors hover:bg-neutral-800"
-          >
+          <Button variant="secondary" onClick={onCancel} className="px-4 text-sm text-neutral-400">
             Cancel
-          </button>
+          </Button>
           {isComplete && (
-            <button
-              onClick={handleFinish}
-              className="rounded-lg bg-amber-500 px-4 py-2 text-sm font-medium text-black transition-colors hover:bg-amber-400"
-            >
+            <Button onClick={handleFinish} className="px-4 text-sm">
               Apply Ranking
-            </button>
+            </Button>
           )}
         </div>
       </div>
@@ -233,8 +215,8 @@ export function TierBracketModal({
 
 /** Advance a matchup's winner into the next round slot */
 function advanceWinner(
-  matchups: LocalMatchup[],
-  source: LocalMatchup,
+  matchups: MatchupRow[],
+  source: MatchupRow,
   totalRounds: number
 ) {
   if (!source.winnerId || source.round >= totalRounds) return;
@@ -272,7 +254,7 @@ function advanceWinner(
  * stronger opponents rank higher — fixing the bias where the 2nd-best item
  * could end up ranked low due to an unlucky draw.
  */
-function deriveRanking(matchups: LocalMatchup[], totalRounds: number): string[] {
+function deriveRanking(matchups: MatchupRow[], totalRounds: number): string[] {
   // Build a map: winnerId → list of loserIds they defeated
   const defeated = new Map<string, string[]>();
 
@@ -355,7 +337,7 @@ function deriveRanking(matchups: LocalMatchup[], totalRounds: number): string[] 
 }
 
 /** Fallback: simple elimination-round ranking (used if bracket is incomplete) */
-function fallbackRanking(matchups: LocalMatchup[], totalRounds: number): string[] {
+function fallbackRanking(matchups: MatchupRow[], totalRounds: number): string[] {
   const eliminatedInRound = new Map<string, number>();
 
   const finalMatchup = matchups.find((m) => m.round === totalRounds);

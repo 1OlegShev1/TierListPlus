@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import { buttonVariants } from "@/components/ui/Button";
 
 export default async function TemplateDetailPage({
   params,
@@ -27,16 +28,10 @@ export default async function TemplateDetailPage({
           )}
         </div>
         <div className="flex gap-3">
-          <Link
-            href={`/templates/${templateId}/edit`}
-            className="rounded-lg border border-neutral-700 px-4 py-2 text-sm text-neutral-300 transition-colors hover:bg-neutral-800"
-          >
+          <Link href={`/templates/${templateId}/edit`} className={buttonVariants.secondary}>
             Edit
           </Link>
-          <Link
-            href={`/sessions/new?templateId=${templateId}`}
-            className="rounded-lg bg-amber-500 px-4 py-2 text-sm font-medium text-black transition-colors hover:bg-amber-400"
-          >
+          <Link href={`/sessions/new?templateId=${templateId}`} className={buttonVariants.primary}>
             Start Session
           </Link>
         </div>

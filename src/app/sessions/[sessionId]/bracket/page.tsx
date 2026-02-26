@@ -3,28 +3,8 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useParticipant } from "@/hooks/useParticipant";
-
-interface BracketItem {
-  id: string;
-  label: string;
-  imageUrl: string;
-}
-
-interface Matchup {
-  id: string;
-  round: number;
-  position: number;
-  itemA: BracketItem | null;
-  itemB: BracketItem | null;
-  winner: BracketItem | null;
-  votes: { participantId: string; chosenItemId: string }[];
-}
-
-interface BracketData {
-  id: string;
-  rounds: number;
-  matchups: Matchup[];
-}
+import { Button } from "@/components/ui/Button";
+import type { Matchup, BracketData } from "@/types";
 
 export default function BracketPage() {
   const { sessionId } = useParams<{ sessionId: string }>();
@@ -130,12 +110,9 @@ export default function BracketPage() {
         <p className="text-neutral-500">
           All matchups decided. Proceed to tier ranking.
         </p>
-        <button
-          onClick={() => router.push(`/sessions/${sessionId}/vote`)}
-          className="rounded-lg bg-amber-500 px-6 py-2 font-medium text-black transition-colors hover:bg-amber-400"
-        >
+        <Button onClick={() => router.push(`/sessions/${sessionId}/vote`)}>
           Continue to Tier List
-        </button>
+        </Button>
       </div>
     );
   }
@@ -199,12 +176,9 @@ export default function BracketPage() {
       )}
 
       <div className="mt-8 text-center">
-        <button
-          onClick={() => router.push(`/sessions/${sessionId}/vote`)}
-          className="text-sm text-neutral-500 transition-colors hover:text-neutral-300"
-        >
+        <Button variant="ghost" onClick={() => router.push(`/sessions/${sessionId}/vote`)}>
           Skip bracket &rarr; Go straight to tier list
-        </button>
+        </Button>
       </div>
     </div>
   );

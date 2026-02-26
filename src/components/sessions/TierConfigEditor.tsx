@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { TIER_COLORS, type TierConfig } from "@/lib/constants";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
 
 interface TierConfigEditorProps {
   sessionId: string;
@@ -112,12 +114,12 @@ export function TierConfigEditor({
             />
 
             {/* Label input */}
-            <input
+            <Input
               type="text"
               value={tier.label}
               onChange={(e) => updateTier(index, "label", e.target.value)}
               maxLength={20}
-              className="w-32 rounded border border-neutral-700 bg-neutral-800 px-2 py-1 text-sm focus:border-amber-500 focus:outline-none"
+              className="w-32 bg-neutral-800 px-2 py-1 text-sm"
               placeholder="Tier label"
             />
 
@@ -167,19 +169,20 @@ export function TierConfigEditor({
       </div>
 
       <div className="flex items-center gap-3">
-        <button
+        <Button
+          variant="secondary"
           onClick={addTier}
-          className="rounded border border-neutral-700 px-3 py-1 text-xs text-neutral-400 transition-colors hover:bg-neutral-800 hover:text-neutral-200"
+          className="px-3 py-1 text-xs"
         >
           + Add Row
-        </button>
-        <button
+        </Button>
+        <Button
           onClick={handleSave}
           disabled={saving}
-          className="rounded bg-amber-500 px-4 py-1 text-xs font-medium text-black transition-colors hover:bg-amber-400 disabled:opacity-50"
+          className="px-4 py-1 text-xs"
         >
           {saving ? "Saving..." : "Save Config"}
-        </button>
+        </Button>
       </div>
 
       {error && (

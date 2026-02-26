@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { verifyParticipant } from "@/lib/api-helpers";
 
 export async function GET(
   _request: Request,
@@ -7,16 +8,8 @@ export async function GET(
 ) {
   const { sessionId, participantId } = await params;
 
-  const participant = await prisma.participant.findFirst({
-    where: { id: participantId, sessionId },
-  });
-
-  if (!participant) {
-    return NextResponse.json(
-      { error: "Participant not found" },
-      { status: 404 }
-    );
-  }
+  const participant = await verifyParticipant(participantId, sessionId);
+  if (participant instanceof NextResponse) return participant;
 
   const votes = await prisma.tierVote.findMany({
     where: { participantId },

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { notFound, bracketMatchupInclude } from "@/lib/api-helpers";
 
 export async function POST(
   _request: Request,
@@ -17,9 +18,7 @@ export async function POST(
     },
   });
 
-  if (!bracket) {
-    return NextResponse.json({ error: "No bracket found" }, { status: 404 });
-  }
+  if (!bracket) return notFound("No bracket found");
 
   // Find the current active round (first round with undecided matchups that have both items)
   let currentRound = 0;
@@ -91,12 +90,7 @@ export async function POST(
     where: { sessionId },
     include: {
       matchups: {
-        include: {
-          itemA: { select: { id: true, label: true, imageUrl: true } },
-          itemB: { select: { id: true, label: true, imageUrl: true } },
-          winner: { select: { id: true, label: true, imageUrl: true } },
-          votes: { select: { participantId: true, chosenItemId: true } },
-        },
+        include: bracketMatchupInclude,
         orderBy: [{ round: "asc" }, { position: "asc" }],
       },
     },

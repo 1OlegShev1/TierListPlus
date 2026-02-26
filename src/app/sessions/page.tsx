@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { formatDate } from "@/lib/utils";
+import { buttonVariants } from "@/components/ui/Button";
 
 export const dynamic = "force-dynamic";
 
@@ -17,10 +18,7 @@ export default async function SessionsPage() {
     <div>
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-bold">Sessions</h1>
-        <Link
-          href="/sessions/new"
-          className="rounded-lg bg-amber-500 px-4 py-2 text-sm font-medium text-black transition-colors hover:bg-amber-400"
-        >
+        <Link href="/sessions/new" className={buttonVariants.primary}>
           + New Session
         </Link>
       </div>

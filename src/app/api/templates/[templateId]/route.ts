@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { updateTemplateSchema } from "@/lib/validators";
+import { validateBody, notFound } from "@/lib/api-helpers";
 
 export async function GET(
   _request: Request,
@@ -12,9 +13,7 @@ export async function GET(
     include: { items: { orderBy: { sortOrder: "asc" } } },
   });
 
-  if (!template) {
-    return NextResponse.json({ error: "Template not found" }, { status: 404 });
-  }
+  if (!template) return notFound("Template not found");
 
   return NextResponse.json(template);
 }
@@ -24,16 +23,12 @@ export async function PATCH(
   { params }: { params: Promise<{ templateId: string }> }
 ) {
   const { templateId } = await params;
-  const body = await request.json();
-  const parsed = updateTemplateSchema.safeParse(body);
-
-  if (!parsed.success) {
-    return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
-  }
+  const data = await validateBody(request, updateTemplateSchema);
+  if (data instanceof NextResponse) return data;
 
   const template = await prisma.template.update({
     where: { id: templateId },
-    data: parsed.data,
+    data,
   });
 
   return NextResponse.json(template);

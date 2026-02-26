@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { computeConsensus } from "@/lib/consensus";
-import type { TierConfig } from "@/lib/constants";
+import { notFound } from "@/lib/api-helpers";
+import type { TierConfig } from "@/types";
 
 export async function GET(
   _request: Request,
@@ -16,9 +17,7 @@ export async function GET(
     },
   });
 
-  if (!session) {
-    return NextResponse.json({ error: "Session not found" }, { status: 404 });
-  }
+  if (!session) return notFound("Session not found");
 
   const votes = await prisma.tierVote.findMany({
     where: { sessionItem: { sessionId } },

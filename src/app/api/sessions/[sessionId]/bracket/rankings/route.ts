@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import type { TierConfig } from "@/lib/constants";
+import { notFound } from "@/lib/api-helpers";
+import type { TierConfig, MatchupRow } from "@/types";
 
 /**
  * Returns bracket results mapped to tier placements using
@@ -40,12 +41,7 @@ export async function GET(
     }),
   ]);
 
-  if (!bracket || !session) {
-    return NextResponse.json(
-      { error: "Bracket or session not found" },
-      { status: 404 }
-    );
-  }
+  if (!bracket || !session) return notFound("Bracket or session not found");
 
   const tierConfig = session.tierConfig as unknown as TierConfig[];
   const allItemIds = session.items.map((i) => i.id);
@@ -70,14 +66,6 @@ export async function GET(
   }
 
   return NextResponse.json({ seededTiers });
-}
-
-interface MatchupRow {
-  round: number;
-  position: number;
-  itemAId: string | null;
-  itemBId: string | null;
-  winnerId: string | null;
 }
 
 /**

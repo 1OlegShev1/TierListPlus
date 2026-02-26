@@ -1,21 +1,16 @@
 "use client";
 
 import { create } from "zustand";
-
-interface SessionItem {
-  id: string;
-  label: string;
-  imageUrl: string;
-}
+import type { Item } from "@/types";
 
 interface TierListState {
   tiers: Record<string, string[]>; // tierKey -> sessionItemId[]
   unranked: string[];
-  items: Map<string, SessionItem>;
+  items: Map<string, Item>;
   activeId: string | null;
 
   initialize: (
-    items: SessionItem[],
+    items: Item[],
     tierKeys: string[],
     seededTiers?: Record<string, string[]>
   ) => void;
@@ -42,7 +37,7 @@ export const useTierListStore = create<TierListState>((set, get) => ({
   activeId: null,
 
   initialize: (items, tierKeys, seededTiers) => {
-    const itemMap = new Map<string, SessionItem>();
+    const itemMap = new Map<string, Item>();
     for (const item of items) {
       itemMap.set(item.id, item);
     }

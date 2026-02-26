@@ -2,20 +2,17 @@
 
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { DEFAULT_TIER_CONFIG, TIER_COLORS, type TierConfig } from "@/lib/constants";
-
-interface Template {
-  id: string;
-  name: string;
-  _count: { items: number };
-}
+import { DEFAULT_TIER_CONFIG, TIER_COLORS } from "@/lib/constants";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import type { TierConfig, TemplateSummary } from "@/types";
 
 export function NewSessionForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const preselectedTemplateId = searchParams.get("templateId");
 
-  const [templates, setTemplates] = useState<Template[]>([]);
+  const [templates, setTemplates] = useState<TemplateSummary[]>([]);
   const [templateId, setTemplateId] = useState(preselectedTemplateId ?? "");
   const [name, setName] = useState("");
   const [tierConfig, setTierConfig] = useState<TierConfig[]>(DEFAULT_TIER_CONFIG);
@@ -111,12 +108,12 @@ export function NewSessionForm() {
           <label className="mb-2 block text-sm font-medium text-neutral-400">
             Session Name
           </label>
-          <input
+          <Input
             type="text"
             placeholder="e.g., Friday Rankings"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="w-full rounded-lg border border-neutral-700 bg-neutral-900 px-4 py-2 text-white placeholder:text-neutral-500 focus:border-amber-500 focus:outline-none"
+            className="w-full"
           />
         </div>
 
@@ -181,19 +178,12 @@ export function NewSessionForm() {
         )}
 
         <div className="flex gap-3">
-          <button
-            onClick={create}
-            disabled={creating || !templateId || !name.trim()}
-            className="rounded-lg bg-amber-500 px-6 py-2 font-medium text-black transition-colors hover:bg-amber-400 disabled:opacity-50"
-          >
+          <Button onClick={create} disabled={creating || !templateId || !name.trim()}>
             {creating ? "Creating..." : "Create Session"}
-          </button>
-          <button
-            onClick={() => router.back()}
-            className="rounded-lg border border-neutral-700 px-6 py-2 text-neutral-300 transition-colors hover:bg-neutral-800"
-          >
+          </Button>
+          <Button variant="secondary" onClick={() => router.back()}>
             Cancel
-          </button>
+          </Button>
         </div>
       </div>
     </div>

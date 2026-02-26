@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useParticipant } from "@/hooks/useParticipant";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
 
 export default function JoinSessionPage() {
   const router = useRouter();
@@ -56,13 +58,13 @@ export default function JoinSessionPage() {
           <label className="mb-2 block text-sm font-medium text-neutral-400">
             Join Code
           </label>
-          <input
+          <Input
             type="text"
             placeholder="e.g., ABCD1234"
             value={joinCode}
             onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
             maxLength={20}
-            className="w-full rounded-lg border border-neutral-700 bg-neutral-900 px-4 py-3 text-center text-xl font-mono tracking-widest text-white placeholder:text-neutral-500 focus:border-amber-500 focus:outline-none"
+            className="w-full py-3 text-center text-xl font-mono tracking-widest"
           />
         </div>
 
@@ -70,13 +72,13 @@ export default function JoinSessionPage() {
           <label className="mb-2 block text-sm font-medium text-neutral-400">
             Your Nickname
           </label>
-          <input
+          <Input
             type="text"
             placeholder="e.g., Alex"
             value={nickname}
             onChange={(e) => setNickname(e.target.value)}
             maxLength={30}
-            className="w-full rounded-lg border border-neutral-700 bg-neutral-900 px-4 py-2 text-white placeholder:text-neutral-500 focus:border-amber-500 focus:outline-none"
+            className="w-full"
           />
         </div>
 
@@ -86,13 +88,13 @@ export default function JoinSessionPage() {
           </p>
         )}
 
-        <button
+        <Button
           onClick={join}
           disabled={joining || !joinCode.trim() || !nickname.trim()}
-          className="w-full rounded-lg bg-amber-500 px-6 py-3 font-medium text-black transition-colors hover:bg-amber-400 disabled:opacity-50"
+          className="w-full py-3"
         >
           {joining ? "Joining..." : "Join Session"}
-        </button>
+        </Button>
       </div>
     </div>
   );

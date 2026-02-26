@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, rectSortingStrategy } from "@dnd-kit/sortable";
 import { DraggableItem } from "./DraggableItem";
-import { TierBracketModal } from "./TierBracketModal";
+import { BracketModal } from "@/components/bracket/BracketModal";
 import { useTierListStore } from "@/hooks/useTierList";
 
 interface TierRowProps {
@@ -75,7 +75,7 @@ export function TierRow({ tierKey, label, color }: TierRowProps) {
       </div>
 
       {showBracket && (
-        <TierBracketModal
+        <BracketModal
           items={bracketItems}
           onComplete={(rankedIds) => {
             reorderTier(tierKey, rankedIds);

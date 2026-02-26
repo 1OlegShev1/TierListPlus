@@ -1,6 +1,7 @@
 import "dotenv/config";
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
+import { DEFAULT_TIER_CONFIG } from "../src/lib/constants";
 
 const adapter = new PrismaPg({
   connectionString: process.env.DATABASE_URL!,
@@ -62,16 +63,7 @@ async function main() {
       name: "Friday Rankings",
       templateId: template.id,
       joinCode: "DEMO1234",
-      tierConfig: JSON.parse(
-        JSON.stringify([
-          { key: "S", label: "S", color: "#ff7f7f", sortOrder: 0 },
-          { key: "A", label: "A", color: "#ffbf7f", sortOrder: 1 },
-          { key: "B", label: "B", color: "#ffdf7f", sortOrder: 2 },
-          { key: "C", label: "C", color: "#ffff7f", sortOrder: 3 },
-          { key: "D", label: "D", color: "#bfff7f", sortOrder: 4 },
-          { key: "F", label: "F", color: "#7fffff", sortOrder: 5 },
-        ])
-      ),
+      tierConfig: JSON.parse(JSON.stringify(DEFAULT_TIER_CONFIG)),
       items: {
         create: template.items.map((item) => ({
           templateItemId: item.id,

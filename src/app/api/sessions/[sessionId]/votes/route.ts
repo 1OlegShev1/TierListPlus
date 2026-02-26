@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { submitVotesSchema } from "@/lib/validators";
+import { validateBody, verifyParticipant } from "@/lib/api-helpers";
 
 export async function GET(
   _request: Request,
@@ -23,26 +24,14 @@ export async function POST(
   { params }: { params: Promise<{ sessionId: string }> }
 ) {
   const { sessionId } = await params;
-  const body = await request.json();
-  const parsed = submitVotesSchema.safeParse(body);
+  const data = await validateBody(request, submitVotesSchema);
+  if (data instanceof NextResponse) return data;
 
-  if (!parsed.success) {
-    return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
-  }
-
-  const { participantId, votes } = parsed.data;
+  const { participantId, votes } = data;
 
   // Verify participant belongs to this session
-  const participant = await prisma.participant.findFirst({
-    where: { id: participantId, sessionId },
-  });
-
-  if (!participant) {
-    return NextResponse.json(
-      { error: "Participant not found in this session" },
-      { status: 404 }
-    );
-  }
+  const participant = await verifyParticipant(participantId, sessionId);
+  if (participant instanceof NextResponse) return participant;
 
   // Upsert all votes in a transaction
   const result = await prisma.$transaction(

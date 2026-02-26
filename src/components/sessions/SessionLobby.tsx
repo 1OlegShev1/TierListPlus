@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { useParticipant } from "@/hooks/useParticipant";
 import { TierConfigEditor } from "./TierConfigEditor";
+import { buttonVariants } from "@/components/ui/Button";
 import type { TierConfig } from "@/lib/constants";
 
 interface SessionLobbyProps {
@@ -157,25 +158,16 @@ export function SessionLobby({ session }: SessionLobbyProps) {
       {/* Actions */}
       <div className="flex flex-wrap gap-3">
         {isJoined && session.status === "OPEN" && (
-          <Link
-            href={voteUrl}
-            className="rounded-lg bg-amber-500 px-6 py-2 font-medium text-black transition-colors hover:bg-amber-400"
-          >
+          <Link href={voteUrl} className={buttonVariants.primary}>
             Start Voting
           </Link>
         )}
         {!isJoined && session.status === "OPEN" && (
-          <Link
-            href={`/sessions/join?code=${session.joinCode}`}
-            className="rounded-lg bg-amber-500 px-6 py-2 font-medium text-black transition-colors hover:bg-amber-400"
-          >
+          <Link href={`/sessions/join?code=${session.joinCode}`} className={buttonVariants.primary}>
             Join Session
           </Link>
         )}
-        <Link
-          href={`/sessions/${session.id}/results`}
-          className="rounded-lg border border-neutral-700 px-6 py-2 text-neutral-300 transition-colors hover:bg-neutral-800"
-        >
+        <Link href={`/sessions/${session.id}/results`} className={buttonVariants.secondary}>
           View Results
         </Link>
       </div>

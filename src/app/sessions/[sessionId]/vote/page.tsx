@@ -5,16 +5,8 @@ import { useParams, useRouter } from "next/navigation";
 import { useParticipant } from "@/hooks/useParticipant";
 import { TierListBoard } from "@/components/tierlist/TierListBoard";
 import { TierConfigEditor } from "@/components/sessions/TierConfigEditor";
-import type { TierConfig } from "@/lib/constants";
-
-interface SessionData {
-  id: string;
-  name: string;
-  status: string;
-  bracketEnabled: boolean;
-  tierConfig: TierConfig[];
-  items: { id: string; label: string; imageUrl: string }[];
-}
+import { Button } from "@/components/ui/Button";
+import type { SessionData } from "@/types";
 
 export default function VotePage() {
   const { sessionId } = useParams<{ sessionId: string }>();
@@ -71,12 +63,9 @@ export default function VotePage() {
     return (
       <div className="flex flex-col items-center gap-3 py-20">
         <p className="text-lg text-neutral-400">This session is no longer accepting votes</p>
-        <button
-          onClick={() => router.push(`/sessions/${sessionId}/results`)}
-          className="rounded-lg bg-amber-500 px-6 py-2 font-medium text-black"
-        >
+        <Button onClick={() => router.push(`/sessions/${sessionId}/results`)}>
           View Results
-        </button>
+        </Button>
       </div>
     );
   }

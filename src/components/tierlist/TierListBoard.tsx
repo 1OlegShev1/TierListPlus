@@ -19,19 +19,14 @@ import { TierRow } from "./TierRow";
 import { UnrankedPool } from "./UnrankedPool";
 import { DraggableItem } from "./DraggableItem";
 import { useTierListStore } from "@/hooks/useTierList";
-import type { TierConfig } from "@/lib/constants";
-
-interface SessionItem {
-  id: string;
-  label: string;
-  imageUrl: string;
-}
+import { Button } from "@/components/ui/Button";
+import type { TierConfig, Item } from "@/types";
 
 interface TierListBoardProps {
   sessionId: string;
   participantId: string;
   tierConfig: TierConfig[];
-  sessionItems: SessionItem[];
+  sessionItems: Item[];
   seededTiers?: Record<string, string[]>;
   onSubmitted: () => void;
 }
@@ -224,13 +219,9 @@ export function TierListBoard({
 
       {/* Submit */}
       <div className="mt-6 flex items-center gap-4">
-        <button
-          onClick={handleSubmit}
-          disabled={submitting || rankedCount === 0}
-          className="rounded-lg bg-amber-500 px-6 py-2 font-medium text-black transition-colors hover:bg-amber-400 disabled:opacity-50"
-        >
+        <Button onClick={handleSubmit} disabled={submitting || rankedCount === 0}>
           {submitting ? "Submitting..." : "Submit Votes"}
-        </button>
+        </Button>
         <span className="text-sm text-neutral-500">
           {rankedCount}/{totalItems} items ranked
         </span>

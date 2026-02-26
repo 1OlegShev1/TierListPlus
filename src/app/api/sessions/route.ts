@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { createSessionSchema } from "@/lib/validators";
 import { generateJoinCode } from "@/lib/nanoid";
 import { DEFAULT_TIER_CONFIG } from "@/lib/constants";
+import { validateBody, notFound, badRequest } from "@/lib/api-helpers";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -21,14 +22,10 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const body = await request.json();
-  const parsed = createSessionSchema.safeParse(body);
+  const data = await validateBody(request, createSessionSchema);
+  if (data instanceof NextResponse) return data;
 
-  if (!parsed.success) {
-    return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
-  }
-
-  const { templateId, name, tierConfig, bracketEnabled } = parsed.data;
+  const { templateId, name, tierConfig, bracketEnabled } = data;
 
   // Verify template exists and get its items
   const template = await prisma.template.findUnique({
@@ -36,15 +33,10 @@ export async function POST(request: Request) {
     include: { items: { orderBy: { sortOrder: "asc" } } },
   });
 
-  if (!template) {
-    return NextResponse.json({ error: "Template not found" }, { status: 404 });
-  }
+  if (!template) return notFound("Template not found");
 
   if (template.items.length === 0) {
-    return NextResponse.json(
-      { error: "Template has no items" },
-      { status: 400 }
-    );
+    return badRequest("Template has no items");
   }
 
   const joinCode = generateJoinCode();

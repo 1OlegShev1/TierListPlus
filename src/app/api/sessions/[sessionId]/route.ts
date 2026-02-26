@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { tierConfigSchema } from "@/lib/validators";
+import { updateSessionSchema } from "@/lib/validators";
+import { validateBody, notFound } from "@/lib/api-helpers";
 
 export async function GET(
   _request: Request,
@@ -17,9 +18,7 @@ export async function GET(
     },
   });
 
-  if (!session) {
-    return NextResponse.json({ error: "Session not found" }, { status: 404 });
-  }
+  if (!session) return notFound("Session not found");
 
   return NextResponse.json(session);
 }
@@ -29,35 +28,16 @@ export async function PATCH(
   { params }: { params: Promise<{ sessionId: string }> }
 ) {
   const { sessionId } = await params;
-  const body = await request.json();
+  const data = await validateBody(request, updateSessionSchema);
+  if (data instanceof NextResponse) return data;
 
-  const data: Record<string, unknown> = {};
-
-  if (body.status) {
-    const validStatuses = ["OPEN", "CLOSED", "ARCHIVED"];
-    if (!validStatuses.includes(body.status)) {
-      return NextResponse.json(
-        { error: "Invalid status. Must be OPEN, CLOSED, or ARCHIVED" },
-        { status: 400 }
-      );
-    }
-    data.status = body.status;
-  }
-
-  if (body.tierConfig) {
-    const parsed = tierConfigSchema.safeParse(body.tierConfig);
-    if (!parsed.success) {
-      return NextResponse.json(
-        { error: "Invalid tier config", details: parsed.error.flatten() },
-        { status: 400 }
-      );
-    }
-    data.tierConfig = JSON.parse(JSON.stringify(parsed.data));
-  }
+  const updateData: Record<string, unknown> = {};
+  if (data.status) updateData.status = data.status;
+  if (data.tierConfig) updateData.tierConfig = JSON.parse(JSON.stringify(data.tierConfig));
 
   const session = await prisma.session.update({
     where: { id: sessionId },
-    data,
+    data: updateData,
   });
 
   return NextResponse.json(session);

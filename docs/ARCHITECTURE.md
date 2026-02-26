@@ -51,13 +51,17 @@ src/
   components/
     layout/NavBar.tsx           # Top navigation
     templates/                  # TemplateEditor, ImageUploader
-    sessions/                   # SessionLobby, NewSessionForm
+    sessions/                   # SessionLobby, NewSessionForm, TierConfigEditor
     tierlist/                   # TierListBoard, TierRow, UnrankedPool, DraggableItem
-    bracket/                    # (bracket UI components)
-    results/                    # (results page is inline in the page file)
+    bracket/BracketModal.tsx    # Client-side 1v1 bracket ranking modal
+    ui/Button.tsx               # Primary/secondary/ghost button + buttonVariants for Links
+    ui/Input.tsx                # Dark-theme form input
     shared/ImageUploader.tsx    # Drag-to-upload zone
+  types/
+    index.ts                    # Shared interfaces (Item, Matchup, BracketData, SessionData, etc.)
   lib/
     prisma.ts                   # PrismaClient singleton (with PrismaPg adapter)
+    api-helpers.ts              # validateBody, notFound, badRequest, verifyParticipant
     constants.ts                # DEFAULT_TIER_CONFIG, TIER_COLORS, TierConfig type
     consensus.ts                # Consensus aggregation algorithm
     bracket-generator.ts        # Single-elimination bracket generation
@@ -88,6 +92,7 @@ src/
 | GET/POST | `/api/sessions/[sessionId]/bracket` | Get / generate bracket |
 | POST | `/api/sessions/[sessionId]/bracket/vote` | Submit bracket vote |
 | POST | `/api/sessions/[sessionId]/bracket/advance` | Tally and advance bracket round |
+| GET | `/api/sessions/[sessionId]/bracket/rankings` | Final bracket rankings |
 
 ## Core Algorithms
 
@@ -118,3 +123,6 @@ npm run dev                     # http://localhost:3000
 - `useSearchParams()` wrapped in `<Suspense>` (Next.js 16 requirement)
 - Prisma JSON fields cast with `as unknown as TierConfig[]` due to Prisma 7 strict typing
 - Uploaded images stored in `public/uploads/` (local filesystem, gitignored)
+- Shared types in `src/types/index.ts` — all domain interfaces imported from one place
+- API route helpers (`validateBody`, `notFound`, `badRequest`, `verifyParticipant`) in `src/lib/api-helpers.ts`
+- UI primitives (`Button`, `Input`, `buttonVariants`) in `src/components/ui/` — all buttons/inputs use these

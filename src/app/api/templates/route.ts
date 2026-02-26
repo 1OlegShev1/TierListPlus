@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { createTemplateSchema } from "@/lib/validators";
+import { validateBody } from "@/lib/api-helpers";
 
 export async function GET() {
   const templates = await prisma.template.findMany({
@@ -11,16 +12,10 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const body = await request.json();
-  const parsed = createTemplateSchema.safeParse(body);
+  const data = await validateBody(request, createTemplateSchema);
+  if (data instanceof NextResponse) return data;
 
-  if (!parsed.success) {
-    return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
-  }
-
-  const template = await prisma.template.create({
-    data: parsed.data,
-  });
+  const template = await prisma.template.create({ data });
 
   return NextResponse.json(template, { status: 201 });
 }

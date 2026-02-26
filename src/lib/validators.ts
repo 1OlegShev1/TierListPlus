@@ -59,3 +59,8 @@ export const bracketVoteSchema = z.object({
   participantId: z.string().min(1),
   chosenItemId: z.string().min(1),
 });
+
+export const updateSessionSchema = z.object({
+  status: z.enum(["OPEN", "CLOSED", "ARCHIVED"]).optional(),
+  tierConfig: tierConfigSchema.optional(),
+});

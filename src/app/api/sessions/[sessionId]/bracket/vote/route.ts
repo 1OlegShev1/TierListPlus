@@ -1,47 +1,31 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { bracketVoteSchema } from "@/lib/validators";
+import { validateBody, verifyParticipant, notFound, badRequest } from "@/lib/api-helpers";
 
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ sessionId: string }> }
 ) {
   const { sessionId } = await params;
-  const body = await request.json();
-  const parsed = bracketVoteSchema.safeParse(body);
+  const data = await validateBody(request, bracketVoteSchema);
+  if (data instanceof NextResponse) return data;
 
-  if (!parsed.success) {
-    return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
-  }
-
-  const { matchupId, participantId, chosenItemId } = parsed.data;
+  const { matchupId, participantId, chosenItemId } = data;
 
   // Verify participant belongs to this session
-  const participant = await prisma.participant.findFirst({
-    where: { id: participantId, sessionId },
-  });
-
-  if (!participant) {
-    return NextResponse.json(
-      { error: "Participant not found in this session" },
-      { status: 404 }
-    );
-  }
+  const participant = await verifyParticipant(participantId, sessionId);
+  if (participant instanceof NextResponse) return participant;
 
   // Verify matchup exists and item is valid
   const matchup = await prisma.bracketMatchup.findUnique({
     where: { id: matchupId },
   });
 
-  if (!matchup) {
-    return NextResponse.json({ error: "Matchup not found" }, { status: 404 });
-  }
+  if (!matchup) return notFound("Matchup not found");
 
   if (chosenItemId !== matchup.itemAId && chosenItemId !== matchup.itemBId) {
-    return NextResponse.json(
-      { error: "Chosen item is not in this matchup" },
-      { status: 400 }
-    );
+    return badRequest("Chosen item is not in this matchup");
   }
 
   const vote = await prisma.bracketVote.upsert({

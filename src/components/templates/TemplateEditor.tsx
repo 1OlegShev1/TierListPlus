@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ImageUploader } from "@/components/shared/ImageUploader";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
 
 interface TemplateItem {
   id?: string;
@@ -120,12 +122,12 @@ export function TemplateEditor({
   return (
     <div className="space-y-6">
       <div className="space-y-4">
-        <input
+        <Input
           type="text"
           placeholder="Template name"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          className="w-full rounded-lg border border-neutral-700 bg-neutral-900 px-4 py-2 text-lg text-white placeholder:text-neutral-500 focus:border-amber-500 focus:outline-none"
+          className="w-full text-lg"
         />
         <textarea
           placeholder="Description (optional)"
@@ -171,19 +173,12 @@ export function TemplateEditor({
       </div>
 
       <div className="flex gap-3">
-        <button
-          onClick={save}
-          disabled={saving || !name.trim() || items.length === 0}
-          className="rounded-lg bg-amber-500 px-6 py-2 font-medium text-black transition-colors hover:bg-amber-400 disabled:opacity-50"
-        >
+        <Button onClick={save} disabled={saving || !name.trim() || items.length === 0}>
           {saving ? "Saving..." : templateId ? "Save Changes" : "Create Template"}
-        </button>
-        <button
-          onClick={() => router.back()}
-          className="rounded-lg border border-neutral-700 px-6 py-2 text-neutral-300 transition-colors hover:bg-neutral-800"
-        >
+        </Button>
+        <Button variant="secondary" onClick={() => router.back()}>
           Cancel
-        </button>
+        </Button>
       </div>
     </div>
   );
