@@ -3,12 +3,9 @@
 import Link from "next/link";
 import { useState } from "react";
 import { buttonVariants } from "@/components/ui/Button";
-import { GearIcon } from "@/components/ui/GearIcon";
-import { ChevronDownIcon } from "@/components/ui/icons";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { useParticipant } from "@/hooks/useParticipant";
-import type { SessionLobbyData, TierConfig } from "@/types";
-import { TierConfigEditor } from "./TierConfigEditor";
+import type { SessionLobbyData } from "@/types";
 
 interface SessionLobbyProps {
   session: SessionLobbyData;
@@ -17,8 +14,6 @@ interface SessionLobbyProps {
 export function SessionLobby({ session }: SessionLobbyProps) {
   const { participantId } = useParticipant(session.id);
   const [copied, setCopied] = useState(false);
-  const [showTierConfig, setShowTierConfig] = useState(false);
-  const [tierConfig, setTierConfig] = useState<TierConfig[]>(session.tierConfig);
 
   const copyCode = () => {
     navigator.clipboard.writeText(session.joinCode);
@@ -88,46 +83,21 @@ export function SessionLobby({ session }: SessionLobbyProps) {
         )}
       </div>
 
-      {/* Tier Config */}
-      {session.status === "OPEN" && (
-        <div className="mb-6">
-          <button
-            onClick={() => setShowTierConfig((v) => !v)}
-            className="mb-3 flex items-center gap-2 text-sm font-medium text-neutral-400 transition-colors hover:text-neutral-200"
-          >
-            <GearIcon className="h-4 w-4" />
-            Tier Configuration
-            <ChevronDownIcon
-              className={`h-3 w-3 transition-transform ${showTierConfig ? "rotate-180" : ""}`}
-            />
-          </button>
-
-          {!showTierConfig && (
-            <div className="flex flex-wrap gap-1">
-              {tierConfig.map((t) => (
-                <span
-                  key={t.key}
-                  className="rounded px-2 py-0.5 text-xs font-bold"
-                  style={{ backgroundColor: t.color, color: "#000" }}
-                >
-                  {t.label}
-                </span>
-              ))}
-            </div>
-          )}
-
-          {showTierConfig && (
-            <TierConfigEditor
-              sessionId={session.id}
-              initialConfig={tierConfig}
-              onSaved={(config) => {
-                setTierConfig(config);
-                setShowTierConfig(false);
-              }}
-            />
-          )}
+      {/* Tier Preview */}
+      <div className="mb-6">
+        <h2 className="mb-3 text-sm font-medium text-neutral-400">Tiers</h2>
+        <div className="flex flex-wrap gap-1">
+          {session.tierConfig.map((t) => (
+            <span
+              key={t.key}
+              className="rounded px-2 py-0.5 text-xs font-bold"
+              style={{ backgroundColor: t.color, color: "#000" }}
+            >
+              {t.label}
+            </span>
+          ))}
         </div>
-      )}
+      </div>
 
       {/* Actions */}
       <div className="flex flex-wrap gap-3">

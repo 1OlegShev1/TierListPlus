@@ -1,15 +1,19 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { ErrorMessage } from "@/components/ui/ErrorMessage";
 import { Input } from "@/components/ui/Input";
+import { Loading } from "@/components/ui/Loading";
 import { saveParticipant } from "@/hooks/useParticipant";
 
-export default function JoinSessionPage() {
+function JoinSessionForm() {
   const router = useRouter();
-  const [joinCode, setJoinCode] = useState("");
+  const searchParams = useSearchParams();
+  const codeFromUrl = searchParams.get("code") ?? "";
+
+  const [joinCode, setJoinCode] = useState(codeFromUrl.toUpperCase());
   const [nickname, setNickname] = useState("");
   const [error, setError] = useState("");
   const [joining, setJoining] = useState(false);
@@ -35,10 +39,20 @@ export default function JoinSessionPage() {
         return;
       }
 
-      const { sessionId, participantId, nickname: savedNickname } = await res.json();
+      const {
+        sessionId,
+        participantId,
+        nickname: savedNickname,
+        bracketEnabled,
+      } = await res.json();
 
       saveParticipant(sessionId, participantId, savedNickname);
-      router.push(`/sessions/${sessionId}`);
+
+      if (bracketEnabled) {
+        router.push(`/sessions/${sessionId}/bracket`);
+      } else {
+        router.push(`/sessions/${sessionId}/vote`);
+      }
     } finally {
       setJoining(false);
     }
@@ -84,5 +98,13 @@ export default function JoinSessionPage() {
         </Button>
       </div>
     </div>
+  );
+}
+
+export default function JoinSessionPage() {
+  return (
+    <Suspense fallback={<Loading />}>
+      <JoinSessionForm />
+    </Suspense>
   );
 }

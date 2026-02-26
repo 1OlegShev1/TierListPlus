@@ -40,6 +40,7 @@ export interface MatchupRow {
 export interface SessionData {
   id: string;
   name: string;
+  joinCode: string;
   status: string;
   bracketEnabled: boolean;
   tierConfig: TierConfig[];

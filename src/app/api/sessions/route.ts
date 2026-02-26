@@ -30,7 +30,7 @@ export const GET = withHandler(async (request) => {
 export const POST = withHandler(async (request) => {
   const data = await validateBody(request, createSessionSchema);
 
-  const { templateId, name, tierConfig, bracketEnabled } = data;
+  const { templateId, name, tierConfig, bracketEnabled, nickname } = data;
 
   // Verify template exists and get its items
   const template = await prisma.template.findUnique({
@@ -65,5 +65,17 @@ export const POST = withHandler(async (request) => {
     },
   });
 
-  return NextResponse.json(session, { status: 201 });
+  // Auto-join creator as participant if nickname provided
+  let participantId: string | null = null;
+  let participantNickname: string | null = null;
+
+  if (nickname) {
+    const participant = await prisma.participant.create({
+      data: { sessionId: session.id, nickname },
+    });
+    participantId = participant.id;
+    participantNickname = participant.nickname;
+  }
+
+  return NextResponse.json({ ...session, participantId, participantNickname }, { status: 201 });
 });

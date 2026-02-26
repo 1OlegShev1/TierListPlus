@@ -36,6 +36,7 @@ export const createSessionSchema = z.object({
   name: z.string().min(1).max(100),
   tierConfig: tierConfigSchema.optional(),
   bracketEnabled: z.boolean().optional(),
+  nickname: z.string().min(1).max(30).optional(),
 });
 
 export const joinSessionSchema = z.object({

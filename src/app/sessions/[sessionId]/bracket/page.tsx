@@ -5,16 +5,18 @@ import { useCallback, useEffect, useState } from "react";
 import { MatchupVoter } from "@/components/bracket/MatchupVoter";
 import { Button } from "@/components/ui/Button";
 import { ErrorMessage } from "@/components/ui/ErrorMessage";
+import { JoinCodeBanner } from "@/components/ui/JoinCodeBanner";
 import { Loading } from "@/components/ui/Loading";
 import { useParticipant } from "@/hooks/useParticipant";
 import { ApiClientError, apiFetch, apiPost, getErrorMessage } from "@/lib/api-client";
-import type { BracketData, Matchup } from "@/types";
+import type { BracketData, Matchup, SessionData } from "@/types";
 
 export default function BracketPage() {
   const { sessionId } = useParams<{ sessionId: string }>();
   const router = useRouter();
   const { participantId, nickname } = useParticipant(sessionId);
   const [bracket, setBracket] = useState<BracketData | null>(null);
+  const [joinCode, setJoinCode] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentMatchupIndex, setCurrentMatchupIndex] = useState(0);
@@ -46,7 +48,10 @@ export default function BracketPage() {
       return;
     }
     fetchBracket();
-  }, [participantId, fetchBracket, router]);
+    apiFetch<SessionData>(`/api/sessions/${sessionId}`)
+      .then((s) => setJoinCode(s.joinCode))
+      .catch(() => {});
+  }, [participantId, fetchBracket, router, sessionId]);
 
   if (!participantId) return null;
   if (loading) return <Loading message="Loading bracket..." />;
@@ -139,6 +144,11 @@ export default function BracketPage() {
           Pick your favorite in each matchup &middot; Voting as{" "}
           <span className="text-amber-400">{nickname}</span>
         </p>
+        {joinCode && (
+          <div className="mt-1 flex justify-center">
+            <JoinCodeBanner joinCode={joinCode} />
+          </div>
+        )}
         <p className="mt-2 text-xs text-neutral-600">
           {totalVoted}/{totalVotable} matchups voted
         </p>

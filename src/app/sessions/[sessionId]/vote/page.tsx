@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { TierListBoard } from "@/components/tierlist/TierListBoard";
 import { Button } from "@/components/ui/Button";
 import { ErrorMessage } from "@/components/ui/ErrorMessage";
+import { JoinCodeBanner } from "@/components/ui/JoinCodeBanner";
 import { Loading } from "@/components/ui/Loading";
 import { useParticipant } from "@/hooks/useParticipant";
 import { apiFetch, getErrorMessage } from "@/lib/api-client";
@@ -64,12 +65,13 @@ export default function VotePage() {
   return (
     <div className="-mt-4 flex h-[calc(100%+1rem)] min-h-0 flex-col">
       <div className="mb-2 flex flex-shrink-0 items-baseline justify-between">
-        <h1 className="text-2xl font-bold">{session.name}</h1>
+        <div>
+          <h1 className="text-2xl font-bold">{session.name}</h1>
+          <JoinCodeBanner joinCode={session.joinCode} />
+        </div>
         <p className="text-sm text-neutral-500">
           Voting as <span className="text-amber-400">{nickname}</span> &middot;{" "}
-          {seededTiers
-            ? "Pre-filled from bracket — adjust as needed"
-            : "Drag items into tiers"}
+          {seededTiers ? "Pre-filled from bracket — adjust as needed" : "Drag items into tiers"}
         </p>
       </div>
 

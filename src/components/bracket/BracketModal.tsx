@@ -191,7 +191,12 @@ function advanceWinner(matchups: MatchupRow[], source: MatchupRow, totalRounds: 
   target[slot] = source.winnerId;
 
   // Only auto-resolve as bye if the other slot's feeder is truly empty
-  const emptySlot = target.itemAId && !target.itemBId ? "itemBId" : !target.itemAId && target.itemBId ? "itemAId" : null;
+  const emptySlot =
+    target.itemAId && !target.itemBId
+      ? "itemBId"
+      : !target.itemAId && target.itemBId
+        ? "itemAId"
+        : null;
   if (!emptySlot) return;
 
   const feederPosition = emptySlot === "itemAId" ? nextPosition * 2 : nextPosition * 2 + 1;

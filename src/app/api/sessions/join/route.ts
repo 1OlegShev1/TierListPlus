@@ -34,5 +34,6 @@ export const POST = withHandler(async (request) => {
     sessionId: session.id,
     participantId: participant.id,
     nickname: participant.nickname,
+    bracketEnabled: session.bracketEnabled,
   });
 });
