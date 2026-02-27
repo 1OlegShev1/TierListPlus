@@ -25,7 +25,8 @@ RUN PRISMA_CLI_VERSION="$(node -p 'require("./package.json").dependencies.prisma
   && npm cache clean --force \
   && rm -rf /root/.npm /root/.cache
 COPY prisma ./prisma
-CMD ["prisma", "migrate", "deploy", "--schema=prisma/schema.prisma"]
+COPY prisma.config.migrate.ts ./prisma.config.migrate.ts
+CMD ["prisma", "migrate", "deploy", "--config=prisma.config.migrate.ts", "--schema=prisma/schema.prisma"]
 
 FROM node:22-bookworm-slim AS runner
 WORKDIR /app
