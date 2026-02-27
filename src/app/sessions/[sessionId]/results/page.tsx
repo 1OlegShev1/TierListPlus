@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { buttonVariants } from "@/components/ui/Button";
 import { ErrorMessage } from "@/components/ui/ErrorMessage";
 import { Loading } from "@/components/ui/Loading";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { useParticipant } from "@/hooks/useParticipant";
 import { apiFetch, getErrorMessage } from "@/lib/api-client";
 import type { ConsensusItem, ConsensusTier } from "@/lib/consensus";
 import type { Item, SessionResult, TierConfig } from "@/types";
@@ -21,6 +22,8 @@ interface ParticipantVotesResponse {
   participant: { id: string; nickname: string };
   votes: ParticipantVote[];
 }
+
+const DETAILS_PANEL_ANIMATION_MS = 240;
 
 /** Build display tiers from a single participant's votes */
 function buildParticipantTiers(
@@ -52,6 +55,7 @@ function ResultsContent() {
   const { sessionId } = useParams<{ sessionId: string }>();
   const searchParams = useSearchParams();
   const participantId = searchParams.get("participant");
+  const { participantId: localParticipantId } = useParticipant(sessionId);
 
   const [consensusTiers, setConsensusTiers] = useState<ConsensusTier[]>([]);
   const [participantTiers, setParticipantTiers] = useState<ConsensusTier[] | null>(null);
@@ -62,6 +66,9 @@ function ResultsContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedItem, setSelectedItem] = useState<ConsensusItem | null>(null);
+  const [detailsItem, setDetailsItem] = useState<ConsensusItem | null>(null);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const detailsPanelRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     Promise.all([
@@ -83,6 +90,7 @@ function ResultsContent() {
       setParticipantTiers(null);
       setParticipantName(null);
       setParticipantError(null);
+      setParticipantLoading(false);
       return;
     }
 
@@ -112,6 +120,38 @@ function ResultsContent() {
     };
   }, [participantId, session, sessionId]);
 
+  useEffect(() => {
+    if (!detailsItem || !detailsOpen || participantId || participantLoading || participantError) {
+      return;
+    }
+    const raf = window.requestAnimationFrame(() => {
+      detailsPanelRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+    return () => window.cancelAnimationFrame(raf);
+  }, [detailsItem, detailsOpen, participantError, participantId, participantLoading]);
+
+  useEffect(() => {
+    if (participantId) {
+      setDetailsOpen(false);
+      setDetailsItem(null);
+      return;
+    }
+
+    if (selectedItem) {
+      setDetailsItem(selectedItem);
+      const raf = window.requestAnimationFrame(() => {
+        setDetailsOpen(true);
+      });
+      return () => window.cancelAnimationFrame(raf);
+    }
+
+    setDetailsOpen(false);
+    const timeout = window.setTimeout(() => {
+      setDetailsItem(null);
+    }, DETAILS_PANEL_ANIMATION_MS);
+    return () => window.clearTimeout(timeout);
+  }, [participantId, selectedItem]);
+
   if (loading) return <Loading message="Loading results..." />;
   if (error) return <ErrorMessage message={error} />;
 
@@ -119,6 +159,7 @@ function ResultsContent() {
   const totalParticipants = submittedParticipants.length;
   const isIndividualView = !!participantId;
   const displayTiers = participantTiers ?? consensusTiers;
+  const consensusLabel = `Consensus (${totalParticipants})`;
 
   return (
     <div>
@@ -127,23 +168,57 @@ function ResultsContent() {
         subtitle={
           isIndividualView
             ? participantName
-              ? `${participantName}'s votes`
+              ? `Viewing ${participantName}'s votes`
               : "Loading votes..."
-            : `Consensus from ${totalParticipants} submitted voter${totalParticipants !== 1 ? "s" : ""}`
+            : `Viewing ${consensusLabel}`
         }
         actions={
           <div className="flex gap-2">
-            {isIndividualView && (
-              <Link href={`/sessions/${sessionId}/results`} className={buttonVariants.secondary}>
-                Back to Consensus
+            {session?.status === "OPEN" && (
+              <Link href={`/sessions/${sessionId}`} className={buttonVariants.primary}>
+                {localParticipantId ? "Edit My Vote" : "Join to Vote"}
               </Link>
             )}
-            <Link href={`/sessions/${sessionId}/vote`} className={buttonVariants.secondary}>
-              Back to Vote
-            </Link>
+            {session?.status !== "OPEN" && (
+              <Link href="/sessions" className={buttonVariants.secondary}>
+                Back to Sessions
+              </Link>
+            )}
           </div>
         }
       />
+
+      {/* View selector */}
+      {session && (
+        <div className="mb-6">
+          <h2 className="mb-3 text-sm font-medium text-neutral-400">View By</h2>
+          <div className="flex flex-wrap gap-2">
+            <Link
+              href={`/sessions/${sessionId}/results`}
+              className={`rounded-full border px-3 py-1 text-sm transition-colors ${
+                !isIndividualView
+                  ? "border-amber-500 bg-amber-500/10 text-amber-400"
+                  : "border-neutral-700 text-neutral-300 hover:border-amber-500 hover:text-amber-400"
+              }`}
+            >
+              {consensusLabel}
+            </Link>
+            {submittedParticipants.map((p) => (
+              <Link
+                key={p.id}
+                href={`/sessions/${sessionId}/results?participant=${p.id}`}
+                className={`rounded-full border px-3 py-1 text-sm transition-colors ${
+                  participantId === p.id
+                    ? "border-amber-500 bg-amber-500/10 text-amber-400"
+                    : "border-neutral-700 text-neutral-300 hover:border-amber-500 hover:text-amber-400"
+                }`}
+              >
+                {p.nickname}
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Participant loading/error */}
       {participantLoading && <Loading message="Loading votes..." />}
@@ -167,7 +242,10 @@ function ResultsContent() {
                 {tier.items.map((item) => (
                   <button
                     key={item.id}
-                    onClick={() => !isIndividualView && setSelectedItem(item)}
+                    onClick={() =>
+                      !isIndividualView &&
+                      setSelectedItem((current) => (current?.id === item.id ? null : item))
+                    }
                     className={`group relative h-[96px] w-[96px] flex-shrink-0 overflow-hidden rounded-md border transition-colors ${
                       !isIndividualView && selectedItem?.id === item.id
                         ? "border-amber-400 ring-2 ring-amber-400"
@@ -196,72 +274,87 @@ function ResultsContent() {
       )}
 
       {/* Item Detail Panel (consensus view only) */}
-      {!isIndividualView && selectedItem && (
-        <div className="mt-6 rounded-xl border border-neutral-800 bg-neutral-900 p-4">
-          <div className="mb-3 flex items-center gap-3">
-            <img
-              src={selectedItem.imageUrl}
-              alt={selectedItem.label}
-              className="h-12 w-12 rounded object-cover"
-            />
-            <div>
-              <h3 className="font-medium">{selectedItem.label}</h3>
-              <p className="text-sm text-neutral-500">
-                Avg score: {selectedItem.averageScore.toFixed(2)} &middot; {selectedItem.totalVotes}{" "}
-                vote{selectedItem.totalVotes !== 1 ? "s" : ""}
-              </p>
-            </div>
-          </div>
-
-          <div className="space-y-1">
-            {consensusTiers.map((tier) => {
-              const count = selectedItem.voteDistribution[tier.key] ?? 0;
-              const pct = totalParticipants > 0 ? (count / totalParticipants) * 100 : 0;
-              return (
-                <div key={tier.key} className="flex items-center gap-2">
-                  <span className="w-8 text-right text-xs font-bold" style={{ color: tier.color }}>
-                    {tier.label}
-                  </span>
-                  <div className="flex-1 rounded-full bg-neutral-800 h-4">
-                    <div
-                      className="h-4 rounded-full transition-all"
-                      style={{
-                        width: `${pct}%`,
-                        backgroundColor: tier.color,
-                        minWidth: count > 0 ? "8px" : "0",
-                      }}
+      {!isIndividualView && detailsItem && (
+        <div
+          ref={detailsPanelRef}
+          className={`scroll-mt-6 transition-all duration-[240ms] ease-in-out ${
+            detailsOpen ? "mt-6 opacity-100 translate-y-0" : "mt-2 opacity-0 -translate-y-1"
+          }`}
+        >
+          <div
+            className={`grid overflow-hidden transition-[grid-template-rows] duration-[240ms] ease-in-out ${
+              detailsOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+            }`}
+          >
+            <div className="min-h-0">
+              <div className="overflow-hidden rounded-xl border border-neutral-800 bg-gradient-to-b from-neutral-900 to-neutral-950">
+                <div className="flex items-center justify-between border-b border-neutral-800/80 px-4 py-3">
+                  <div className="flex items-center gap-3">
+                    <img
+                      src={detailsItem.imageUrl}
+                      alt={detailsItem.label}
+                      className="h-12 w-12 rounded-md border border-neutral-700 object-cover"
                     />
+                    <div>
+                      <h3 className="font-medium">{detailsItem.label}</h3>
+                      <p className="text-sm text-neutral-400">
+                        Avg score: {detailsItem.averageScore.toFixed(2)} &middot;{" "}
+                        {detailsItem.totalVotes} vote{detailsItem.totalVotes !== 1 ? "s" : ""}
+                      </p>
+                    </div>
                   </div>
-                  <span className="w-8 text-xs text-neutral-500">{count}</span>
+                  <span className="rounded-full border border-neutral-700 bg-neutral-900 px-2 py-1 text-[11px] uppercase tracking-wide text-neutral-400">
+                    Vote Distribution
+                  </span>
                 </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
 
-      {/* Participants */}
-      {session && submittedParticipants.length > 0 && (
-        <div className="mt-6">
-          <h2 className="mb-3 text-sm font-medium text-neutral-400">Individual Votes</h2>
-          <div className="flex flex-wrap gap-2">
-            {submittedParticipants.map((p) => (
-              <Link
-                key={p.id}
-                href={
-                  participantId === p.id
-                    ? `/sessions/${sessionId}/results`
-                    : `/sessions/${sessionId}/results?participant=${p.id}`
-                }
-                className={`rounded-full border px-3 py-1 text-sm transition-colors ${
-                  participantId === p.id
-                    ? "border-amber-500 bg-amber-500/10 text-amber-400"
-                    : "border-neutral-700 text-neutral-300 hover:border-amber-500 hover:text-amber-400"
-                }`}
-              >
-                {p.nickname}
-              </Link>
-            ))}
+                <div className="space-y-2 px-4 py-3">
+                  {consensusTiers.map((tier) => {
+                    const count = detailsItem.voteDistribution[tier.key] ?? 0;
+                    const pct =
+                      detailsItem.totalVotes > 0
+                        ? Math.min(100, (count / detailsItem.totalVotes) * 100)
+                        : 0;
+                    const pctRounded = Math.round(pct);
+                    return (
+                      <div
+                        key={tier.key}
+                        className="grid grid-cols-[3rem_1fr_auto] items-center gap-3"
+                      >
+                        <span
+                          className="inline-flex h-6 w-10 items-center justify-center rounded text-xs font-bold"
+                          style={{ backgroundColor: tier.color, color: "#000" }}
+                        >
+                          {tier.label}
+                        </span>
+                        <div className="relative h-3 overflow-hidden rounded-full border border-neutral-700/80 bg-neutral-900">
+                          <div
+                            aria-hidden="true"
+                            className="absolute inset-0 opacity-30"
+                            style={{
+                              backgroundImage:
+                                "repeating-linear-gradient(90deg, rgba(255,255,255,0.06) 0, rgba(255,255,255,0.06) 6px, transparent 6px, transparent 12px)",
+                            }}
+                          />
+                          <div
+                            className="relative h-full rounded-full transition-[width] duration-500 ease-out"
+                            style={{
+                              width: `${pct}%`,
+                              backgroundColor: tier.color,
+                              boxShadow: `0 0 0 1px ${tier.color}80 inset, 0 0 10px ${tier.color}55`,
+                              minWidth: count > 0 ? "10px" : "0",
+                            }}
+                          />
+                        </div>
+                        <span className="w-14 text-right text-xs tabular-nums text-neutral-400">
+                          {count} · {pctRounded}%
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}
