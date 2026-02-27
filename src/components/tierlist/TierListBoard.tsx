@@ -580,7 +580,7 @@ export function TierListBoard({
         </div>
 
         {/* Unranked Pool + Submit — always visible */}
-        <div className="flex-shrink-0 pt-2">
+        <div className="flex-shrink-0 pt-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] sm:pb-0">
           <div className="mb-2 flex items-center justify-between">
             <UnrankedHeader />
             <span className="text-xs text-neutral-500 sm:text-sm">
