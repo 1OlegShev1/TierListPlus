@@ -130,6 +130,7 @@ export function TierListBoard({
 
   const [tierConfig, setTierConfig] = useState<TierConfig[]>(initialTierConfig);
   const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [draftRestored, setDraftRestored] = useState(false);
   const [bracketSeeded, setBracketSeeded] = useState(false);
@@ -203,18 +204,19 @@ export function TierListBoard({
     };
   }, [sessionId, participantId]);
 
-  // Warn before leaving with unsaved ranked items
+  // Warn before leaving with unsaved ranked items.
+  // Disable this guard while submit is in-flight and after successful submit.
   const rankedCount = Object.values(tiers).reduce((sum, ids) => sum + ids.length, 0);
   useEffect(() => {
     const handler = (e: BeforeUnloadEvent) => {
       e.preventDefault();
     };
 
-    if (rankedCount > 0) {
+    if (rankedCount > 0 && !submitting && !submitted) {
       window.addEventListener("beforeunload", handler);
     }
     return () => window.removeEventListener("beforeunload", handler);
-  }, [rankedCount]);
+  }, [rankedCount, submitting, submitted]);
 
   // ---- Debounced auto-save ----
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -483,6 +485,7 @@ export function TierListBoard({
     try {
       await apiPost(`/api/sessions/${sessionId}/votes`, { participantId, votes });
       clearDraft(sessionId, participantId);
+      setSubmitted(true);
       onSubmitted();
     } catch (err) {
       setSubmitError(getErrorMessage(err, "Failed to submit votes. Please try again."));
