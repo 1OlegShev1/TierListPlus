@@ -69,6 +69,7 @@ function ResultsContent() {
   const [detailsItem, setDetailsItem] = useState<ConsensusItem | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const detailsPanelRef = useRef<HTMLDivElement | null>(null);
+  const wasDetailsOpenRef = useRef(false);
 
   useEffect(() => {
     Promise.all([
@@ -121,7 +122,10 @@ function ResultsContent() {
   }, [participantId, session, sessionId]);
 
   useEffect(() => {
-    if (!detailsItem || !detailsOpen || participantId || participantLoading || participantError) {
+    const justOpened = detailsOpen && !wasDetailsOpenRef.current;
+    wasDetailsOpenRef.current = detailsOpen;
+
+    if (!justOpened || !detailsItem || participantId || participantLoading || participantError) {
       return;
     }
     const raf = window.requestAnimationFrame(() => {
@@ -157,21 +161,35 @@ function ResultsContent() {
 
   const submittedParticipants = session?.participants.filter((p) => p.hasSubmitted) ?? [];
   const totalParticipants = submittedParticipants.length;
+  const selectedParticipant = submittedParticipants.find((p) => p.id === participantId) ?? null;
   const isIndividualView = !!participantId;
   const displayTiers = participantTiers ?? consensusTiers;
   const consensusLabel = `Consensus (${totalParticipants})`;
+  const baseSubtitle = isIndividualView
+    ? participantName
+      ? `Viewing ${participantName}'s votes`
+      : selectedParticipant
+        ? `Viewing ${selectedParticipant.nickname}'s votes`
+        : "Loading votes..."
+    : `Viewing ${consensusLabel}`;
+  const subtitle = (
+    <span className="inline-flex items-center gap-3">
+      <span>{baseSubtitle}</span>
+      <span
+        aria-live="polite"
+        aria-atomic="true"
+        className="min-w-[110px] text-xs text-neutral-500"
+      >
+        {participantLoading ? "Updating votes..." : ""}
+      </span>
+    </span>
+  );
 
   return (
     <div>
       <PageHeader
         title={`${session?.name} — Results`}
-        subtitle={
-          isIndividualView
-            ? participantName
-              ? `Viewing ${participantName}'s votes`
-              : "Loading votes..."
-            : `Viewing ${consensusLabel}`
-        }
+        subtitle={subtitle}
         actions={
           <div className="flex gap-2">
             {session?.status === "OPEN" && (
@@ -221,12 +239,14 @@ function ResultsContent() {
       )}
 
       {/* Participant loading/error */}
-      {participantLoading && <Loading message="Loading votes..." />}
       {participantError && <ErrorMessage message={participantError} />}
 
       {/* Tier List */}
-      {!participantLoading && !participantError && (
-        <div className="overflow-hidden rounded-lg border border-neutral-800">
+      {!participantError && (
+        <div
+          aria-busy={participantLoading}
+          className="overflow-hidden rounded-lg border border-neutral-800"
+        >
           {displayTiers.map((tier) => (
             <div
               key={tier.key}
