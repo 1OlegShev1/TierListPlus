@@ -141,11 +141,36 @@ function ResultsContent() {
     if (!justOpened || !detailsItem || participantId || participantLoading || participantError) {
       return;
     }
-    if (isTouchInput) return;
-    const raf = window.requestAnimationFrame(() => {
-      detailsPanelRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+
+    let raf1 = 0;
+    let raf2 = 0;
+    raf1 = window.requestAnimationFrame(() => {
+      raf2 = window.requestAnimationFrame(() => {
+        const panel = detailsPanelRef.current;
+        if (!panel) return;
+
+        const rect = panel.getBoundingClientRect();
+        const viewportHeight = window.innerHeight;
+        const topOffset = isTouchInput ? 68 : 88;
+        const bottomBuffer = isTouchInput ? 20 : 28;
+
+        const needsScroll =
+          rect.top < topOffset ||
+          rect.top > viewportHeight - 120 ||
+          rect.bottom > viewportHeight - bottomBuffer;
+
+        if (!needsScroll) return;
+        panel.scrollIntoView({
+          behavior: isTouchInput ? "auto" : "smooth",
+          block: "start",
+        });
+      });
     });
-    return () => window.cancelAnimationFrame(raf);
+
+    return () => {
+      window.cancelAnimationFrame(raf1);
+      window.cancelAnimationFrame(raf2);
+    };
   }, [detailsItem, detailsOpen, isTouchInput, participantError, participantId, participantLoading]);
 
   const handleItemSelect = (item: ConsensusItem) => {
