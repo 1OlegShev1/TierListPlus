@@ -32,7 +32,6 @@ interface TierListBoardProps {
   tierConfig: TierConfig[];
   sessionItems: Item[];
   seededTiers?: Record<string, string[]>;
-  bracketEnabled?: boolean;
   canEditTierConfig?: boolean;
   onSubmitted: () => void;
 }
@@ -114,7 +113,6 @@ export function TierListBoard({
   tierConfig: initialTierConfig,
   sessionItems,
   seededTiers,
-  bracketEnabled = false,
   canEditTierConfig = false,
   onSubmitted,
 }: TierListBoardProps) {
@@ -563,7 +561,7 @@ export function TierListBoard({
               <span className="text-sm text-neutral-500">
                 {rankedCount}/{totalItems} ranked
               </span>
-              {bracketEnabled && totalItems >= 2 && (
+              {totalItems >= 2 && (
                 <button
                   onClick={() => setShowSessionBracket(true)}
                   disabled={submitting}

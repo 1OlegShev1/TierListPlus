@@ -138,8 +138,8 @@ function ResultsContent() {
                 Back to Consensus
               </Link>
             )}
-            <Link href={`/sessions/${sessionId}`} className={buttonVariants.secondary}>
-              Back to Lobby
+            <Link href={`/sessions/${sessionId}/vote`} className={buttonVariants.secondary}>
+              Back to Vote
             </Link>
           </div>
         }

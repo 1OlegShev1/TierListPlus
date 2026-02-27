@@ -95,11 +95,6 @@ export function SessionLobby({ session }: SessionLobbyProps) {
         >
           {isLocked ? "Locked" : "Open to join"}
         </span>
-        {session.bracketEnabled && (
-          <span className="rounded-full bg-purple-500/20 px-4 py-1.5 text-sm font-medium text-purple-400">
-            Bracket Assist
-          </span>
-        )}
         {isOwner && session.status === "OPEN" && (
           <button
             type="button"

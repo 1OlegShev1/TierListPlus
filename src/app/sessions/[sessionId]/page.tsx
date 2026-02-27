@@ -1,6 +1,5 @@
 import { cookies } from "next/headers";
-import { notFound } from "next/navigation";
-import { SessionLobby } from "@/components/sessions/SessionLobby";
+import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { USER_SESSION_COOKIE, verifyUserSessionToken } from "@/lib/user-session";
 
@@ -11,30 +10,21 @@ export default async function SessionPage({ params }: { params: Promise<{ sessio
   const requestUserId = token ? verifyUserSessionToken(token) : null;
   const session = await prisma.session.findUnique({
     where: { id: sessionId },
-    include: {
-      template: { select: { name: true } },
-      participants: {
-        orderBy: { createdAt: "asc" },
-        include: { _count: { select: { tierVotes: true } } },
-      },
-      items: { orderBy: { sortOrder: "asc" } },
-      _count: { select: { participants: true } },
+    select: {
+      id: true,
+      creatorId: true,
+      isPrivate: true,
     },
   });
 
   if (!session) notFound();
   const isOwner = !!requestUserId && session.creatorId === requestUserId;
-  const isParticipant =
-    !!requestUserId && session.participants.some((p) => p.userId === requestUserId);
+  const isParticipant = requestUserId
+    ? (await prisma.participant.count({
+        where: { sessionId, userId: requestUserId },
+      })) > 0
+    : false;
   if (session.isPrivate && !isOwner && !isParticipant) notFound();
 
-  const lobbySession = {
-    ...session,
-    participants: session.participants.map(({ _count, ...participant }) => ({
-      ...participant,
-      hasSubmitted: !!participant.submittedAt || _count.tierVotes > 0,
-    })),
-  };
-
-  return <SessionLobby session={JSON.parse(JSON.stringify(lobbySession))} />;
+  redirect(`/sessions/${sessionId}/vote`);
 }

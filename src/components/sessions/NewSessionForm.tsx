@@ -21,7 +21,6 @@ export function NewSessionForm() {
   const [templateId, setTemplateId] = useState(preselectedTemplateId ?? "");
   const [name, setName] = useState("");
   const [nickname, setNickname] = useState("");
-  const [bracketEnabled, setBracketEnabled] = useState(false);
   const [isPrivate, setIsPrivate] = useState(true);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState("");
@@ -45,7 +44,6 @@ export function NewSessionForm() {
         templateId,
         name,
         nickname: nickname.trim(),
-        bracketEnabled,
         isPrivate,
       });
 
@@ -100,21 +98,6 @@ export function NewSessionForm() {
             maxLength={30}
             className="w-full"
           />
-        </label>
-
-        <label className="flex items-center gap-3 rounded-lg border border-neutral-800 bg-neutral-900 p-4">
-          <input
-            type="checkbox"
-            checked={bracketEnabled}
-            onChange={(e) => setBracketEnabled(e.target.checked)}
-            className="h-4 w-4 accent-amber-500"
-          />
-          <div>
-            <p className="font-medium">Enable bracket assist</p>
-            <p className="text-sm text-neutral-500">
-              Give each voter a personal 1v1 helper before manual tier ranking
-            </p>
-          </div>
         </label>
 
         <label className="flex items-center gap-3 rounded-lg border border-neutral-800 bg-neutral-900 p-4">

@@ -49,7 +49,7 @@ export const GET = withHandler(async (request) => {
 export const POST = withHandler(async (request) => {
   const data = await validateBody(request, createSessionSchema);
   const creatorId = requireUserId(request);
-  const { templateId, name, tierConfig, bracketEnabled, isPrivate, nickname } = data;
+  const { templateId, name, tierConfig, isPrivate, nickname } = data;
 
   // Verify template exists and get its items
   const template = await prisma.template.findUnique({
@@ -71,7 +71,7 @@ export const POST = withHandler(async (request) => {
             joinCode: generateJoinCode(),
             creatorId,
             tierConfig: JSON.parse(JSON.stringify(tierConfig ?? DEFAULT_TIER_CONFIG)),
-            bracketEnabled: bracketEnabled ?? false,
+            bracketEnabled: true,
             isPrivate: isPrivate ?? true,
             items: {
               create: template.items.map((item) => ({

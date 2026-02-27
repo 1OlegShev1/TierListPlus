@@ -88,9 +88,11 @@ export function BracketModal({ items, onComplete, onCancel }: BracketModalProps)
     onComplete(ranked);
   }, [ranked, onComplete]);
 
-  // Progress
-  const totalVotable = bracketState.matchups.filter((m) => m.itemAId && m.itemBId).length;
-  const totalDecided = bracketState.matchups.filter((m) => m.winnerId).length;
+  // Progress for the current user: only manual head-to-head picks (exclude auto-byes)
+  const totalManualVotes = Math.max(items.length - 1, 0);
+  const decidedManualVotes = bracketState.matchups.filter(
+    (m) => m.itemAId && m.itemBId && m.winnerId,
+  ).length;
 
   const currentRound = currentMatchup?.round ?? bracketState.rounds;
 
@@ -105,7 +107,11 @@ export function BracketModal({ items, onComplete, onCancel }: BracketModalProps)
           <p className="mt-1 text-xs text-neutral-500">
             {isComplete
               ? "Bracket complete!"
-              : `Round ${currentRound} of ${bracketState.rounds} · ${totalDecided}/${totalVotable} matchups decided`}
+              : `Round ${currentRound} of ${bracketState.rounds} · ${decidedManualVotes}/${totalManualVotes} matchups decided`}
+          </p>
+          <p className="mt-2 text-[11px] text-neutral-500">
+            Applying ranking replaces current placements in this scope. You can still adjust before
+            submitting.
           </p>
         </div>
 
@@ -144,7 +150,7 @@ export function BracketModal({ items, onComplete, onCancel }: BracketModalProps)
           <div
             className="h-1 rounded-full bg-amber-500 transition-all"
             style={{
-              width: `${totalVotable > 0 ? (totalDecided / totalVotable) * 100 : 0}%`,
+              width: `${totalManualVotes > 0 ? Math.min(100, (decidedManualVotes / totalManualVotes) * 100) : 0}%`,
             }}
           />
         </div>

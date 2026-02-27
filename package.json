@@ -4,11 +4,13 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
-    "build": "next build",
+    "build": "npm run db:migrate:deploy && next build",
     "start": "next start",
     "lint": "biome check src/",
     "lint:fix": "biome check --fix src/",
     "db:migrate": "npx prisma migrate dev",
+    "db:migrate:deploy": "npx prisma migrate deploy",
+    "db:reset:keep-default-templates": "npx tsx scripts/reset-db-keep-default-templates.ts",
     "db:push": "npx prisma db push",
     "db:seed": "npx tsx prisma/seed.ts",
     "db:studio": "npx prisma studio"

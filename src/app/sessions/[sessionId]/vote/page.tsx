@@ -100,13 +100,9 @@ export default function VotePage() {
         </div>
         <p className="text-sm text-neutral-500">
           Voting as <span className="text-amber-400">{nickname}</span> &middot;{" "}
-          {session?.bracketEnabled
-            ? canEditTierConfig
-              ? "Use bracket assist to seed rankings, then adjust"
-              : "Bracket assist available, then drag items into tiers (tier setup locked by session owner)"
-            : canEditTierConfig
-              ? "Drag items into tiers"
-              : "Drag items into tiers (tier setup locked by session owner)"}
+          {canEditTierConfig
+            ? "Use bracket assist to seed rankings, then adjust"
+            : "Bracket assist available, then drag items into tiers (tier setup locked by session owner)"}
         </p>
       </div>
 
@@ -116,7 +112,6 @@ export default function VotePage() {
         tierConfig={session.tierConfig}
         sessionItems={session.items}
         seededTiers={seededTiers}
-        bracketEnabled={session.bracketEnabled}
         canEditTierConfig={canEditTierConfig}
         onSubmitted={() => router.push(`/sessions/${sessionId}/results`)}
       />

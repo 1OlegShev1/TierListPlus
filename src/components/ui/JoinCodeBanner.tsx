@@ -17,16 +17,20 @@ export function JoinCodeBanner({ joinCode }: JoinCodeBannerProps) {
 
   return (
     <span className="inline-flex items-center gap-1.5 text-sm">
-      <span className="text-neutral-500">Code:</span>
+      <span className="text-neutral-500">Invite with code:</span>
       <button
         type="button"
         onClick={copy}
-        title="Click to copy"
+        title="Click to copy and share"
         className="cursor-pointer rounded px-1.5 py-0.5 font-mono font-bold tracking-wider text-amber-400 transition-colors hover:bg-amber-400/10 hover:text-amber-300"
       >
         {joinCode}
       </button>
-      {copied && <span className="text-xs text-neutral-500">Copied!</span>}
+      {copied ? (
+        <span className="text-xs text-neutral-500">Copied, share it</span>
+      ) : (
+        <span className="text-xs text-neutral-600">click to copy</span>
+      )}
     </span>
   );
 }
