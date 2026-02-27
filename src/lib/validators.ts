@@ -36,6 +36,7 @@ export const createSessionSchema = z.object({
   name: z.string().min(1).max(100),
   tierConfig: tierConfigSchema.optional(),
   bracketEnabled: z.boolean().optional(),
+  isPrivate: z.boolean().optional(),
   nickname: z.string().min(1).max(30).optional(),
 });
 
@@ -63,5 +64,7 @@ export const bracketVoteSchema = z.object({
 
 export const updateSessionSchema = z.object({
   status: z.enum(["OPEN", "CLOSED", "ARCHIVED"]).optional(),
+  isPrivate: z.boolean().optional(),
+  isLocked: z.boolean().optional(),
   tierConfig: tierConfigSchema.optional(),
 });

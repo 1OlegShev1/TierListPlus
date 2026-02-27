@@ -4,8 +4,11 @@ import Link from "next/link";
 import { useState } from "react";
 import { DeleteSessionButton } from "@/components/sessions/DeleteSessionButton";
 import { buttonVariants } from "@/components/ui/Button";
+import { ErrorMessage } from "@/components/ui/ErrorMessage";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { useParticipant } from "@/hooks/useParticipant";
+import { useUser } from "@/hooks/useUser";
+import { apiPatch, getErrorMessage } from "@/lib/api-client";
 import type { SessionLobbyData } from "@/types";
 
 interface SessionLobbyProps {
@@ -13,8 +16,13 @@ interface SessionLobbyProps {
 }
 
 export function SessionLobby({ session }: SessionLobbyProps) {
+  const { userId } = useUser();
   const { participantId } = useParticipant(session.id);
   const [copied, setCopied] = useState(false);
+  const [isLocked, setIsLocked] = useState(session.isLocked);
+  const [lockUpdating, setLockUpdating] = useState(false);
+  const [lockError, setLockError] = useState<string | null>(null);
+  const isOwner = !!userId && session.creatorId === userId;
 
   const copyCode = () => {
     navigator.clipboard.writeText(session.joinCode);
@@ -23,9 +31,23 @@ export function SessionLobby({ session }: SessionLobbyProps) {
   };
 
   const isJoined = !!participantId;
-  const voteUrl = session.bracketEnabled
-    ? `/sessions/${session.id}/bracket`
-    : `/sessions/${session.id}/vote`;
+  const voteUrl = `/sessions/${session.id}/vote`;
+  const submittedCount = session.participants.filter((p) => p.submittedAt).length;
+  const hasSubmitted = !!session.participants.find((p) => p.id === participantId)?.submittedAt;
+
+  const toggleLock = async () => {
+    if (!isOwner || lockUpdating) return;
+    setLockUpdating(true);
+    setLockError(null);
+    try {
+      await apiPatch(`/api/sessions/${session.id}`, { isLocked: !isLocked });
+      setIsLocked((v) => !v);
+    } catch (err) {
+      setLockError(getErrorMessage(err, "Failed to update session lock"));
+    } finally {
+      setLockUpdating(false);
+    }
+  };
 
   return (
     <div className="mx-auto max-w-2xl">
@@ -56,17 +78,47 @@ export function SessionLobby({ session }: SessionLobbyProps) {
       {/* Status */}
       <div className="mb-8 flex items-center gap-3">
         <StatusBadge status={session.status} />
+        <span
+          className={`rounded-full px-4 py-1.5 text-sm font-medium ${
+            session.isPrivate
+              ? "bg-blue-500/20 text-blue-300"
+              : "bg-emerald-500/20 text-emerald-300"
+          }`}
+        >
+          {session.isPrivate ? "Private" : "Public"}
+        </span>
+        <span
+          className={`rounded-full px-4 py-1.5 text-sm font-medium ${
+            isLocked ? "bg-orange-500/20 text-orange-300" : "bg-emerald-500/20 text-emerald-300"
+          }`}
+        >
+          {isLocked ? "Locked" : "Open to join"}
+        </span>
         {session.bracketEnabled && (
           <span className="rounded-full bg-purple-500/20 px-4 py-1.5 text-sm font-medium text-purple-400">
-            Bracket Voting
+            Bracket Assist
           </span>
         )}
+        {isOwner && session.status === "OPEN" && (
+          <button
+            onClick={toggleLock}
+            disabled={lockUpdating}
+            className="rounded-lg border border-neutral-700 px-3 py-1.5 text-sm text-neutral-300 transition-colors hover:border-amber-500 hover:text-amber-300 disabled:opacity-50"
+          >
+            {lockUpdating ? "Updating..." : isLocked ? "Unlock joins" : "Lock joins"}
+          </button>
+        )}
       </div>
+      {lockError && (
+        <div className="mb-6">
+          <ErrorMessage message={lockError} />
+        </div>
+      )}
 
       {/* Participants */}
       <div className="mb-8">
         <h2 className="mb-3 text-base font-medium text-neutral-400">
-          Participants ({session._count.participants})
+          Participants ({session._count.participants}) &middot; {submittedCount} submitted
         </h2>
         {session.participants.length === 0 ? (
           <p className="text-base text-neutral-600">No one has joined yet</p>
@@ -109,7 +161,7 @@ export function SessionLobby({ session }: SessionLobbyProps) {
       <div className="flex flex-wrap gap-3">
         {isJoined && session.status === "OPEN" && (
           <Link href={voteUrl} className={buttonVariants.primary}>
-            Start Voting
+            {hasSubmitted ? "Edit My Vote" : "Start Voting"}
           </Link>
         )}
         {!isJoined && session.status === "OPEN" && (

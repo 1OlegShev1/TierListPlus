@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
-import { notFound, withHandler } from "@/lib/api-helpers";
+import { notFound, requireSessionAccess, withHandler } from "@/lib/api-helpers";
 import { computeConsensus } from "@/lib/consensus";
 import { prisma } from "@/lib/prisma";
 import { tierConfigSchema } from "@/lib/validators";
 
-export const GET = withHandler(async (_request, { params }) => {
+export const GET = withHandler(async (request, { params }) => {
   const { sessionId } = await params;
+  await requireSessionAccess(request, sessionId);
 
   const session = await prisma.session.findUnique({
     where: { id: sessionId },

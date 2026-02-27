@@ -1,10 +1,17 @@
 import { NextResponse } from "next/server";
-import { getUserId, notFound, requireOwner, validateBody, withHandler } from "@/lib/api-helpers";
+import {
+  notFound,
+  requireSessionAccess,
+  requireSessionOwner,
+  validateBody,
+  withHandler,
+} from "@/lib/api-helpers";
 import { prisma } from "@/lib/prisma";
 import { updateSessionSchema } from "@/lib/validators";
 
-export const GET = withHandler(async (_request, { params }) => {
+export const GET = withHandler(async (request, { params }) => {
   const { sessionId } = await params;
+  await requireSessionAccess(request, sessionId);
   const session = await prisma.session.findUnique({
     where: { id: sessionId },
     include: {
@@ -22,18 +29,13 @@ export const GET = withHandler(async (_request, { params }) => {
 
 export const PATCH = withHandler(async (request, { params }) => {
   const { sessionId } = await params;
-  const userId = getUserId(request);
   const data = await validateBody(request, updateSessionSchema);
-
-  const existing = await prisma.session.findUnique({
-    where: { id: sessionId },
-    select: { id: true, creatorId: true },
-  });
-  if (!existing) notFound("Session not found");
-  requireOwner(existing.creatorId, userId);
+  await requireSessionOwner(request, sessionId);
 
   const updateData: Record<string, unknown> = {};
   if (data.status) updateData.status = data.status;
+  if (data.isPrivate !== undefined) updateData.isPrivate = data.isPrivate;
+  if (data.isLocked !== undefined) updateData.isLocked = data.isLocked;
   if (data.tierConfig) updateData.tierConfig = JSON.parse(JSON.stringify(data.tierConfig));
 
   const session = await prisma.session.update({
@@ -46,14 +48,7 @@ export const PATCH = withHandler(async (request, { params }) => {
 
 export const DELETE = withHandler(async (request, { params }) => {
   const { sessionId } = await params;
-  const userId = getUserId(request);
-
-  const existing = await prisma.session.findUnique({
-    where: { id: sessionId },
-    select: { id: true, creatorId: true },
-  });
-  if (!existing) notFound("Session not found");
-  requireOwner(existing.creatorId, userId);
+  await requireSessionOwner(request, sessionId);
 
   await prisma.session.delete({ where: { id: sessionId } });
   return new Response(null, { status: 204 });

@@ -45,20 +45,10 @@ function JoinSessionForm() {
         return;
       }
 
-      const {
-        sessionId,
-        participantId,
-        nickname: savedNickname,
-        bracketEnabled,
-      } = await res.json();
+      const { sessionId, participantId, nickname: savedNickname } = await res.json();
 
       saveParticipant(sessionId, participantId, savedNickname);
-
-      if (bracketEnabled) {
-        router.push(`/sessions/${sessionId}/bracket`);
-      } else {
-        router.push(`/sessions/${sessionId}/vote`);
-      }
+      router.push(`/sessions/${sessionId}/vote`);
     } finally {
       setJoining(false);
     }

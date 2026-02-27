@@ -12,6 +12,34 @@ import { useUser } from "@/hooks/useUser";
 import { apiFetch, getErrorMessage } from "@/lib/api-client";
 import type { SessionData } from "@/types";
 
+interface ExistingVote {
+  tierKey: string;
+  rankInTier: number;
+  sessionItem: { id: string };
+}
+
+interface ExistingVotesResponse {
+  votes: ExistingVote[];
+}
+
+function buildSeededTiers(votes: ExistingVote[]): Record<string, string[]> {
+  const grouped = new Map<string, ExistingVote[]>();
+  for (const vote of votes) {
+    const bucket = grouped.get(vote.tierKey) ?? [];
+    bucket.push(vote);
+    grouped.set(vote.tierKey, bucket);
+  }
+
+  const seeded: Record<string, string[]> = {};
+  for (const [tierKey, tierVotes] of grouped.entries()) {
+    seeded[tierKey] = tierVotes
+      .sort((a, b) => a.rankInTier - b.rankInTier)
+      .map((vote) => vote.sessionItem.id);
+  }
+
+  return seeded;
+}
+
 export default function VotePage() {
   const { sessionId } = useParams<{ sessionId: string }>();
   const router = useRouter();
@@ -34,15 +62,13 @@ export default function VotePage() {
         const data = await apiFetch<SessionData>(`/api/sessions/${sessionId}`);
         setSession(data);
 
-        if (data.bracketEnabled) {
-          try {
-            const { seededTiers: seeds } = await apiFetch<{
-              seededTiers: Record<string, string[]>;
-            }>(`/api/sessions/${sessionId}/bracket/rankings`);
-            setSeededTiers(seeds);
-          } catch (err) {
-            console.warn("Bracket rankings unavailable:", err);
-          }
+        try {
+          const existing = await apiFetch<ExistingVotesResponse>(
+            `/api/sessions/${sessionId}/votes/${participantId}`,
+          );
+          setSeededTiers(buildSeededTiers(existing.votes));
+        } catch {
+          setSeededTiers(undefined);
         }
       } catch (err) {
         setError(getErrorMessage(err, "Failed to load session. Please try again."));
@@ -74,11 +100,13 @@ export default function VotePage() {
         </div>
         <p className="text-sm text-neutral-500">
           Voting as <span className="text-amber-400">{nickname}</span> &middot;{" "}
-          {canEditTierConfig
-            ? seededTiers
-              ? "Pre-filled from bracket — adjust as needed"
-              : "Drag items into tiers"
-            : "Drag items into tiers (tier setup locked by session owner)"}
+          {session?.bracketEnabled
+            ? canEditTierConfig
+              ? "Use bracket assist to seed rankings, then adjust"
+              : "Bracket assist available, then drag items into tiers (tier setup locked by session owner)"
+            : canEditTierConfig
+              ? "Drag items into tiers"
+              : "Drag items into tiers (tier setup locked by session owner)"}
         </p>
       </div>
 
@@ -88,6 +116,7 @@ export default function VotePage() {
         tierConfig={session.tierConfig}
         sessionItems={session.items}
         seededTiers={seededTiers}
+        bracketEnabled={session.bracketEnabled}
         canEditTierConfig={canEditTierConfig}
         onSubmitted={() => router.push(`/sessions/${sessionId}/results`)}
       />

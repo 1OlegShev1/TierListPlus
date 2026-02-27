@@ -3,8 +3,9 @@ import {
   badRequest,
   notFound,
   requireOpenSession,
+  requireParticipantOwner,
+  requireSessionAccess,
   validateBody,
-  verifyParticipant,
   withHandler,
 } from "@/lib/api-helpers";
 import { prisma } from "@/lib/prisma";
@@ -12,12 +13,13 @@ import { bracketVoteSchema } from "@/lib/validators";
 
 export const POST = withHandler(async (request, { params }) => {
   const { sessionId } = await params;
+  await requireSessionAccess(request, sessionId);
   await requireOpenSession(sessionId);
   const data = await validateBody(request, bracketVoteSchema);
 
   const { matchupId, participantId, chosenItemId } = data;
 
-  await verifyParticipant(participantId, sessionId);
+  await requireParticipantOwner(request, participantId, sessionId);
 
   // Verify matchup exists and item is valid
   const matchup = await prisma.bracketMatchup.findFirst({

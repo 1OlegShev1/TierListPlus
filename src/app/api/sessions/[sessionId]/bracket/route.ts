@@ -1,11 +1,19 @@
 import { NextResponse } from "next/server";
-import { badRequest, bracketMatchupInclude, notFound, withHandler } from "@/lib/api-helpers";
+import {
+  badRequest,
+  bracketMatchupInclude,
+  notFound,
+  requireSessionAccess,
+  requireSessionOwner,
+  withHandler,
+} from "@/lib/api-helpers";
 import { generateBracket } from "@/lib/bracket-generator";
 import { advanceWinnerToNextRound } from "@/lib/bracket-helpers";
 import { prisma } from "@/lib/prisma";
 
-export const GET = withHandler(async (_request, { params }) => {
+export const GET = withHandler(async (request, { params }) => {
   const { sessionId } = await params;
+  await requireSessionAccess(request, sessionId);
   const bracket = await prisma.bracket.findFirst({
     where: { sessionId },
     include: {
@@ -21,8 +29,9 @@ export const GET = withHandler(async (_request, { params }) => {
   return NextResponse.json(bracket);
 });
 
-export const POST = withHandler(async (_request, { params }) => {
+export const POST = withHandler(async (request, { params }) => {
   const { sessionId } = await params;
+  await requireSessionOwner(request, sessionId);
 
   // Check if bracket already exists
   const existing = await prisma.bracket.findFirst({ where: { sessionId } });

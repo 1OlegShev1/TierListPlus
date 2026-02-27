@@ -128,6 +128,37 @@ export async function verifyParticipant(participantId: string, sessionId: string
 }
 
 /**
+ * Require that the current signed-in user owns the given participant identity.
+ * For legacy rows with null userId, atomically binds the participant to the current user.
+ */
+export async function requireParticipantOwner(
+  request: Request,
+  participantId: string,
+  sessionId: string,
+) {
+  const requestUserId = requireUserId(request);
+  const participant = await verifyParticipant(participantId, sessionId);
+
+  if (participant.userId === requestUserId) {
+    return participant;
+  }
+
+  if (!participant.userId) {
+    const { count } = await prisma.participant.updateMany({
+      where: { id: participant.id, sessionId, userId: null },
+      data: { userId: requestUserId },
+    });
+    if (count === 1) {
+      return { ...participant, userId: requestUserId };
+    }
+    const rebound = await verifyParticipant(participantId, sessionId);
+    if (rebound.userId === requestUserId) return rebound;
+  }
+
+  forbidden("You are not allowed to submit or view votes for this participant");
+}
+
+/**
  * Verify a session exists and is OPEN.
  * Returns the session, or throws 404/409 if not found or closed.
  */
@@ -141,6 +172,47 @@ export async function requireOpenSession(sessionId: string) {
     throw new ApiError(409, "Session is not accepting votes");
   }
   return session;
+}
+
+/**
+ * Require access to a session.
+ * Private sessions are visible only to the creator or joined participants.
+ */
+export async function requireSessionAccess(request: Request, sessionId: string) {
+  const requestUserId = getUserId(request);
+  const session = await prisma.session.findUnique({
+    where: { id: sessionId },
+    select: {
+      id: true,
+      creatorId: true,
+      isPrivate: true,
+      participants: requestUserId
+        ? {
+            where: { userId: requestUserId },
+            select: { id: true },
+            take: 1,
+          }
+        : false,
+    },
+  });
+  if (!session) notFound("Session not found");
+
+  const isOwner = !!requestUserId && session.creatorId === requestUserId;
+  const isParticipant =
+    !!requestUserId && Array.isArray(session.participants) && session.participants.length > 0;
+
+  if (session.isPrivate && !isOwner && !isParticipant) {
+    forbidden("This session is private");
+  }
+
+  return { session, requestUserId, isOwner, isParticipant };
+}
+
+/** Require that the current signed-in user owns the session. */
+export async function requireSessionOwner(request: Request, sessionId: string) {
+  const { session, requestUserId } = await requireSessionAccess(request, sessionId);
+  requireOwner(session.creatorId, requestUserId);
+  return { session, requestUserId };
 }
 
 /** Shared Prisma include for bracket matchups with full item details + votes */

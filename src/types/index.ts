@@ -43,6 +43,8 @@ export interface SessionData {
   joinCode: string;
   status: string;
   creatorId: string | null;
+  isPrivate: boolean;
+  isLocked: boolean;
   bracketEnabled: boolean;
   tierConfig: TierConfig[];
   items: Item[];
@@ -55,10 +57,12 @@ export interface SessionLobbyData {
   joinCode: string;
   status: string;
   creatorId: string | null;
+  isPrivate: boolean;
+  isLocked: boolean;
   bracketEnabled: boolean;
   tierConfig: TierConfig[];
   template: { name: string };
-  participants: { id: string; nickname: string; createdAt: string }[];
+  participants: { id: string; nickname: string; createdAt: string; submittedAt: string | null }[];
   items: Item[];
   _count: { participants: number };
 }
@@ -89,5 +93,5 @@ export interface TemplateItemData {
 export interface SessionResult {
   name: string;
   tierConfig: TierConfig[];
-  participants: { id: string; nickname: string }[];
+  participants: { id: string; nickname: string; submittedAt: string | null }[];
 }

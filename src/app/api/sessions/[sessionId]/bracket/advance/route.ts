@@ -4,13 +4,15 @@ import {
   bracketMatchupInclude,
   notFound,
   requireOpenSession,
+  requireSessionOwner,
   withHandler,
 } from "@/lib/api-helpers";
 import { prisma } from "@/lib/prisma";
 
-export const POST = withHandler(async (_request, { params }) => {
+export const POST = withHandler(async (request, { params }) => {
   const { sessionId } = await params;
   await requireOpenSession(sessionId);
+  await requireSessionOwner(request, sessionId);
 
   // Read bracket and tally inside a single transaction to prevent concurrent double-advance
   await prisma.$transaction(async (tx) => {

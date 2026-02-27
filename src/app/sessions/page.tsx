@@ -1,15 +1,26 @@
+import { cookies } from "next/headers";
 import Link from "next/link";
 import { buttonVariants } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { prisma } from "@/lib/prisma";
+import { USER_SESSION_COOKIE, verifyUserSessionToken } from "@/lib/user-session";
 import { formatDate } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
 export default async function SessionsPage() {
+  const cookieStore = await cookies();
+  const token = cookieStore.get(USER_SESSION_COOKIE)?.value;
+  const userId = token ? verifyUserSessionToken(token) : null;
+
   const sessions = await prisma.session.findMany({
+    where: userId
+      ? {
+          OR: [{ creatorId: userId }, { participants: { some: { userId } } }, { isPrivate: false }],
+        }
+      : { isPrivate: false },
     include: {
       template: { select: { name: true } },
       _count: { select: { participants: true } },

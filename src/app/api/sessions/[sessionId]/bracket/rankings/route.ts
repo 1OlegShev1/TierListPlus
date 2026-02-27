@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { notFound, withHandler } from "@/lib/api-helpers";
+import { notFound, requireSessionAccess, withHandler } from "@/lib/api-helpers";
 import { mitBacktrackRanking } from "@/lib/bracket-ranking";
 import { prisma } from "@/lib/prisma";
 import { tierConfigSchema } from "@/lib/validators";
@@ -10,8 +10,9 @@ import { tierConfigSchema } from "@/lib/validators";
  *
  * Response: { seededTiers: Record<tierKey, sessionItemId[]> }
  */
-export const GET = withHandler(async (_request, { params }) => {
+export const GET = withHandler(async (request, { params }) => {
   const { sessionId } = await params;
+  await requireSessionAccess(request, sessionId);
 
   const [bracket, session] = await Promise.all([
     prisma.bracket.findFirst({

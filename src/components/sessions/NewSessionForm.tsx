@@ -22,6 +22,7 @@ export function NewSessionForm() {
   const [name, setName] = useState("");
   const [nickname, setNickname] = useState("");
   const [bracketEnabled, setBracketEnabled] = useState(false);
+  const [isPrivate, setIsPrivate] = useState(true);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState("");
 
@@ -38,7 +39,6 @@ export function NewSessionForm() {
     try {
       const data = await apiPost<{
         id: string;
-        bracketEnabled: boolean;
         participantId: string;
         participantNickname: string;
       }>("/api/sessions", {
@@ -46,15 +46,11 @@ export function NewSessionForm() {
         name,
         nickname: nickname.trim(),
         bracketEnabled,
+        isPrivate,
       });
 
       saveParticipant(data.id, data.participantId, data.participantNickname);
-
-      if (data.bracketEnabled) {
-        router.push(`/sessions/${data.id}/bracket`);
-      } else {
-        router.push(`/sessions/${data.id}/vote`);
-      }
+      router.push(`/sessions/${data.id}/vote`);
     } catch (err) {
       setError(getErrorMessage(err, "Failed to create session"));
     } finally {
@@ -114,9 +110,24 @@ export function NewSessionForm() {
             className="h-4 w-4 accent-amber-500"
           />
           <div>
-            <p className="font-medium">Enable bracket voting</p>
+            <p className="font-medium">Enable bracket assist</p>
             <p className="text-sm text-neutral-500">
-              1v1 matchups before tier ranking to reduce bias
+              Give each voter a personal 1v1 helper before manual tier ranking
+            </p>
+          </div>
+        </label>
+
+        <label className="flex items-center gap-3 rounded-lg border border-neutral-800 bg-neutral-900 p-4">
+          <input
+            type="checkbox"
+            checked={!isPrivate}
+            onChange={(e) => setIsPrivate(!e.target.checked)}
+            className="h-4 w-4 accent-amber-500"
+          />
+          <div>
+            <p className="font-medium">Show in public Sessions list</p>
+            <p className="text-sm text-neutral-500">
+              Disabled by default. People can still join private sessions by join code.
             </p>
           </div>
         </label>

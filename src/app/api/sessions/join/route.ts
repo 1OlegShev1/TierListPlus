@@ -26,6 +26,9 @@ export const POST = withHandler(async (request) => {
   if (existing?.userId && existing.userId !== userId) {
     badRequest("Nickname is already taken in this session");
   }
+  if (session.isLocked && !existing) {
+    badRequest("Session is locked. New participants cannot join.");
+  }
 
   const participant = existing
     ? await prisma.participant.update({

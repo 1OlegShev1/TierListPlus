@@ -115,7 +115,8 @@ function ResultsContent() {
   if (loading) return <Loading message="Loading results..." />;
   if (error) return <ErrorMessage message={error} />;
 
-  const totalParticipants = session?.participants.length ?? 0;
+  const submittedParticipants = session?.participants.filter((p) => !!p.submittedAt) ?? [];
+  const totalParticipants = submittedParticipants.length;
   const isIndividualView = !!participantId;
   const displayTiers = participantTiers ?? consensusTiers;
 
@@ -128,7 +129,7 @@ function ResultsContent() {
             ? participantName
               ? `${participantName}'s votes`
               : "Loading votes..."
-            : `Consensus from ${totalParticipants} voter${totalParticipants !== 1 ? "s" : ""}`
+            : `Consensus from ${totalParticipants} submitted voter${totalParticipants !== 1 ? "s" : ""}`
         }
         actions={
           <div className="flex gap-2">
@@ -240,11 +241,11 @@ function ResultsContent() {
       )}
 
       {/* Participants */}
-      {session && session.participants.length > 0 && (
+      {session && submittedParticipants.length > 0 && (
         <div className="mt-6">
           <h2 className="mb-3 text-sm font-medium text-neutral-400">Individual Votes</h2>
           <div className="flex flex-wrap gap-2">
-            {session.participants.map((p) => (
+            {submittedParticipants.map((p) => (
               <Link
                 key={p.id}
                 href={

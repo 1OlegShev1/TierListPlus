@@ -1,6 +1,13 @@
 import { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
-import { badRequest, notFound, requireUserId, validateBody, withHandler } from "@/lib/api-helpers";
+import {
+  badRequest,
+  getUserId,
+  notFound,
+  requireUserId,
+  validateBody,
+  withHandler,
+} from "@/lib/api-helpers";
 import { DEFAULT_TIER_CONFIG } from "@/lib/constants";
 import { generateJoinCode } from "@/lib/nanoid";
 import { prisma } from "@/lib/prisma";
@@ -11,6 +18,7 @@ const JOIN_CODE_RETRIES = 5;
 const VALID_STATUSES = new Set(["OPEN", "CLOSED", "ARCHIVED"]);
 
 export const GET = withHandler(async (request) => {
+  const userId = getUserId(request);
   const { searchParams } = new URL(request.url);
   const status = searchParams.get("status");
 
@@ -19,7 +27,15 @@ export const GET = withHandler(async (request) => {
   }
 
   const sessions = await prisma.session.findMany({
-    where: status ? { status: status as "OPEN" | "CLOSED" | "ARCHIVED" } : undefined,
+    where: userId
+      ? {
+          ...(status ? { status: status as "OPEN" | "CLOSED" | "ARCHIVED" } : {}),
+          OR: [{ creatorId: userId }, { participants: { some: { userId } } }, { isPrivate: false }],
+        }
+      : {
+          ...(status ? { status: status as "OPEN" | "CLOSED" | "ARCHIVED" } : {}),
+          isPrivate: false,
+        },
     include: {
       template: { select: { name: true } },
       _count: { select: { participants: true } },
@@ -33,7 +49,7 @@ export const GET = withHandler(async (request) => {
 export const POST = withHandler(async (request) => {
   const data = await validateBody(request, createSessionSchema);
   const creatorId = requireUserId(request);
-  const { templateId, name, tierConfig, bracketEnabled, nickname } = data;
+  const { templateId, name, tierConfig, bracketEnabled, isPrivate, nickname } = data;
 
   // Verify template exists and get its items
   const template = await prisma.template.findUnique({
@@ -56,6 +72,7 @@ export const POST = withHandler(async (request) => {
             creatorId,
             tierConfig: JSON.parse(JSON.stringify(tierConfig ?? DEFAULT_TIER_CONFIG)),
             bracketEnabled: bracketEnabled ?? false,
+            isPrivate: isPrivate ?? true,
             items: {
               create: template.items.map((item) => ({
                 templateItemId: item.id,

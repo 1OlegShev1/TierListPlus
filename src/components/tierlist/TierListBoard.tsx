@@ -21,6 +21,7 @@ import { apiPatch, apiPost, getErrorMessage } from "@/lib/api-client";
 import { TIER_COLORS } from "@/lib/constants";
 import { clearDraft, getDraft, saveDraft } from "@/lib/vote-draft";
 import type { Item, TierConfig } from "@/types";
+import { BracketModal } from "../bracket/BracketModal";
 import { DraggableItem } from "./DraggableItem";
 import { TierRow } from "./TierRow";
 import { UnrankedDropZone, UnrankedHeader } from "./UnrankedPool";
@@ -31,6 +32,7 @@ interface TierListBoardProps {
   tierConfig: TierConfig[];
   sessionItems: Item[];
   seededTiers?: Record<string, string[]>;
+  bracketEnabled?: boolean;
   canEditTierConfig?: boolean;
   onSubmitted: () => void;
 }
@@ -83,12 +85,36 @@ function flipAnimate(
   }
 }
 
+/** Evenly distribute a ranked list across tiers from top to bottom. */
+function seedTiersFromRanking(
+  rankedIds: string[],
+  tierConfig: TierConfig[],
+): Record<string, string[]> {
+  const sortedTiers = [...tierConfig].sort((a, b) => a.sortOrder - b.sortOrder);
+  const tierCount = sortedTiers.length;
+  const itemCount = rankedIds.length;
+  const baseSize = Math.floor(itemCount / tierCount);
+  const remainder = itemCount % tierCount;
+
+  const seededTiers: Record<string, string[]> = {};
+  let cursor = 0;
+
+  for (let i = 0; i < tierCount; i++) {
+    const size = baseSize + (i < remainder ? 1 : 0);
+    seededTiers[sortedTiers[i].key] = rankedIds.slice(cursor, cursor + size);
+    cursor += size;
+  }
+
+  return seededTiers;
+}
+
 export function TierListBoard({
   sessionId,
   participantId,
   tierConfig: initialTierConfig,
   sessionItems,
   seededTiers,
+  bracketEnabled = false,
   canEditTierConfig = false,
   onSubmitted,
 }: TierListBoardProps) {
@@ -108,6 +134,8 @@ export function TierListBoard({
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [draftRestored, setDraftRestored] = useState(false);
+  const [bracketSeeded, setBracketSeeded] = useState(false);
+  const [showSessionBracket, setShowSessionBracket] = useState(false);
 
   // ---- FLIP refs ----
   const containerRef = useRef<HTMLDivElement>(null);
@@ -450,7 +478,7 @@ export function TierListBoard({
     }
 
     const votes = getVotes();
-    if (votes.length === 0) return;
+    if (votes.length !== totalItems) return;
 
     setSubmitting(true);
     setSubmitError(null);
@@ -475,11 +503,22 @@ export function TierListBoard({
     return () => clearTimeout(t);
   }, [draftRestored]);
 
+  useEffect(() => {
+    if (!bracketSeeded) return;
+    const t = setTimeout(() => setBracketSeeded(false), 3000);
+    return () => clearTimeout(t);
+  }, [bracketSeeded]);
+
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       {draftRestored && (
         <div className="mb-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-sm text-amber-400">
           Draft restored from your previous session
+        </div>
+      )}
+      {bracketSeeded && (
+        <div className="mb-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-sm text-emerald-400">
+          Bracket assist applied. You can freely move items before submitting.
         </div>
       )}
       <DndContext
@@ -524,9 +563,18 @@ export function TierListBoard({
               <span className="text-sm text-neutral-500">
                 {rankedCount}/{totalItems} ranked
               </span>
+              {bracketEnabled && totalItems >= 2 && (
+                <button
+                  onClick={() => setShowSessionBracket(true)}
+                  disabled={submitting}
+                  className="rounded-lg border border-neutral-700 px-4 py-1.5 text-sm font-medium text-neutral-200 transition-colors hover:border-amber-400 hover:text-amber-300 disabled:opacity-50"
+                >
+                  Bracket Assist
+                </button>
+              )}
               <button
                 onClick={handleSubmit}
-                disabled={submitting || rankedCount === 0}
+                disabled={submitting || rankedCount !== totalItems}
                 className="rounded-lg bg-amber-500 px-5 py-1.5 text-sm font-medium text-black transition-colors hover:bg-amber-400 disabled:opacity-50"
               >
                 {submitting ? "Submitting..." : "Submit Votes"}
@@ -549,6 +597,24 @@ export function TierListBoard({
           ) : null}
         </DragOverlay>
       </DndContext>
+
+      {showSessionBracket && (
+        <BracketModal
+          items={sessionItems}
+          onComplete={(rankedIds) => {
+            const seeded = seedTiersFromRanking(rankedIds, tierConfig);
+            initialize(
+              sessionItems,
+              tierConfig.map((t) => t.key),
+              seeded,
+              null,
+            );
+            setBracketSeeded(true);
+            setShowSessionBracket(false);
+          }}
+          onCancel={() => setShowSessionBracket(false)}
+        />
+      )}
     </div>
   );
 }
