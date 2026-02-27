@@ -145,7 +145,7 @@ export function TemplateEditor({
               />
             </div>
           ))}
-          <ImageUploader onUploaded={addItem} className="aspect-square" />
+          <ImageUploader onUploaded={addItem} multiple className="aspect-square" />
         </div>
       </div>
 
