@@ -68,8 +68,10 @@ function ResultsContent() {
   const [selectedItem, setSelectedItem] = useState<ConsensusItem | null>(null);
   const [detailsItem, setDetailsItem] = useState<ConsensusItem | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [isTouchInput, setIsTouchInput] = useState(false);
   const detailsPanelRef = useRef<HTMLDivElement | null>(null);
   const wasDetailsOpenRef = useRef(false);
+  const touchStartRef = useRef<{ id: string; x: number; y: number } | null>(null);
 
   useEffect(() => {
     Promise.all([
@@ -122,17 +124,34 @@ function ResultsContent() {
   }, [participantId, session, sessionId]);
 
   useEffect(() => {
+    const media = window.matchMedia("(hover: none) and (pointer: coarse)");
+    const update = () => {
+      const hasTouch = navigator.maxTouchPoints > 0;
+      setIsTouchInput(media.matches || hasTouch);
+    };
+    update();
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
+  }, []);
+
+  useEffect(() => {
     const justOpened = detailsOpen && !wasDetailsOpenRef.current;
     wasDetailsOpenRef.current = detailsOpen;
 
     if (!justOpened || !detailsItem || participantId || participantLoading || participantError) {
       return;
     }
+    if (isTouchInput) return;
     const raf = window.requestAnimationFrame(() => {
       detailsPanelRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     });
     return () => window.cancelAnimationFrame(raf);
-  }, [detailsItem, detailsOpen, participantError, participantId, participantLoading]);
+  }, [detailsItem, detailsOpen, isTouchInput, participantError, participantId, participantLoading]);
+
+  const handleItemSelect = (item: ConsensusItem) => {
+    if (isIndividualView) return;
+    setSelectedItem((current) => (current?.id === item.id ? null : item));
+  };
 
   useEffect(() => {
     if (participantId) {
@@ -251,7 +270,7 @@ function ResultsContent() {
       {!participantError && (
         <div
           aria-busy={participantLoading}
-          className={`overflow-hidden rounded-lg border border-neutral-800 transition-[opacity,filter] duration-150 ease-out ${
+          className={`overflow-hidden rounded-lg border border-neutral-800 touch-pan-y transition-[opacity,filter] duration-150 ease-out ${
             participantLoading ? "opacity-90 saturate-75" : "opacity-100 saturate-100"
           }`}
         >
@@ -266,19 +285,39 @@ function ResultsContent() {
               >
                 {tier.label}
               </div>
-              <div className="flex flex-1 flex-wrap items-start gap-1 p-1 sm:gap-1.5 sm:p-1.5 md:gap-2 md:p-2">
+              <div className="flex flex-1 touch-pan-y flex-wrap items-start gap-1 p-1 sm:gap-1.5 sm:p-1.5 md:gap-2 md:p-2">
                 {tier.items.map((item) => (
                   <button
                     key={item.id}
-                    onClick={() =>
-                      !isIndividualView &&
-                      setSelectedItem((current) => (current?.id === item.id ? null : item))
-                    }
+                    onClick={() => {
+                      if (!isTouchInput) handleItemSelect(item);
+                    }}
+                    onTouchStart={(e) => {
+                      if (isIndividualView || !isTouchInput) return;
+                      const touch = e.touches[0];
+                      if (!touch) return;
+                      touchStartRef.current = { id: item.id, x: touch.clientX, y: touch.clientY };
+                    }}
+                    onTouchEnd={(e) => {
+                      if (isIndividualView || !isTouchInput) return;
+                      const touch = e.changedTouches[0];
+                      const start = touchStartRef.current;
+                      touchStartRef.current = null;
+                      if (!touch || !start || start.id !== item.id) return;
+                      const movedX = Math.abs(touch.clientX - start.x);
+                      const movedY = Math.abs(touch.clientY - start.y);
+                      if (movedX > 8 || movedY > 8) return;
+                      e.preventDefault();
+                      handleItemSelect(item);
+                    }}
+                    onTouchCancel={() => {
+                      touchStartRef.current = null;
+                    }}
                     className={`group relative h-[62px] w-[62px] flex-shrink-0 overflow-hidden rounded-md border transition-colors sm:h-[70px] sm:w-[70px] md:h-[78px] md:w-[78px] lg:h-[96px] lg:w-[96px] ${
                       !isIndividualView && selectedItem?.id === item.id
                         ? "border-amber-400 ring-2 ring-amber-400"
                         : "border-neutral-700 hover:border-neutral-500"
-                    } ${isIndividualView ? "cursor-default" : "cursor-pointer"}`}
+                    } ${isIndividualView ? "cursor-default" : "cursor-pointer touch-manipulation"}`}
                   >
                     <img
                       src={item.imageUrl}
