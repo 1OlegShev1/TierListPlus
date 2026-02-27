@@ -8,7 +8,7 @@ export const GET = withHandler(async (_request, { params }) => {
   const participant = await verifyParticipant(participantId, sessionId);
 
   const votes = await prisma.tierVote.findMany({
-    where: { participantId },
+    where: { participantId, sessionItem: { sessionId } },
     include: {
       sessionItem: { select: { id: true, label: true, imageUrl: true } },
     },

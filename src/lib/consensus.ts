@@ -63,18 +63,16 @@ export function computeConsensus(
     const stats = itemStats.get(vote.sessionItemId);
     if (!stats) continue;
 
-    const tierCount =
-      voterTierCounts.get(vote.participantId)?.get(vote.tierKey) ?? 1;
+    const tierCount = voterTierCounts.get(vote.participantId)?.get(vote.tierKey) ?? 1;
 
-    // Normalized bonus in [0, 1): rank 0 (best) → (tierCount-1)/tierCount,
-    // last rank → 0. Single-item tiers get 0 (no ordering to express).
-    const withinTierBonus =
-      tierCount > 1 ? (tierCount - 1 - vote.rankInTier) / tierCount : 0;
+    // Normalized bonus in [0, 0.5): rank 0 (best) gets highest bonus,
+    // last rank → 0. Capped below 0.5 so items never cross a tier boundary.
+    // Single-item tiers get 0 (no ordering to express).
+    const withinTierBonus = tierCount > 1 ? (tierCount - 1 - vote.rankInTier) / (2 * tierCount) : 0;
 
     stats.totalScore += tierScores[vote.tierKey] + withinTierBonus;
     stats.count += 1;
-    stats.distribution[vote.tierKey] =
-      (stats.distribution[vote.tierKey] ?? 0) + 1;
+    stats.distribution[vote.tierKey] = (stats.distribution[vote.tierKey] ?? 0) + 1;
   }
 
   // Enrich items with scores
