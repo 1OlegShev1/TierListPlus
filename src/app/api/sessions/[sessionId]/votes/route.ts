@@ -8,7 +8,7 @@ import {
   withHandler,
 } from "@/lib/api-helpers";
 import { prisma } from "@/lib/prisma";
-import { submitVotesSchema } from "@/lib/validators";
+import { submitVotesSchema, tierConfigSchema } from "@/lib/validators";
 
 export const GET = withHandler(async (request, { params }) => {
   const { sessionId } = await params;
@@ -54,37 +54,38 @@ export const POST = withHandler(async (request, { params }) => {
     badRequest("One or more votes reference items outside this session");
   }
 
-  // Upsert all votes in a transaction
-  const result = await prisma.$transaction(async (tx) => {
-    const upserts = await Promise.all(
-      votes.map((vote) =>
-        tx.tierVote.upsert({
-          where: {
-            participantId_sessionItemId: {
-              participantId,
-              sessionItemId: vote.sessionItemId,
-            },
-          },
-          update: {
-            tierKey: vote.tierKey,
-            rankInTier: vote.rankInTier,
-          },
-          create: {
-            participantId,
-            sessionItemId: vote.sessionItemId,
-            tierKey: vote.tierKey,
-            rankInTier: vote.rankInTier,
-          },
-        }),
-      ),
-    );
+  const session = await prisma.session.findUnique({
+    where: { id: sessionId },
+    select: { tierConfig: true },
+  });
+  if (!session) {
+    badRequest("Session not found");
+  }
+  const tierConfig = tierConfigSchema.parse(session.tierConfig);
+  const allowedTierKeys = new Set(tierConfig.map((t) => t.key));
+  for (const vote of votes) {
+    if (!allowedTierKeys.has(vote.tierKey)) {
+      badRequest(`Invalid tier key: ${vote.tierKey}`);
+    }
+  }
 
+  // Rewrite participant votes atomically in one transaction.
+  const result = await prisma.$transaction(async (tx) => {
+    await tx.tierVote.deleteMany({ where: { participantId } });
+    const created = await tx.tierVote.createMany({
+      data: votes.map((vote) => ({
+        participantId,
+        sessionItemId: vote.sessionItemId,
+        tierKey: vote.tierKey,
+        rankInTier: vote.rankInTier,
+      })),
+    });
     await tx.participant.update({
       where: { id: participantId },
       data: { submittedAt: new Date() },
     });
 
-    return upserts;
+    return { createdCount: created.count };
   });
 
   return NextResponse.json(result);
