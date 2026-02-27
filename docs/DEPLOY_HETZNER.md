@@ -5,6 +5,8 @@ This setup runs:
 - `db` (PostgreSQL)
 - `caddy` (public HTTPS on ports `80/443`)
 
+Deploy flow runs database migrations once per release before starting `app`.
+
 ## One-time server setup
 
 1. Create a Hetzner Cloud server (`hel1`, Ubuntu 24.04, `CX23` is enough).
@@ -72,8 +74,11 @@ Default target host is `root@46.62.140.254`. You can override:
 
 What script does:
 1. `rsync` project to server (keeps remote `.env.production`)
-2. runs `docker compose --profile with-domain ... up -d --build`
-3. prints service status
+2. builds `app` + `migrate` images
+3. starts `db` and waits for healthcheck
+4. runs one-off Prisma migrations (`migrate` service)
+5. starts `app` and `caddy`
+6. prints service status
 
 ## Verify
 

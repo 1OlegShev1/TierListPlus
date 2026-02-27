@@ -15,16 +15,21 @@ import {
   useSensors,
 } from "@dnd-kit/core";
 import { nanoid } from "nanoid";
+import dynamic from "next/dynamic";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useTierListStore } from "@/hooks/useTierList";
 import { apiPatch, apiPost, getErrorMessage } from "@/lib/api-client";
 import { TIER_COLORS } from "@/lib/constants";
 import { clearDraft, getDraft, saveDraft } from "@/lib/vote-draft";
 import type { Item, TierConfig } from "@/types";
-import { BracketModal } from "../bracket/BracketModal";
 import { DraggableItem } from "./DraggableItem";
 import { TierRow } from "./TierRow";
 import { UnrankedDropZone, UnrankedHeader } from "./UnrankedPool";
+
+const BracketModal = dynamic(
+  () => import("../bracket/BracketModal").then((mod) => mod.BracketModal),
+  { ssr: false },
+);
 
 interface TierListBoardProps {
   sessionId: string;

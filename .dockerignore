@@ -1,5 +1,6 @@
 .git
 .gitignore
+.claude
 .env
 .env.production
 .env*.local
@@ -7,4 +8,10 @@
 node_modules
 npm-debug.log*
 *.tsbuildinfo
+CLAUDE.md
+docs
+deploy
+scripts
+docker-compose*.yml
+README.md
 public/uploads/*

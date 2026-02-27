@@ -25,8 +25,12 @@ ssh "${REMOTE_HOST}" "
     echo '.env.production not found on server. Create it first.' >&2
     exit 1
   }
-  docker compose --profile with-domain --env-file .env.production -f docker-compose.prod.yml up -d --build
-  docker compose --profile with-domain --env-file .env.production -f docker-compose.prod.yml ps
+  COMPOSE='docker compose --profile with-domain --env-file .env.production -f docker-compose.prod.yml'
+  \$COMPOSE build app migrate
+  \$COMPOSE up -d db
+  \$COMPOSE --profile ops run --rm migrate
+  \$COMPOSE up -d app caddy
+  \$COMPOSE ps
 "
 
 echo "Deploy complete."
