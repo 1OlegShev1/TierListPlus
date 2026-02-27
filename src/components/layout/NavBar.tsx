@@ -13,17 +13,27 @@ const links = [
 
 export function NavBar() {
   const pathname = usePathname();
-  const [isMobile, setIsMobile] = useState(false);
+  const [isNarrowScreen, setIsNarrowScreen] = useState(false);
+  const [isCoarsePointer, setIsCoarsePointer] = useState(false);
   const [isHidden, setIsHidden] = useState(false);
   const isHiddenRef = useRef(false);
-  const shouldAutoHide = isMobile && /^\/sessions\/[^/]+\/(vote|results)$/.test(pathname);
+  const shouldAutoHide =
+    (isNarrowScreen || isCoarsePointer) && /^\/sessions\/[^/]+\/(vote|results)$/.test(pathname);
 
   useEffect(() => {
-    const media = window.matchMedia("(max-width: 639px)");
-    const update = () => setIsMobile(media.matches);
+    const narrowMedia = window.matchMedia("(max-width: 767px)");
+    const pointerMedia = window.matchMedia("(pointer: coarse)");
+    const update = () => {
+      setIsNarrowScreen(narrowMedia.matches);
+      setIsCoarsePointer(pointerMedia.matches);
+    };
     update();
-    media.addEventListener("change", update);
-    return () => media.removeEventListener("change", update);
+    narrowMedia.addEventListener("change", update);
+    pointerMedia.addEventListener("change", update);
+    return () => {
+      narrowMedia.removeEventListener("change", update);
+      pointerMedia.removeEventListener("change", update);
+    };
   }, []);
 
   useEffect(() => {
@@ -38,31 +48,57 @@ export function NavBar() {
       return;
     }
 
-    const main = document.querySelector("main");
-    if (!main) return;
-
     const TOP_SHOW_THRESHOLD = 10;
     const HIDE_SCROLL_DELTA = 12;
     const SHOW_SCROLL_DISTANCE = 72;
     const JITTER_DELTA = 3;
 
-    let lastTop = main.scrollTop;
-    let hiddenAt = lastTop;
-    const onScroll = () => {
-      const currentTop = main.scrollTop;
-      const delta = currentTop - lastTop;
-      const absDelta = Math.abs(delta);
+    let activeTarget: EventTarget | null = null;
+    let lastTop = 0;
+    let hiddenAt = 0;
+    let touchStartY: number | null = null;
 
-      if (absDelta <= JITTER_DELTA) {
-        lastTop = currentTop;
-        return;
+    const isInsideNav = (target: EventTarget | null) =>
+      target instanceof Element && !!target.closest("[data-nav-shell='true']");
+
+    const readTop = (target: EventTarget | null) => {
+      if (target instanceof HTMLElement) return target.scrollTop;
+      if (target === document || target === document.documentElement || target === document.body) {
+        const main = document.querySelector("main");
+        return main?.scrollTop ?? window.scrollY;
       }
+      return null;
+    };
+
+    const onScroll = (e: Event) => {
+      const target = e.target;
+      if (isInsideNav(target)) return;
+
+      const currentTop = readTop(target);
+      if (currentTop == null) return;
 
       if (currentTop <= TOP_SHOW_THRESHOLD) {
         if (isHiddenRef.current) {
           setIsHidden(false);
           isHiddenRef.current = false;
         }
+        lastTop = currentTop;
+        hiddenAt = currentTop;
+        activeTarget = target;
+        return;
+      }
+
+      if (activeTarget !== target) {
+        activeTarget = target;
+        lastTop = currentTop;
+        hiddenAt = currentTop;
+        return;
+      }
+
+      const delta = currentTop - lastTop;
+      const absDelta = Math.abs(delta);
+
+      if (absDelta <= JITTER_DELTA) {
         lastTop = currentTop;
         return;
       }
@@ -88,12 +124,50 @@ export function NavBar() {
       lastTop = currentTop;
     };
 
-    main.addEventListener("scroll", onScroll, { passive: true });
-    return () => main.removeEventListener("scroll", onScroll);
+    const onTouchStart = (e: TouchEvent) => {
+      if (isInsideNav(e.target)) return;
+      touchStartY = e.touches[0]?.clientY ?? null;
+    };
+
+    const onTouchMove = (e: TouchEvent) => {
+      if (isInsideNav(e.target)) return;
+      if (touchStartY == null) return;
+      const currentY = e.touches[0]?.clientY;
+      if (currentY == null) return;
+
+      const delta = touchStartY - currentY;
+      if (Math.abs(delta) < 18) return;
+
+      if (delta > 0 && !isHiddenRef.current) {
+        setIsHidden(true);
+        isHiddenRef.current = true;
+      } else if (delta < 0 && isHiddenRef.current) {
+        setIsHidden(false);
+        isHiddenRef.current = false;
+      }
+
+      touchStartY = currentY;
+    };
+
+    const onTouchEnd = () => {
+      touchStartY = null;
+    };
+
+    document.addEventListener("scroll", onScroll, { passive: true, capture: true });
+    document.addEventListener("touchstart", onTouchStart, { passive: true });
+    document.addEventListener("touchmove", onTouchMove, { passive: true });
+    document.addEventListener("touchend", onTouchEnd, { passive: true });
+    return () => {
+      document.removeEventListener("scroll", onScroll, true);
+      document.removeEventListener("touchstart", onTouchStart);
+      document.removeEventListener("touchmove", onTouchMove);
+      document.removeEventListener("touchend", onTouchEnd);
+    };
   }, [shouldAutoHide]);
 
   return (
     <div
+      data-nav-shell="true"
       className={`overflow-hidden border-b border-neutral-800 transition-[max-height,opacity,transform] duration-200 ease-out ${
         shouldAutoHide && isHidden
           ? "max-h-0 -translate-y-1 opacity-0"
