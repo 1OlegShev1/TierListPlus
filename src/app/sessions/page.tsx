@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import Link from "next/link";
+import { DeleteSessionButton } from "@/components/sessions/DeleteSessionButton";
 import { buttonVariants } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -47,20 +48,22 @@ export default async function SessionsPage() {
       ) : (
         <div className="space-y-3">
           {sessions.map((session) => (
-            <Link
-              key={session.id}
-              href={`/sessions/${session.id}`}
-              className="flex items-center justify-between rounded-xl border border-neutral-800 bg-neutral-900 p-4 transition-colors hover:border-neutral-600"
-            >
-              <div>
-                <h3 className="font-medium">{session.name}</h3>
-                <p className="text-sm text-neutral-500">
-                  {session.template.name} &middot; {session._count.participants} participants
-                  &middot; {formatDate(session.createdAt)}
-                </p>
-              </div>
-              <StatusBadge status={session.status} />
-            </Link>
+            <div key={session.id} className="flex items-center gap-3">
+              <Link
+                href={`/sessions/${session.id}`}
+                className="flex min-w-0 flex-1 items-center justify-between rounded-xl border border-neutral-800 bg-neutral-900 p-4 transition-colors hover:border-neutral-600"
+              >
+                <div className="min-w-0">
+                  <h3 className="truncate font-medium">{session.name}</h3>
+                  <p className="text-sm text-neutral-500">
+                    {session.template.name} &middot; {session._count.participants} participants
+                    &middot; {formatDate(session.createdAt)}
+                  </p>
+                </div>
+                <StatusBadge status={session.status} />
+              </Link>
+              <DeleteSessionButton sessionId={session.id} creatorId={session.creatorId} />
+            </div>
           ))}
         </div>
       )}

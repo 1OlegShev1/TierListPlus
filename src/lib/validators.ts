@@ -35,7 +35,6 @@ export const createSessionSchema = z.object({
   templateId: z.string().min(1),
   name: z.string().min(1).max(100),
   tierConfig: tierConfigSchema.optional(),
-  bracketEnabled: z.boolean().optional(),
   isPrivate: z.boolean().optional(),
   nickname: z.string().min(1).max(30).optional(),
 });
