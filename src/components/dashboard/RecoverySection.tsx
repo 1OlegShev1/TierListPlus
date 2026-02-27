@@ -62,8 +62,10 @@ export function RecoverySection() {
   };
 
   return (
-    <div className="rounded-xl border border-neutral-800 bg-neutral-900 p-6">
-      <h2 className="mb-4 text-lg font-semibold text-neutral-300">Cross-Device Sync</h2>
+    <div className="rounded-xl border border-neutral-800 bg-neutral-900 p-4 sm:p-6">
+      <h2 className="mb-3 text-base font-semibold text-neutral-300 sm:mb-4 sm:text-lg">
+        Cross-Device Sync
+      </h2>
 
       {/* Generate recovery code */}
       <div className="mb-6">
@@ -71,16 +73,21 @@ export function RecoverySection() {
           Generate a recovery code to access your data on another device.
         </p>
         {recoveryCode ? (
-          <div className="flex items-center gap-3">
-            <code className="rounded-lg bg-neutral-800 px-4 py-2 font-mono text-lg tracking-wider text-amber-400">
+          <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:gap-3">
+            <code className="rounded-lg bg-neutral-800 px-3 py-1.5 font-mono text-sm tracking-wide text-amber-400 sm:px-4 sm:py-2 sm:text-lg sm:tracking-wider">
               {recoveryCode}
             </code>
-            <Button variant="secondary" onClick={copyCode} className="px-4">
+            <Button variant="secondary" onClick={copyCode} className="!px-4 !py-2 !text-sm">
               {copied ? "Copied!" : "Copy"}
             </Button>
           </div>
         ) : (
-          <Button variant="secondary" onClick={generateCode} disabled={generating || !userId}>
+          <Button
+            variant="secondary"
+            onClick={generateCode}
+            disabled={generating || !userId}
+            className="!px-4 !py-2 !text-sm"
+          >
             {generating ? "Generating..." : "Generate Recovery Code"}
           </Button>
         )}
@@ -88,22 +95,27 @@ export function RecoverySection() {
       </div>
 
       {/* Link existing device */}
-      <div className="border-t border-neutral-800 pt-6">
+      <div className="border-t border-neutral-800 pt-4 sm:pt-6">
         <p className="mb-3 text-sm text-neutral-400">
           Have a recovery code from another device? Enter it to link this device.
         </p>
         {linked ? (
           <p className="text-sm text-green-400">Device linked successfully! Reloading...</p>
         ) : (
-          <div className="flex gap-3">
+          <div className="flex flex-col gap-2 sm:flex-row sm:gap-3">
             <Input
               type="text"
               placeholder="e.g., TIGER-MAPLE-RIVER-42"
               value={linkCode}
               onChange={(e) => setLinkCode(e.target.value.toUpperCase())}
-              className="flex-1 font-mono tracking-wider"
+              className="w-full min-w-0 font-mono tracking-wide sm:flex-1 sm:tracking-wider"
             />
-            <Button variant="secondary" onClick={linkDevice} disabled={linking || !linkCode.trim()}>
+            <Button
+              variant="secondary"
+              onClick={linkDevice}
+              disabled={linking || !linkCode.trim()}
+              className="w-full !px-4 !py-2 !text-sm sm:w-auto"
+            >
               {linking ? "Linking..." : "Link Device"}
             </Button>
           </div>

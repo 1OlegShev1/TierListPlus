@@ -46,7 +46,7 @@ export default function VotePage() {
   const { sessionId } = useParams<{ sessionId: string }>();
   const router = useRouter();
   const { userId } = useUser();
-  const { participantId, nickname } = useParticipant(sessionId);
+  const { participantId } = useParticipant(sessionId);
   const [session, setSession] = useState<SessionData | null>(null);
   const [seededTiers, setSeededTiers] = useState<Record<string, string[]> | undefined>(undefined);
   const [loading, setLoading] = useState(true);
@@ -125,11 +125,11 @@ export default function VotePage() {
   if (!participantId) return <Loading message="Redirecting to join..." />;
 
   return (
-    <div className="-mt-4 flex h-[calc(100%+1rem)] min-h-0 flex-col">
-      <div className="mb-2 flex flex-shrink-0 items-baseline justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold">{session.name}</h1>
-          <div className="flex items-center gap-3">
+    <div className="-mt-2 flex h-[calc(100%+0.5rem)] min-h-0 flex-col sm:-mt-4 sm:h-[calc(100%+1rem)]">
+      <div className="mb-1.5 flex flex-shrink-0 flex-col gap-2 md:flex-row md:items-start md:justify-between sm:mb-2 sm:gap-3">
+        <div className="min-w-0">
+          <h1 className="truncate text-lg font-bold sm:text-2xl">{session.name}</h1>
+          <div className="mt-0.5 flex flex-wrap items-center gap-2 sm:mt-1 sm:gap-2.5">
             <JoinCodeBanner joinCode={session.joinCode} />
             <span
               className={`rounded-full px-2 py-0.5 text-xs font-medium ${
@@ -140,30 +140,45 @@ export default function VotePage() {
             </span>
           </div>
         </div>
-        <div className="text-right">
-          <p className="text-sm text-neutral-500">
-            Voting as <span className="text-amber-400">{nickname}</span> &middot;{" "}
-            {canEditTierConfig
-              ? "Use bracket assist to seed rankings, then adjust"
-              : "Bracket assist available, then drag items into tiers (tier setup locked by session owner)"}
-          </p>
-          <div className="mt-1 flex justify-end gap-2">
-            <Link href={`/sessions/${sessionId}/results`} className={buttonVariants.secondary}>
+        <div className="text-left md:text-right">
+          <div className="mt-1.5 flex flex-wrap gap-2 md:justify-end sm:mt-2">
+            <Link
+              href={`/sessions/${sessionId}/results`}
+              className={`${buttonVariants.secondary} !px-3 !py-1.5 !text-sm sm:!px-4 sm:!py-2`}
+            >
               View Results
             </Link>
           </div>
           {isOwner && (
-            <div className="mt-1 flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={toggleLock}
-                disabled={lockUpdating}
-                className="rounded-lg border border-neutral-700 px-3 py-1 text-xs text-neutral-300 transition-colors hover:border-amber-500 hover:text-amber-300 disabled:opacity-50"
-              >
-                {lockUpdating ? "Updating..." : isLocked ? "Unlock joins" : "Lock joins"}
-              </button>
-              <DeleteSessionButton sessionId={session.id} creatorId={session.creatorId} />
-            </div>
+            <>
+              <details className="mt-1.5 sm:hidden">
+                <summary className="cursor-pointer text-xs text-neutral-500">
+                  Session actions
+                </summary>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={toggleLock}
+                    disabled={lockUpdating}
+                    className="rounded-lg border border-neutral-700 px-3 py-1 text-xs text-neutral-300 transition-colors hover:border-amber-500 hover:text-amber-300 disabled:opacity-50"
+                  >
+                    {lockUpdating ? "Updating..." : isLocked ? "Unlock joins" : "Lock joins"}
+                  </button>
+                  <DeleteSessionButton sessionId={session.id} creatorId={session.creatorId} />
+                </div>
+              </details>
+              <div className="mt-2 hidden flex-wrap gap-2 md:justify-end sm:flex">
+                <button
+                  type="button"
+                  onClick={toggleLock}
+                  disabled={lockUpdating}
+                  className="rounded-lg border border-neutral-700 px-3 py-1 text-xs text-neutral-300 transition-colors hover:border-amber-500 hover:text-amber-300 disabled:opacity-50"
+                >
+                  {lockUpdating ? "Updating..." : isLocked ? "Unlock joins" : "Lock joins"}
+                </button>
+                <DeleteSessionButton sessionId={session.id} creatorId={session.creatorId} />
+              </div>
+            </>
           )}
           {lockError && <p className="mt-1 text-xs text-red-400">{lockError}</p>}
         </div>

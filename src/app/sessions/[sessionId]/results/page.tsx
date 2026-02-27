@@ -191,14 +191,20 @@ function ResultsContent() {
         title={`${session?.name} — Results`}
         subtitle={subtitle}
         actions={
-          <div className="flex gap-2">
+          <div className="flex shrink-0 gap-2">
             {session?.status === "OPEN" && (
-              <Link href={`/sessions/${sessionId}`} className={buttonVariants.primary}>
+              <Link
+                href={`/sessions/${sessionId}`}
+                className={`${buttonVariants.primary} !px-4 !py-1.5 !text-sm whitespace-nowrap`}
+              >
                 {localParticipantId ? "Edit My Vote" : "Join to Vote"}
               </Link>
             )}
             {session?.status !== "OPEN" && (
-              <Link href="/sessions" className={buttonVariants.secondary}>
+              <Link
+                href="/sessions"
+                className={`${buttonVariants.secondary} !px-4 !py-1.5 !text-sm whitespace-nowrap`}
+              >
                 Back to Sessions
               </Link>
             )}
@@ -252,15 +258,15 @@ function ResultsContent() {
           {displayTiers.map((tier) => (
             <div
               key={tier.key}
-              className="flex min-h-[104px] border-b border-neutral-800 last:border-b-0"
+              className="flex min-h-[72px] border-b border-neutral-800 last:border-b-0 sm:min-h-[80px] md:min-h-[90px] lg:min-h-[104px]"
             >
               <div
-                className="flex w-28 flex-shrink-0 items-center justify-center px-2 text-center text-xl font-bold"
+                className="flex w-16 flex-shrink-0 items-center justify-center px-1.5 text-center text-sm font-bold sm:w-20 sm:px-2 sm:text-base md:w-24 md:text-lg lg:w-28 lg:text-xl"
                 style={{ backgroundColor: tier.color, color: "#000" }}
               >
                 {tier.label}
               </div>
-              <div className="flex flex-1 flex-wrap items-start gap-2 p-2">
+              <div className="flex flex-1 flex-wrap items-start gap-1 p-1 sm:gap-1.5 sm:p-1.5 md:gap-2 md:p-2">
                 {tier.items.map((item) => (
                   <button
                     key={item.id}
@@ -268,7 +274,7 @@ function ResultsContent() {
                       !isIndividualView &&
                       setSelectedItem((current) => (current?.id === item.id ? null : item))
                     }
-                    className={`group relative h-[96px] w-[96px] flex-shrink-0 overflow-hidden rounded-md border transition-colors ${
+                    className={`group relative h-[62px] w-[62px] flex-shrink-0 overflow-hidden rounded-md border transition-colors sm:h-[70px] sm:w-[70px] md:h-[78px] md:w-[78px] lg:h-[96px] lg:w-[96px] ${
                       !isIndividualView && selectedItem?.id === item.id
                         ? "border-amber-400 ring-2 ring-amber-400"
                         : "border-neutral-700 hover:border-neutral-500"
@@ -285,7 +291,7 @@ function ResultsContent() {
                   </button>
                 ))}
                 {tier.items.length === 0 && (
-                  <span className="flex h-[96px] items-center px-4 text-sm text-neutral-600">
+                  <span className="flex h-[60px] items-center px-2 text-xs text-neutral-600 sm:h-[70px] sm:px-2.5 md:h-[84px] md:px-3 lg:h-[96px] lg:px-4 lg:text-sm">
                     No items
                   </span>
                 )}

@@ -100,71 +100,83 @@ export function BracketModal({ items, onComplete, onCancel }: BracketModalProps)
   const itemB = currentMatchup?.itemBId ? itemMap.get(currentMatchup.itemBId) : null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
-      <div className="mx-4 w-full max-w-lg rounded-2xl border border-neutral-800 bg-neutral-950 p-6">
-        <div className="mb-6 text-center">
-          <h2 className="text-lg font-bold">Rank with Bracket</h2>
-          <p className="mt-1 text-xs text-neutral-500">
-            {isComplete
-              ? "Bracket complete!"
-              : `Round ${currentRound} of ${bracketState.rounds} · ${decidedManualVotes}/${totalManualVotes} matchups decided`}
-          </p>
-          <p className="mt-2 text-[11px] text-neutral-500">
-            Applying ranking replaces current placements in this scope. You can still adjust before
-            submitting.
-          </p>
-        </div>
-
-        {!isComplete && itemA && itemB && (
-          <MatchupVoter itemA={itemA} itemB={itemB} size="sm" onVote={handleVote} />
-        )}
-
-        {isComplete && (
-          <div className="space-y-2">
-            <p className="text-center text-sm text-neutral-400">Final ranking:</p>
-            <ol className="space-y-1">
-              {ranked.map((id, i) => {
-                const item = itemMap.get(id);
-                if (!item) return null;
-                return (
-                  <li
-                    key={id}
-                    className="flex items-center gap-3 rounded-lg bg-neutral-900 px-3 py-2"
-                  >
-                    <span className="w-6 text-right text-sm font-bold text-amber-400">{i + 1}</span>
-                    <img
-                      src={item.imageUrl}
-                      alt={item.label}
-                      className="h-8 w-8 rounded object-cover"
-                    />
-                    <span className="text-sm">{item.label}</span>
-                  </li>
-                );
-              })}
-            </ol>
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/70 p-3 backdrop-blur-sm sm:flex sm:items-center sm:justify-center sm:p-6">
+      <div className="mx-auto flex max-h-[calc(100dvh-1.5rem)] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-neutral-800 bg-neutral-950 sm:max-h-[calc(100dvh-3rem)]">
+        <div className="px-4 pt-4 sm:px-6 sm:pt-6">
+          <div className="mb-4 text-center sm:mb-6">
+            <h2 className="text-lg font-bold">Rank with Bracket</h2>
+            <p className="mt-1 text-xs text-neutral-500">
+              {isComplete
+                ? "Bracket complete!"
+                : `Round ${currentRound} of ${bracketState.rounds} · ${decidedManualVotes}/${totalManualVotes} matchups decided`}
+            </p>
+            <p className="mt-2 text-[11px] text-neutral-500">
+              Applying ranking replaces current placements in this scope. You can still adjust
+              before submitting.
+            </p>
           </div>
-        )}
-
-        {/* Progress bar */}
-        <div className="mt-6 h-1 overflow-hidden rounded-full bg-neutral-800">
-          <div
-            className="h-1 rounded-full bg-amber-500 transition-all"
-            style={{
-              width: `${totalManualVotes > 0 ? Math.min(100, (decidedManualVotes / totalManualVotes) * 100) : 0}%`,
-            }}
-          />
         </div>
 
-        {/* Actions */}
-        <div className="mt-4 flex justify-end gap-3">
-          <Button variant="secondary" onClick={onCancel} className="px-4 text-sm text-neutral-400">
-            Cancel
-          </Button>
-          {isComplete && (
-            <Button onClick={handleFinish} className="px-4 text-sm">
-              Apply Ranking
-            </Button>
+        <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4 sm:px-6 sm:pb-6">
+          {!isComplete && itemA && itemB && (
+            <MatchupVoter itemA={itemA} itemB={itemB} size="sm" onVote={handleVote} />
           )}
+
+          {isComplete && (
+            <div className="space-y-2">
+              <p className="text-center text-sm text-neutral-400">Final ranking:</p>
+              <ol className="space-y-1">
+                {ranked.map((id, i) => {
+                  const item = itemMap.get(id);
+                  if (!item) return null;
+                  return (
+                    <li
+                      key={id}
+                      className="flex items-center gap-3 rounded-lg bg-neutral-900 px-3 py-2"
+                    >
+                      <span className="w-6 text-right text-sm font-bold text-amber-400">
+                        {i + 1}
+                      </span>
+                      <img
+                        src={item.imageUrl}
+                        alt={item.label}
+                        className="h-8 w-8 rounded object-cover"
+                      />
+                      <span className="text-sm">{item.label}</span>
+                    </li>
+                  );
+                })}
+              </ol>
+            </div>
+          )}
+        </div>
+
+        <div className="border-t border-neutral-800 bg-neutral-950/95 px-4 py-3 sm:px-6 sm:py-4">
+          {/* Progress bar */}
+          <div className="h-1 overflow-hidden rounded-full bg-neutral-800">
+            <div
+              className="h-1 rounded-full bg-amber-500 transition-all"
+              style={{
+                width: `${totalManualVotes > 0 ? Math.min(100, (decidedManualVotes / totalManualVotes) * 100) : 0}%`,
+              }}
+            />
+          </div>
+
+          {/* Actions */}
+          <div className="mt-3 flex justify-end gap-3">
+            <Button
+              variant="secondary"
+              onClick={onCancel}
+              className="px-4 text-sm text-neutral-400"
+            >
+              Cancel
+            </Button>
+            {isComplete && (
+              <Button onClick={handleFinish} className="px-4 text-sm">
+                Apply Ranking
+              </Button>
+            )}
+          </div>
         </div>
       </div>
     </div>

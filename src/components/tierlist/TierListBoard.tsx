@@ -563,29 +563,29 @@ export function TierListBoard({
 
         {/* Unranked Pool + Submit — always visible */}
         <div className="flex-shrink-0 pt-2">
-          <div className="mb-1.5 flex items-center justify-between">
+          <div className="mb-2 flex items-center justify-between">
             <UnrankedHeader />
-            <div className="flex items-center gap-3">
-              <span className="text-sm text-neutral-500">
-                {rankedCount}/{totalItems} ranked
-              </span>
-              {totalItems >= 2 && (
-                <button
-                  onClick={() => setShowSessionBracket(true)}
-                  disabled={submitting}
-                  className="rounded-lg border border-neutral-700 px-4 py-1.5 text-sm font-medium text-neutral-200 transition-colors hover:border-amber-400 hover:text-amber-300 disabled:opacity-50"
-                >
-                  Bracket Assist
-                </button>
-              )}
+            <span className="text-xs text-neutral-500 sm:text-sm">
+              {rankedCount}/{totalItems} ranked
+            </span>
+          </div>
+          <div className="sticky bottom-0 z-20 mb-2 flex gap-2 rounded-lg border border-neutral-800 bg-neutral-950/95 p-2 backdrop-blur sm:static sm:mb-1.5 sm:justify-end sm:border-0 sm:bg-transparent sm:p-0">
+            {totalItems >= 2 && (
               <button
-                onClick={handleSubmit}
-                disabled={submitting || rankedCount !== totalItems}
-                className="rounded-lg bg-amber-500 px-5 py-1.5 text-sm font-medium text-black transition-colors hover:bg-amber-400 disabled:opacity-50"
+                onClick={() => setShowSessionBracket(true)}
+                disabled={submitting}
+                className="flex-1 rounded-lg border border-neutral-700 px-3 py-2 text-sm font-medium text-neutral-200 transition-colors hover:border-amber-400 hover:text-amber-300 disabled:opacity-50 sm:flex-none sm:px-4 sm:py-1.5"
               >
-                {submitting ? "Submitting..." : "Submit Votes"}
+                Bracket Assist
               </button>
-            </div>
+            )}
+            <button
+              onClick={handleSubmit}
+              disabled={submitting || rankedCount !== totalItems}
+              className="flex-1 rounded-lg bg-amber-500 px-3 py-2 text-sm font-medium text-black transition-colors hover:bg-amber-400 disabled:opacity-50 sm:flex-none sm:px-5 sm:py-1.5"
+            >
+              {submitting ? "Submitting..." : "Submit Votes"}
+            </button>
           </div>
           {submitError && <p className="mb-1 text-sm text-red-400">{submitError}</p>}
           <UnrankedDropZone />

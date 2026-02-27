@@ -16,7 +16,7 @@ export function JoinCodeBanner({ joinCode }: JoinCodeBannerProps) {
   };
 
   return (
-    <span className="inline-flex items-center gap-1.5 text-sm">
+    <span className="inline-flex flex-wrap items-center gap-1 text-xs sm:text-sm">
       <span className="text-neutral-500">Invite with code:</span>
       <button
         type="button"
