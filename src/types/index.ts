@@ -62,7 +62,13 @@ export interface SessionLobbyData {
   bracketEnabled: boolean;
   tierConfig: TierConfig[];
   template: { name: string };
-  participants: { id: string; nickname: string; createdAt: string; submittedAt: string | null }[];
+  participants: {
+    id: string;
+    nickname: string;
+    createdAt: string;
+    submittedAt: string | null;
+    hasSubmitted: boolean;
+  }[];
   items: Item[];
   _count: { participants: number };
 }
@@ -93,5 +99,10 @@ export interface TemplateItemData {
 export interface SessionResult {
   name: string;
   tierConfig: TierConfig[];
-  participants: { id: string; nickname: string; submittedAt: string | null }[];
+  participants: {
+    id: string;
+    nickname: string;
+    submittedAt: string | null;
+    hasSubmitted: boolean;
+  }[];
 }

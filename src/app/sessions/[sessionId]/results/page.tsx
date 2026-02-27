@@ -115,7 +115,7 @@ function ResultsContent() {
   if (loading) return <Loading message="Loading results..." />;
   if (error) return <ErrorMessage message={error} />;
 
-  const submittedParticipants = session?.participants.filter((p) => !!p.submittedAt) ?? [];
+  const submittedParticipants = session?.participants.filter((p) => p.hasSubmitted) ?? [];
   const totalParticipants = submittedParticipants.length;
   const isIndividualView = !!participantId;
   const displayTiers = participantTiers ?? consensusTiers;

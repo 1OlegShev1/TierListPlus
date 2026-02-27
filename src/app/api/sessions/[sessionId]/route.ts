@@ -17,14 +17,25 @@ export const GET = withHandler(async (request, { params }) => {
     include: {
       template: { select: { name: true } },
       items: { orderBy: { sortOrder: "asc" } },
-      participants: { orderBy: { createdAt: "asc" } },
+      participants: {
+        orderBy: { createdAt: "asc" },
+        include: { _count: { select: { tierVotes: true } } },
+      },
       _count: { select: { participants: true } },
     },
   });
 
   if (!session) notFound("Session not found");
 
-  return NextResponse.json(session);
+  const participants = session.participants.map(({ _count, ...participant }) => ({
+    ...participant,
+    hasSubmitted: !!participant.submittedAt || _count.tierVotes > 0,
+  }));
+
+  return NextResponse.json({
+    ...session,
+    participants,
+  });
 });
 
 export const PATCH = withHandler(async (request, { params }) => {

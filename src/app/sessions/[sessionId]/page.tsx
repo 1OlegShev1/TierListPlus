@@ -13,7 +13,10 @@ export default async function SessionPage({ params }: { params: Promise<{ sessio
     where: { id: sessionId },
     include: {
       template: { select: { name: true } },
-      participants: { orderBy: { createdAt: "asc" } },
+      participants: {
+        orderBy: { createdAt: "asc" },
+        include: { _count: { select: { tierVotes: true } } },
+      },
       items: { orderBy: { sortOrder: "asc" } },
       _count: { select: { participants: true } },
     },
@@ -25,5 +28,13 @@ export default async function SessionPage({ params }: { params: Promise<{ sessio
     !!requestUserId && session.participants.some((p) => p.userId === requestUserId);
   if (session.isPrivate && !isOwner && !isParticipant) notFound();
 
-  return <SessionLobby session={JSON.parse(JSON.stringify(session))} />;
+  const lobbySession = {
+    ...session,
+    participants: session.participants.map(({ _count, ...participant }) => ({
+      ...participant,
+      hasSubmitted: !!participant.submittedAt || _count.tierVotes > 0,
+    })),
+  };
+
+  return <SessionLobby session={JSON.parse(JSON.stringify(lobbySession))} />;
 }

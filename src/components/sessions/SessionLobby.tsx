@@ -32,8 +32,8 @@ export function SessionLobby({ session }: SessionLobbyProps) {
 
   const isJoined = !!participantId;
   const voteUrl = `/sessions/${session.id}/vote`;
-  const submittedCount = session.participants.filter((p) => p.submittedAt).length;
-  const hasSubmitted = !!session.participants.find((p) => p.id === participantId)?.submittedAt;
+  const submittedCount = session.participants.filter((p) => p.hasSubmitted).length;
+  const hasSubmitted = !!session.participants.find((p) => p.id === participantId)?.hasSubmitted;
 
   const toggleLock = async () => {
     if (!isOwner || lockUpdating) return;
