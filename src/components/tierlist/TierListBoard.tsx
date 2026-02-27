@@ -11,6 +11,7 @@ import {
   PointerSensor,
   pointerWithin,
   rectIntersection,
+  TouchSensor,
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
@@ -140,6 +141,7 @@ export function TierListBoard({
   const [draftRestored, setDraftRestored] = useState(false);
   const [bracketSeeded, setBracketSeeded] = useState(false);
   const [showSessionBracket, setShowSessionBracket] = useState(false);
+  const [isCoarsePointer, setIsCoarsePointer] = useState(false);
 
   // ---- FLIP refs ----
   const containerRef = useRef<HTMLDivElement>(null);
@@ -371,12 +373,25 @@ export function TierListBoard({
     [canEditTierConfig, tierConfig.length, removeTierFromStore],
   );
 
+  useEffect(() => {
+    const media = window.matchMedia("(pointer: coarse)");
+    const update = () => setIsCoarsePointer(media.matches);
+    update();
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
+  }, []);
+
   // ---- Drag and drop ----
 
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-    useSensor(KeyboardSensor),
-  );
+  const pointerSensor = useSensor(PointerSensor, { activationConstraint: { distance: 5 } });
+  const touchSensor = useSensor(TouchSensor, {
+    activationConstraint: {
+      delay: 110,
+      tolerance: 8,
+    },
+  });
+  const keyboardSensor = useSensor(KeyboardSensor);
+  const sensors = useSensors(isCoarsePointer ? touchSensor : pointerSensor, keyboardSensor);
 
   const collisionDetection: CollisionDetection = useCallback((args) => {
     const pointerCollisions = pointerWithin(args);
