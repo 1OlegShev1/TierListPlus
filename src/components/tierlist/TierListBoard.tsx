@@ -386,8 +386,8 @@ export function TierListBoard({
   const pointerSensor = useSensor(PointerSensor, { activationConstraint: { distance: 5 } });
   const touchSensor = useSensor(TouchSensor, {
     activationConstraint: {
-      delay: 110,
-      tolerance: 8,
+      delay: 220,
+      tolerance: 12,
     },
   });
   const keyboardSensor = useSensor(KeyboardSensor);
@@ -551,7 +551,7 @@ export function TierListBoard({
         onDragCancel={handleDragCancel}
       >
         {/* Tier Rows — scrollable */}
-        <div className="min-h-0 flex-1 overflow-y-auto">
+        <div className="min-h-0 flex-1 overflow-y-auto touch-pan-y">
           <div ref={containerRef} className="relative rounded-lg border border-neutral-800">
             {tierConfig.map((tier, index) => (
               <div key={tier.key} data-tier-key={tier.key}>
