@@ -32,6 +32,7 @@ export function SessionLobby({ session }: SessionLobbyProps) {
 
   const isJoined = !!participantId;
   const voteUrl = `/sessions/${session.id}/vote`;
+  const canJoinSession = session.status === "OPEN" && !isLocked;
   const submittedCount = session.participants.filter((p) => p.hasSubmitted).length;
   const hasSubmitted = !!session.participants.find((p) => p.id === participantId)?.hasSubmitted;
 
@@ -101,9 +102,10 @@ export function SessionLobby({ session }: SessionLobbyProps) {
         )}
         {isOwner && session.status === "OPEN" && (
           <button
+            type="button"
             onClick={toggleLock}
             disabled={lockUpdating}
-            className="rounded-lg border border-neutral-700 px-3 py-1.5 text-sm text-neutral-300 transition-colors hover:border-amber-500 hover:text-amber-300 disabled:opacity-50"
+            className="cursor-pointer rounded-lg border border-neutral-700 px-3 py-1.5 text-sm text-neutral-300 transition-colors hover:border-amber-500 hover:text-amber-300 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {lockUpdating ? "Updating..." : isLocked ? "Unlock joins" : "Lock joins"}
           </button>
@@ -157,6 +159,28 @@ export function SessionLobby({ session }: SessionLobbyProps) {
         </div>
       </div>
 
+      {/* Items Preview */}
+      <div className="mb-8">
+        <h2 className="mb-3 text-base font-medium text-neutral-400">
+          Items to Vote On ({session.items.length})
+        </h2>
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+          {session.items.map((item) => (
+            <div
+              key={item.id}
+              className="flex items-center gap-3 rounded-lg border border-neutral-800 bg-neutral-900 px-3 py-2"
+            >
+              <img
+                src={item.imageUrl}
+                alt={item.label}
+                className="h-10 w-10 flex-shrink-0 rounded object-cover"
+              />
+              <span className="truncate text-sm text-neutral-200">{item.label}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
       {/* Actions */}
       <div className="flex flex-wrap gap-3">
         {isJoined && session.status === "OPEN" && (
@@ -164,10 +188,15 @@ export function SessionLobby({ session }: SessionLobbyProps) {
             {hasSubmitted ? "Edit My Vote" : "Start Voting"}
           </Link>
         )}
-        {!isJoined && session.status === "OPEN" && (
+        {!isJoined && canJoinSession && (
           <Link href={`/sessions/join?code=${session.joinCode}`} className={buttonVariants.primary}>
             Join Session
           </Link>
+        )}
+        {!isJoined && session.status === "OPEN" && isLocked && (
+          <span className="inline-flex items-center rounded-md border border-neutral-700 px-4 py-2 text-sm text-neutral-400">
+            Joining is locked
+          </span>
         )}
         <Link href={`/sessions/${session.id}/results`} className={buttonVariants.secondary}>
           View Results
