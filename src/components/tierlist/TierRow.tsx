@@ -167,16 +167,16 @@ export function TierRow({
         {/* Row edit controls (right side) */}
         {canEditTier && (
           <div
-            className={`flex w-8 flex-shrink-0 flex-col items-center justify-center gap-0.5 border-l border-neutral-800 sm:w-9 md:w-10 lg:w-12 ${isFirst ? "rounded-tr-lg" : ""} ${isLast ? "rounded-br-lg" : ""}`}
+            className={`flex w-10 flex-shrink-0 flex-col items-center justify-center gap-1 border-l border-neutral-800 bg-neutral-950/60 sm:w-11 md:w-12 lg:w-12 ${isFirst ? "rounded-tr-lg" : ""} ${isLast ? "rounded-br-lg" : ""}`}
           >
             <button
               onClick={onMoveUp}
               disabled={isFirst}
-              className="cursor-pointer p-0.5 text-neutral-500 hover:text-neutral-200 disabled:cursor-default disabled:opacity-30 md:p-1"
+              className="cursor-pointer rounded p-1 text-neutral-400 hover:bg-neutral-800 hover:text-neutral-100 disabled:cursor-default disabled:opacity-30"
               title="Move row up"
               aria-label={`Move ${label} tier up`}
             >
-              <ChevronUpIcon className="h-4 w-4" />
+              <ChevronUpIcon className="h-4 w-4 sm:h-5 sm:w-5" />
             </button>
 
             <TierRowActions
@@ -191,11 +191,11 @@ export function TierRow({
             <button
               onClick={onMoveDown}
               disabled={isLast}
-              className="cursor-pointer p-0.5 text-neutral-500 hover:text-neutral-200 disabled:cursor-default disabled:opacity-30 md:p-1"
+              className="cursor-pointer rounded p-1 text-neutral-400 hover:bg-neutral-800 hover:text-neutral-100 disabled:cursor-default disabled:opacity-30"
               title="Move row down"
               aria-label={`Move ${label} tier down`}
             >
-              <ChevronDownIcon className="h-4 w-4" />
+              <ChevronDownIcon className="h-4 w-4 sm:h-5 sm:w-5" />
             </button>
           </div>
         )}

@@ -125,7 +125,7 @@ export default function VotePage() {
   if (!participantId) return <Loading message="Redirecting to join..." />;
 
   return (
-    <div className="-mt-2 flex h-[calc(100%+0.5rem)] min-h-0 flex-col sm:-mt-4 sm:h-[calc(100%+1rem)]">
+    <div className="-mt-2 flex flex-col pb-3 sm:-mt-4 sm:pb-4">
       <div className="mb-1.5 flex flex-shrink-0 flex-col gap-2 md:flex-row md:items-start md:justify-between sm:mb-2 sm:gap-3">
         <div className="min-w-0">
           <h1 className="truncate text-lg font-bold sm:text-2xl">{session.name}</h1>

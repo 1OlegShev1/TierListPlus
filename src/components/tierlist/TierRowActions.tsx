@@ -29,7 +29,7 @@ export function TierRowActions({
   useEffect(() => {
     if (!open) return;
 
-    const handleClick = (e: MouseEvent) => {
+    const handleClick = (e: MouseEvent | TouchEvent) => {
       if (
         menuRef.current &&
         !menuRef.current.contains(e.target as Node) &&
@@ -45,9 +45,11 @@ export function TierRowActions({
     };
 
     document.addEventListener("mousedown", handleClick);
+    document.addEventListener("touchstart", handleClick);
     document.addEventListener("keydown", handleKey);
     return () => {
       document.removeEventListener("mousedown", handleClick);
+      document.removeEventListener("touchstart", handleClick);
       document.removeEventListener("keydown", handleKey);
     };
   }, [open]);
@@ -76,7 +78,7 @@ export function TierRowActions({
       <button
         ref={buttonRef}
         onClick={toggle}
-        className="cursor-pointer p-1 text-neutral-500 hover:text-neutral-200"
+        className="cursor-pointer rounded border border-neutral-700 bg-neutral-900/80 p-1 text-neutral-300 hover:border-neutral-500 hover:text-neutral-100"
         title="Tier actions"
         aria-label={`Actions for ${label} tier`}
         aria-expanded={open}

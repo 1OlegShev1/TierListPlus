@@ -141,7 +141,7 @@ export function TierListBoard({
   const [draftRestored, setDraftRestored] = useState(false);
   const [bracketSeeded, setBracketSeeded] = useState(false);
   const [showSessionBracket, setShowSessionBracket] = useState(false);
-  const [isCoarsePointer, setIsCoarsePointer] = useState(false);
+  const [isTouchInput, setIsTouchInput] = useState(false);
 
   // ---- FLIP refs ----
   const containerRef = useRef<HTMLDivElement>(null);
@@ -373,25 +373,28 @@ export function TierListBoard({
     [canEditTierConfig, tierConfig.length, removeTierFromStore],
   );
 
-  useEffect(() => {
-    const media = window.matchMedia("(pointer: coarse)");
-    const update = () => setIsCoarsePointer(media.matches);
-    update();
-    media.addEventListener("change", update);
-    return () => media.removeEventListener("change", update);
-  }, []);
-
   // ---- Drag and drop ----
 
-  const pointerSensor = useSensor(PointerSensor, { activationConstraint: { distance: 5 } });
+  useEffect(() => {
+    const coarseMedia = window.matchMedia("(hover: none) and (pointer: coarse)");
+    const update = () => {
+      const hasTouch = navigator.maxTouchPoints > 0;
+      setIsTouchInput(coarseMedia.matches || hasTouch);
+    };
+    update();
+    coarseMedia.addEventListener("change", update);
+    return () => coarseMedia.removeEventListener("change", update);
+  }, []);
+
+  const pointerSensor = useSensor(PointerSensor, { activationConstraint: { distance: 8 } });
   const touchSensor = useSensor(TouchSensor, {
     activationConstraint: {
-      delay: 220,
-      tolerance: 12,
+      delay: 170,
+      tolerance: 16,
     },
   });
   const keyboardSensor = useSensor(KeyboardSensor);
-  const sensors = useSensors(isCoarsePointer ? touchSensor : pointerSensor, keyboardSensor);
+  const sensors = useSensors(isTouchInput ? touchSensor : pointerSensor, keyboardSensor);
 
   const collisionDetection: CollisionDetection = useCallback((args) => {
     const pointerCollisions = pointerWithin(args);
@@ -531,7 +534,7 @@ export function TierListBoard({
   }, [bracketSeeded]);
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
+    <div className="flex flex-col">
       {draftRestored && (
         <div className="mb-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-sm text-amber-400">
           Draft restored from your previous session
@@ -550,30 +553,30 @@ export function TierListBoard({
         onDragEnd={handleDragEnd}
         onDragCancel={handleDragCancel}
       >
-        {/* Tier Rows — scrollable */}
-        <div className="min-h-0 flex-1 overflow-y-auto touch-pan-y">
-          <div ref={containerRef} className="relative rounded-lg border border-neutral-800">
-            {tierConfig.map((tier, index) => (
-              <div key={tier.key} data-tier-key={tier.key}>
-                <TierRow
-                  tierKey={tier.key}
-                  label={tier.label}
-                  color={tier.color}
-                  canEditTier={canEditTierConfig}
-                  isFirst={index === 0}
-                  isLast={index === tierConfig.length - 1}
-                  canDelete={tierConfig.length > 2}
-                  onLabelChange={(newLabel) => handleLabelChange(tier.key, newLabel)}
-                  onColorChange={(newColor) => handleColorChange(tier.key, newColor)}
-                  onMoveUp={() => handleMoveTier(index, -1)}
-                  onMoveDown={() => handleMoveTier(index, 1)}
-                  onInsertAbove={() => handleInsertTier(index)}
-                  onInsertBelow={() => handleInsertTier(index + 1)}
-                  onDelete={() => handleDeleteTier(tier.key)}
-                />
-              </div>
-            ))}
-          </div>
+        <div
+          ref={containerRef}
+          className="relative rounded-lg border border-neutral-800 touch-pan-y"
+        >
+          {tierConfig.map((tier, index) => (
+            <div key={tier.key} data-tier-key={tier.key}>
+              <TierRow
+                tierKey={tier.key}
+                label={tier.label}
+                color={tier.color}
+                canEditTier={canEditTierConfig}
+                isFirst={index === 0}
+                isLast={index === tierConfig.length - 1}
+                canDelete={tierConfig.length > 2}
+                onLabelChange={(newLabel) => handleLabelChange(tier.key, newLabel)}
+                onColorChange={(newColor) => handleColorChange(tier.key, newColor)}
+                onMoveUp={() => handleMoveTier(index, -1)}
+                onMoveDown={() => handleMoveTier(index, 1)}
+                onInsertAbove={() => handleInsertTier(index)}
+                onInsertBelow={() => handleInsertTier(index + 1)}
+                onDelete={() => handleDeleteTier(tier.key)}
+              />
+            </div>
+          ))}
         </div>
 
         {/* Unranked Pool + Submit — always visible */}
@@ -584,7 +587,7 @@ export function TierListBoard({
               {rankedCount}/{totalItems} ranked
             </span>
           </div>
-          <div className="sticky bottom-0 z-20 mb-2 flex gap-2 rounded-lg border border-neutral-800 bg-neutral-950/95 p-2 backdrop-blur sm:static sm:mb-1.5 sm:justify-end sm:border-0 sm:bg-transparent sm:p-0">
+          <div className="mb-2 flex gap-2 rounded-lg border border-neutral-800 bg-neutral-950/95 p-2 sm:mb-1.5 sm:justify-end sm:border-0 sm:bg-transparent sm:p-0">
             {totalItems >= 2 && (
               <button
                 onClick={() => setShowSessionBracket(true)}
