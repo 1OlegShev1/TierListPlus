@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { notFound, requireOwner, validateBody, withHandler } from "@/lib/api-helpers";
+import { getUserId, notFound, requireOwner, validateBody, withHandler } from "@/lib/api-helpers";
 import { prisma } from "@/lib/prisma";
 import { updateSessionSchema } from "@/lib/validators";
 
@@ -22,14 +22,15 @@ export const GET = withHandler(async (_request, { params }) => {
 
 export const PATCH = withHandler(async (request, { params }) => {
   const { sessionId } = await params;
+  const userId = getUserId(request);
+  const data = await validateBody(request, updateSessionSchema);
 
   const existing = await prisma.session.findUnique({
     where: { id: sessionId },
-    select: { id: true },
+    select: { id: true, creatorId: true },
   });
   if (!existing) notFound("Session not found");
-
-  const data = await validateBody(request, updateSessionSchema);
+  requireOwner(existing.creatorId, userId);
 
   const updateData: Record<string, unknown> = {};
   if (data.status) updateData.status = data.status;
@@ -45,7 +46,7 @@ export const PATCH = withHandler(async (request, { params }) => {
 
 export const DELETE = withHandler(async (request, { params }) => {
   const { sessionId } = await params;
-  const userId = new URL(request.url).searchParams.get("userId");
+  const userId = getUserId(request);
 
   const existing = await prisma.session.findUnique({
     where: { id: sessionId },

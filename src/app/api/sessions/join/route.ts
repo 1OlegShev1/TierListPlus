@@ -1,12 +1,14 @@
 import { NextResponse } from "next/server";
-import { badRequest, notFound, validateBody, withHandler } from "@/lib/api-helpers";
+import { badRequest, getUserId, notFound, validateBody, withHandler } from "@/lib/api-helpers";
 import { prisma } from "@/lib/prisma";
 import { joinSessionSchema } from "@/lib/validators";
 
 export const POST = withHandler(async (request) => {
   const data = await validateBody(request, joinSessionSchema);
+  const userId = getUserId(request);
+  if (!userId) badRequest("User identity required to join session");
 
-  const { joinCode, nickname, userId } = data;
+  const { joinCode, nickname } = data;
 
   const session = await prisma.session.findUnique({
     where: { joinCode: joinCode.toUpperCase() },
@@ -15,21 +17,28 @@ export const POST = withHandler(async (request) => {
   if (!session) notFound("Session not found");
   if (session.status !== "OPEN") badRequest("Session is no longer accepting votes");
 
-  // Upsert participant (same nickname in same session returns existing)
-  const participant = await prisma.participant.upsert({
+  // Existing nickname is only reusable by the same user/device.
+  const existing = await prisma.participant.findUnique({
     where: {
-      sessionId_nickname: {
-        sessionId: session.id,
-        nickname,
-      },
-    },
-    update: { userId: userId ?? undefined },
-    create: {
-      sessionId: session.id,
-      nickname,
-      userId: userId ?? undefined,
+      sessionId_nickname: { sessionId: session.id, nickname },
     },
   });
+  if (existing?.userId && existing.userId !== userId) {
+    badRequest("Nickname is already taken in this session");
+  }
+
+  const participant = existing
+    ? await prisma.participant.update({
+        where: { id: existing.id },
+        data: existing.userId ? {} : { userId },
+      })
+    : await prisma.participant.create({
+        data: {
+          sessionId: session.id,
+          nickname,
+          userId,
+        },
+      });
 
   return NextResponse.json({
     sessionId: session.id,

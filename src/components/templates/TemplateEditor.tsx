@@ -25,7 +25,7 @@ export function TemplateEditor({
   initialItems = [],
 }: TemplateEditorProps) {
   const router = useRouter();
-  const { userId } = useUser();
+  const { userId, isLoading: userLoading, error: userError, retry: retryUser } = useUser();
   const [name, setName] = useState(initialName);
   const [description, setDescription] = useState(initialDescription);
   const [items, setItems] = useState<TemplateItemData[]>(initialItems);
@@ -45,7 +45,7 @@ export function TemplateEditor({
   };
 
   const save = async () => {
-    if (!name.trim()) return;
+    if (!name.trim() || userLoading || !userId) return;
     setSaving(true);
     setError(null);
 
@@ -56,11 +56,10 @@ export function TemplateEditor({
         const template = await apiPost<{ id: string }>("/api/templates", {
           name,
           description,
-          creatorId: userId,
         });
         id = template.id;
       } else {
-        await apiPatch(`/api/templates/${id}?userId=${userId}`, { name, description });
+        await apiPatch(`/api/templates/${id}`, { name, description });
       }
 
       const existingIds = new Set(initialItems.filter((i) => i.id).map((i) => i.id));
@@ -149,10 +148,23 @@ export function TemplateEditor({
         </div>
       </div>
 
-      {error && <ErrorMessage message={error} />}
+      {(userError || error) && (
+        <div className="space-y-2">
+          {userError && <ErrorMessage message={userError} />}
+          {error && <ErrorMessage message={error} />}
+          {userError && (
+            <Button variant="secondary" onClick={retryUser}>
+              Retry Identity Setup
+            </Button>
+          )}
+        </div>
+      )}
 
       <div className="flex gap-3">
-        <Button onClick={save} disabled={saving || !name.trim() || items.length === 0}>
+        <Button
+          onClick={save}
+          disabled={saving || userLoading || !userId || !name.trim() || items.length === 0}
+        >
           {saving ? "Saving..." : templateId ? "Save Changes" : "Create Template"}
         </Button>
         <Button variant="secondary" onClick={() => router.back()}>

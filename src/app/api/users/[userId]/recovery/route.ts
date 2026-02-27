@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server";
-import { notFound, withHandler } from "@/lib/api-helpers";
+import { getUserId, notFound, requireOwner, withHandler } from "@/lib/api-helpers";
 import { prisma } from "@/lib/prisma";
 import { generateRecoveryCode } from "@/lib/recovery-code";
 
-export const POST = withHandler(async (_request, { params }) => {
+export const POST = withHandler(async (request, { params }) => {
   const { userId } = await params;
+  const requestUserId = getUserId(request);
+  requireOwner(userId, requestUserId);
 
   const user = await prisma.user.findUnique({
     where: { id: userId },

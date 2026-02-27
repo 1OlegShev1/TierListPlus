@@ -20,6 +20,15 @@ async function createUser(): Promise<string> {
   return id;
 }
 
+/** Validate that a signed user session cookie exists and return its user id. */
+async function getSessionUserId(): Promise<string | null> {
+  const res = await fetch("/api/users/session", { cache: "no-store" });
+  if (res.status === 401) return null;
+  if (!res.ok) throw new Error("Failed to validate user session");
+  const data = (await res.json()) as { id?: unknown };
+  return typeof data.id === "string" && data.id.length > 0 ? data.id : null;
+}
+
 /** Singleton promise to prevent concurrent user creation. */
 let pending: Promise<string> | null = null;
 
@@ -30,9 +39,15 @@ let pending: Promise<string> | null = null;
  */
 export function ensureUserId(): Promise<string> {
   const existing = getLocalUserId();
-  if (existing) return Promise.resolve(existing);
   if (!pending) {
-    pending = createUser().finally(() => {
+    pending = (async () => {
+      const sessionUserId = await getSessionUserId();
+      if (sessionUserId) {
+        if (sessionUserId !== existing) saveLocalUserId(sessionUserId);
+        return sessionUserId;
+      }
+      return createUser();
+    })().finally(() => {
       pending = null;
     });
   }

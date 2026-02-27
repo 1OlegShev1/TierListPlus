@@ -75,7 +75,7 @@ src/
   lib/
     prisma.ts                   # PrismaClient singleton (with PrismaPg adapter)
     api-helpers.ts              # validateBody, notFound, badRequest, verifyParticipant, getUserId
-    api-client.ts               # Client-side HTTP helper (attaches X-User-Id header)
+    api-client.ts               # Client-side HTTP helper (JSON/error wrapper)
     constants.ts                # DEFAULT_TIER_CONFIG, TIER_COLORS, TierConfig type
     consensus.ts                # Consensus aggregation algorithm (with within-tier ranking)
     bracket-generator.ts        # Single-elimination bracket generation
@@ -138,8 +138,9 @@ Device-based identity system (no authentication):
 
 1. On first visit, `device-identity.ts` generates a device ID stored in localStorage
 2. `useUser` hook auto-creates a `User` record via `POST /api/users`
-3. User ID is attached to API requests via `X-User-Id` header (`api-client.ts`)
-4. Templates and sessions record `creatorId` — only the creator can delete them
+3. Server sets an `HttpOnly` signed session cookie on identity creation/recovery
+4. API routes read user identity from the signed cookie (`api-helpers.ts`)
+5. Templates and sessions record `creatorId` — only the creator can mutate/delete them
 5. Optional recovery codes (word-based) allow restoring identity on a new device
 
 ## Vote Draft Persistence
@@ -172,4 +173,4 @@ npm run dev                     # http://localhost:3000
 - API route helpers (`validateBody`, `notFound`, `badRequest`, `verifyParticipant`, `getUserId`) in `src/lib/api-helpers.ts`
 - UI primitives (`Button`, `Input`, `Textarea`, `Select`, `ConfirmDialog`, `buttonVariants`) in `src/components/ui/`
 - Owner-only deletion with `ConfirmDialog` confirmation modals
-- `api-client.ts` wraps fetch to attach user identity headers on client-side requests
+- `api-client.ts` wraps fetch for JSON/error handling on client-side requests

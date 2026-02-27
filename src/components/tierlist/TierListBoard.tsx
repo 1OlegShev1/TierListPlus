@@ -31,6 +31,7 @@ interface TierListBoardProps {
   tierConfig: TierConfig[];
   sessionItems: Item[];
   seededTiers?: Record<string, string[]>;
+  canEditTierConfig?: boolean;
   onSubmitted: () => void;
 }
 
@@ -88,6 +89,7 @@ export function TierListBoard({
   tierConfig: initialTierConfig,
   sessionItems,
   seededTiers,
+  canEditTierConfig = false,
   onSubmitted,
 }: TierListBoardProps) {
   const {
@@ -194,6 +196,7 @@ export function TierListBoard({
   // Auto-save tierConfig when it changes (skip the initial value)
   const isFirstConfigRef = useRef(true);
   useEffect(() => {
+    if (!canEditTierConfig) return;
     if (isFirstConfigRef.current) {
       isFirstConfigRef.current = false;
       return;
@@ -209,20 +212,29 @@ export function TierListBoard({
     return () => {
       if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
     };
-  }, [tierConfig, sessionId]);
+  }, [canEditTierConfig, tierConfig, sessionId]);
 
   // ---- Tier mutation handlers ----
 
-  const handleLabelChange = useCallback((key: string, newLabel: string) => {
-    setTierConfig((prev) => prev.map((t) => (t.key === key ? { ...t, label: newLabel } : t)));
-  }, []);
+  const handleLabelChange = useCallback(
+    (key: string, newLabel: string) => {
+      if (!canEditTierConfig) return;
+      setTierConfig((prev) => prev.map((t) => (t.key === key ? { ...t, label: newLabel } : t)));
+    },
+    [canEditTierConfig],
+  );
 
-  const handleColorChange = useCallback((key: string, newColor: string) => {
-    setTierConfig((prev) => prev.map((t) => (t.key === key ? { ...t, color: newColor } : t)));
-  }, []);
+  const handleColorChange = useCallback(
+    (key: string, newColor: string) => {
+      if (!canEditTierConfig) return;
+      setTierConfig((prev) => prev.map((t) => (t.key === key ? { ...t, color: newColor } : t)));
+    },
+    [canEditTierConfig],
+  );
 
   const handleMoveTier = useCallback(
     (index: number, direction: -1 | 1) => {
+      if (!canEditTierConfig) return;
       captureFlip();
       setTierConfig((prev) => {
         const target = index + direction;
@@ -232,11 +244,12 @@ export function TierListBoard({
         return updated.map((t, i) => ({ ...t, sortOrder: i }));
       });
     },
-    [captureFlip],
+    [canEditTierConfig, captureFlip],
   );
 
   const handleInsertTier = useCallback(
     (atIndex: number) => {
+      if (!canEditTierConfig) return;
       captureFlip();
       const newKey = `t_${nanoid(4)}`;
       setTierConfig((prev) => {
@@ -253,11 +266,12 @@ export function TierListBoard({
       });
       addTierToStore(newKey);
     },
-    [addTierToStore, captureFlip],
+    [addTierToStore, canEditTierConfig, captureFlip],
   );
 
   const handleDeleteTier = useCallback(
     (key: string) => {
+      if (!canEditTierConfig) return;
       if (tierConfig.length <= 2) return;
 
       const container = containerRef.current;
@@ -321,7 +335,7 @@ export function TierListBoard({
         );
       }, 300);
     },
-    [tierConfig.length, removeTierFromStore],
+    [canEditTierConfig, tierConfig.length, removeTierFromStore],
   );
 
   // ---- Drag and drop ----
@@ -425,7 +439,7 @@ export function TierListBoard({
 
   const handleSubmit = async () => {
     // Flush any pending tier config save
-    if (saveTimeoutRef.current) {
+    if (canEditTierConfig && saveTimeoutRef.current) {
       clearTimeout(saveTimeoutRef.current);
       saveTimeoutRef.current = null;
       try {
@@ -485,6 +499,7 @@ export function TierListBoard({
                   tierKey={tier.key}
                   label={tier.label}
                   color={tier.color}
+                  canEditTier={canEditTierConfig}
                   isFirst={index === 0}
                   isLast={index === tierConfig.length - 1}
                   canDelete={tierConfig.length > 2}

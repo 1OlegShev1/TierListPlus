@@ -3,7 +3,6 @@ import { z } from "zod/v4";
 export const createTemplateSchema = z.object({
   name: z.string().min(1).max(100),
   description: z.string().max(500).optional(),
-  creatorId: z.string().min(1).nullish(),
 });
 
 export const updateTemplateSchema = z.object({
@@ -38,13 +37,11 @@ export const createSessionSchema = z.object({
   tierConfig: tierConfigSchema.optional(),
   bracketEnabled: z.boolean().optional(),
   nickname: z.string().min(1).max(30).optional(),
-  creatorId: z.string().min(1).nullish(),
 });
 
 export const joinSessionSchema = z.object({
   joinCode: z.string().min(1).max(20),
   nickname: z.string().min(1).max(30),
-  userId: z.string().min(1).nullish(),
 });
 
 export const submitVotesSchema = z.object({

@@ -26,7 +26,7 @@ export function DeleteSessionButton({ sessionId, creatorId }: DeleteSessionButto
     setDeleting(true);
     setError(null);
     try {
-      await apiDelete(`/api/sessions/${sessionId}?userId=${userId}`);
+      await apiDelete(`/api/sessions/${sessionId}`);
       router.push("/sessions");
       router.refresh();
     } catch (err) {

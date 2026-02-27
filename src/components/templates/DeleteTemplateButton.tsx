@@ -26,7 +26,7 @@ export function DeleteTemplateButton({ templateId, creatorId }: DeleteTemplateBu
     setDeleting(true);
     setError(null);
     try {
-      await apiDelete(`/api/templates/${templateId}?userId=${userId}`);
+      await apiDelete(`/api/templates/${templateId}`);
       router.push("/templates");
       router.refresh();
     } catch (err) {

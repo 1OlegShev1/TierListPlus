@@ -1,10 +1,9 @@
 import { NextResponse } from "next/server";
-import { badRequest, withHandler } from "@/lib/api-helpers";
+import { requireUserId, withHandler } from "@/lib/api-helpers";
 import { prisma } from "@/lib/prisma";
 
 export const GET = withHandler(async (request) => {
-  const userId = new URL(request.url).searchParams.get("userId");
-  if (!userId) badRequest("userId is required");
+  const userId = requireUserId(request);
 
   const [myTemplates, mySessions, participatedSessions] = await Promise.all([
     prisma.template.findMany({

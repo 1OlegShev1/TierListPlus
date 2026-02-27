@@ -20,8 +20,8 @@ export const POST = withHandler(async (request, { params }) => {
   await verifyParticipant(participantId, sessionId);
 
   // Verify matchup exists and item is valid
-  const matchup = await prisma.bracketMatchup.findUnique({
-    where: { id: matchupId },
+  const matchup = await prisma.bracketMatchup.findFirst({
+    where: { id: matchupId, bracket: { sessionId } },
   });
 
   if (!matchup) notFound("Matchup not found");

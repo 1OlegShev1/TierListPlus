@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import {
+  badRequest,
   requireOpenSession,
   validateBody,
   verifyParticipant,
@@ -29,6 +30,13 @@ export const POST = withHandler(async (request, { params }) => {
   const { participantId, votes } = data;
 
   await verifyParticipant(participantId, sessionId);
+  const uniqueItemIds = [...new Set(votes.map((vote) => vote.sessionItemId))];
+  const validItemCount = await prisma.sessionItem.count({
+    where: { sessionId, id: { in: uniqueItemIds } },
+  });
+  if (validItemCount !== uniqueItemIds.length) {
+    badRequest("One or more votes reference items outside this session");
+  }
 
   // Upsert all votes in a transaction
   const result = await prisma.$transaction(

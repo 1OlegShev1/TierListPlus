@@ -43,7 +43,7 @@ export function DashboardContent() {
       setLoading(false);
       return;
     }
-    apiFetch<DashboardData>(`/api/dashboard?userId=${userId}`)
+    apiFetch<DashboardData>("/api/dashboard")
       .then(setData)
       .finally(() => setLoading(false));
   }, [userId, userLoading]);

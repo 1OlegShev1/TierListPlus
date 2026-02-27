@@ -2,6 +2,7 @@ import { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 import type { z } from "zod/v4";
 import { prisma } from "@/lib/prisma";
+import { getUserIdFromSessionCookie } from "@/lib/user-session";
 
 /** Structured error for API routes. Thrown by helpers, caught by withHandler. */
 export class ApiError extends Error {
@@ -89,6 +90,20 @@ export function badRequest(message: string): never {
 /** Throw a 403 ApiError */
 export function forbidden(message = "Not authorized"): never {
   throw new ApiError(403, message);
+}
+
+/** Read the user identity from the signed session cookie. */
+export function getUserId(request: Request): string | null {
+  return getUserIdFromSessionCookie(request);
+}
+
+/** Require a user identity header, otherwise throw 401. */
+export function requireUserId(request: Request): string {
+  const userId = getUserId(request);
+  if (!userId) {
+    throw new ApiError(401, "User identity required");
+  }
+  return userId;
 }
 
 /** Verify the requesting user owns a resource. Throws 403 if not. */

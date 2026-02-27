@@ -1,5 +1,12 @@
 import { NextResponse } from "next/server";
-import { badRequest, notFound, requireOwner, validateBody, withHandler } from "@/lib/api-helpers";
+import {
+  badRequest,
+  getUserId,
+  notFound,
+  requireOwner,
+  validateBody,
+  withHandler,
+} from "@/lib/api-helpers";
 import { prisma } from "@/lib/prisma";
 import { updateTemplateSchema } from "@/lib/validators";
 
@@ -17,7 +24,7 @@ export const GET = withHandler(async (_request, { params }) => {
 
 export const PATCH = withHandler(async (request, { params }) => {
   const { templateId } = await params;
-  const userId = new URL(request.url).searchParams.get("userId");
+  const userId = getUserId(request);
 
   const existing = await prisma.template.findUnique({
     where: { id: templateId },
@@ -38,7 +45,7 @@ export const PATCH = withHandler(async (request, { params }) => {
 
 export const DELETE = withHandler(async (request, { params }) => {
   const { templateId } = await params;
-  const userId = new URL(request.url).searchParams.get("userId");
+  const userId = getUserId(request);
 
   const existing = await prisma.template.findUnique({
     where: { id: templateId },

@@ -14,6 +14,7 @@ interface TierRowProps {
   tierKey: string;
   label: string;
   color: string;
+  canEditTier: boolean;
   isFirst: boolean;
   isLast: boolean;
   canDelete: boolean;
@@ -30,6 +31,7 @@ export function TierRow({
   tierKey,
   label,
   color,
+  canEditTier,
   isFirst,
   isLast,
   canDelete,
@@ -85,6 +87,7 @@ export function TierRow({
         <TierColorPicker
           color={color}
           label={label}
+          canEdit={canEditTier}
           isFirst={isFirst}
           isLast={isLast}
           onColorChange={onColorChange}
@@ -114,10 +117,12 @@ export function TierRow({
             />
           ) : (
             <button
-              onClick={() => setEditingLabel(true)}
-              className="cursor-text text-xl font-bold hover:underline"
-              title="Click to edit label"
-              aria-label={`Edit ${label} tier label`}
+              onClick={() => {
+                if (canEditTier) setEditingLabel(true);
+              }}
+              className={`text-xl font-bold ${canEditTier ? "cursor-text hover:underline" : "cursor-default"}`}
+              title={canEditTier ? "Click to edit label" : undefined}
+              aria-label={canEditTier ? `Edit ${label} tier label` : `${label} tier`}
             >
               {label}
             </button>
@@ -160,38 +165,40 @@ export function TierRow({
         )}
 
         {/* Row edit controls (right side) */}
-        <div
-          className={`flex w-12 flex-shrink-0 flex-col items-center justify-center gap-1 border-l border-neutral-800 ${isFirst ? "rounded-tr-lg" : ""} ${isLast ? "rounded-br-lg" : ""}`}
-        >
-          <button
-            onClick={onMoveUp}
-            disabled={isFirst}
-            className="cursor-pointer p-1 text-neutral-500 hover:text-neutral-200 disabled:cursor-default disabled:opacity-30"
-            title="Move row up"
-            aria-label={`Move ${label} tier up`}
+        {canEditTier && (
+          <div
+            className={`flex w-12 flex-shrink-0 flex-col items-center justify-center gap-1 border-l border-neutral-800 ${isFirst ? "rounded-tr-lg" : ""} ${isLast ? "rounded-br-lg" : ""}`}
           >
-            <ChevronUpIcon className="h-4 w-4" />
-          </button>
+            <button
+              onClick={onMoveUp}
+              disabled={isFirst}
+              className="cursor-pointer p-1 text-neutral-500 hover:text-neutral-200 disabled:cursor-default disabled:opacity-30"
+              title="Move row up"
+              aria-label={`Move ${label} tier up`}
+            >
+              <ChevronUpIcon className="h-4 w-4" />
+            </button>
 
-          <TierRowActions
-            label={label}
-            canDelete={canDelete}
-            isLast={isLast}
-            onInsertAbove={onInsertAbove}
-            onInsertBelow={onInsertBelow}
-            onDelete={onDelete}
-          />
+            <TierRowActions
+              label={label}
+              canDelete={canDelete}
+              isLast={isLast}
+              onInsertAbove={onInsertAbove}
+              onInsertBelow={onInsertBelow}
+              onDelete={onDelete}
+            />
 
-          <button
-            onClick={onMoveDown}
-            disabled={isLast}
-            className="cursor-pointer p-1 text-neutral-500 hover:text-neutral-200 disabled:cursor-default disabled:opacity-30"
-            title="Move row down"
-            aria-label={`Move ${label} tier down`}
-          >
-            <ChevronDownIcon className="h-4 w-4" />
-          </button>
-        </div>
+            <button
+              onClick={onMoveDown}
+              disabled={isLast}
+              className="cursor-pointer p-1 text-neutral-500 hover:text-neutral-200 disabled:cursor-default disabled:opacity-30"
+              title="Move row down"
+              aria-label={`Move ${label} tier down`}
+            >
+              <ChevronDownIcon className="h-4 w-4" />
+            </button>
+          </div>
+        )}
       </div>
 
       {showBracket && (

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { validateBody, withHandler } from "@/lib/api-helpers";
+import { requireUserId, validateBody, withHandler } from "@/lib/api-helpers";
 import { prisma } from "@/lib/prisma";
 import { createTemplateSchema } from "@/lib/validators";
 
@@ -12,9 +12,10 @@ export const GET = withHandler(async () => {
 });
 
 export const POST = withHandler(async (request) => {
-  const { name, description, creatorId } = await validateBody(request, createTemplateSchema);
+  const { name, description } = await validateBody(request, createTemplateSchema);
+  const creatorId = requireUserId(request);
   const template = await prisma.template.create({
-    data: { name, description, creatorId: creatorId ?? undefined },
+    data: { name, description, creatorId },
   });
   return NextResponse.json(template, { status: 201 });
 });

@@ -11,7 +11,7 @@ import { useUser } from "@/hooks/useUser";
 
 function JoinSessionForm() {
   const router = useRouter();
-  const { userId } = useUser();
+  const { userId, isLoading: userLoading, error: userError, retry: retryUser } = useUser();
   const searchParams = useSearchParams();
   const codeFromUrl = searchParams.get("code") ?? "";
 
@@ -22,6 +22,10 @@ function JoinSessionForm() {
 
   const join = async () => {
     if (!joinCode.trim() || !nickname.trim()) return;
+    if (userLoading || !userId) {
+      setError("Preparing your device identity, please try again.");
+      return;
+    }
     setJoining(true);
     setError("");
 
@@ -32,7 +36,6 @@ function JoinSessionForm() {
         body: JSON.stringify({
           joinCode: joinCode.trim().toUpperCase(),
           nickname: nickname.trim(),
-          userId,
         }),
       });
 
@@ -90,11 +93,21 @@ function JoinSessionForm() {
           />
         </label>
 
-        {error && <ErrorMessage message={error} />}
+        {(userError || error) && (
+          <div className="space-y-2">
+            {userError && <ErrorMessage message={userError} />}
+            {error && <ErrorMessage message={error} />}
+            {userError && (
+              <Button variant="secondary" onClick={retryUser} className="w-full">
+                Retry Identity Setup
+              </Button>
+            )}
+          </div>
+        )}
 
         <Button
           onClick={join}
-          disabled={joining || !joinCode.trim() || !nickname.trim()}
+          disabled={joining || userLoading || !joinCode.trim() || !nickname.trim() || !userId}
           className="w-full py-3"
         >
           {joining ? "Joining..." : "Join Session"}

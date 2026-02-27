@@ -13,7 +13,7 @@ import type { TemplateSummary } from "@/types";
 
 export function NewSessionForm() {
   const router = useRouter();
-  const { userId } = useUser();
+  const { userId, isLoading: userLoading, error: userError, retry: retryUser } = useUser();
   const searchParams = useSearchParams();
   const preselectedTemplateId = searchParams.get("templateId");
 
@@ -32,7 +32,7 @@ export function NewSessionForm() {
   }, []);
 
   const create = async () => {
-    if (!templateId || !name.trim() || !nickname.trim()) return;
+    if (!templateId || !name.trim() || !nickname.trim() || userLoading || !userId) return;
     setCreating(true);
     setError("");
     try {
@@ -46,7 +46,6 @@ export function NewSessionForm() {
         name,
         nickname: nickname.trim(),
         bracketEnabled,
-        creatorId: userId,
       });
 
       saveParticipant(data.id, data.participantId, data.participantNickname);
@@ -122,12 +121,24 @@ export function NewSessionForm() {
           </div>
         </label>
 
-        {error && <ErrorMessage message={error} />}
+        {(userError || error) && (
+          <div className="space-y-2">
+            {userError && <ErrorMessage message={userError} />}
+            {error && <ErrorMessage message={error} />}
+            {userError && (
+              <Button variant="secondary" onClick={retryUser}>
+                Retry Identity Setup
+              </Button>
+            )}
+          </div>
+        )}
 
         <div className="flex gap-3">
           <Button
             onClick={create}
-            disabled={creating || !templateId || !name.trim() || !nickname.trim()}
+            disabled={
+              creating || userLoading || !userId || !templateId || !name.trim() || !nickname.trim()
+            }
           >
             {creating ? "Creating..." : "Create Session"}
           </Button>

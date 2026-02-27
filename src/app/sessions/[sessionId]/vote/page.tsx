@@ -8,17 +8,20 @@ import { ErrorMessage } from "@/components/ui/ErrorMessage";
 import { JoinCodeBanner } from "@/components/ui/JoinCodeBanner";
 import { Loading } from "@/components/ui/Loading";
 import { useParticipant } from "@/hooks/useParticipant";
+import { useUser } from "@/hooks/useUser";
 import { apiFetch, getErrorMessage } from "@/lib/api-client";
 import type { SessionData } from "@/types";
 
 export default function VotePage() {
   const { sessionId } = useParams<{ sessionId: string }>();
   const router = useRouter();
+  const { userId } = useUser();
   const { participantId, nickname } = useParticipant(sessionId);
   const [session, setSession] = useState<SessionData | null>(null);
   const [seededTiers, setSeededTiers] = useState<Record<string, string[]> | undefined>(undefined);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const canEditTierConfig = session?.creatorId === userId;
 
   useEffect(() => {
     if (!participantId) {
@@ -71,7 +74,11 @@ export default function VotePage() {
         </div>
         <p className="text-sm text-neutral-500">
           Voting as <span className="text-amber-400">{nickname}</span> &middot;{" "}
-          {seededTiers ? "Pre-filled from bracket — adjust as needed" : "Drag items into tiers"}
+          {canEditTierConfig
+            ? seededTiers
+              ? "Pre-filled from bracket — adjust as needed"
+              : "Drag items into tiers"
+            : "Drag items into tiers (tier setup locked by session owner)"}
         </p>
       </div>
 
@@ -81,6 +88,7 @@ export default function VotePage() {
         tierConfig={session.tierConfig}
         sessionItems={session.items}
         seededTiers={seededTiers}
+        canEditTierConfig={canEditTierConfig}
         onSubmitted={() => router.push(`/sessions/${sessionId}/results`)}
       />
     </div>

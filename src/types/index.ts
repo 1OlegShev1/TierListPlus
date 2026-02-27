@@ -42,6 +42,7 @@ export interface SessionData {
   name: string;
   joinCode: string;
   status: string;
+  creatorId: string | null;
   bracketEnabled: boolean;
   tierConfig: TierConfig[];
   items: Item[];
