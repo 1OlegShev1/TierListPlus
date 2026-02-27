@@ -245,7 +245,9 @@ function ResultsContent() {
       {!participantError && (
         <div
           aria-busy={participantLoading}
-          className="overflow-hidden rounded-lg border border-neutral-800"
+          className={`overflow-hidden rounded-lg border border-neutral-800 transition-[opacity,filter] duration-150 ease-out ${
+            participantLoading ? "opacity-90 saturate-75" : "opacity-100 saturate-100"
+          }`}
         >
           {displayTiers.map((tier) => (
             <div

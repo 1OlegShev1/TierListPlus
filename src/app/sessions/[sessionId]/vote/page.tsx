@@ -1,10 +1,11 @@
 "use client";
 
+import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { DeleteSessionButton } from "@/components/sessions/DeleteSessionButton";
 import { TierListBoard } from "@/components/tierlist/TierListBoard";
-import { Button } from "@/components/ui/Button";
+import { Button, buttonVariants } from "@/components/ui/Button";
 import { ErrorMessage } from "@/components/ui/ErrorMessage";
 import { JoinCodeBanner } from "@/components/ui/JoinCodeBanner";
 import { Loading } from "@/components/ui/Loading";
@@ -146,6 +147,11 @@ export default function VotePage() {
               ? "Use bracket assist to seed rankings, then adjust"
               : "Bracket assist available, then drag items into tiers (tier setup locked by session owner)"}
           </p>
+          <div className="mt-1 flex justify-end gap-2">
+            <Link href={`/sessions/${sessionId}/results`} className={buttonVariants.secondary}>
+              View Results
+            </Link>
+          </div>
           {isOwner && (
             <div className="mt-1 flex justify-end gap-2">
               <button

@@ -97,6 +97,7 @@ export interface TemplateItemData {
 
 /** Session result summary for the results page */
 export interface SessionResult {
+  status: string;
   name: string;
   tierConfig: TierConfig[];
   participants: {

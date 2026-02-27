@@ -12,6 +12,8 @@ export default async function SessionPage({ params }: { params: Promise<{ sessio
     where: { id: sessionId },
     select: {
       id: true,
+      joinCode: true,
+      status: true,
       creatorId: true,
       isPrivate: true,
     },
@@ -26,5 +28,13 @@ export default async function SessionPage({ params }: { params: Promise<{ sessio
     : false;
   if (session.isPrivate && !isOwner && !isParticipant) notFound();
 
-  redirect(`/sessions/${sessionId}/vote`);
+  if (session.status !== "OPEN") {
+    redirect(`/sessions/${sessionId}/results`);
+  }
+
+  if (isParticipant) {
+    redirect(`/sessions/${sessionId}/vote`);
+  }
+
+  redirect(`/sessions/join?code=${encodeURIComponent(session.joinCode)}`);
 }

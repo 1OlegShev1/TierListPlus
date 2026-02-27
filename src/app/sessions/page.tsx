@@ -48,11 +48,11 @@ export default async function SessionsPage() {
       ) : (
         <div className="space-y-3">
           {sessions.map((session) => (
-            <div key={session.id} className="flex items-center gap-3">
-              <Link
-                href={`/sessions/${session.id}`}
-                className="flex min-w-0 flex-1 items-center justify-between rounded-xl border border-neutral-800 bg-neutral-900 p-4 transition-colors hover:border-neutral-600"
-              >
+            <div
+              key={session.id}
+              className="flex items-center gap-3 rounded-xl border border-neutral-800 bg-neutral-900 p-4 transition-colors hover:border-neutral-600"
+            >
+              <Link href={`/sessions/${session.id}`} className="min-w-0 flex-1">
                 <div className="min-w-0">
                   <h3 className="truncate font-medium">{session.name}</h3>
                   <p className="text-sm text-neutral-500">
@@ -60,9 +60,14 @@ export default async function SessionsPage() {
                     &middot; {formatDate(session.createdAt)}
                   </p>
                 </div>
-                <StatusBadge status={session.status} />
               </Link>
-              <DeleteSessionButton sessionId={session.id} creatorId={session.creatorId} />
+              <div className="flex items-center gap-2">
+                <StatusBadge status={session.status} />
+                <Link href={`/sessions/${session.id}/results`} className={buttonVariants.secondary}>
+                  Results
+                </Link>
+                <DeleteSessionButton sessionId={session.id} creatorId={session.creatorId} />
+              </div>
             </div>
           ))}
         </div>
