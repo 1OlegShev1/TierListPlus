@@ -15,7 +15,7 @@ Deploy flow runs database migrations once per release before starting `app`.
 
 ```bash
 apt update && apt upgrade -y
-apt install -y ca-certificates curl git openssl rsync ufw fail2ban unattended-upgrades
+apt install -y ca-certificates curl openssl rsync ufw fail2ban unattended-upgrades
 curl -fsSL https://get.docker.com | sh
 docker --version
 docker compose version
@@ -103,6 +103,8 @@ sshd -t
 systemctl reload ssh
 ```
 
+This project currently uses passwordless `sudo` for `tieradmin` so the deploy and monitoring scripts can run non-interactively. Treat that as an operational convenience, not a final hardening state.
+
 10. Enable `fail2ban` for SSH:
 
 ```bash
@@ -172,6 +174,8 @@ Inspect the latest result:
 ```bash
 ssh tieradmin@46.62.140.254 "sudo systemctl --no-pager --full status tierlistplus-healthcheck.service"
 ssh tieradmin@46.62.140.254 "sudo journalctl -u tierlistplus-healthcheck.service -n 50 --no-pager"
+ssh tieradmin@46.62.140.254 "sudo journalctl -u tierlistplus-healthcheck.service -f"
+ssh tieradmin@46.62.140.254 "sudo systemctl list-timers tierlistplus-healthcheck.timer --all"
 ```
 
 ## Backup database
@@ -184,6 +188,10 @@ ssh tieradmin@46.62.140.254 "sudo sh -lc 'cd /opt/tierlistplus && docker compose
 
 Planned follow-up work for the production environment:
 - add automated off-box backups to the future Ubuntu mini PC for PostgreSQL dumps and uploaded files
+- add scheduled restore drills so backups are verified instead of assumed
 - connect the VPS, admin laptop, and mini PC over a private network such as Tailscale or WireGuard
 - restrict Hetzner Cloud SSH access to trusted sources after the private admin path is in place
+- replace blanket `NOPASSWD:ALL` with command-scoped sudoers entries or a root-owned deploy wrapper
+- extend container hardening further where practical (for example, evaluate additional PostgreSQL restrictions and Docker daemon defaults)
+- replace the `curl | sh` Docker bootstrap step with a pinned package-repository install path
 - expand monitoring with external uptime alerts, disk-pressure alerts, and certificate expiry alerts
