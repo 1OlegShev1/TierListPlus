@@ -11,7 +11,8 @@ npm-debug.log*
 CLAUDE.md
 docs
 deploy
-scripts
+scripts/*
+!scripts/cleanup-orphan-uploads.mjs
 docker-compose*.yml
 README.md
 public/uploads/*
