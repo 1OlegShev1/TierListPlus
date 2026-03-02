@@ -30,6 +30,8 @@ export function useUser() {
       })
       .catch(() => {
         if (!cancelled) {
+          setUserId(null);
+          setDeviceId(null);
           setError("Could not initialize your device identity. Please retry.");
           setIsLoading(false);
         }
