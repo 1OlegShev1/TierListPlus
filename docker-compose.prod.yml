@@ -18,6 +18,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    init: true
     restart: unless-stopped
     depends_on:
       db:
@@ -28,6 +29,8 @@ services:
       SESSION_SECRET: ${SESSION_SECRET}
     volumes:
       - uploads_data:/app/public/uploads
+    tmpfs:
+      - /tmp:rw,nosuid,nodev,size=64m
     healthcheck:
       test:
         [
