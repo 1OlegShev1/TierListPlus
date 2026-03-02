@@ -30,8 +30,13 @@ export function DraggableItem({ id, label, imageUrl, overlay }: DraggableItemPro
       style={style}
       {...(overlay ? {} : attributes)}
       {...(overlay ? {} : listeners)}
-      className={`group relative h-[62px] w-[62px] select-none flex-shrink-0 cursor-grab overflow-hidden rounded-md border border-neutral-700 active:cursor-grabbing sm:h-[70px] sm:w-[70px] md:h-[78px] md:w-[78px] lg:h-[96px] lg:w-[96px] ${
-        overlay ? "shadow-xl shadow-black/50 ring-2 ring-amber-400" : ""
+      onContextMenu={overlay ? undefined : (e) => e.preventDefault()}
+      className={`group relative h-[62px] w-[62px] select-none flex-shrink-0 cursor-grab overflow-hidden rounded-md border touch-manipulation [-webkit-touch-callout:none] active:cursor-grabbing sm:h-[70px] sm:w-[70px] md:h-[78px] md:w-[78px] lg:h-[96px] lg:w-[96px] ${
+        overlay
+          ? "shadow-xl shadow-black/50 ring-2 ring-amber-400"
+          : isDragging
+            ? "border-amber-400 ring-2 ring-amber-400/50"
+            : "border-neutral-700"
       }`}
     >
       <img src={imageUrl} alt={label} className="h-full w-full object-cover" draggable={false} />

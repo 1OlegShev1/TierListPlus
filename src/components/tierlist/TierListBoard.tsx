@@ -8,7 +8,7 @@ import {
   DragOverlay,
   type DragStartEvent,
   KeyboardSensor,
-  PointerSensor,
+  MouseSensor,
   pointerWithin,
   rectIntersection,
   TouchSensor,
@@ -141,7 +141,6 @@ export function TierListBoard({
   const [draftRestored, setDraftRestored] = useState(false);
   const [bracketSeeded, setBracketSeeded] = useState(false);
   const [showSessionBracket, setShowSessionBracket] = useState(false);
-  const [isTouchInput, setIsTouchInput] = useState(false);
 
   // ---- FLIP refs ----
   const containerRef = useRef<HTMLDivElement>(null);
@@ -374,27 +373,31 @@ export function TierListBoard({
   );
 
   // ---- Drag and drop ----
+  // MouseSensor for desktop (mouse events only — never fires on touch).
+  // TouchSensor for mobile (touch events — can call preventDefault on
+  //   touchmove to stop scrolling after activation, unlike PointerSensor).
+  // Items use touch-action:manipulation so native scroll works during the
+  // delay period; once the 200ms hold activates, TouchSensor prevents scroll.
 
-  useEffect(() => {
-    const coarseMedia = window.matchMedia("(hover: none) and (pointer: coarse)");
-    const update = () => {
-      const hasTouch = navigator.maxTouchPoints > 0;
-      setIsTouchInput(coarseMedia.matches || hasTouch);
-    };
-    update();
-    coarseMedia.addEventListener("change", update);
-    return () => coarseMedia.removeEventListener("change", update);
-  }, []);
-
-  const pointerSensor = useSensor(PointerSensor, { activationConstraint: { distance: 8 } });
+  const mouseSensor = useSensor(MouseSensor, { activationConstraint: { distance: 5 } });
   const touchSensor = useSensor(TouchSensor, {
-    activationConstraint: {
-      delay: 170,
-      tolerance: 16,
-    },
+    activationConstraint: { delay: 200, tolerance: 8 },
   });
   const keyboardSensor = useSensor(KeyboardSensor);
-  const sensors = useSensors(isTouchInput ? touchSensor : pointerSensor, keyboardSensor);
+  const sensors = useSensors(mouseSensor, touchSensor, keyboardSensor);
+
+  // Suppress window resize (mobile address bar show/hide) from canceling
+  // an active drag — dnd-kit calls handleCancel on every resize event.
+  // See: https://github.com/clauderic/dnd-kit/issues/686
+  const activeIdRef = useRef(activeId);
+  activeIdRef.current = activeId;
+  useEffect(() => {
+    const suppress = (e: Event) => {
+      if (activeIdRef.current) e.stopImmediatePropagation();
+    };
+    window.addEventListener("resize", suppress, true);
+    return () => window.removeEventListener("resize", suppress, true);
+  }, []);
 
   const collisionDetection: CollisionDetection = useCallback((args) => {
     const pointerCollisions = pointerWithin(args);
