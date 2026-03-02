@@ -33,7 +33,7 @@ export const GET = withHandler(async (request) => {
           isPrivate: false,
         },
     include: {
-      template: { select: { name: true } },
+      template: { select: { name: true, isHidden: true } },
       _count: { select: { participants: true } },
     },
     orderBy: { createdAt: "desc" },
@@ -47,17 +47,56 @@ export const POST = withHandler(async (request) => {
   const { userId: creatorId } = await requireRequestAuth(request);
   const { templateId, name, tierConfig, isPrivate, nickname } = data;
 
-  // Verify template exists and get its items
-  const template = await prisma.template.findUnique({
-    where: { id: templateId },
-    include: { items: { orderBy: { sortOrder: "asc" } } },
-  });
+  let sourceTemplate: {
+    id: string;
+    name: string;
+    description: string | null;
+    creatorId: string | null;
+    isPublic: boolean;
+    isHidden: boolean;
+    items: {
+      id: string;
+      label: string;
+      imageUrl: string;
+      sortOrder: number;
+    }[];
+  } | null = null;
 
-  if (!template) notFound("Template not found");
-  if (!canAccessTemplate(template, creatorId)) {
-    notFound("Template not found");
+  if (templateId) {
+    sourceTemplate = await prisma.template.findUnique({
+      where: { id: templateId },
+      include: { items: { orderBy: { sortOrder: "asc" } } },
+    });
+
+    if (!sourceTemplate) notFound("Template not found");
+    if (!canAccessTemplate(sourceTemplate, creatorId)) {
+      notFound("Template not found");
+    }
   }
-  if (template.items.length === 0) badRequest("Template has no items");
+
+  const workingTemplate = await prisma.template.create({
+    data: {
+      name: sourceTemplate?.name ?? name,
+      description: sourceTemplate?.description ?? null,
+      creatorId,
+      isPublic: false,
+      isHidden: true,
+      ...(sourceTemplate
+        ? {
+            items: {
+              create: sourceTemplate.items.map((item) => ({
+                label: item.label,
+                imageUrl: item.imageUrl,
+                sortOrder: item.sortOrder,
+              })),
+            },
+          }
+        : {}),
+    },
+    include: {
+      items: { orderBy: { sortOrder: "asc" } },
+    },
+  });
 
   // Retry with a fresh join code on the rare chance of a collision
   const session = await (async () => {
@@ -66,14 +105,15 @@ export const POST = withHandler(async (request) => {
         return await prisma.session.create({
           data: {
             name,
-            templateId,
+            templateId: workingTemplate.id,
+            sourceTemplateId: sourceTemplate?.id ?? null,
             joinCode: generateJoinCode(),
             creatorId,
             tierConfig: JSON.parse(JSON.stringify(tierConfig ?? DEFAULT_TIER_CONFIG)),
             bracketEnabled: true,
             isPrivate: isPrivate ?? true,
             items: {
-              create: template.items.map((item) => ({
+              create: workingTemplate.items.map((item) => ({
                 templateItemId: item.id,
                 label: item.label,
                 imageUrl: item.imageUrl,

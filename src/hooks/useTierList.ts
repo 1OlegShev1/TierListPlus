@@ -22,6 +22,8 @@ interface TierListState {
   reorderTier: (tierKey: string, orderedIds: string[]) => void;
   addTier: (key: string) => void;
   removeTier: (key: string) => void;
+  appendItem: (item: Item) => void;
+  removeItem: (itemId: string) => void;
   getVotes: () => VotePayload[];
 }
 
@@ -163,6 +165,40 @@ export const useTierListStore = create<TierListState>((set, get) => ({
       return {
         tiers: remainingTiers,
         unranked: [...state.unranked, ...(removedItems ?? [])],
+      };
+    });
+  },
+
+  appendItem: (item) => {
+    set((state) => {
+      const items = new Map(state.items);
+      items.set(item.id, item);
+
+      if (state.unranked.includes(item.id) || state.findContainer(item.id)) {
+        return { items };
+      }
+
+      return {
+        items,
+        unranked: [...state.unranked, item.id],
+      };
+    });
+  },
+
+  removeItem: (itemId) => {
+    set((state) => {
+      const items = new Map(state.items);
+      items.delete(itemId);
+
+      const tiers = Object.fromEntries(
+        Object.entries(state.tiers).map(([key, ids]) => [key, ids.filter((id) => id !== itemId)]),
+      );
+
+      return {
+        items,
+        tiers,
+        unranked: state.unranked.filter((id) => id !== itemId),
+        activeId: state.activeId === itemId ? null : state.activeId,
       };
     });
   },

@@ -11,6 +11,8 @@ import { useUser } from "@/hooks/useUser";
 import { apiFetch, apiPost, getErrorMessage } from "@/lib/api-client";
 import type { TemplateSummary } from "@/types";
 
+const BLANK_SESSION_VALUE = "__blank__";
+
 export function NewSessionForm() {
   const router = useRouter();
   const { userId, isLoading: userLoading, error: userError, retry: retryUser } = useUser();
@@ -18,7 +20,7 @@ export function NewSessionForm() {
   const preselectedTemplateId = searchParams.get("templateId");
 
   const [templates, setTemplates] = useState<TemplateSummary[]>([]);
-  const [templateId, setTemplateId] = useState(preselectedTemplateId ?? "");
+  const [templateChoice, setTemplateChoice] = useState(preselectedTemplateId ?? "");
   const [name, setName] = useState("");
   const [nickname, setNickname] = useState("");
   const [isPrivate, setIsPrivate] = useState(true);
@@ -32,7 +34,7 @@ export function NewSessionForm() {
   }, []);
 
   const create = async () => {
-    if (!templateId || !name.trim() || !nickname.trim() || userLoading || !userId) return;
+    if (!templateChoice || !name.trim() || !nickname.trim() || userLoading || !userId) return;
     setCreating(true);
     setError("");
     try {
@@ -41,7 +43,7 @@ export function NewSessionForm() {
         participantId: string;
         participantNickname: string;
       }>("/api/sessions", {
-        templateId,
+        ...(templateChoice === BLANK_SESSION_VALUE ? {} : { templateId: templateChoice }),
         name,
         nickname: nickname.trim(),
         isPrivate,
@@ -64,11 +66,12 @@ export function NewSessionForm() {
         <label className="block">
           <span className="mb-2 block text-sm font-medium text-neutral-400">Template</span>
           <Select
-            value={templateId}
-            onChange={(e) => setTemplateId(e.target.value)}
+            value={templateChoice}
+            onChange={(e) => setTemplateChoice(e.target.value)}
             className="w-full"
           >
-            <option value="">Select a template...</option>
+            <option value="">Choose how to start...</option>
+            <option value={BLANK_SESSION_VALUE}>Start blank (add items live)</option>
             {templates.map((t) => (
               <option key={t.id} value={t.id}>
                 {t.name} ({t._count.items} items{t.isPublic ? "" : ", private to you"})
@@ -131,7 +134,12 @@ export function NewSessionForm() {
           <Button
             onClick={create}
             disabled={
-              creating || userLoading || !userId || !templateId || !name.trim() || !nickname.trim()
+              creating ||
+              userLoading ||
+              !userId ||
+              !templateChoice ||
+              !name.trim() ||
+              !nickname.trim()
             }
           >
             {creating ? "Creating..." : "Create Session"}

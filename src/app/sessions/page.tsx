@@ -11,6 +11,12 @@ import { formatDate } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
+function getSessionMeta(template: { name: string; isHidden: boolean }, participantCount: number) {
+  return template.isHidden
+    ? `${participantCount} participants`
+    : `${template.name} · ${participantCount} participants`;
+}
+
 export default async function SessionsPage() {
   const cookieStore = await cookies();
   const auth = await getCookieAuth(cookieStore);
@@ -23,7 +29,7 @@ export default async function SessionsPage() {
         }
       : { isPrivate: false },
     include: {
-      template: { select: { name: true } },
+      template: { select: { name: true, isHidden: true } },
       _count: { select: { participants: true } },
     },
     orderBy: { createdAt: "desc" },
@@ -56,8 +62,8 @@ export default async function SessionsPage() {
                 <div className="min-w-0">
                   <h3 className="truncate font-medium">{session.name}</h3>
                   <p className="text-sm text-neutral-500">
-                    {session.template.name} &middot; {session._count.participants} participants
-                    &middot; {formatDate(session.createdAt)}
+                    {getSessionMeta(session.template, session._count.participants)} &middot;{" "}
+                    {formatDate(session.createdAt)}
                   </p>
                 </div>
               </Link>

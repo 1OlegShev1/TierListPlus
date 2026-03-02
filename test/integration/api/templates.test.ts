@@ -37,7 +37,7 @@ describe("templates route", () => {
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual([expect.objectContaining({ isPublic: true })]);
     expect(mocks.prisma.template.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { isPublic: true } }),
+      expect.objectContaining({ where: { isPublic: true, isHidden: false } }),
     );
   });
 

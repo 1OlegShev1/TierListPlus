@@ -208,9 +208,10 @@ function ResultsContent() {
   if (loading) return <Loading message="Loading results..." />;
   if (error) return <ErrorMessage message={error} />;
 
-  const submittedParticipants = session?.participants.filter((p) => p.hasSubmitted) ?? [];
-  const totalParticipants = submittedParticipants.length;
-  const selectedParticipant = submittedParticipants.find((p) => p.id === participantId) ?? null;
+  const participantsWithSavedVotes = session?.participants.filter((p) => p.hasSavedVotes) ?? [];
+  const totalParticipants = participantsWithSavedVotes.length;
+  const selectedParticipant =
+    participantsWithSavedVotes.find((p) => p.id === participantId) ?? null;
   const currentParticipantId = session?.currentParticipantId ?? null;
   const isIndividualView = !!participantId;
   const displayTiers = participantTiers ?? consensusTiers;
@@ -277,7 +278,7 @@ function ResultsContent() {
             >
               {consensusLabel}
             </Link>
-            {submittedParticipants.map((p) => (
+            {participantsWithSavedVotes.map((p) => (
               <Link
                 key={p.id}
                 href={`/sessions/${sessionId}/results?participant=${p.id}`}
@@ -288,6 +289,7 @@ function ResultsContent() {
                 }`}
               >
                 {p.nickname}
+                {!p.isComplete && p.missingItemCount > 0 ? ` (${p.missingItemCount} missing)` : ""}
               </Link>
             ))}
           </div>

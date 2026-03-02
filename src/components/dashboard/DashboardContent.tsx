@@ -22,7 +22,7 @@ interface SessionSummary {
   name: string;
   status: string;
   createdAt: string;
-  template: { name: string };
+  template: { name: string; isHidden: boolean };
   _count: { participants: number };
 }
 
@@ -130,10 +130,14 @@ function SessionRow({
     name: string;
     status: string;
     createdAt: string;
-    template: { name: string };
+    template: { name: string; isHidden: boolean };
     _count: { participants: number };
   };
 }) {
+  const sessionMeta = session.template.isHidden
+    ? `${session._count.participants} participants`
+    : `${session.template.name} · ${session._count.participants} participants`;
+
   return (
     <Link
       href={`/sessions/${session.id}`}
@@ -142,8 +146,7 @@ function SessionRow({
       <div>
         <h3 className="font-medium">{session.name}</h3>
         <p className="text-sm text-neutral-500">
-          {session.template.name} &middot; {session._count.participants} participants &middot;{" "}
-          {formatDate(session.createdAt)}
+          {sessionMeta} &middot; {formatDate(session.createdAt)}
         </p>
       </div>
       <StatusBadge status={session.status} />

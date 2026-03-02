@@ -4,7 +4,7 @@ import { renderHook } from "@testing-library/react";
 import { clearAllParticipants, saveParticipant, useParticipant } from "@/hooks/useParticipant";
 
 const { getLocalUserId } = vi.hoisted(() => ({
-  getLocalUserId: vi.fn(() => "user_1"),
+  getLocalUserId: vi.fn<() => string | null>(() => "user_1"),
 }));
 
 vi.mock("@/lib/device-identity", () => ({

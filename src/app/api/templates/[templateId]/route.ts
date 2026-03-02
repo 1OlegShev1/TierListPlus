@@ -30,9 +30,10 @@ export const PATCH = withHandler(async (request, { params }) => {
 
   const existing = await prisma.template.findUnique({
     where: { id: templateId },
-    select: { id: true, creatorId: true },
+    select: { id: true, creatorId: true, isHidden: true },
   });
   if (!existing) notFound("Template not found");
+  if (existing.isHidden) notFound("Template not found");
   requireOwner(existing.creatorId, userId);
 
   const data = await validateBody(request, updateTemplateSchema);
@@ -55,11 +56,13 @@ export const DELETE = withHandler(async (request, { params }) => {
     select: {
       id: true,
       creatorId: true,
+      isHidden: true,
       items: { select: { imageUrl: true } },
       _count: { select: { sessions: true } },
     },
   });
   if (!existing) notFound("Template not found");
+  if (existing.isHidden) notFound("Template not found");
   requireOwner(existing.creatorId, userId);
 
   if (existing._count.sessions > 0) {

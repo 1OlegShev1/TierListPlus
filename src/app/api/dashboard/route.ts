@@ -8,14 +8,14 @@ export const GET = withHandler(async (request) => {
 
   const [myTemplates, mySessions, participatedSessions] = await Promise.all([
     prisma.template.findMany({
-      where: { creatorId: userId },
+      where: { creatorId: userId, isHidden: false },
       include: { _count: { select: { items: true } } },
       orderBy: { createdAt: "desc" },
     }),
     prisma.session.findMany({
       where: { creatorId: userId },
       include: {
-        template: { select: { name: true } },
+        template: { select: { name: true, isHidden: true } },
         _count: { select: { participants: true } },
       },
       orderBy: { createdAt: "desc" },
@@ -26,7 +26,7 @@ export const GET = withHandler(async (request) => {
         NOT: { creatorId: userId },
       },
       include: {
-        template: { select: { name: true } },
+        template: { select: { name: true, isHidden: true } },
         _count: { select: { participants: true } },
       },
       orderBy: { createdAt: "desc" },

@@ -82,6 +82,12 @@ describe("session detail route", () => {
         { imageUrl: "/one.webp" },
         { imageUrl: "/two.webp" },
       ],
+      template: {
+        id: "template_1",
+        isHidden: false,
+        items: [],
+        _count: { sessions: 1 },
+      },
     });
     response = await DELETE(new Request("https://example.test", { method: "DELETE" }), routeCtx({ sessionId: "s1" }));
     expect(response.status).toBe(204);

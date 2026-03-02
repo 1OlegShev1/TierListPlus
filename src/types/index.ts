@@ -43,9 +43,11 @@ export interface SessionData {
   joinCode: string;
   status: string;
   creatorId: string | null;
+  sourceTemplateId: string | null;
   isPrivate: boolean;
   isLocked: boolean;
   bracketEnabled: boolean;
+  templateIsHidden: boolean;
   tierConfig: TierConfig[];
   items: Item[];
   currentParticipantId: string | null;
@@ -88,5 +90,10 @@ export interface SessionResult {
     nickname: string;
     submittedAt: string | null;
     hasSubmitted: boolean;
+    hasSavedVotes: boolean;
+    rankedItemCount: number;
+    totalItemCount: number;
+    missingItemCount: number;
+    isComplete: boolean;
   }[];
 }

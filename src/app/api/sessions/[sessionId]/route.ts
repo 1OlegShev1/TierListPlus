@@ -16,7 +16,7 @@ export const GET = withHandler(async (request, { params }) => {
   const session = await prisma.session.findUnique({
     where: { id: sessionId },
     include: {
-      template: { select: { name: true } },
+      template: { select: { name: true, isHidden: true } },
       items: { orderBy: { sortOrder: "asc" } },
       participants: {
         orderBy: { createdAt: "asc" },
@@ -31,14 +31,22 @@ export const GET = withHandler(async (request, { params }) => {
   const currentParticipant = requestUserId
     ? (session.participants.find((participant) => participant.userId === requestUserId) ?? null)
     : null;
+  const totalItemCount = session.items.length;
   const participants = session.participants.map(({ _count, ...participant }) => ({
     ...participant,
-    hasSubmitted: !!participant.submittedAt || _count.tierVotes > 0,
+    hasSubmitted: _count.tierVotes > 0,
+    hasSavedVotes: _count.tierVotes > 0,
+    rankedItemCount: _count.tierVotes,
+    totalItemCount,
+    missingItemCount: Math.max(0, totalItemCount - _count.tierVotes),
+    isComplete: totalItemCount > 0 && _count.tierVotes >= totalItemCount,
   }));
 
   return NextResponse.json({
     ...session,
     participants,
+    sourceTemplateId: session.sourceTemplateId,
+    templateIsHidden: session.template.isHidden,
     currentParticipantId: currentParticipant?.id ?? null,
     currentParticipantNickname: currentParticipant?.nickname ?? null,
   });
@@ -69,15 +77,40 @@ export const DELETE = withHandler(async (request, { params }) => {
 
   const session = await prisma.session.findUnique({
     where: { id: sessionId },
-    select: { items: { select: { imageUrl: true } } },
+    select: {
+      items: { select: { imageUrl: true } },
+      template: {
+        select: {
+          id: true,
+          isHidden: true,
+          items: { select: { imageUrl: true } },
+          _count: { select: { sessions: true } },
+        },
+      },
+    },
   });
   if (!session) notFound("Session not found");
 
   await prisma.session.delete({ where: { id: sessionId } });
-  const imageUrls = new Set(session.items.map((item) => item.imageUrl));
+
+  const shouldDeleteWorkingTemplate =
+    session.template.isHidden && session.template._count.sessions <= 1;
+
+  if (shouldDeleteWorkingTemplate) {
+    await prisma.template.delete({ where: { id: session.template.id } });
+  }
+
+  const imageUrls = new Set(
+    shouldDeleteWorkingTemplate
+      ? [...session.items, ...session.template.items].map((item) => item.imageUrl)
+      : session.items.map((item) => item.imageUrl),
+  );
   await Promise.all(
     [...imageUrls].map((imageUrl) =>
-      tryDeleteManagedUploadIfUnreferenced(imageUrl, "session delete"),
+      tryDeleteManagedUploadIfUnreferenced(
+        imageUrl,
+        shouldDeleteWorkingTemplate ? "session + working template delete" : "session delete",
+      ),
     ),
   );
   return new Response(null, { status: 204 });

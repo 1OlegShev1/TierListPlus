@@ -6,6 +6,7 @@ const mocks = vi.hoisted(() => ({
     },
     template: {
       findUnique: vi.fn(),
+      create: vi.fn(),
     },
     participant: {
       create: vi.fn(),
@@ -34,6 +35,7 @@ describe("sessions collection route", () => {
     mocks.prisma.session.findMany.mockReset();
     mocks.prisma.session.create.mockReset();
     mocks.prisma.template.findUnique.mockReset();
+    mocks.prisma.template.create.mockReset();
     mocks.prisma.participant.create.mockReset();
     mocks.getRequestAuth.mockReset().mockResolvedValue(null);
     mocks.requireRequestAuth.mockReset().mockResolvedValue({ userId: "user_1" });
@@ -84,7 +86,7 @@ describe("sessions collection route", () => {
     );
   });
 
-  it("rejects missing, inaccessible, and empty templates", async () => {
+  it("rejects missing and inaccessible templates, but allows empty ones", async () => {
     let response = await POST(
       jsonRequest("POST", "https://example.test", { templateId: "t1", name: "Session" }),
       { params: Promise.resolve({}) },
@@ -98,6 +100,8 @@ describe("sessions collection route", () => {
     );
     expect(response.status).toBe(404);
 
+    mocks.prisma.template.create.mockResolvedValueOnce(makeTemplate({ items: [] }));
+    mocks.prisma.session.create.mockResolvedValueOnce(makeSession({ items: [] }));
     mocks.prisma.template.findUnique.mockResolvedValue(
       makeTemplate({ creatorId: "user_1", items: [] }),
     );
@@ -105,14 +109,20 @@ describe("sessions collection route", () => {
       jsonRequest("POST", "https://example.test", { templateId: "t1", name: "Session" }),
       { params: Promise.resolve({}) },
     );
-    expect(response.status).toBe(400);
-    await expect(response.json()).resolves.toEqual({ error: "Template has no items" });
+    expect(response.status).toBe(201);
   });
 
   it("retries join code collisions, defaults to private, and auto-joins with nickname", async () => {
     mocks.prisma.template.findUnique.mockResolvedValue(
       makeTemplate({
         creatorId: "user_1",
+        items: [makeSessionItem({ id: "i1" }), makeSessionItem({ id: "i2", sortOrder: 1 })],
+      }),
+    );
+    mocks.prisma.template.create.mockResolvedValue(
+      makeTemplate({
+        id: "working_template_1",
+        isHidden: true,
         items: [makeSessionItem({ id: "i1" }), makeSessionItem({ id: "i2", sortOrder: 1 })],
       }),
     );
@@ -142,5 +152,6 @@ describe("sessions collection route", () => {
       }),
     );
     expect(mocks.prisma.session.create).toHaveBeenCalledTimes(2);
+    expect(mocks.prisma.template.create).toHaveBeenCalledTimes(1);
   });
 });

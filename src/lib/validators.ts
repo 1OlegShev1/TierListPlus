@@ -18,6 +18,8 @@ export const addTemplateItemSchema = z.object({
   sortOrder: z.number().int().min(0).optional(),
 });
 
+export const addSessionItemSchema = addTemplateItemSchema;
+
 export const updateTemplateItemSchema = z.object({
   label: z.string().max(100).optional(),
   imageUrl: z.string().min(1).optional(),
@@ -34,7 +36,7 @@ export const tierConfigSchema = z.array(
 );
 
 export const createSessionSchema = z.object({
-  templateId: z.string().min(1),
+  templateId: z.string().min(1).optional(),
   name: z.string().min(1).max(100),
   tierConfig: tierConfigSchema.optional(),
   isPrivate: z.boolean().optional(),

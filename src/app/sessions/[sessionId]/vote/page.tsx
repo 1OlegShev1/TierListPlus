@@ -207,6 +207,8 @@ export default function VotePage() {
         sessionItems={session.items}
         seededTiers={seededTiers}
         canEditTierConfig={canEditTierConfig}
+        canSaveTemplate={!!userId}
+        templateIsHidden={session.templateIsHidden}
         onSubmitted={() => router.push(`/sessions/${sessionId}/results`)}
       />
     </div>

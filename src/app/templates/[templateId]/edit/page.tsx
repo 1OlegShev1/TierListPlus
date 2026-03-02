@@ -18,7 +18,7 @@ export default async function EditTemplatePage({
     include: { items: { orderBy: { sortOrder: "asc" } } },
   });
 
-  if (!template || !userId || template.creatorId !== userId) notFound();
+  if (!template || template.isHidden || !userId || template.creatorId !== userId) notFound();
 
   return (
     <div>

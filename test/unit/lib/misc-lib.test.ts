@@ -23,13 +23,17 @@ import { makeKnownRequestError, makeParticipant } from "../../helpers/mocks";
 
 describe("template helpers and constants", () => {
   it("handles visibility and ownership checks", () => {
-    expect(getTemplateVisibilityWhere(null)).toEqual({ isPublic: true });
+    expect(getTemplateVisibilityWhere(null)).toEqual({ isPublic: true, isHidden: false });
     expect(getTemplateVisibilityWhere("user_1")).toEqual({
+      isHidden: false,
       OR: [{ isPublic: true }, { creatorId: "user_1" }],
     });
     expect(isTemplateOwner({ creatorId: "user_1" }, "user_1")).toBe(true);
     expect(canAccessTemplate({ creatorId: "user_2", isPublic: true }, null)).toBe(true);
     expect(canAccessTemplate({ creatorId: "user_1", isPublic: false }, "user_1")).toBe(true);
+    expect(canAccessTemplate({ creatorId: "user_1", isPublic: true, isHidden: true }, "user_1")).toBe(
+      false,
+    );
     expect(DEFAULT_TIER_CONFIG).toHaveLength(5);
   });
 

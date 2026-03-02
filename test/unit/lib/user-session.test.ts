@@ -43,15 +43,19 @@ describe("user-session", () => {
   });
 
   it("throws in production when no session secret is present", async () => {
-    process.env.NODE_ENV = "production";
-    delete process.env.SESSION_SECRET;
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("SESSION_SECRET", "");
 
-    const modulePath = "@/lib/user-session";
-    vi.resetModules();
-    const reloaded = await import(modulePath);
+    try {
+      const modulePath = "@/lib/user-session";
+      vi.resetModules();
+      const reloaded = await import(modulePath);
 
-    expect(() => reloaded.createUserSessionToken("device_123")).toThrow(
-      "SESSION_SECRET environment variable is required in production",
-    );
+      expect(() => reloaded.createUserSessionToken("device_123")).toThrow(
+        "SESSION_SECRET environment variable is required in production",
+      );
+    } finally {
+      vi.unstubAllEnvs();
+    }
   });
 });

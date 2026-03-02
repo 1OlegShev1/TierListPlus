@@ -17,12 +17,14 @@ import {
 } from "@dnd-kit/core";
 import { nanoid } from "nanoid";
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useTierListStore } from "@/hooks/useTierList";
-import { apiPatch, apiPost, getErrorMessage } from "@/lib/api-client";
+import { apiDelete, apiPatch, apiPost, getErrorMessage } from "@/lib/api-client";
 import { TIER_COLORS } from "@/lib/constants";
 import { clearDraft, getDraft, saveDraft } from "@/lib/vote-draft";
 import type { Item, TierConfig } from "@/types";
+import { ImageUploader } from "../shared/ImageUploader";
 import { DraggableItem } from "./DraggableItem";
 import { TierRow } from "./TierRow";
 import { UnrankedDropZone, UnrankedHeader } from "./UnrankedPool";
@@ -39,7 +41,15 @@ interface TierListBoardProps {
   sessionItems: Item[];
   seededTiers?: Record<string, string[]>;
   canEditTierConfig?: boolean;
+  canSaveTemplate?: boolean;
+  templateIsHidden?: boolean;
   onSubmitted: () => void;
+}
+
+interface PendingUploadItem {
+  id: string;
+  imageUrl: string;
+  label: string;
 }
 
 // ---- FLIP animation helpers ----
@@ -120,6 +130,8 @@ export function TierListBoard({
   sessionItems,
   seededTiers,
   canEditTierConfig = false,
+  canSaveTemplate = false,
+  templateIsHidden = false,
   onSubmitted,
 }: TierListBoardProps) {
   const {
@@ -132,15 +144,25 @@ export function TierListBoard({
     getVotes,
     addTier: addTierToStore,
     removeTier: removeTierFromStore,
+    appendItem,
+    removeItem,
   } = useTierListStore();
 
   const [tierConfig, setTierConfig] = useState<TierConfig[]>(initialTierConfig);
+  const [liveSessionItems, setLiveSessionItems] = useState<Item[]>(sessionItems);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [draftRestored, setDraftRestored] = useState(false);
   const [bracketSeeded, setBracketSeeded] = useState(false);
   const [showSessionBracket, setShowSessionBracket] = useState(false);
+  const [pendingUploads, setPendingUploads] = useState<PendingUploadItem[]>([]);
+  const [addingItem, setAddingItem] = useState(false);
+  const [removingItemId, setRemovingItemId] = useState<string | null>(null);
+  const [addItemError, setAddItemError] = useState<string | null>(null);
+  const [savingTemplate, setSavingTemplate] = useState(false);
+  const [saveTemplateError, setSaveTemplateError] = useState<string | null>(null);
+  const [savedTemplateId, setSavedTemplateId] = useState<string | null>(null);
 
   // ---- FLIP refs ----
   const containerRef = useRef<HTMLDivElement>(null);
@@ -520,8 +542,105 @@ export function TierListBoard({
     }
   };
 
+  const handleAddPendingItems = async () => {
+    if (!canLiveEditItems || pendingUploads.length === 0 || addingItem) return;
+
+    setAddingItem(true);
+    setAddItemError(null);
+    const createdItems: Item[] = [];
+    const remainingUploads: PendingUploadItem[] = [];
+
+    try {
+      for (const pending of pendingUploads) {
+        try {
+          const item = await apiPost<Item>(`/api/sessions/${sessionId}/items`, {
+            label: pending.label.trim(),
+            imageUrl: pending.imageUrl,
+          });
+          createdItems.push(item);
+        } catch (err) {
+          remainingUploads.push(
+            pending,
+            ...pendingUploads.slice(pendingUploads.indexOf(pending) + 1),
+          );
+          throw err;
+        }
+      }
+    } catch (err) {
+      setAddItemError(getErrorMessage(err, "Failed to add item"));
+    } finally {
+      if (createdItems.length > 0) {
+        for (const item of createdItems) {
+          appendItem(item);
+        }
+        setLiveSessionItems((prev) => [...prev, ...createdItems]);
+      }
+      setPendingUploads(remainingUploads);
+      setAddingItem(false);
+    }
+  };
+
+  const handlePendingUpload = (imageUrl: string) => {
+    setPendingUploads((prev) => [...prev, { id: nanoid(6), imageUrl, label: "" }]);
+    setAddItemError(null);
+  };
+
+  const handlePendingLabelChange = (id: string, label: string) => {
+    setPendingUploads((prev) => prev.map((item) => (item.id === id ? { ...item, label } : item)));
+  };
+
+  const handleRemovePendingUpload = (id: string) => {
+    setPendingUploads((prev) => prev.filter((item) => item.id !== id));
+    setAddItemError(null);
+  };
+
+  const handleRemoveLiveItem = async (itemId: string) => {
+    if (!canLiveEditItems || removingItemId) return;
+
+    setRemovingItemId(itemId);
+    setAddItemError(null);
+    try {
+      await apiDelete(`/api/sessions/${sessionId}/items/${itemId}`);
+      removeItem(itemId);
+      setLiveSessionItems((prev) => prev.filter((item) => item.id !== itemId));
+    } catch (err) {
+      setAddItemError(getErrorMessage(err, "Failed to remove item"));
+    } finally {
+      setRemovingItemId(null);
+    }
+  };
+
+  const handleSaveTemplate = async () => {
+    if (!canSaveTemplate || savingTemplate) return;
+
+    setSavingTemplate(true);
+    setSaveTemplateError(null);
+    try {
+      const result = await apiPost<{ id: string }>(`/api/sessions/${sessionId}/template`, {});
+      setSavedTemplateId(result.id);
+    } catch (err) {
+      setSaveTemplateError(getErrorMessage(err, "Failed to save template"));
+    } finally {
+      setSavingTemplate(false);
+    }
+  };
+
   const activeItem = activeId ? items.get(activeId) : null;
-  const totalItems = sessionItems.length;
+  const totalItems = liveSessionItems.length;
+  const canLiveEditItems = canEditTierConfig && templateIsHidden;
+  const savesWorkingTemplate = canEditTierConfig && templateIsHidden;
+  const saveTemplateActionLabel = savesWorkingTemplate ? "Publish to Templates" : "Save Copy";
+  const savedTemplateLabel = savesWorkingTemplate ? "Published to Templates" : "Copy Saved";
+  const unrankedEmptyMessage =
+    pendingUploads.length > 0
+      ? null
+      : totalItems === 0
+        ? canLiveEditItems
+          ? "Upload one or more images to start building this list."
+          : canEditTierConfig
+            ? "This older session cannot add live items. Start a new session to change the item set."
+            : "Waiting for the session owner to add items."
+        : "All items ranked!";
 
   // Auto-dismiss draft restored indicator
   useEffect(() => {
@@ -546,6 +665,16 @@ export function TierListBoard({
       {bracketSeeded && (
         <div className="mb-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-sm text-emerald-400">
           Bracket assist applied. You can freely move items before submitting.
+        </div>
+      )}
+      {savedTemplateId && (
+        <div className="mb-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-sm text-emerald-400">
+          {savesWorkingTemplate
+            ? "Template published for reuse. "
+            : "Template copy saved for reuse. "}
+          <Link href={`/templates/${savedTemplateId}`} className="underline hover:text-emerald-300">
+            Open template
+          </Link>
         </div>
       )}
       <DndContext
@@ -590,6 +719,65 @@ export function TierListBoard({
               {rankedCount}/{totalItems} ranked
             </span>
           </div>
+          <UnrankedDropZone
+            emptyMessage={unrankedEmptyMessage}
+            className="mb-2 max-h-none min-h-[112px]"
+            onRemoveItem={canLiveEditItems ? handleRemoveLiveItem : undefined}
+            removingItemId={removingItemId}
+            afterItems={
+              canLiveEditItems ? (
+                <div className="mt-2 flex w-full flex-wrap items-start gap-2 border-t border-neutral-800 pt-2">
+                  {pendingUploads.map((pending) => (
+                    <div
+                      key={pending.id}
+                      className="relative w-[112px] flex-shrink-0 rounded-lg border border-neutral-700 bg-neutral-950 p-1.5 sm:w-[120px] md:w-[128px]"
+                    >
+                      <button
+                        type="button"
+                        onClick={() => handleRemovePendingUpload(pending.id)}
+                        className="absolute right-1.5 top-1.5 z-10 flex h-5 w-5 items-center justify-center rounded-full bg-black/70 text-xs text-white transition-colors hover:bg-red-600"
+                        aria-label="Remove pending item"
+                      >
+                        x
+                      </button>
+                      <img
+                        src={pending.imageUrl}
+                        alt="Pending item"
+                        className="aspect-square w-full rounded object-cover"
+                      />
+                      <input
+                        type="text"
+                        value={pending.label}
+                        onChange={(e) => handlePendingLabelChange(pending.id, e.target.value)}
+                        placeholder="Label"
+                        maxLength={100}
+                        className="mt-1 w-full rounded border border-neutral-700 bg-neutral-900 px-2 py-1 text-xs text-white placeholder:text-neutral-500 focus:border-amber-500 focus:outline-none"
+                      />
+                    </div>
+                  ))}
+                  <ImageUploader
+                    onUploaded={handlePendingUpload}
+                    multiple
+                    idleLabel="Upload"
+                    className="h-[112px] w-[112px] flex-shrink-0 sm:h-[120px] sm:w-[120px] md:h-[128px] md:w-[128px]"
+                  />
+                  {pendingUploads.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={handleAddPendingItems}
+                      disabled={addingItem}
+                      className="flex h-[112px] w-[112px] flex-shrink-0 flex-col items-center justify-center rounded-lg border border-neutral-700 bg-neutral-950 px-2 text-center text-sm font-medium text-neutral-200 transition-colors hover:border-amber-400 hover:text-amber-300 disabled:opacity-50 sm:h-[120px] sm:w-[120px] md:h-[128px] md:w-[128px]"
+                    >
+                      <span>{addingItem ? "Adding..." : "Add items"}</span>
+                      <span className="mt-1 text-xs text-neutral-500">
+                        {pendingUploads.length} ready
+                      </span>
+                    </button>
+                  )}
+                </div>
+              ) : undefined
+            }
+          />
           <div className="mb-2 flex gap-2 rounded-lg border border-neutral-800 bg-neutral-950/95 p-2 sm:mb-1.5 sm:justify-end sm:border-0 sm:bg-transparent sm:p-0">
             {totalItems >= 2 && (
               <button
@@ -600,16 +788,30 @@ export function TierListBoard({
                 Bracket Assist
               </button>
             )}
+            {canSaveTemplate && (
+              <button
+                onClick={handleSaveTemplate}
+                disabled={savingTemplate}
+                className="flex-1 rounded-lg border border-neutral-700 px-3 py-2 text-sm font-medium text-neutral-200 transition-colors hover:border-emerald-400 hover:text-emerald-300 disabled:opacity-50 sm:flex-none sm:px-4 sm:py-1.5"
+              >
+                {savingTemplate
+                  ? "Saving..."
+                  : savedTemplateId
+                    ? savedTemplateLabel
+                    : saveTemplateActionLabel}
+              </button>
+            )}
             <button
               onClick={handleSubmit}
-              disabled={submitting || rankedCount !== totalItems}
+              disabled={submitting || totalItems === 0 || rankedCount !== totalItems}
               className="flex-1 rounded-lg bg-amber-500 px-3 py-2 text-sm font-medium text-black transition-colors hover:bg-amber-400 disabled:opacity-50 sm:flex-none sm:px-5 sm:py-1.5"
             >
-              {submitting ? "Submitting..." : "Submit Votes"}
+              {submitting ? "Saving..." : "Save Ranking"}
             </button>
           </div>
+          {saveTemplateError && <p className="mb-1 text-sm text-red-400">{saveTemplateError}</p>}
           {submitError && <p className="mb-1 text-sm text-red-400">{submitError}</p>}
-          <UnrankedDropZone />
+          {addItemError && <p className="mb-1 text-sm text-red-400">{addItemError}</p>}
         </div>
 
         {/* Drag Overlay */}
@@ -627,11 +829,11 @@ export function TierListBoard({
 
       {showSessionBracket && (
         <BracketModal
-          items={sessionItems}
+          items={liveSessionItems}
           onComplete={(rankedIds) => {
             const seeded = seedTiersFromRanking(rankedIds, tierConfig);
             initialize(
-              sessionItems,
+              liveSessionItems,
               tierConfig.map((t) => t.key),
               seeded,
               null,

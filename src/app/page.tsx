@@ -31,7 +31,7 @@ export default function HomePage() {
           <span className="text-2xl sm:text-3xl">&#9654;</span>
           <span className="text-sm font-medium sm:text-base">Start Session</span>
           <span className="text-center text-[11px] text-neutral-500 sm:text-xs">
-            Pick a template and invite colleagues
+            Pick a template or start blank
           </span>
         </Link>
 

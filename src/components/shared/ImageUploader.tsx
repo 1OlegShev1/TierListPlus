@@ -11,6 +11,8 @@ interface ImageUploaderProps {
   onUploaded: (url: string) => void;
   multiple?: boolean;
   className?: string;
+  compact?: boolean;
+  idleLabel?: string;
 }
 
 interface UploadProgress {
@@ -100,7 +102,13 @@ async function uploadFile(file: File): Promise<string> {
   return url;
 }
 
-export function ImageUploader({ onUploaded, multiple = false, className }: ImageUploaderProps) {
+export function ImageUploader({
+  onUploaded,
+  multiple = false,
+  className,
+  compact = false,
+  idleLabel,
+}: ImageUploaderProps) {
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState<UploadProgress | null>(null);
   const [dragOver, setDragOver] = useState(false);
@@ -222,11 +230,13 @@ export function ImageUploader({ onUploaded, multiple = false, className }: Image
   return (
     <div className={className}>
       <label
-        className={`flex h-full cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed transition-colors ${
+        className={`flex h-full cursor-pointer items-center justify-center rounded-lg transition-colors ${
           dragOver
             ? "border-amber-400 bg-amber-400/10"
-            : "border-neutral-700 hover:border-neutral-500"
-        }`}
+            : compact
+              ? "border-neutral-700 bg-neutral-950/80 hover:border-neutral-500"
+              : "border-neutral-700 hover:border-neutral-500"
+        } ${compact ? "min-h-10 gap-2 border px-3 py-2" : "flex-col border-2 border-dashed"}`}
         onDragOver={(e) => {
           e.preventDefault();
           setDragOver(true);
@@ -251,9 +261,17 @@ export function ImageUploader({ onUploaded, multiple = false, className }: Image
           <span className="text-sm text-neutral-400">Uploading...</span>
         ) : (
           <>
-            <span className="text-2xl text-neutral-500">+</span>
-            <span className="text-xs text-neutral-500">
-              {multiple ? "Drop images or click" : "Drop image or click"}
+            <span
+              className={
+                compact ? "text-sm font-semibold text-neutral-400" : "text-2xl text-neutral-500"
+              }
+            >
+              +
+            </span>
+            <span
+              className={`${compact ? "text-sm font-medium text-neutral-300" : "text-xs text-neutral-500"}`}
+            >
+              {idleLabel ?? (multiple ? "Drop images or click" : "Drop image or click")}
             </span>
           </>
         )}

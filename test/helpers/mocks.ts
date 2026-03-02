@@ -26,12 +26,17 @@ export function createPrismaMock() {
       createMany: vi.fn(),
     },
     sessionItem: {
+      findFirst: vi.fn(),
       count: vi.fn(),
+      delete: vi.fn(),
     },
     template: {
       findUnique: vi.fn(),
       findMany: vi.fn(),
       create: vi.fn(),
+    },
+    templateItem: {
+      delete: vi.fn(),
     },
     device: {
       findMany: vi.fn(),
@@ -125,6 +130,7 @@ export function makeTemplate(overrides: Record<string, unknown> = {}) {
     description: null,
     creatorId: "user_1",
     isPublic: false,
+    isHidden: false,
     createdAt: FIXED_DATE,
     updatedAt: FIXED_DATE,
     items: [],
