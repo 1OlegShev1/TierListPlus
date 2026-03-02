@@ -25,6 +25,7 @@ rsync -rlptDz --delete \
   --exclude 'CLAUDE.md' \
   --exclude 'docker-compose.yml' \
   --exclude '*.tsbuildinfo' \
+  --exclude 'public/uploads/*' \
   "${REPO_ROOT}/" "${REMOTE_HOST}:${REMOTE_DIR}/"
 
 ssh "${REMOTE_HOST}" "
@@ -38,6 +39,9 @@ ssh "${REMOTE_HOST}" "
     rm -rf .claude docs output
     rm -f .env .env.production.example CLAUDE.md docker-compose.yml
     find . -maxdepth 1 -name \"*.tsbuildinfo\" -delete
+    mkdir -p public/uploads
+    touch public/uploads/.gitkeep
+    find public/uploads -maxdepth 1 -type f ! -name \".gitkeep\" -delete
     chown -R root:root .
     chmod 750 .
     chmod 600 .env.production
