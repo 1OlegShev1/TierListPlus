@@ -14,6 +14,55 @@ export class ApiError extends Error {
   }
 }
 
+export function formatZodError(error: z.ZodError): string {
+  const flat = error.flatten();
+  const messages = [
+    ...flat.formErrors,
+    ...Object.entries(flat.fieldErrors).map(
+      ([field, errs]) => `${field}: ${(errs as string[]).join(", ")}`,
+    ),
+  ];
+  return messages.join("; ") || "Validation failed";
+}
+
+export function mapApiError(error: unknown): { status: number; body: { error: string } } | null {
+  if (
+    error instanceof ApiError ||
+    (typeof error === "object" &&
+      error !== null &&
+      "status" in error &&
+      "details" in error &&
+      typeof error.status === "number" &&
+      typeof error.details === "string")
+  ) {
+    const status = error instanceof ApiError ? error.status : (error as { status: number }).status;
+    const details =
+      error instanceof ApiError ? error.details : (error as { details: string }).details;
+    return { status, body: { error: details } };
+  }
+  if (error instanceof Prisma.PrismaClientKnownRequestError) {
+    if (error.code === "P2002") {
+      return {
+        status: 409,
+        body: { error: "A record with that value already exists" },
+      };
+    }
+    if (error.code === "P2025") {
+      return {
+        status: 404,
+        body: { error: "Record not found" },
+      };
+    }
+    if (error.code === "P2003") {
+      return {
+        status: 400,
+        body: { error: "Referenced record not found" },
+      };
+    }
+  }
+  return null;
+}
+
 /**
  * Wraps an API route handler with try/catch.
  * Catches ApiError for structured 4xx responses, Prisma errors for common DB issues,
@@ -26,34 +75,9 @@ export function withHandler(
     try {
       return await fn(req, ctx);
     } catch (error) {
-      if (
-        error instanceof ApiError ||
-        (typeof error === "object" &&
-          error !== null &&
-          "status" in error &&
-          "details" in error &&
-          typeof error.status === "number" &&
-          typeof error.details === "string")
-      ) {
-        const status =
-          error instanceof ApiError ? error.status : (error as { status: number }).status;
-        const details =
-          error instanceof ApiError ? error.details : (error as { details: string }).details;
-        return NextResponse.json({ error: details }, { status });
-      }
-      if (error instanceof Prisma.PrismaClientKnownRequestError) {
-        if (error.code === "P2002") {
-          return NextResponse.json(
-            { error: "A record with that value already exists" },
-            { status: 409 },
-          );
-        }
-        if (error.code === "P2025") {
-          return NextResponse.json({ error: "Record not found" }, { status: 404 });
-        }
-        if (error.code === "P2003") {
-          return NextResponse.json({ error: "Referenced record not found" }, { status: 400 });
-        }
+      const mapped = mapApiError(error);
+      if (mapped) {
+        return NextResponse.json(mapped.body, { status: mapped.status });
       }
       console.error("Unhandled API error:", error);
       return NextResponse.json({ error: "Internal server error" }, { status: 500 });
@@ -77,14 +101,7 @@ export async function validateBody<T extends z.ZodType>(
   }
   const parsed = schema.safeParse(body);
   if (!parsed.success) {
-    const flat = parsed.error.flatten();
-    const messages = [
-      ...flat.formErrors,
-      ...Object.entries(flat.fieldErrors).map(
-        ([field, errs]) => `${field}: ${(errs as string[]).join(", ")}`,
-      ),
-    ];
-    throw new ApiError(400, messages.join("; ") || "Validation failed");
+    throw new ApiError(400, formatZodError(parsed.error));
   }
   return parsed.data;
 }

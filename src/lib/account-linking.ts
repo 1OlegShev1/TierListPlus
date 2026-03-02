@@ -1,4 +1,5 @@
 import type { Participant } from "@prisma/client";
+import { pickParticipantSurvivor } from "@/lib/account-linking-helpers";
 import { prisma } from "@/lib/prisma";
 
 export const LINK_CODE_TTL_MS = 15 * 60 * 1000;
@@ -8,31 +9,6 @@ function fail(status: number, details: string): never {
   error.status = status;
   error.details = details;
   throw error;
-}
-
-function pickParticipantSurvivor(
-  participants: Participant[],
-  preferredUserId: string,
-): Participant {
-  const preferred = participants
-    .filter((participant) => participant.userId === preferredUserId)
-    .sort((a, b) => {
-      if (!!a.submittedAt !== !!b.submittedAt) {
-        return a.submittedAt ? -1 : 1;
-      }
-      return a.createdAt.getTime() - b.createdAt.getTime();
-    });
-
-  if (preferred.length > 0) {
-    return preferred[0];
-  }
-
-  return participants.slice().sort((a, b) => {
-    if (!!a.submittedAt !== !!b.submittedAt) {
-      return a.submittedAt ? -1 : 1;
-    }
-    return a.createdAt.getTime() - b.createdAt.getTime();
-  })[0];
 }
 
 export async function mergeAccountIntoTarget(options: {

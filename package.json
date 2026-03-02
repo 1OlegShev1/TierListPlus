@@ -6,6 +6,11 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:unit": "vitest run test/unit",
+    "test:integration": "vitest run test/integration",
+    "test:coverage": "vitest run --coverage",
     "lint": "biome check src/",
     "lint:fix": "biome check --fix src/",
     "db:migrate": "npx prisma migrate dev",
@@ -37,13 +42,18 @@
   "devDependencies": {
     "@biomejs/biome": "^2.4.4",
     "@tailwindcss/postcss": "^4.2.1",
+    "@testing-library/react": "^16.3.2",
     "@types/node": "^25.3.1",
     "@types/pg": "^8.16.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
+    "@vitest/coverage-v8": "^4.0.18",
+    "jsdom": "^28.1.0",
     "postcss": "^8.5.6",
     "tailwindcss": "^4.2.1",
     "tsx": "^4.21.0",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vite-tsconfig-paths": "^6.1.1",
+    "vitest": "^4.0.18"
   }
 }
