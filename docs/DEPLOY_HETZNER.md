@@ -178,6 +178,20 @@ ssh tieradmin@46.62.140.254 "sudo journalctl -u tierlistplus-healthcheck.service
 ssh tieradmin@46.62.140.254 "sudo systemctl list-timers tierlistplus-healthcheck.timer --all"
 ```
 
+## Cleanup unattached uploads
+
+Run the upload cleanup manually:
+
+```bash
+ssh tieradmin@46.62.140.254 "sudo docker compose --profile with-domain --env-file /opt/tierlistplus/.env.production -f /opt/tierlistplus/docker-compose.prod.yml exec -T app node scripts/cleanup-orphan-uploads.mjs"
+```
+
+Recommended schedule: once per day. Example root cron entry on the server:
+
+```bash
+0 3 * * * cd /opt/tierlistplus && docker compose --profile with-domain --env-file .env.production -f docker-compose.prod.yml exec -T app node scripts/cleanup-orphan-uploads.mjs >> /var/log/tierlistplus-upload-gc.log 2>&1
+```
+
 ## Backup database
 
 ```bash

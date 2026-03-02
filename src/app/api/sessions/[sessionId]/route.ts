@@ -7,6 +7,7 @@ import {
   withHandler,
 } from "@/lib/api-helpers";
 import { prisma } from "@/lib/prisma";
+import { tryDeleteManagedUploadIfUnreferenced } from "@/lib/upload-gc";
 import { updateSessionSchema } from "@/lib/validators";
 
 export const GET = withHandler(async (request, { params }) => {
@@ -66,6 +67,18 @@ export const DELETE = withHandler(async (request, { params }) => {
   const { sessionId } = await params;
   await requireSessionOwner(request, sessionId);
 
+  const session = await prisma.session.findUnique({
+    where: { id: sessionId },
+    select: { items: { select: { imageUrl: true } } },
+  });
+  if (!session) notFound("Session not found");
+
   await prisma.session.delete({ where: { id: sessionId } });
+  const imageUrls = new Set(session.items.map((item) => item.imageUrl));
+  await Promise.all(
+    [...imageUrls].map((imageUrl) =>
+      tryDeleteManagedUploadIfUnreferenced(imageUrl, "session delete"),
+    ),
+  );
   return new Response(null, { status: 204 });
 });

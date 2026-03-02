@@ -1,6 +1,11 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import {
+  CLIENT_UPLOAD_IMAGE_QUALITY,
+  CLIENT_UPLOAD_IMAGE_SIZE,
+  UPLOAD_MAX_BYTES,
+} from "@/lib/upload-config";
 
 interface ImageUploaderProps {
   onUploaded: (url: string) => void;
@@ -13,9 +18,79 @@ interface UploadProgress {
   completed: number;
 }
 
+const UPLOAD_MAX_MB = Math.round(UPLOAD_MAX_BYTES / (1024 * 1024));
+
+function toUploadFilename(name: string): string {
+  const dotIndex = name.lastIndexOf(".");
+  const basename = dotIndex > 0 ? name.slice(0, dotIndex) : name;
+  return `${basename || "upload"}.webp`;
+}
+
+function canvasToWebpBlob(canvas: HTMLCanvasElement): Promise<Blob | null> {
+  return new Promise((resolve) => {
+    canvas.toBlob(resolve, "image/webp", CLIENT_UPLOAD_IMAGE_QUALITY);
+  });
+}
+
+async function prepareFileForUpload(file: File): Promise<File> {
+  if (typeof window === "undefined" || typeof createImageBitmap !== "function") {
+    return file;
+  }
+
+  let bitmap: ImageBitmap;
+  try {
+    bitmap = await createImageBitmap(file);
+  } catch {
+    return file;
+  }
+
+  try {
+    const sourceSize = Math.min(bitmap.width, bitmap.height);
+    if (sourceSize <= 0) return file;
+
+    const targetSize = Math.min(CLIENT_UPLOAD_IMAGE_SIZE, sourceSize);
+    const canvas = document.createElement("canvas");
+    canvas.width = targetSize;
+    canvas.height = targetSize;
+
+    const context = canvas.getContext("2d");
+    if (!context) return file;
+
+    const offsetX = Math.floor((bitmap.width - sourceSize) / 2);
+    const offsetY = Math.floor((bitmap.height - sourceSize) / 2);
+
+    context.drawImage(
+      bitmap,
+      offsetX,
+      offsetY,
+      sourceSize,
+      sourceSize,
+      0,
+      0,
+      targetSize,
+      targetSize,
+    );
+
+    const blob = await canvasToWebpBlob(canvas);
+    if (!blob || blob.size >= file.size) return file;
+
+    return new File([blob], toUploadFilename(file.name), {
+      type: "image/webp",
+      lastModified: file.lastModified,
+    });
+  } finally {
+    bitmap.close();
+  }
+}
+
 async function uploadFile(file: File): Promise<string> {
+  const preparedFile = await prepareFileForUpload(file);
+  if (preparedFile.size > UPLOAD_MAX_BYTES) {
+    throw new Error(`File too large (max ${UPLOAD_MAX_MB}MB)`);
+  }
+
   const formData = new FormData();
-  formData.append("file", file);
+  formData.append("file", preparedFile);
   const res = await fetch("/api/upload", { method: "POST", body: formData });
   if (!res.ok) {
     const data = await res.json().catch(() => null);

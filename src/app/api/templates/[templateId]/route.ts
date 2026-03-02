@@ -3,6 +3,7 @@ import { badRequest, notFound, requireOwner, validateBody, withHandler } from "@
 import { getRequestAuth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { canAccessTemplate } from "@/lib/template-access";
+import { tryDeleteManagedUploadIfUnreferenced } from "@/lib/upload-gc";
 import { updateTemplateSchema } from "@/lib/validators";
 
 export const GET = withHandler(async (request, { params }) => {
@@ -51,7 +52,12 @@ export const DELETE = withHandler(async (request, { params }) => {
 
   const existing = await prisma.template.findUnique({
     where: { id: templateId },
-    select: { id: true, creatorId: true, _count: { select: { sessions: true } } },
+    select: {
+      id: true,
+      creatorId: true,
+      items: { select: { imageUrl: true } },
+      _count: { select: { sessions: true } },
+    },
   });
   if (!existing) notFound("Template not found");
   requireOwner(existing.creatorId, userId);
@@ -63,5 +69,11 @@ export const DELETE = withHandler(async (request, { params }) => {
   }
 
   await prisma.template.delete({ where: { id: templateId } });
+  const imageUrls = new Set(existing.items.map((item) => item.imageUrl));
+  await Promise.all(
+    [...imageUrls].map((imageUrl) =>
+      tryDeleteManagedUploadIfUnreferenced(imageUrl, "template delete"),
+    ),
+  );
   return new Response(null, { status: 204 });
 });

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { notFound, requireOwner, validateBody, withHandler } from "@/lib/api-helpers";
 import { getRequestAuth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { tryDeleteManagedUploadIfUnreferenced } from "@/lib/upload-gc";
 import { updateTemplateItemSchema } from "@/lib/validators";
 
 export const PATCH = withHandler(async (request, { params }) => {
@@ -18,7 +19,7 @@ export const PATCH = withHandler(async (request, { params }) => {
 
   const existing = await prisma.templateItem.findFirst({
     where: { id: itemId, templateId },
-    select: { id: true },
+    select: { id: true, imageUrl: true },
   });
   if (!existing) notFound("Template item not found");
 
@@ -28,6 +29,10 @@ export const PATCH = withHandler(async (request, { params }) => {
     where: { id: itemId, templateId },
     data,
   });
+
+  if (data.imageUrl && data.imageUrl !== existing.imageUrl) {
+    await tryDeleteManagedUploadIfUnreferenced(existing.imageUrl, "template item image update");
+  }
 
   return NextResponse.json(item);
 });
@@ -46,10 +51,11 @@ export const DELETE = withHandler(async (_request, { params }) => {
 
   const existing = await prisma.templateItem.findFirst({
     where: { id: itemId, templateId },
-    select: { id: true },
+    select: { id: true, imageUrl: true },
   });
   if (!existing) notFound("Template item not found");
 
   await prisma.templateItem.delete({ where: { id: itemId } });
+  await tryDeleteManagedUploadIfUnreferenced(existing.imageUrl, "template item delete");
   return new Response(null, { status: 204 });
 });

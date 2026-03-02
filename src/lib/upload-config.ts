@@ -1,0 +1,9 @@
+export const UPLOAD_MAX_BYTES = 10 * 1024 * 1024;
+
+export const PROCESSED_IMAGE_SIZE = 200;
+export const PROCESSED_IMAGE_QUALITY = 80;
+
+export const CLIENT_UPLOAD_IMAGE_SIZE = 512;
+export const CLIENT_UPLOAD_IMAGE_QUALITY = 0.82;
+
+export const UNATTACHED_UPLOAD_RETENTION_MS = 24 * 60 * 60 * 1000;

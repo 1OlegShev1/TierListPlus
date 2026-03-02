@@ -1,7 +1,8 @@
+import { createHash } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { nanoid } from "nanoid";
 import sharp from "sharp";
+import { PROCESSED_IMAGE_QUALITY, PROCESSED_IMAGE_SIZE } from "@/lib/upload-config";
 
 const UPLOAD_DIR = path.join(process.cwd(), "public", "uploads");
 
@@ -40,11 +41,18 @@ export function validateImageBuffer(buffer: Buffer): boolean {
 export async function saveUploadedImage(buffer: Buffer): Promise<string> {
   await fs.mkdir(UPLOAD_DIR, { recursive: true });
 
-  const ext = ".webp";
-  const filename = `${nanoid()}${ext}`;
+  const processedBuffer = await sharp(buffer)
+    .rotate()
+    .resize(PROCESSED_IMAGE_SIZE, PROCESSED_IMAGE_SIZE, { fit: "cover" })
+    .webp({ quality: PROCESSED_IMAGE_QUALITY })
+    .toBuffer();
+
+  const filename = `${createHash("sha256").update(processedBuffer).digest("hex")}.webp`;
   const filepath = path.join(UPLOAD_DIR, filename);
 
-  await sharp(buffer).resize(200, 200, { fit: "cover" }).webp({ quality: 80 }).toFile(filepath);
+  await fs.writeFile(filepath, processedBuffer, { flag: "wx" }).catch((error: unknown) => {
+    if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
+  });
 
   return `/uploads/${filename}`;
 }
