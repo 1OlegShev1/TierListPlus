@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
 import sharp from "sharp";
@@ -49,10 +49,26 @@ export async function saveUploadedImage(buffer: Buffer): Promise<string> {
 
   const filename = `${createHash("sha256").update(processedBuffer).digest("hex")}.webp`;
   const filepath = path.join(UPLOAD_DIR, filename);
+  const tempFilepath = path.join(UPLOAD_DIR, `${filename}.${randomUUID()}.tmp`);
 
-  await fs.writeFile(filepath, processedBuffer, { flag: "wx" }).catch((error: unknown) => {
-    if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
-  });
+  const fileExists = await fs
+    .access(filepath)
+    .then(() => true)
+    .catch((error: unknown) => {
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") return false;
+      throw error;
+    });
+
+  if (!fileExists) {
+    await fs.writeFile(tempFilepath, processedBuffer);
+    try {
+      await fs.rename(tempFilepath, filepath);
+    } finally {
+      await fs.unlink(tempFilepath).catch((error: unknown) => {
+        if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+      });
+    }
+  }
 
   return `/uploads/${filename}`;
 }
