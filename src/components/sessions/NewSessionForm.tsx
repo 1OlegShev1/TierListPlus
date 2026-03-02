@@ -71,7 +71,7 @@ export function NewSessionForm() {
             <option value="">Select a template...</option>
             {templates.map((t) => (
               <option key={t.id} value={t.id}>
-                {t.name} ({t._count.items} items)
+                {t.name} ({t._count.items} items{t.isPublic ? "" : ", private to you"})
               </option>
             ))}
           </Select>

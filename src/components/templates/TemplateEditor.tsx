@@ -15,6 +15,7 @@ interface TemplateEditorProps {
   templateId?: string;
   initialName?: string;
   initialDescription?: string;
+  initialIsPublic?: boolean;
   initialItems?: TemplateItemData[];
 }
 
@@ -22,12 +23,14 @@ export function TemplateEditor({
   templateId,
   initialName = "",
   initialDescription = "",
+  initialIsPublic = false,
   initialItems = [],
 }: TemplateEditorProps) {
   const router = useRouter();
   const { userId, isLoading: userLoading, error: userError, retry: retryUser } = useUser();
   const [name, setName] = useState(initialName);
   const [description, setDescription] = useState(initialDescription);
+  const [isPublic, setIsPublic] = useState(initialIsPublic);
   const [items, setItems] = useState<TemplateItemData[]>(initialItems);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -56,10 +59,11 @@ export function TemplateEditor({
         const template = await apiPost<{ id: string }>("/api/templates", {
           name,
           description,
+          isPublic,
         });
         id = template.id;
       } else {
-        await apiPatch(`/api/templates/${id}`, { name, description });
+        await apiPatch(`/api/templates/${id}`, { name, description, isPublic });
       }
 
       const existingIds = new Set(initialItems.filter((i) => i.id).map((i) => i.id));
@@ -113,6 +117,23 @@ export function TemplateEditor({
           rows={2}
           className="w-full text-sm"
         />
+      </div>
+
+      <div>
+        <label className="flex items-center gap-3 rounded-lg border border-neutral-800 bg-neutral-900 p-4">
+          <input
+            type="checkbox"
+            checked={isPublic}
+            onChange={(e) => setIsPublic(e.target.checked)}
+            className="h-4 w-4 accent-amber-500"
+          />
+          <div>
+            <p className="font-medium">Show in public Templates list</p>
+            <p className="text-sm text-neutral-500">
+              Disabled by default. Private templates are only visible to you.
+            </p>
+          </div>
+        </label>
       </div>
 
       <div>

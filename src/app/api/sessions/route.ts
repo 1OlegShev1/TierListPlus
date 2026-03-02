@@ -11,6 +11,7 @@ import {
 import { DEFAULT_TIER_CONFIG } from "@/lib/constants";
 import { generateJoinCode } from "@/lib/nanoid";
 import { prisma } from "@/lib/prisma";
+import { canAccessTemplate } from "@/lib/template-access";
 import { createSessionSchema } from "@/lib/validators";
 
 const JOIN_CODE_RETRIES = 5;
@@ -58,6 +59,9 @@ export const POST = withHandler(async (request) => {
   });
 
   if (!template) notFound("Template not found");
+  if (!canAccessTemplate(template, creatorId)) {
+    notFound("Template not found");
+  }
   if (template.items.length === 0) badRequest("Template has no items");
 
   // Retry with a fresh join code on the rare chance of a collision

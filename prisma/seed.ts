@@ -44,6 +44,7 @@ async function main() {
     data: {
       name: "Programming Languages",
       description: "Rank the best programming languages!",
+      isPublic: true,
       items: {
         create: ITEMS.map((item, i) => ({
           label: item.label,

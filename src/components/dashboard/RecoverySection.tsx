@@ -14,6 +14,7 @@ export function RecoverySection() {
   const [generating, setGenerating] = useState(false);
   const [generateError, setGenerateError] = useState("");
   const [copied, setCopied] = useState(false);
+  const [copyError, setCopyError] = useState("");
 
   // Link device form
   const [linkCode, setLinkCode] = useState("");
@@ -35,11 +36,37 @@ export function RecoverySection() {
     }
   };
 
-  const copyCode = () => {
+  const copyCode = async () => {
     if (!recoveryCode) return;
-    navigator.clipboard.writeText(recoveryCode);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    setCopyError("");
+
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(recoveryCode);
+      } else {
+        const textarea = document.createElement("textarea");
+        textarea.value = recoveryCode;
+        textarea.setAttribute("readonly", "");
+        textarea.style.position = "fixed";
+        textarea.style.opacity = "0";
+        textarea.style.pointerEvents = "none";
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+
+        const copiedWithFallback = document.execCommand("copy");
+        document.body.removeChild(textarea);
+
+        if (!copiedWithFallback) {
+          throw new Error("Copy failed");
+        }
+      }
+
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setCopyError("Copy failed on this device. Please select the code manually.");
+    }
   };
 
   const linkDevice = async () => {
@@ -92,6 +119,7 @@ export function RecoverySection() {
           </Button>
         )}
         {generateError && <ErrorMessage message={generateError} />}
+        {copyError && <ErrorMessage message={copyError} />}
       </div>
 
       {/* Link existing device */}

@@ -7,6 +7,7 @@ Users create templates, start sessions, join with a code, and submit **per-user*
 
 Key product behaviors:
 - Session privacy is **private by default** (`Session.isPrivate = true`)
+- Template visibility is **private by default** (`Template.isPublic = false`)
 - Hosts can **lock joins** (`Session.isLocked = true`) without closing the session
 - Votes are tied to participant identity and cannot be submitted as another participant
 - Bracket is a **personal assist tool** on the vote board (session-wide assist + per-tier rank assist)
@@ -105,7 +106,13 @@ Routes under `/api/sessions/[sessionId]/bracket/*` still exist, but UI voting no
 
 ### Templates
 - `GET/POST /api/templates`
+  - Anonymous `GET` returns public templates
+  - Authenticated `GET` returns public + owned templates
 - `GET/PATCH/DELETE /api/templates/[templateId]`
+  - `GET` requires template to be public or owned
+  - `PATCH/DELETE` owner-only
+- `POST /api/templates/[templateId]/duplicate`
+  - Creates a new private owned copy from any accessible template
 - `POST /api/templates/[templateId]/items`
 - `PATCH/DELETE /api/templates/[templateId]/items/[itemId]`
 

@@ -3,11 +3,13 @@ import { z } from "zod/v4";
 export const createTemplateSchema = z.object({
   name: z.string().min(1).max(100),
   description: z.string().max(500).optional(),
+  isPublic: z.boolean().optional(),
 });
 
 export const updateTemplateSchema = z.object({
   name: z.string().min(1).max(100).optional(),
   description: z.string().max(500).optional(),
+  isPublic: z.boolean().optional(),
 });
 
 export const addTemplateItemSchema = z.object({

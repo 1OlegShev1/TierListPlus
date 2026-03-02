@@ -8,16 +8,21 @@ import {
   withHandler,
 } from "@/lib/api-helpers";
 import { prisma } from "@/lib/prisma";
+import { canAccessTemplate } from "@/lib/template-access";
 import { updateTemplateSchema } from "@/lib/validators";
 
-export const GET = withHandler(async (_request, { params }) => {
+export const GET = withHandler(async (request, { params }) => {
   const { templateId } = await params;
+  const userId = getUserId(request);
   const template = await prisma.template.findUnique({
     where: { id: templateId },
     include: { items: { orderBy: { sortOrder: "asc" } } },
   });
 
   if (!template) notFound("Template not found");
+  if (!canAccessTemplate(template, userId)) {
+    notFound("Template not found");
+  }
 
   return NextResponse.json(template);
 });

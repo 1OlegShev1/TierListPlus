@@ -1,14 +1,20 @@
+import { cookies } from "next/headers";
 import Link from "next/link";
 import { buttonVariants } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { prisma } from "@/lib/prisma";
+import { getTemplateVisibilityWhere } from "@/lib/template-access";
+import { USER_SESSION_COOKIE, verifyUserSessionToken } from "@/lib/user-session";
 import { formatDate } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
 export default async function TemplatesPage() {
+  const cookieStore = await cookies();
+  const userId = verifyUserSessionToken(cookieStore.get(USER_SESSION_COOKIE)?.value ?? "");
   const templates = await prisma.template.findMany({
+    where: getTemplateVisibilityWhere(userId),
     include: {
       _count: { select: { items: true } },
       items: { take: 4, orderBy: { sortOrder: "asc" } },
@@ -58,6 +64,7 @@ export default async function TemplatesPage() {
               <p className="mt-1 text-xs text-neutral-500">
                 {template._count.items} items &middot; {formatDate(template.createdAt)}
               </p>
+              {!template.isPublic && <p className="mt-1 text-xs text-amber-400">Private to you</p>}
             </Link>
           ))}
         </div>

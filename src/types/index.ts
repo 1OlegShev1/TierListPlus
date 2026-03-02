@@ -77,6 +77,7 @@ export interface SessionLobbyData {
 export interface TemplateSummary {
   id: string;
   name: string;
+  isPublic: boolean;
   _count: { items: number };
 }
 
