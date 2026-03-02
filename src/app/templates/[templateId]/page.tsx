@@ -4,9 +4,9 @@ import { notFound } from "next/navigation";
 import { DeleteTemplateButton } from "@/components/templates/DeleteTemplateButton";
 import { DuplicateTemplateButton } from "@/components/templates/DuplicateTemplateButton";
 import { buttonVariants } from "@/components/ui/Button";
+import { getCookieAuth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { canAccessTemplate, isTemplateOwner } from "@/lib/template-access";
-import { USER_SESSION_COOKIE, verifyUserSessionToken } from "@/lib/user-session";
 
 export default async function TemplateDetailPage({
   params,
@@ -15,7 +15,8 @@ export default async function TemplateDetailPage({
 }) {
   const { templateId } = await params;
   const cookieStore = await cookies();
-  const userId = verifyUserSessionToken(cookieStore.get(USER_SESSION_COOKIE)?.value ?? "");
+  const auth = await getCookieAuth(cookieStore);
+  const userId = auth?.userId ?? null;
   const template = await prisma.template.findUnique({
     where: { id: templateId },
     include: { items: { orderBy: { sortOrder: "asc" } } },

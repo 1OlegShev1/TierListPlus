@@ -1,8 +1,8 @@
 import { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 import type { z } from "zod/v4";
+import { getRequestAuth, requireRequestAuth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { getUserIdFromSessionCookie } from "@/lib/user-session";
 
 /** Structured error for API routes. Thrown by helpers, caught by withHandler. */
 export class ApiError extends Error {
@@ -26,8 +26,20 @@ export function withHandler(
     try {
       return await fn(req, ctx);
     } catch (error) {
-      if (error instanceof ApiError) {
-        return NextResponse.json({ error: error.details }, { status: error.status });
+      if (
+        error instanceof ApiError ||
+        (typeof error === "object" &&
+          error !== null &&
+          "status" in error &&
+          "details" in error &&
+          typeof error.status === "number" &&
+          typeof error.details === "string")
+      ) {
+        const status =
+          error instanceof ApiError ? error.status : (error as { status: number }).status;
+        const details =
+          error instanceof ApiError ? error.details : (error as { details: string }).details;
+        return NextResponse.json({ error: details }, { status });
       }
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
         if (error.code === "P2002") {
@@ -92,20 +104,6 @@ export function forbidden(message = "Not authorized"): never {
   throw new ApiError(403, message);
 }
 
-/** Read the user identity from the signed session cookie. */
-export function getUserId(request: Request): string | null {
-  return getUserIdFromSessionCookie(request);
-}
-
-/** Require a user identity header, otherwise throw 401. */
-export function requireUserId(request: Request): string {
-  const userId = getUserId(request);
-  if (!userId) {
-    throw new ApiError(401, "User identity required");
-  }
-  return userId;
-}
-
 /** Verify the requesting user owns a resource. Throws 403 if not. */
 export function requireOwner(creatorId: string | null, requestUserId: string | null) {
   if (!creatorId || !requestUserId || creatorId !== requestUserId) {
@@ -136,7 +134,7 @@ export async function requireParticipantOwner(
   participantId: string,
   sessionId: string,
 ) {
-  const requestUserId = requireUserId(request);
+  const { userId: requestUserId } = await requireRequestAuth(request);
   const participant = await verifyParticipant(participantId, sessionId);
 
   if (participant.userId === requestUserId) {
@@ -144,6 +142,14 @@ export async function requireParticipantOwner(
   }
 
   if (!participant.userId) {
+    const existingParticipant = await prisma.participant.findFirst({
+      where: { sessionId, userId: requestUserId },
+      orderBy: { createdAt: "asc" },
+    });
+    if (existingParticipant) {
+      return existingParticipant;
+    }
+
     const { count } = await prisma.participant.updateMany({
       where: { id: participant.id, sessionId, userId: null },
       data: { userId: requestUserId },
@@ -179,7 +185,8 @@ export async function requireOpenSession(sessionId: string) {
  * Private sessions are visible only to the creator or joined participants.
  */
 export async function requireSessionAccess(request: Request, sessionId: string) {
-  const requestUserId = getUserId(request);
+  const auth = await getRequestAuth(request);
+  const requestUserId = auth?.userId ?? null;
   const session = await prisma.session.findUnique({
     where: { id: sessionId },
     select: {
@@ -205,7 +212,7 @@ export async function requireSessionAccess(request: Request, sessionId: string) 
     forbidden("This session is private");
   }
 
-  return { session, requestUserId, isOwner, isParticipant };
+  return { session, requestUserId, isOwner, isParticipant, auth };
 }
 
 /** Require that the current signed-in user owns the session. */

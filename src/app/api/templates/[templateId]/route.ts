@@ -1,19 +1,14 @@
 import { NextResponse } from "next/server";
-import {
-  badRequest,
-  getUserId,
-  notFound,
-  requireOwner,
-  validateBody,
-  withHandler,
-} from "@/lib/api-helpers";
+import { badRequest, notFound, requireOwner, validateBody, withHandler } from "@/lib/api-helpers";
+import { getRequestAuth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { canAccessTemplate } from "@/lib/template-access";
 import { updateTemplateSchema } from "@/lib/validators";
 
 export const GET = withHandler(async (request, { params }) => {
   const { templateId } = await params;
-  const userId = getUserId(request);
+  const auth = await getRequestAuth(request);
+  const userId = auth?.userId ?? null;
   const template = await prisma.template.findUnique({
     where: { id: templateId },
     include: { items: { orderBy: { sortOrder: "asc" } } },
@@ -29,7 +24,8 @@ export const GET = withHandler(async (request, { params }) => {
 
 export const PATCH = withHandler(async (request, { params }) => {
   const { templateId } = await params;
-  const userId = getUserId(request);
+  const auth = await getRequestAuth(request);
+  const userId = auth?.userId ?? null;
 
   const existing = await prisma.template.findUnique({
     where: { id: templateId },
@@ -50,7 +46,8 @@ export const PATCH = withHandler(async (request, { params }) => {
 
 export const DELETE = withHandler(async (request, { params }) => {
   const { templateId } = await params;
-  const userId = getUserId(request);
+  const auth = await getRequestAuth(request);
+  const userId = auth?.userId ?? null;
 
   const existing = await prisma.template.findUnique({
     where: { id: templateId },

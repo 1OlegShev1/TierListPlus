@@ -19,7 +19,8 @@ export const POST = withHandler(async (request, { params }) => {
 
   const { matchupId, participantId, chosenItemId } = data;
 
-  await requireParticipantOwner(request, participantId, sessionId);
+  const participant = await requireParticipantOwner(request, participantId, sessionId);
+  const canonicalParticipantId = participant.id;
 
   // Verify matchup exists and item is valid
   const matchup = await prisma.bracketMatchup.findFirst({
@@ -34,10 +35,10 @@ export const POST = withHandler(async (request, { params }) => {
 
   const vote = await prisma.bracketVote.upsert({
     where: {
-      matchupId_participantId: { matchupId, participantId },
+      matchupId_participantId: { matchupId, participantId: canonicalParticipantId },
     },
     update: { chosenItemId },
-    create: { matchupId, participantId, chosenItemId },
+    create: { matchupId, participantId: canonicalParticipantId, chosenItemId },
   });
 
   return NextResponse.json(vote);

@@ -48,29 +48,8 @@ export interface SessionData {
   bracketEnabled: boolean;
   tierConfig: TierConfig[];
   items: Item[];
-}
-
-/** Lobby session data with full details */
-export interface SessionLobbyData {
-  id: string;
-  name: string;
-  joinCode: string;
-  status: string;
-  creatorId: string | null;
-  isPrivate: boolean;
-  isLocked: boolean;
-  bracketEnabled: boolean;
-  tierConfig: TierConfig[];
-  template: { name: string };
-  participants: {
-    id: string;
-    nickname: string;
-    createdAt: string;
-    submittedAt: string | null;
-    hasSubmitted: boolean;
-  }[];
-  items: Item[];
-  _count: { participants: number };
+  currentParticipantId: string | null;
+  currentParticipantNickname: string | null;
 }
 
 /** Template summary for lists and dropdowns */
@@ -100,6 +79,9 @@ export interface TemplateItemData {
 export interface SessionResult {
   status: string;
   name: string;
+  joinCode: string;
+  currentParticipantId: string | null;
+  currentParticipantNickname: string | null;
   tierConfig: TierConfig[];
   participants: {
     id: string;

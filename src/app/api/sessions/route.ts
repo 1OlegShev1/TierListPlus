@@ -1,13 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
-import {
-  badRequest,
-  getUserId,
-  notFound,
-  requireUserId,
-  validateBody,
-  withHandler,
-} from "@/lib/api-helpers";
+import { badRequest, notFound, validateBody, withHandler } from "@/lib/api-helpers";
+import { getRequestAuth, requireRequestAuth } from "@/lib/auth";
 import { DEFAULT_TIER_CONFIG } from "@/lib/constants";
 import { generateJoinCode } from "@/lib/nanoid";
 import { prisma } from "@/lib/prisma";
@@ -19,7 +13,8 @@ const JOIN_CODE_RETRIES = 5;
 const VALID_STATUSES = new Set(["OPEN", "CLOSED", "ARCHIVED"]);
 
 export const GET = withHandler(async (request) => {
-  const userId = getUserId(request);
+  const auth = await getRequestAuth(request);
+  const userId = auth?.userId ?? null;
   const { searchParams } = new URL(request.url);
   const status = searchParams.get("status");
 
@@ -49,7 +44,7 @@ export const GET = withHandler(async (request) => {
 
 export const POST = withHandler(async (request) => {
   const data = await validateBody(request, createSessionSchema);
-  const creatorId = requireUserId(request);
+  const { userId: creatorId } = await requireRequestAuth(request);
   const { templateId, name, tierConfig, isPrivate, nickname } = data;
 
   // Verify template exists and get its items

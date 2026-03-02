@@ -55,7 +55,7 @@ function ResultsContent() {
   const { sessionId } = useParams<{ sessionId: string }>();
   const searchParams = useSearchParams();
   const participantId = searchParams.get("participant");
-  const { participantId: localParticipantId } = useParticipant(sessionId);
+  const { save: saveParticipant, clear: clearParticipant } = useParticipant(sessionId);
 
   const [consensusTiers, setConsensusTiers] = useState<ConsensusTier[]>([]);
   const [participantTiers, setParticipantTiers] = useState<ConsensusTier[] | null>(null);
@@ -79,6 +79,11 @@ function ResultsContent() {
       apiFetch<ConsensusTier[]>(`/api/sessions/${sessionId}/votes/consensus`),
     ])
       .then(([sessionData, consensusData]) => {
+        if (sessionData.currentParticipantId && sessionData.currentParticipantNickname) {
+          saveParticipant(sessionData.currentParticipantId, sessionData.currentParticipantNickname);
+        } else {
+          clearParticipant();
+        }
         setSession(sessionData);
         setConsensusTiers(consensusData);
       })
@@ -86,7 +91,7 @@ function ResultsContent() {
         setError(getErrorMessage(err, "Failed to load results. Please try again."));
       })
       .finally(() => setLoading(false));
-  }, [sessionId]);
+  }, [sessionId, clearParticipant, saveParticipant]);
 
   useEffect(() => {
     if (!participantId || !session) {
@@ -206,6 +211,7 @@ function ResultsContent() {
   const submittedParticipants = session?.participants.filter((p) => p.hasSubmitted) ?? [];
   const totalParticipants = submittedParticipants.length;
   const selectedParticipant = submittedParticipants.find((p) => p.id === participantId) ?? null;
+  const currentParticipantId = session?.currentParticipantId ?? null;
   const isIndividualView = !!participantId;
   const displayTiers = participantTiers ?? consensusTiers;
   const consensusLabel = `Consensus (${totalParticipants})`;
@@ -241,7 +247,7 @@ function ResultsContent() {
                 href={`/sessions/${sessionId}`}
                 className={`${buttonVariants.primary} !px-4 !py-1.5 !text-sm whitespace-nowrap`}
               >
-                {localParticipantId ? "Edit My Vote" : "Join to Vote"}
+                {currentParticipantId ? "Edit My Vote" : "Join to Vote"}
               </Link>
             )}
             {session?.status !== "OPEN" && (

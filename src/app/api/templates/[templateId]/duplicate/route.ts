@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
-import { notFound, requireUserId, withHandler } from "@/lib/api-helpers";
+import { notFound, withHandler } from "@/lib/api-helpers";
+import { requireRequestAuth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { canAccessTemplate } from "@/lib/template-access";
 
 export const POST = withHandler(async (request, { params }) => {
   const { templateId } = await params;
-  const requestUserId = requireUserId(request);
+  const { userId: requestUserId } = await requireRequestAuth(request);
 
   const source = await prisma.template.findUnique({
     where: { id: templateId },

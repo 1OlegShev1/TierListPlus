@@ -1,38 +1,46 @@
 import { NextResponse } from "next/server";
-import { getUserId, notFound, requireOwner, withHandler } from "@/lib/api-helpers";
+import { LINK_CODE_TTL_MS } from "@/lib/account-linking";
+import { notFound, requireOwner, withHandler } from "@/lib/api-helpers";
+import { requireRequestAuth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { generateRecoveryCode } from "@/lib/recovery-code";
 
 export const POST = withHandler(async (request, { params }) => {
   const { userId } = await params;
-  const requestUserId = getUserId(request);
+  const { userId: requestUserId } = await requireRequestAuth(request);
   requireOwner(userId, requestUserId);
 
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { id: true, recoveryCode: true },
+    select: { id: true },
   });
   if (!user) notFound("User not found");
 
-  // Return existing code if already generated
-  if (user.recoveryCode) {
-    return NextResponse.json({ recoveryCode: user.recoveryCode });
-  }
+  const expiresAt = new Date(Date.now() + LINK_CODE_TTL_MS);
 
-  // Generate a unique code with retry
+  await prisma.linkCode.deleteMany({
+    where: {
+      userId,
+      consumedAt: null,
+    },
+  });
+
   let code: string;
   let attempts = 0;
   while (true) {
     code = generateRecoveryCode();
-    const existing = await prisma.user.findUnique({ where: { recoveryCode: code } });
+    const existing = await prisma.linkCode.findUnique({ where: { code } });
     if (!existing) break;
     if (++attempts > 10) throw new Error("Could not generate unique recovery code");
   }
 
-  await prisma.user.update({
-    where: { id: userId },
-    data: { recoveryCode: code },
+  await prisma.linkCode.create({
+    data: {
+      userId,
+      code,
+      expiresAt,
+    },
   });
 
-  return NextResponse.json({ recoveryCode: code });
+  return NextResponse.json({ linkCode: code, expiresAt });
 });

@@ -1,13 +1,13 @@
 import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
+import { getCookieAuth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { USER_SESSION_COOKIE, verifyUserSessionToken } from "@/lib/user-session";
 
 export default async function SessionPage({ params }: { params: Promise<{ sessionId: string }> }) {
   const { sessionId } = await params;
   const cookieStore = await cookies();
-  const token = cookieStore.get(USER_SESSION_COOKIE)?.value;
-  const requestUserId = token ? verifyUserSessionToken(token) : null;
+  const auth = await getCookieAuth(cookieStore);
+  const requestUserId = auth?.userId ?? null;
   const session = await prisma.session.findUnique({
     where: { id: sessionId },
     select: {

@@ -1,8 +1,8 @@
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import { TemplateEditor } from "@/components/templates/TemplateEditor";
+import { getCookieAuth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { USER_SESSION_COOKIE, verifyUserSessionToken } from "@/lib/user-session";
 
 export default async function EditTemplatePage({
   params,
@@ -11,7 +11,8 @@ export default async function EditTemplatePage({
 }) {
   const { templateId } = await params;
   const cookieStore = await cookies();
-  const userId = verifyUserSessionToken(cookieStore.get(USER_SESSION_COOKIE)?.value ?? "");
+  const auth = await getCookieAuth(cookieStore);
+  const userId = auth?.userId ?? null;
   const template = await prisma.template.findUnique({
     where: { id: templateId },
     include: { items: { orderBy: { sortOrder: "asc" } } },

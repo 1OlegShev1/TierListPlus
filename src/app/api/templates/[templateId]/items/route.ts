@@ -1,12 +1,14 @@
 import { NextResponse } from "next/server";
-import { getUserId, notFound, requireOwner, validateBody, withHandler } from "@/lib/api-helpers";
+import { notFound, requireOwner, validateBody, withHandler } from "@/lib/api-helpers";
+import { getRequestAuth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { addTemplateItemSchema } from "@/lib/validators";
 
 export const POST = withHandler(async (request, { params }) => {
   const { templateId } = await params;
   const data = await validateBody(request, addTemplateItemSchema);
-  const userId = getUserId(request);
+  const auth = await getRequestAuth(request);
+  const userId = auth?.userId ?? null;
 
   // Verify template exists and auto-set sortOrder atomically
   const item = await prisma.$transaction(async (tx) => {

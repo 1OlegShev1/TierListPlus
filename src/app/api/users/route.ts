@@ -8,11 +8,25 @@ import {
 } from "@/lib/user-session";
 
 export const POST = withHandler(async () => {
-  const user = await prisma.user.create({ data: {} });
-  const res = NextResponse.json({ id: user.id }, { status: 201 });
+  const { user, device } = await prisma.$transaction(async (tx) => {
+    const createdUser = await tx.user.create({ data: {} });
+    const createdDevice = await tx.device.create({
+      data: {
+        userId: createdUser.id,
+        displayName: "Device 1",
+      },
+    });
+
+    return { user: createdUser, device: createdDevice };
+  });
+
+  const res = NextResponse.json(
+    { id: user.id, userId: user.id, deviceId: device.id },
+    { status: 201 },
+  );
   res.cookies.set(
     USER_SESSION_COOKIE,
-    createUserSessionToken(user.id),
+    createUserSessionToken(device.id),
     getUserSessionCookieOptions(),
   );
   return res;

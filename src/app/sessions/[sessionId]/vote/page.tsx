@@ -46,9 +46,14 @@ export default function VotePage() {
   const { sessionId } = useParams<{ sessionId: string }>();
   const router = useRouter();
   const { userId } = useUser();
-  const { participantId } = useParticipant(sessionId);
+  const {
+    participantId,
+    save: saveParticipant,
+    clear: clearParticipant,
+  } = useParticipant(sessionId);
   const [session, setSession] = useState<SessionData | null>(null);
   const [seededTiers, setSeededTiers] = useState<Record<string, string[]> | undefined>(undefined);
+  const [resolvedParticipantId, setResolvedParticipantId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isLocked, setIsLocked] = useState(false);
@@ -66,7 +71,10 @@ export default function VotePage() {
         setSession(data);
         setIsLocked(data.isLocked);
 
-        if (!participantId) {
+        const currentParticipantId = data.currentParticipantId;
+        if (!currentParticipantId) {
+          clearParticipant();
+          setResolvedParticipantId(null);
           if (data.status !== "OPEN") {
             router.replace(`/sessions/${sessionId}/results`);
             return;
@@ -75,9 +83,17 @@ export default function VotePage() {
           return;
         }
 
+        setResolvedParticipantId(currentParticipantId);
+        if (
+          data.currentParticipantNickname &&
+          (participantId !== currentParticipantId || !participantId)
+        ) {
+          saveParticipant(currentParticipantId, data.currentParticipantNickname);
+        }
+
         try {
           const existing = await apiFetch<ExistingVotesResponse>(
-            `/api/sessions/${sessionId}/votes/${participantId}`,
+            `/api/sessions/${sessionId}/votes/${currentParticipantId}`,
           );
           if (stale) return;
           setSeededTiers(buildSeededTiers(existing.votes));
@@ -96,7 +112,7 @@ export default function VotePage() {
     return () => {
       stale = true;
     };
-  }, [sessionId, participantId, router]);
+  }, [sessionId, participantId, clearParticipant, saveParticipant, router]);
 
   const toggleLock = async () => {
     if (!session || !isOwner || lockUpdating) return;
@@ -122,7 +138,7 @@ export default function VotePage() {
       </div>
     );
   }
-  if (!participantId) return <Loading message="Redirecting to join..." />;
+  if (!resolvedParticipantId) return <Loading message="Redirecting to join..." />;
 
   return (
     <div className="-mt-2 flex flex-col pb-3 sm:-mt-4 sm:pb-4">
@@ -186,7 +202,7 @@ export default function VotePage() {
 
       <TierListBoard
         sessionId={sessionId}
-        participantId={participantId}
+        participantId={resolvedParticipantId}
         tierConfig={session.tierConfig}
         sessionItems={session.items}
         seededTiers={seededTiers}

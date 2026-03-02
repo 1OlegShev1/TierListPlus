@@ -3,16 +3,17 @@ import Link from "next/link";
 import { buttonVariants } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { getCookieAuth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getTemplateVisibilityWhere } from "@/lib/template-access";
-import { USER_SESSION_COOKIE, verifyUserSessionToken } from "@/lib/user-session";
 import { formatDate } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
 export default async function TemplatesPage() {
   const cookieStore = await cookies();
-  const userId = verifyUserSessionToken(cookieStore.get(USER_SESSION_COOKIE)?.value ?? "");
+  const auth = await getCookieAuth(cookieStore);
+  const userId = auth?.userId ?? null;
   const templates = await prisma.template.findMany({
     where: getTemplateVisibilityWhere(userId),
     include: {

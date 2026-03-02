@@ -1,7 +1,37 @@
 import { NextResponse } from "next/server";
-import { requireUserId, withHandler } from "@/lib/api-helpers";
+import { withHandler } from "@/lib/api-helpers";
+import { getRequestAuth, getRequestTokenVersion } from "@/lib/auth";
+import {
+  createUserSessionToken,
+  getClearedUserSessionCookieOptions,
+  getUserSessionCookieOptions,
+  USER_SESSION_COOKIE,
+} from "@/lib/user-session";
 
 export const GET = withHandler(async (request) => {
-  const userId = requireUserId(request);
-  return NextResponse.json({ id: userId });
+  const tokenVersion = getRequestTokenVersion(request);
+  const auth = await getRequestAuth(request);
+
+  if (!auth) {
+    const res = NextResponse.json({ error: "User identity required" }, { status: 401 });
+    res.cookies.set(USER_SESSION_COOKIE, "", getClearedUserSessionCookieOptions());
+    return res;
+  }
+
+  const res = NextResponse.json({
+    id: auth.userId,
+    userId: auth.userId,
+    deviceId: auth.deviceId,
+    deviceName: auth.device.displayName,
+  });
+
+  if (tokenVersion === 1) {
+    res.cookies.set(
+      USER_SESSION_COOKIE,
+      createUserSessionToken(auth.deviceId),
+      getUserSessionCookieOptions(),
+    );
+  }
+
+  return res;
 });

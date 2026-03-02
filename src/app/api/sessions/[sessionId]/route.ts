@@ -11,7 +11,7 @@ import { updateSessionSchema } from "@/lib/validators";
 
 export const GET = withHandler(async (request, { params }) => {
   const { sessionId } = await params;
-  await requireSessionAccess(request, sessionId);
+  const { requestUserId } = await requireSessionAccess(request, sessionId);
   const session = await prisma.session.findUnique({
     where: { id: sessionId },
     include: {
@@ -27,6 +27,9 @@ export const GET = withHandler(async (request, { params }) => {
 
   if (!session) notFound("Session not found");
 
+  const currentParticipant = requestUserId
+    ? (session.participants.find((participant) => participant.userId === requestUserId) ?? null)
+    : null;
   const participants = session.participants.map(({ _count, ...participant }) => ({
     ...participant,
     hasSubmitted: !!participant.submittedAt || _count.tierVotes > 0,
@@ -35,6 +38,8 @@ export const GET = withHandler(async (request, { params }) => {
   return NextResponse.json({
     ...session,
     participants,
+    currentParticipantId: currentParticipant?.id ?? null,
+    currentParticipantNickname: currentParticipant?.nickname ?? null,
   });
 });
 

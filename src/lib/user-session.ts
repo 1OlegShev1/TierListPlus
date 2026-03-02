@@ -3,10 +3,15 @@ import crypto from "node:crypto";
 export const USER_SESSION_COOKIE = "tierlistplus_session";
 const COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 365; // 1 year
 
-interface SessionPayload {
-  userId: string;
-  v: 1;
-}
+export type UserSessionToken =
+  | {
+      userId: string;
+      version: 1;
+    }
+  | {
+      deviceId: string;
+      version: 2;
+    };
 
 function getSessionSecret(): string {
   const secret = process.env.SESSION_SECRET;
@@ -36,14 +41,14 @@ function parseCookieHeader(cookieHeader: string | null): Record<string, string> 
   );
 }
 
-export function createUserSessionToken(userId: string): string {
-  const payload: SessionPayload = { userId, v: 1 };
+export function createUserSessionToken(deviceId: string): string {
+  const payload = { deviceId, v: 2 as const };
   const encoded = Buffer.from(JSON.stringify(payload)).toString("base64url");
   const signature = sign(encoded);
   return `${encoded}.${signature}`;
 }
 
-export function verifyUserSessionToken(token: string): string | null {
+export function parseUserSessionToken(token: string): UserSessionToken | null {
   const [encodedPayload, signature] = token.split(".");
   if (!encodedPayload || !signature) return null;
 
@@ -55,22 +60,37 @@ export function verifyUserSessionToken(token: string): string | null {
 
   try {
     const parsed = JSON.parse(Buffer.from(encodedPayload, "base64url").toString("utf8")) as {
+      deviceId?: unknown;
       userId?: unknown;
       v?: unknown;
     };
-    if (parsed.v !== 1) return null;
-    if (typeof parsed.userId !== "string" || parsed.userId.length === 0) return null;
-    return parsed.userId;
+    if (parsed.v === 1) {
+      if (typeof parsed.userId !== "string" || parsed.userId.length === 0) return null;
+      return { userId: parsed.userId, version: 1 };
+    }
+    if (parsed.v === 2) {
+      if (typeof parsed.deviceId !== "string" || parsed.deviceId.length === 0) return null;
+      return { deviceId: parsed.deviceId, version: 2 };
+    }
+    return null;
   } catch {
     return null;
   }
 }
 
-export function getUserIdFromSessionCookie(request: Request): string | null {
-  const cookies = parseCookieHeader(request.headers.get("cookie"));
-  const token = cookies[USER_SESSION_COOKIE];
-  if (!token) return null;
-  return verifyUserSessionToken(token);
+export function readUserSessionTokenFromCookieHeader(cookieHeader: string | null): string | null {
+  const cookies = parseCookieHeader(cookieHeader);
+  return cookies[USER_SESSION_COOKIE] ?? null;
+}
+
+export function readUserSessionTokenFromRequest(request: Request): string | null {
+  return readUserSessionTokenFromCookieHeader(request.headers.get("cookie"));
+}
+
+export function readUserSessionTokenFromCookieStore(cookieStore: {
+  get(name: string): { value: string } | undefined;
+}): string | null {
+  return cookieStore.get(USER_SESSION_COOKIE)?.value ?? null;
 }
 
 export function getUserSessionCookieOptions() {
@@ -80,5 +100,12 @@ export function getUserSessionCookieOptions() {
     secure: process.env.NODE_ENV === "production",
     path: "/",
     maxAge: COOKIE_MAX_AGE_SECONDS,
+  };
+}
+
+export function getClearedUserSessionCookieOptions() {
+  return {
+    ...getUserSessionCookieOptions(),
+    maxAge: 0,
   };
 }

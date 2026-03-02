@@ -17,6 +17,37 @@ model User {
   templates    Template[]
   sessions     Session[]
   participants Participant[]
+  devices      Device[]
+  linkCodes    LinkCode[]
+}
+
+model Device {
+  id              String    @id @default(cuid())
+  userId          String
+  displayName     String
+  createdAt       DateTime  @default(now())
+  lastSeenAt      DateTime  @default(now())
+  revokedAt       DateTime?
+  isMigrationSeed Boolean   @default(false)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([revokedAt])
+}
+
+model LinkCode {
+  id         String    @id @default(cuid())
+  userId     String
+  code       String    @unique
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
 }
 
 // ─── TEMPLATES ───────────────────────────────────────────────
@@ -124,6 +155,7 @@ model Participant {
   bracketVotes BracketVote[]
 
   @@unique([sessionId, nickname])
+  @@unique([sessionId, userId])
   @@index([sessionId])
   @@index([userId])
 }

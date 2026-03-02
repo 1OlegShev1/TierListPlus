@@ -36,7 +36,8 @@ export const POST = withHandler(async (request, { params }) => {
     badRequest("At least one vote is required");
   }
 
-  await requireParticipantOwner(request, participantId, sessionId);
+  const participant = await requireParticipantOwner(request, participantId, sessionId);
+  const canonicalParticipantId = participant.id;
   const uniqueItemIds = [...new Set(votes.map((vote) => vote.sessionItemId))];
   if (uniqueItemIds.length !== votes.length) {
     badRequest("Duplicate votes for the same item are not allowed");
@@ -71,17 +72,17 @@ export const POST = withHandler(async (request, { params }) => {
 
   // Rewrite participant votes atomically in one transaction.
   const result = await prisma.$transaction(async (tx) => {
-    await tx.tierVote.deleteMany({ where: { participantId } });
+    await tx.tierVote.deleteMany({ where: { participantId: canonicalParticipantId } });
     const created = await tx.tierVote.createMany({
       data: votes.map((vote) => ({
-        participantId,
+        participantId: canonicalParticipantId,
         sessionItemId: vote.sessionItemId,
         tierKey: vote.tierKey,
         rankInTier: vote.rankInTier,
       })),
     });
     await tx.participant.update({
-      where: { id: participantId },
+      where: { id: canonicalParticipantId },
       data: { submittedAt: new Date() },
     });
 

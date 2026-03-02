@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
-import { requireUserId, withHandler } from "@/lib/api-helpers";
+import { withHandler } from "@/lib/api-helpers";
+import { requireRequestAuth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 export const GET = withHandler(async (request) => {
-  const userId = requireUserId(request);
+  const { userId } = await requireRequestAuth(request);
 
   const [myTemplates, mySessions, participatedSessions] = await Promise.all([
     prisma.template.findMany({

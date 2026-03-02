@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ensureUserId, getLocalUserId } from "@/lib/device-identity";
+import { ensureUserIdentity, getLocalDeviceId, getLocalUserId } from "@/lib/device-identity";
 
 /**
  * Hook that ensures a device-level user identity exists.
@@ -10,6 +10,7 @@ import { ensureUserId, getLocalUserId } from "@/lib/device-identity";
  */
 export function useUser() {
   const [userId, setUserId] = useState<string | null>(() => getLocalUserId());
+  const [deviceId, setDeviceId] = useState<string | null>(() => getLocalDeviceId());
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [retryTick, setRetryTick] = useState(0);
@@ -19,10 +20,11 @@ export function useUser() {
     let cancelled = false;
     setIsLoading(true);
     setError(null);
-    ensureUserId()
-      .then((id) => {
+    ensureUserIdentity()
+      .then((identity) => {
         if (!cancelled) {
-          setUserId(id);
+          setUserId(identity.userId);
+          setDeviceId(identity.deviceId);
           setIsLoading(false);
         }
       })
@@ -38,9 +40,9 @@ export function useUser() {
   }, [retryTick]);
 
   const retry = () => {
-    if (userId) return;
+    if (userId && deviceId) return;
     setRetryTick((v) => v + 1);
   };
 
-  return { userId, isLoading, error, retry };
+  return { userId, deviceId, isLoading, error, retry };
 }

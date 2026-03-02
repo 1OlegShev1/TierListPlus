@@ -5,16 +5,16 @@ import { buttonVariants } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { StatusBadge } from "@/components/ui/StatusBadge";
+import { getCookieAuth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { USER_SESSION_COOKIE, verifyUserSessionToken } from "@/lib/user-session";
 import { formatDate } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
 export default async function SessionsPage() {
   const cookieStore = await cookies();
-  const token = cookieStore.get(USER_SESSION_COOKIE)?.value;
-  const userId = token ? verifyUserSessionToken(token) : null;
+  const auth = await getCookieAuth(cookieStore);
+  const userId = auth?.userId ?? null;
 
   const sessions = await prisma.session.findMany({
     where: userId
