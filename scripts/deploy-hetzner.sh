@@ -22,7 +22,6 @@ rsync -rlptDz --delete \
   --exclude '.next' \
   --exclude 'output' \
   --exclude 'docs' \
-  --exclude 'scripts' \
   --exclude 'CLAUDE.md' \
   --exclude 'docker-compose.yml' \
   --exclude '*.tsbuildinfo' \
@@ -36,7 +35,7 @@ ssh "${REMOTE_HOST}" "
       echo \".env.production not found on server. Create it first.\" >&2
       exit 1
     }
-    rm -rf .claude docs output scripts
+    rm -rf .claude docs output
     rm -f .env .env.production.example CLAUDE.md docker-compose.yml
     find . -maxdepth 1 -name \"*.tsbuildinfo\" -delete
     chown -R root:root .
