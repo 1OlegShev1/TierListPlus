@@ -5,8 +5,8 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { DeleteSessionButton } from "@/components/sessions/DeleteSessionButton";
 import { TierListBoard } from "@/components/tierlist/TierListBoard";
-import { Button, buttonVariants } from "@/components/ui/Button";
 import { ErrorMessage } from "@/components/ui/ErrorMessage";
+import { LockClosedIcon, LockOpenIcon } from "@/components/ui/icons";
 import { JoinCodeBanner } from "@/components/ui/JoinCodeBanner";
 import { Loading } from "@/components/ui/Loading";
 import { useParticipant } from "@/hooks/useParticipant";
@@ -23,6 +23,11 @@ interface ExistingVote {
 interface ExistingVotesResponse {
   votes: ExistingVote[];
 }
+
+const resultsLinkClassName =
+  "inline-flex items-center rounded-full border border-amber-500/60 bg-amber-500/10 px-3 py-1.5 text-sm font-medium text-amber-300 transition-colors hover:border-amber-400 hover:bg-amber-500/15 hover:text-amber-200";
+const statusBadgeBaseClassName =
+  "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium sm:text-sm";
 
 function buildSeededTiers(votes: ExistingVote[]): Record<string, string[]> {
   const grouped = new Map<string, ExistingVote[]>();
@@ -134,11 +139,22 @@ export default function VotePage() {
     return (
       <div className="flex flex-col items-center gap-3 py-20">
         <p className="text-lg text-neutral-400">This session is no longer accepting votes</p>
-        <Button onClick={() => router.push(`/sessions/${sessionId}/results`)}>View Results</Button>
+        <Link href={`/sessions/${sessionId}/results`} className={resultsLinkClassName}>
+          View Results
+        </Link>
       </div>
     );
   }
   if (!resolvedParticipantId) return <Loading message="Redirecting to join..." />;
+
+  const joinStatusLabel = lockUpdating ? "Updating..." : isLocked ? "Joins locked" : "Joins open";
+  const joinStatusToneClassName = isLocked
+    ? "border-orange-500/40 bg-orange-500/10 text-orange-200"
+    : "border-emerald-500/40 bg-emerald-500/10 text-emerald-200";
+  const joinStatusHoverClassName = isLocked
+    ? "hover:border-orange-400/70 hover:bg-orange-500/15"
+    : "hover:border-emerald-400/70 hover:bg-emerald-500/15";
+  const JoinStatusIcon = isLocked ? LockClosedIcon : LockOpenIcon;
 
   return (
     <div className="-mt-2 flex flex-col pb-3 sm:-mt-4 sm:pb-4">
@@ -147,55 +163,39 @@ export default function VotePage() {
           <h1 className="truncate text-lg font-bold sm:text-2xl">{session.name}</h1>
           <div className="mt-0.5 flex flex-wrap items-center gap-2 sm:mt-1 sm:gap-2.5">
             <JoinCodeBanner joinCode={session.joinCode} />
-            <span
-              className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                isLocked ? "bg-orange-500/20 text-orange-300" : "bg-emerald-500/20 text-emerald-300"
-              }`}
-            >
-              {isLocked ? "Joins locked" : "Joins open"}
-            </span>
+            {isOwner ? (
+              <button
+                type="button"
+                onClick={toggleLock}
+                disabled={lockUpdating}
+                aria-label={isLocked ? "Unlock joins" : "Lock joins"}
+                title={isLocked ? "Unlock joins" : "Lock joins"}
+                className={`${statusBadgeBaseClassName} ${joinStatusToneClassName} ${joinStatusHoverClassName} cursor-pointer transition-colors disabled:cursor-wait disabled:opacity-80`}
+              >
+                <JoinStatusIcon className="h-3.5 w-3.5" />
+                {joinStatusLabel}
+              </button>
+            ) : (
+              <span className={`${statusBadgeBaseClassName} ${joinStatusToneClassName}`}>
+                <JoinStatusIcon className="h-3.5 w-3.5" />
+                {joinStatusLabel}
+              </span>
+            )}
           </div>
         </div>
         <div className="text-left md:text-right">
-          <div className="mt-1.5 flex flex-wrap gap-2 md:justify-end sm:mt-2">
-            <Link
-              href={`/sessions/${sessionId}/results`}
-              className={`${buttonVariants.secondary} !px-3 !py-1.5 !text-sm sm:!px-4 sm:!py-2`}
-            >
+          <div className="mt-1.5 flex flex-wrap items-center gap-2 md:justify-end sm:mt-2">
+            <Link href={`/sessions/${sessionId}/results`} className={resultsLinkClassName}>
               View Results
             </Link>
+            {isOwner && (
+              <DeleteSessionButton
+                sessionId={session.id}
+                creatorId={session.creatorId}
+                label="Delete"
+              />
+            )}
           </div>
-          {isOwner && (
-            <>
-              <details className="mt-1.5 sm:hidden">
-                <summary className="cursor-pointer text-xs text-neutral-500">
-                  Session actions
-                </summary>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    onClick={toggleLock}
-                    disabled={lockUpdating}
-                    className="rounded-lg border border-neutral-700 px-3 py-1 text-xs text-neutral-300 transition-colors hover:border-amber-500 hover:text-amber-300 disabled:opacity-50"
-                  >
-                    {lockUpdating ? "Updating..." : isLocked ? "Unlock joins" : "Lock joins"}
-                  </button>
-                  <DeleteSessionButton sessionId={session.id} creatorId={session.creatorId} />
-                </div>
-              </details>
-              <div className="mt-2 hidden flex-wrap gap-2 md:justify-end sm:flex">
-                <button
-                  type="button"
-                  onClick={toggleLock}
-                  disabled={lockUpdating}
-                  className="rounded-lg border border-neutral-700 px-3 py-1 text-xs text-neutral-300 transition-colors hover:border-amber-500 hover:text-amber-300 disabled:opacity-50"
-                >
-                  {lockUpdating ? "Updating..." : isLocked ? "Unlock joins" : "Lock joins"}
-                </button>
-                <DeleteSessionButton sessionId={session.id} creatorId={session.creatorId} />
-              </div>
-            </>
-          )}
           {lockError && <p className="mt-1 text-xs text-red-400">{lockError}</p>}
         </div>
       </div>

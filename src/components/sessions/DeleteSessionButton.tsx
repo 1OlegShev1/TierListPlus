@@ -2,18 +2,25 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { Button } from "@/components/ui/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { TrashIcon } from "@/components/ui/icons";
 import { useUser } from "@/hooks/useUser";
 import { apiDelete, getErrorMessage } from "@/lib/api-client";
+import { cn } from "@/lib/utils";
 
 interface DeleteSessionButtonProps {
   sessionId: string;
   creatorId: string | null;
+  className?: string;
+  label?: string;
 }
 
-export function DeleteSessionButton({ sessionId, creatorId }: DeleteSessionButtonProps) {
+export function DeleteSessionButton({
+  sessionId,
+  creatorId,
+  className,
+  label,
+}: DeleteSessionButtonProps) {
   const { userId } = useUser();
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -37,13 +44,21 @@ export function DeleteSessionButton({ sessionId, creatorId }: DeleteSessionButto
 
   return (
     <>
-      <Button
-        variant="ghost"
+      <button
+        type="button"
         onClick={() => setOpen(true)}
-        className="text-red-400 hover:text-red-300"
+        aria-label={label ?? "Delete session"}
+        title={label ?? "Delete session"}
+        className={cn(
+          label
+            ? "inline-flex cursor-pointer items-center justify-center gap-1.5 rounded-full border border-red-500/40 bg-red-500/10 px-3 py-1.5 text-sm font-medium text-red-200 transition-colors hover:border-red-400 hover:bg-red-500/15 hover:text-red-100"
+            : "inline-flex cursor-pointer items-center justify-center rounded-lg p-1 text-red-400 transition-colors hover:bg-red-500/5 hover:text-red-300",
+          className,
+        )}
       >
-        <TrashIcon className="h-5 w-5" />
-      </Button>
+        <TrashIcon className={label ? "h-4 w-4" : "h-5 w-5"} />
+        {label && <span>{label}</span>}
+      </button>
       <ConfirmDialog
         open={open}
         title="Delete Session"
