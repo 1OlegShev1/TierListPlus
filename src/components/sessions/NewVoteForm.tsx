@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/Button";
 import { ErrorMessage } from "@/components/ui/ErrorMessage";
 import { Input } from "@/components/ui/Input";
 import { ItemPreview } from "@/components/ui/ItemPreview";
-import { ListPreviewCard } from "@/components/ui/ListPreviewCard";
 import { saveParticipant } from "@/hooks/useParticipant";
 import { useUser } from "@/hooks/useUser";
 import { apiFetch, apiPost, getErrorMessage } from "@/lib/api-client";
@@ -308,9 +307,9 @@ function ListPicker({
           {!isSearching && featured.length > 0 && (
             <>
               <p className="mb-3 text-sm font-medium text-neutral-400">Popular lists</p>
-              <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <div className="mb-5 space-y-3">
                 {featured.map((list) => (
-                  <ListCard key={list.id} list={list} onSelect={() => onPick(list.id)} />
+                  <ListPickerRow key={list.id} list={list} onSelect={() => onPick(list.id)} />
                 ))}
               </div>
             </>
@@ -345,14 +344,14 @@ function ListPicker({
                 <p className="px-1 pt-1 pb-1 text-xs font-medium text-neutral-500">Your Lists</p>
               )}
               {privateResults.map((list) => (
-                <ListRow key={list.id} list={list} onSelect={() => onPick(list.id)} />
+                <ListPickerRow key={list.id} list={list} onSelect={() => onPick(list.id)} />
               ))}
 
               {hasGroups && publicResults.length > 0 && (
                 <p className="px-1 pt-3 pb-1 text-xs font-medium text-neutral-500">Public Lists</p>
               )}
               {publicResults.map((list) => (
-                <ListRow key={list.id} list={list} onSelect={() => onPick(list.id)} />
+                <ListPickerRow key={list.id} list={list} onSelect={() => onPick(list.id)} />
               ))}
             </div>
           )}
@@ -362,31 +361,23 @@ function ListPicker({
   );
 }
 
-function ListCard({ list, onSelect }: { list: ListSummary; onSelect: () => void }) {
-  return (
-    <button type="button" onClick={onSelect} className="block text-left">
-      <ListPreviewCard
-        title={list.name}
-        meta={`${list._count.items} picks`}
-        items={list.items}
-        className="transition-colors hover:border-neutral-600"
-      />
-    </button>
-  );
-}
-
-function ListRow({ list, onSelect }: { list: ListSummary; onSelect: () => void }) {
+function ListPickerRow({ list, onSelect }: { list: ListSummary; onSelect: () => void }) {
   return (
     <button
       type="button"
       onClick={onSelect}
-      className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-neutral-900"
+      className="flex w-full items-center gap-3 rounded-xl border border-neutral-800 bg-neutral-900 px-4 py-3 text-left transition-colors hover:border-neutral-600"
     >
       <ItemPreview items={list.items} variant="stack" />
       <span className="min-w-0 flex-1">
-        <span className="block truncate font-medium">{list.name}</span>
-        <span className="block text-xs text-neutral-500">{list._count.items} picks</span>
+        <span className="block truncate text-base font-medium text-neutral-100">{list.name}</span>
+        <span className="block text-sm text-neutral-500">{list._count.items} picks</span>
       </span>
+      {list.isPublic && (
+        <span className="shrink-0 rounded-full border border-neutral-700 px-2 py-0.5 text-[11px] text-neutral-400">
+          Public
+        </span>
+      )}
     </button>
   );
 }

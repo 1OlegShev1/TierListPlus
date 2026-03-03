@@ -18,7 +18,7 @@ export const GET = withHandler(async (request) => {
   const templates = await prisma.template.findMany({
     where: getTemplateVisibilityWhere(userId),
     include: { _count: { select: { items: true } } },
-    orderBy: { createdAt: "desc" },
+    orderBy: { updatedAt: "desc" },
   });
 
   if (previewLimit < 1 || templates.length === 0) {
