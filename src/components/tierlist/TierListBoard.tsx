@@ -164,6 +164,7 @@ export function TierListBoard({
   const [savingTemplate, setSavingTemplate] = useState(false);
   const [saveTemplateError, setSaveTemplateError] = useState<string | null>(null);
   const [savedTemplateId, setSavedTemplateId] = useState<string | null>(null);
+  const [expandedItemId, setExpandedItemId] = useState<string | null>(null);
 
   // ---- FLIP refs ----
   const containerRef = useRef<HTMLDivElement>(null);
@@ -422,14 +423,36 @@ export function TierListBoard({
     return () => window.removeEventListener("resize", suppress, true);
   }, []);
 
+  useEffect(() => {
+    if (!expandedItemId) return;
+
+    const collapseExpanded = (event: PointerEvent) => {
+      if (!(event.target instanceof Element)) return;
+      if (event.target.closest('[data-peek-item="true"]')) return;
+      setExpandedItemId(null);
+    };
+
+    document.addEventListener("pointerdown", collapseExpanded, true);
+    return () => document.removeEventListener("pointerdown", collapseExpanded, true);
+  }, [expandedItemId]);
+
   const collisionDetection: CollisionDetection = useCallback((args) => {
     const pointerCollisions = pointerWithin(args);
     if (pointerCollisions.length > 0) return pointerCollisions;
     return rectIntersection(args);
   }, []);
 
+  const handleExpandItem = useCallback((itemId: string) => {
+    setExpandedItemId(itemId);
+  }, []);
+
+  const handleCollapseExpanded = useCallback(() => {
+    setExpandedItemId(null);
+  }, []);
+
   const handleDragStart = useCallback(
     (event: DragStartEvent) => {
+      setExpandedItemId(null);
       setActiveId(event.active.id as string);
     },
     [setActiveId],
@@ -707,6 +730,9 @@ export function TierListBoard({
                 onInsertAbove={() => handleInsertTier(index)}
                 onInsertBelow={() => handleInsertTier(index + 1)}
                 onDelete={() => handleDeleteTier(tier.key)}
+                expandedItemId={expandedItemId}
+                onExpandItem={handleExpandItem}
+                onCollapseExpanded={handleCollapseExpanded}
               />
             </div>
           ))}
@@ -725,6 +751,9 @@ export function TierListBoard({
             className="mb-2 max-h-none min-h-[112px]"
             onRemoveItem={canLiveEditItems ? handleRemoveLiveItem : undefined}
             removingItemId={removingItemId}
+            expandedItemId={expandedItemId}
+            onExpandItem={handleExpandItem}
+            onCollapseExpanded={handleCollapseExpanded}
             afterItems={
               canLiveEditItems ? (
                 <div className="mt-2 flex w-full flex-wrap items-start gap-2 border-t border-neutral-800 pt-2">

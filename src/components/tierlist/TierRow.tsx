@@ -25,6 +25,9 @@ interface TierRowProps {
   onInsertAbove: () => void;
   onInsertBelow: () => void;
   onDelete: () => void;
+  expandedItemId: string | null;
+  onExpandItem: (itemId: string) => void;
+  onCollapseExpanded: () => void;
 }
 
 export function TierRow({
@@ -42,6 +45,9 @@ export function TierRow({
   onInsertAbove,
   onInsertBelow,
   onDelete,
+  expandedItemId,
+  onExpandItem,
+  onCollapseExpanded,
 }: TierRowProps) {
   const items = useTierListStore((s) => s.tiers[tierKey] ?? []);
   const itemMap = useTierListStore((s) => s.items);
@@ -141,7 +147,17 @@ export function TierRow({
             {items.map((id) => {
               const item = itemMap.get(id);
               if (!item) return null;
-              return <DraggableItem key={id} id={id} label={item.label} imageUrl={item.imageUrl} />;
+              return (
+                <DraggableItem
+                  key={id}
+                  id={id}
+                  label={item.label}
+                  imageUrl={item.imageUrl}
+                  isExpanded={expandedItemId === id}
+                  onExpand={onExpandItem}
+                  onCollapse={onCollapseExpanded}
+                />
+              );
             })}
           </SortableContext>
           {items.length === 0 && !isOver && (
