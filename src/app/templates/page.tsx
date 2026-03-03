@@ -103,7 +103,7 @@ function ListSection({
           });
 
           return (
-            <Link key={list.id} href={`/templates/${list.id}`} className="block">
+            <Link key={list.id} href={`/templates/${list.id}`} className="block h-full">
               <ListPreviewCard
                 title={list.name}
                 meta={meta}

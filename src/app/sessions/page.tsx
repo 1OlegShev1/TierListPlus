@@ -161,7 +161,7 @@ function VotesSection({
 }
 
 function VoteRow({ vote, viewer }: { vote: VoteListItem; viewer: VoteViewer }) {
-  const { chips, meta } = buildVoteDisplay({
+  const { chips, meta, sourceLabel } = buildVoteDisplay({
     viewer,
     isPrivate: vote.isPrivate,
     isLocked: vote.isLocked,
@@ -179,15 +179,22 @@ function VoteRow({ vote, viewer }: { vote: VoteListItem; viewer: VoteViewer }) {
     isLocked: vote.isLocked,
     sessionId: vote.id,
   });
+  const showStatusBadge = vote.status !== "OPEN";
 
   return (
-    <div className="flex flex-col gap-3 rounded-xl border border-neutral-800 bg-neutral-900 p-4 transition-colors hover:border-neutral-600 sm:flex-row sm:items-center">
+    <div className="flex flex-col gap-3 rounded-xl border border-neutral-800 bg-neutral-900 p-4 transition-colors hover:border-neutral-600 sm:flex-row sm:items-center sm:gap-5">
       <Link href={`/sessions/${vote.id}`} className="min-w-0 flex-1">
-        <VotePreviewSummary title={vote.name} meta={meta} items={vote.items} chips={chips} />
+        <VotePreviewSummary
+          title={vote.name}
+          meta={meta}
+          items={vote.items}
+          chips={chips}
+          sourceLabel={sourceLabel}
+        />
       </Link>
-      <div className="flex flex-wrap items-center gap-2">
-        <StatusBadge status={vote.status} />
-        <Link href={action.href} className={buttonVariants.secondary}>
+      <div className="flex flex-wrap items-center gap-2 sm:shrink-0">
+        {showStatusBadge && <StatusBadge status={vote.status} />}
+        <Link href={action.href} className={`${buttonVariants.secondary} sm:px-6`}>
           {action.label}
         </Link>
         <DeleteVoteButton sessionId={vote.id} creatorId={vote.creatorId} />

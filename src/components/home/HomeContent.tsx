@@ -138,7 +138,7 @@ export function HomeContent() {
             <SectionHeader title="Your Lists" actionHref="/templates" actionLabel="See all lists" />
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {listPreview.map((t) => (
-                <Link key={t.id} href={`/templates/${t.id}`} className="block">
+                <Link key={t.id} href={`/templates/${t.id}`} className="block h-full">
                   <ListPreviewCard
                     title={t.name}
                     meta={`${t._count.items} picks · ${formatDate(t.createdAt)}`}
@@ -191,7 +191,7 @@ function VoteRow({ vote, contextLabel }: { vote: VoteSummary; contextLabel?: str
       : contextLabel === "You're already in"
         ? "participant"
         : "browser";
-  const { chips, meta } = buildVoteDisplay({
+  const { chips, meta, sourceLabel } = buildVoteDisplay({
     viewer,
     isPrivate: vote.isPrivate,
     isLocked: vote.isLocked,
@@ -212,7 +212,13 @@ function VoteRow({ vote, contextLabel }: { vote: VoteSummary; contextLabel?: str
       href={`/sessions/${vote.id}`}
       className="flex items-start justify-between gap-3 rounded-xl border border-neutral-800 bg-neutral-900 p-4 transition-colors hover:border-neutral-600"
     >
-      <VotePreviewSummary title={vote.name} meta={displayMeta} items={vote.items} chips={chips} />
+      <VotePreviewSummary
+        title={vote.name}
+        meta={displayMeta}
+        items={vote.items}
+        chips={chips}
+        sourceLabel={sourceLabel}
+      />
       <div className="shrink-0 pt-0.5">
         <StatusBadge status={vote.status} />
       </div>

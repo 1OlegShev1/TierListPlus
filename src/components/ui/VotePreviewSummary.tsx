@@ -1,4 +1,5 @@
 import { ItemPreview } from "@/components/ui/ItemPreview";
+import { splitUpdatedMeta } from "@/lib/display-meta";
 import { cn } from "@/lib/utils";
 import type { VoteDisplayChip } from "@/lib/vote-display";
 
@@ -13,19 +14,28 @@ export function VotePreviewSummary({
   meta,
   items,
   chips = [],
+  sourceLabel,
 }: {
   title: string;
   meta: string;
   items: PreviewItem[];
   chips?: VoteDisplayChip[];
+  sourceLabel?: string | null;
 }) {
+  const metaDisplay = splitUpdatedMeta(meta);
+
   return (
-    <div className="flex min-w-0 flex-1 items-start gap-3">
-      <ItemPreview items={items} variant="stack" />
-      <div className="min-w-0">
-        <h3 className="truncate text-lg font-semibold text-neutral-100">{title}</h3>
+    <div className="flex min-w-0 flex-1 items-center gap-4">
+      <ItemPreview items={items} variant="stack" className="w-16 gap-1.5 sm:w-20" />
+      <div className="flex min-w-0 flex-1 flex-col justify-center">
+        <h3
+          title={title}
+          className="line-clamp-2 break-words text-lg font-semibold leading-tight text-neutral-100"
+        >
+          {title}
+        </h3>
         {chips.length > 0 && (
-          <div className="mt-1 flex flex-wrap gap-1.5">
+          <div className="mt-2.5 flex flex-wrap gap-1.5">
             {chips.map((chip) => (
               <span
                 key={`${chip.tone}-${chip.label}`}
@@ -42,7 +52,36 @@ export function VotePreviewSummary({
             ))}
           </div>
         )}
-        <p className="mt-2 text-sm text-neutral-500">{meta}</p>
+        {sourceLabel && (
+          <p
+            title={sourceLabel}
+            className={cn(
+              "line-clamp-2 break-words text-sm leading-snug text-neutral-400",
+              chips.length > 0 ? "mt-3" : "mt-2.5",
+            )}
+          >
+            {sourceLabel}
+          </p>
+        )}
+        {(metaDisplay.details || metaDisplay.updated) && (
+          <div
+            className={cn(
+              "flex flex-wrap items-baseline gap-x-4 gap-y-1.5 text-sm",
+              sourceLabel ? "mt-2" : chips.length > 0 ? "mt-3" : "mt-2.5",
+            )}
+          >
+            {metaDisplay.details && (
+              <p title={metaDisplay.details} className="whitespace-nowrap text-neutral-500">
+                {metaDisplay.details}
+              </p>
+            )}
+            {metaDisplay.updated && (
+              <p title={metaDisplay.updated} className="whitespace-nowrap text-neutral-600">
+                {metaDisplay.updated}
+              </p>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

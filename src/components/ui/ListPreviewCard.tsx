@@ -1,4 +1,5 @@
 import { ItemPreview } from "@/components/ui/ItemPreview";
+import { splitUpdatedMeta } from "@/lib/display-meta";
 import type { ListDisplayChip } from "@/lib/list-display";
 import { cn } from "@/lib/utils";
 
@@ -23,14 +24,23 @@ export function ListPreviewCard({
   note?: string;
   className?: string;
 }) {
+  const metaDisplay = splitUpdatedMeta(meta);
+
   return (
-    <div className={cn("rounded-xl border border-neutral-800 bg-neutral-900 p-4", className)}>
-      <div className="flex items-start gap-4">
+    <div
+      className={cn("h-full rounded-xl border border-neutral-800 bg-neutral-900 p-4", className)}
+    >
+      <div className="flex h-full items-center gap-4">
         <ItemPreview items={items} variant="grid" />
-        <div className="min-w-0 flex-1">
-          <h3 className="truncate text-lg font-semibold text-neutral-100">{title}</h3>
+        <div className="flex min-w-0 flex-1 flex-col justify-center">
+          <h3
+            title={title}
+            className="min-h-[2.5rem] line-clamp-2 break-words text-lg font-semibold leading-tight text-neutral-100"
+          >
+            {title}
+          </h3>
           {chips.length > 0 && (
-            <div className="mt-1 flex flex-wrap gap-1.5">
+            <div className="mt-2.5 flex flex-wrap gap-1.5">
               {chips.map((chip) => (
                 <span
                   key={`${chip.tone}-${chip.label}`}
@@ -45,9 +55,19 @@ export function ListPreviewCard({
               ))}
             </div>
           )}
-          <p className={cn("text-sm text-neutral-500", chips.length > 0 ? "mt-2" : "mt-1")}>
-            {meta}
-          </p>
+          {metaDisplay.details && (
+            <p
+              title={metaDisplay.details}
+              className={cn("text-sm text-neutral-500", chips.length > 0 ? "mt-3" : "mt-2.5")}
+            >
+              {metaDisplay.details}
+            </p>
+          )}
+          {metaDisplay.updated && (
+            <p title={metaDisplay.updated} className="mt-1 text-sm text-neutral-600">
+              {metaDisplay.updated}
+            </p>
+          )}
           {note && <p className="mt-1 text-xs font-medium text-amber-400">{note}</p>}
         </div>
       </div>

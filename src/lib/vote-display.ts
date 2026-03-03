@@ -45,15 +45,16 @@ export function buildVoteDisplay({
     });
   }
 
+  const sourceLabel = listHidden ? null : listName;
   const metaParts = [
-    listHidden ? null : listName,
     `${itemCount} picks`,
     `${participantCount} joined`,
     `Updated ${formatDate(updatedAt)}`,
-  ].filter(Boolean);
+  ];
 
   return {
     chips,
+    sourceLabel,
     meta: metaParts.join(" · "),
   };
 }
