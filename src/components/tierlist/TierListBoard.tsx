@@ -19,12 +19,13 @@ import { nanoid } from "nanoid";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { ImageUploader, type UploadedImage } from "@/components/shared/ImageUploader";
+import { CloseIcon } from "@/components/ui/icons";
 import { useTierListStore } from "@/hooks/useTierList";
 import { apiDelete, apiPatch, apiPost, getErrorMessage } from "@/lib/api-client";
 import { TIER_COLORS } from "@/lib/constants";
 import { clearDraft, getDraft, saveDraft } from "@/lib/vote-draft";
 import type { Item, TierConfig } from "@/types";
-import { ImageUploader } from "../shared/ImageUploader";
 import { DraggableItem } from "./DraggableItem";
 import { TierRow } from "./TierRow";
 import { UnrankedDropZone, UnrankedHeader } from "./UnrankedPool";
@@ -580,8 +581,8 @@ export function TierListBoard({
     }
   };
 
-  const handlePendingUpload = (imageUrl: string) => {
-    setPendingUploads((prev) => [...prev, { id: nanoid(6), imageUrl, label: "" }]);
+  const handlePendingUpload = ({ url, suggestedLabel }: UploadedImage) => {
+    setPendingUploads((prev) => [...prev, { id: nanoid(6), imageUrl: url, label: suggestedLabel }]);
     setAddItemError(null);
   };
 
@@ -730,15 +731,15 @@ export function TierListBoard({
                   {pendingUploads.map((pending) => (
                     <div
                       key={pending.id}
-                      className="relative w-[112px] flex-shrink-0 rounded-lg border border-neutral-700 bg-neutral-950 p-1.5 sm:w-[120px] md:w-[128px]"
+                      className="group relative w-[112px] flex-shrink-0 rounded-lg border border-neutral-700 bg-neutral-950 p-1.5 sm:w-[120px] md:w-[128px]"
                     >
                       <button
                         type="button"
                         onClick={() => handleRemovePendingUpload(pending.id)}
-                        className="absolute right-1.5 top-1.5 z-10 flex h-5 w-5 items-center justify-center rounded-full bg-black/70 text-xs text-white transition-colors hover:bg-red-600"
+                        className="absolute right-1.5 top-1.5 z-10 flex h-6 w-6 items-center justify-center rounded-full border border-neutral-700 bg-black/70 text-neutral-200 opacity-0 transition-all hover:border-red-500 hover:bg-red-600 hover:text-white focus-visible:opacity-100 group-hover:opacity-100 group-focus-within:opacity-100"
                         aria-label="Remove pending item"
                       >
-                        x
+                        <CloseIcon className="h-3.5 w-3.5" />
                       </button>
                       <img
                         src={pending.imageUrl}

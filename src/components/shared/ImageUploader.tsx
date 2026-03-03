@@ -1,14 +1,21 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import { CloseIcon } from "@/components/ui/icons";
 import {
   CLIENT_UPLOAD_IMAGE_QUALITY,
   CLIENT_UPLOAD_IMAGE_SIZE,
   UPLOAD_MAX_BYTES,
 } from "@/lib/upload-config";
 
+export interface UploadedImage {
+  url: string;
+  suggestedLabel: string;
+  originalName: string;
+}
+
 interface ImageUploaderProps {
-  onUploaded: (url: string) => void;
+  onUploaded: (image: UploadedImage) => void;
   multiple?: boolean;
   className?: string;
   compact?: boolean;
@@ -20,12 +27,29 @@ interface UploadProgress {
   completed: number;
 }
 
+interface BatchUploadOutcome {
+  message?: string;
+  uploadedImage?: UploadedImage;
+}
+
 const UPLOAD_MAX_MB = Math.round(UPLOAD_MAX_BYTES / (1024 * 1024));
 
 function toUploadFilename(name: string): string {
   const dotIndex = name.lastIndexOf(".");
   const basename = dotIndex > 0 ? name.slice(0, dotIndex) : name;
   return `${basename || "upload"}.webp`;
+}
+
+function getSuggestedLabel(name: string): string {
+  const dotIndex = name.lastIndexOf(".");
+  const basename = dotIndex > 0 ? name.slice(0, dotIndex) : name;
+  const normalized = basename.replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim();
+
+  if (!normalized) return "";
+  if (/^(img|dsc|pxl|image|photo)[-_ ]?\d+$/i.test(normalized)) return "";
+  if (/^[a-f0-9]{8,}$/i.test(normalized)) return "";
+
+  return normalized.slice(0, 100).trim();
 }
 
 function canvasToWebpBlob(canvas: HTMLCanvasElement): Promise<Blob | null> {
@@ -47,10 +71,9 @@ async function prepareFileForUpload(file: File): Promise<File> {
   }
 
   try {
-    const sourceSize = Math.min(bitmap.width, bitmap.height);
-    if (sourceSize <= 0) return file;
+    if (bitmap.width <= 0 || bitmap.height <= 0) return file;
 
-    const targetSize = Math.min(CLIENT_UPLOAD_IMAGE_SIZE, sourceSize);
+    const targetSize = CLIENT_UPLOAD_IMAGE_SIZE;
     const canvas = document.createElement("canvas");
     canvas.width = targetSize;
     canvas.height = targetSize;
@@ -58,20 +81,14 @@ async function prepareFileForUpload(file: File): Promise<File> {
     const context = canvas.getContext("2d");
     if (!context) return file;
 
-    const offsetX = Math.floor((bitmap.width - sourceSize) / 2);
-    const offsetY = Math.floor((bitmap.height - sourceSize) / 2);
+    const scale = Math.min(1, targetSize / bitmap.width, targetSize / bitmap.height);
+    const drawWidth = Math.round(bitmap.width * scale);
+    const drawHeight = Math.round(bitmap.height * scale);
+    const offsetX = Math.floor((targetSize - drawWidth) / 2);
+    const offsetY = Math.floor((targetSize - drawHeight) / 2);
 
-    context.drawImage(
-      bitmap,
-      offsetX,
-      offsetY,
-      sourceSize,
-      sourceSize,
-      0,
-      0,
-      targetSize,
-      targetSize,
-    );
+    context.clearRect(0, 0, targetSize, targetSize);
+    context.drawImage(bitmap, offsetX, offsetY, drawWidth, drawHeight);
 
     const blob = await canvasToWebpBlob(canvas);
     if (!blob || blob.size >= file.size) return file;
@@ -85,7 +102,7 @@ async function prepareFileForUpload(file: File): Promise<File> {
   }
 }
 
-async function uploadFile(file: File): Promise<string> {
+async function uploadFile(file: File): Promise<UploadedImage> {
   const preparedFile = await prepareFileForUpload(file);
   if (preparedFile.size > UPLOAD_MAX_BYTES) {
     throw new Error(`File too large (max ${UPLOAD_MAX_MB}MB)`);
@@ -99,7 +116,11 @@ async function uploadFile(file: File): Promise<string> {
     throw new Error(data?.error ?? "Upload failed");
   }
   const { url } = await res.json();
-  return url;
+  return {
+    url,
+    suggestedLabel: getSuggestedLabel(file.name),
+    originalName: file.name,
+  };
 }
 
 export function ImageUploader({
@@ -121,10 +142,12 @@ export function ImageUploader({
       setError(null);
       setFailures([]);
       try {
-        const url = await uploadFile(file);
-        onUploaded(url);
+        const uploadedImage = await uploadFile(file);
+        onUploaded(uploadedImage);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Upload failed");
+        const msg = err instanceof Error ? err.message : "Upload failed";
+        setError(msg);
+        setFailures([`${file.name} - ${msg}`]);
       } finally {
         setUploading(false);
       }
@@ -161,19 +184,35 @@ export function ImageUploader({
 
       setProgress({ total: imageFiles.length, completed: 0 });
 
+      const settledUploads: Array<BatchUploadOutcome | undefined> = new Array(imageFiles.length);
+      let nextUploadIndex = 0;
+
       // Upload all image files in parallel
-      await Promise.allSettled(
-        imageFiles.map(async (file) => {
+      await Promise.all(
+        imageFiles.map(async (file, index) => {
           try {
-            const url = await uploadFile(file);
-            onUploaded(url);
-            setProgress((prev) => (prev ? { ...prev, completed: prev.completed + 1 } : null));
-            return url;
+            settledUploads[index] = {
+              uploadedImage: await uploadFile(file),
+            };
           } catch (err) {
-            const msg = err instanceof Error ? err.message : "upload failed";
-            failed.push(`${file.name} — ${msg}`);
+            settledUploads[index] = {
+              message: err instanceof Error ? err.message : "upload failed",
+            };
+          } finally {
+            while (nextUploadIndex < settledUploads.length && settledUploads[nextUploadIndex]) {
+              const outcome = settledUploads[nextUploadIndex];
+              const currentFile = imageFiles[nextUploadIndex];
+
+              if (outcome?.uploadedImage) {
+                onUploaded(outcome.uploadedImage);
+              } else if (outcome?.message) {
+                failed.push(`${currentFile.name} - ${outcome.message}`);
+              }
+
+              nextUploadIndex += 1;
+            }
+
             setProgress((prev) => (prev ? { ...prev, completed: prev.completed + 1 } : null));
-            throw err;
           }
         }),
       );
@@ -228,9 +267,9 @@ export function ImageUploader({
   };
 
   return (
-    <div className={className}>
+    <div className={`relative ${className ?? ""}`}>
       <label
-        className={`flex h-full cursor-pointer items-center justify-center rounded-lg transition-colors ${
+        className={`flex h-full w-full cursor-pointer items-center justify-center rounded-lg transition-colors ${
           dragOver
             ? "border-amber-400 bg-amber-400/10"
             : compact
@@ -278,13 +317,13 @@ export function ImageUploader({
       </label>
 
       {failures.length > 0 && (
-        <div className="mt-2 rounded border border-red-800 bg-red-950/50 p-2">
+        <div className="absolute left-1/2 top-full z-20 mt-2 w-80 max-w-[calc(100vw-2rem)] -translate-x-1/2 rounded-lg border border-red-900/80 bg-neutral-950/95 p-3 shadow-2xl shadow-black/50 backdrop-blur-sm">
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
-              <p className="text-xs font-medium text-red-400">{error}</p>
-              <ul className="mt-1 space-y-0.5">
+              <p className="text-xs font-semibold text-red-300">{error}</p>
+              <ul className="mt-2 max-h-40 space-y-1 overflow-auto pr-1">
                 {failures.map((msg) => (
-                  <li key={msg} className="truncate text-xs text-red-300/70">
+                  <li key={msg} className="text-xs leading-4 text-red-200/80 break-words">
                     {msg}
                   </li>
                 ))}
@@ -293,10 +332,10 @@ export function ImageUploader({
             <button
               type="button"
               onClick={dismissErrors}
-              className="shrink-0 text-xs text-neutral-500 hover:text-neutral-300"
+              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-neutral-800 bg-neutral-900 text-neutral-400 transition-colors hover:border-neutral-700 hover:text-neutral-100"
               aria-label="Dismiss errors"
             >
-              ✕
+              <CloseIcon className="h-3.5 w-3.5" />
             </button>
           </div>
         </div>

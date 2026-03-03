@@ -43,7 +43,11 @@ export async function saveUploadedImage(buffer: Buffer): Promise<string> {
 
   const processedBuffer = await sharp(buffer)
     .rotate()
-    .resize(PROCESSED_IMAGE_SIZE, PROCESSED_IMAGE_SIZE, { fit: "cover" })
+    .resize(PROCESSED_IMAGE_SIZE, PROCESSED_IMAGE_SIZE, {
+      fit: "contain",
+      background: { r: 0, g: 0, b: 0, alpha: 0 },
+      withoutEnlargement: true,
+    })
     .webp({ quality: PROCESSED_IMAGE_QUALITY })
     .toBuffer();
 

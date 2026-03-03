@@ -2,10 +2,11 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { ImageUploader } from "@/components/shared/ImageUploader";
+import { ImageUploader, type UploadedImage } from "@/components/shared/ImageUploader";
 import { Button } from "@/components/ui/Button";
 import { ErrorMessage } from "@/components/ui/ErrorMessage";
 import { Input } from "@/components/ui/Input";
+import { CloseIcon } from "@/components/ui/icons";
 import { Textarea } from "@/components/ui/Textarea";
 import { useUser } from "@/hooks/useUser";
 import { apiFetch, apiPatch, apiPost, getErrorMessage } from "@/lib/api-client";
@@ -35,8 +36,8 @@ export function TemplateEditor({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const addItem = (imageUrl: string) => {
-    setItems((prev) => [...prev, { label: "", imageUrl, sortOrder: prev.length }]);
+  const addItem = ({ url, suggestedLabel }: UploadedImage) => {
+    setItems((prev) => [...prev, { label: suggestedLabel, imageUrl: url, sortOrder: prev.length }]);
   };
 
   const updateItemLabel = (index: number, label: string) => {
@@ -147,10 +148,10 @@ export function TemplateEditor({
               <button
                 type="button"
                 onClick={() => removeItem(index)}
-                className="absolute -right-2 -top-2 z-10 hidden h-5 w-5 items-center justify-center rounded-full bg-red-600 text-xs text-white group-hover:flex"
+                className="absolute right-1 top-1 z-10 flex h-6 w-6 items-center justify-center rounded-full border border-neutral-700 bg-black/70 text-neutral-200 opacity-0 transition-all hover:border-red-500 hover:bg-red-600 hover:text-white focus-visible:opacity-100 group-hover:opacity-100 group-focus-within:opacity-100"
                 aria-label={`Remove ${item.label || "item"}`}
               >
-                x
+                <CloseIcon className="h-3.5 w-3.5" />
               </button>
               <img
                 src={item.imageUrl}
