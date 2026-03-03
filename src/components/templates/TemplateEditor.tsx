@@ -35,6 +35,7 @@ export function TemplateEditor({
   const [items, setItems] = useState<TemplateItemData[]>(initialItems);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const uploadsDisabled = userLoading || !userId;
 
   const addItem = ({ url, suggestedLabel }: UploadedImage) => {
     setItems((prev) => [...prev, { label: suggestedLabel, imageUrl: url, sortOrder: prev.length }]);
@@ -167,7 +168,19 @@ export function TemplateEditor({
               />
             </div>
           ))}
-          <ImageUploader onUploaded={addItem} multiple className="aspect-square" />
+          <ImageUploader
+            onUploaded={addItem}
+            multiple
+            className="aspect-square"
+            disabled={uploadsDisabled}
+            idleLabel={
+              userLoading
+                ? "Preparing identity..."
+                : uploadsDisabled
+                  ? "Identity required"
+                  : undefined
+            }
+          />
         </div>
       </div>
 

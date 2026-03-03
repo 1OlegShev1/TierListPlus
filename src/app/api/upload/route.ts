@@ -1,32 +1,47 @@
 import { NextResponse } from "next/server";
 import { badRequest, withHandler } from "@/lib/api-helpers";
-import { saveUploadedImage, validateImageBuffer } from "@/lib/upload";
-import { UPLOAD_MAX_BYTES } from "@/lib/upload-config";
+import { requireRequestAuth } from "@/lib/auth";
+import { takeRateLimitToken } from "@/lib/rate-limit";
+import { InvalidImageError, saveUploadedImage } from "@/lib/upload";
+import {
+  UPLOAD_MAX_BYTES,
+  UPLOAD_RATE_LIMIT_MAX_REQUESTS,
+  UPLOAD_RATE_LIMIT_WINDOW_MS,
+} from "@/lib/upload-config";
 
 export const POST = withHandler(async (request) => {
+  const auth = await requireRequestAuth(request);
+  const rateLimit = takeRateLimitToken({
+    key: `upload:${auth.deviceId}`,
+    maxRequests: UPLOAD_RATE_LIMIT_MAX_REQUESTS,
+    windowMs: UPLOAD_RATE_LIMIT_WINDOW_MS,
+  });
+
+  if (!rateLimit.allowed) {
+    return NextResponse.json(
+      { error: "Too many uploads. Please wait a minute and try again." },
+      {
+        status: 429,
+        headers: { "Retry-After": String(rateLimit.retryAfterSeconds) },
+      },
+    );
+  }
+
   const formData = await request.formData();
   const file = formData.get("file") as File | null;
 
   if (!file) badRequest("No file provided");
-  if (!file.type.startsWith("image/")) badRequest("File must be an image");
   if (file.size > UPLOAD_MAX_BYTES) badRequest("File too large (max 10MB)");
 
   const buffer = Buffer.from(await file.arrayBuffer());
-  if (!validateImageBuffer(buffer)) badRequest("File is not a valid image");
 
   try {
     const url = await saveUploadedImage(buffer);
     return NextResponse.json({ url });
   } catch (error) {
-    if (
-      typeof error === "object" &&
-      error !== null &&
-      "code" in error &&
-      typeof error.code === "string"
-    ) {
-      throw error;
+    if (error instanceof InvalidImageError) {
+      badRequest(error.message);
     }
-
-    badRequest("Could not process image");
+    throw error;
   }
 });

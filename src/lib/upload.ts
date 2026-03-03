@@ -2,54 +2,75 @@ import { createHash, randomUUID } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
 import sharp from "sharp";
-import { PROCESSED_IMAGE_QUALITY, PROCESSED_IMAGE_SIZE } from "@/lib/upload-config";
+import {
+  PROCESSED_IMAGE_QUALITY,
+  PROCESSED_IMAGE_SIZE,
+  UPLOAD_MAX_INPUT_PIXELS,
+} from "@/lib/upload-config";
 
 const UPLOAD_DIR = path.join(process.cwd(), "public", "uploads");
 
-/** Known image format magic bytes: [signature, offset] */
-const IMAGE_SIGNATURES: [number[], number][] = [
-  [[0xff, 0xd8, 0xff], 0], // JPEG
-  [[0x89, 0x50, 0x4e, 0x47], 0], // PNG
-  [[0x47, 0x49, 0x46], 0], // GIF
-  [[0x42, 0x4d], 0], // BMP
-];
-
-function isImageBuffer(buffer: Buffer): boolean {
-  // WebP: RIFF header at offset 0 + "WEBP" at offset 8
-  if (
-    buffer.length >= 12 &&
-    buffer[0] === 0x52 &&
-    buffer[1] === 0x49 &&
-    buffer[2] === 0x46 &&
-    buffer[3] === 0x46 &&
-    buffer[8] === 0x57 &&
-    buffer[9] === 0x45 &&
-    buffer[10] === 0x42 &&
-    buffer[11] === 0x50
-  ) {
-    return true;
+export class InvalidImageError extends Error {
+  constructor(message = "File is not a valid image") {
+    super(message);
+    this.name = "InvalidImageError";
   }
-  return IMAGE_SIGNATURES.some(([sig, offset]) =>
-    sig.every((byte, i) => buffer[offset + i] === byte),
-  );
 }
 
-export function validateImageBuffer(buffer: Buffer): boolean {
-  return buffer.length >= 4 && isImageBuffer(buffer);
+const INVALID_IMAGE_ERROR_PATTERNS = [
+  "unsupported image format",
+  "corrupt",
+  "bad seek",
+  "premature end of",
+  "end of stream",
+  "pixel limit",
+  "not a known file format",
+  "unable to decode",
+];
+
+function isInvalidImageProcessingError(error: unknown): boolean {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+
+  const message = error.message.toLowerCase();
+  return INVALID_IMAGE_ERROR_PATTERNS.some((pattern) => message.includes(pattern));
+}
+
+export async function processImageBuffer(buffer: Buffer): Promise<Buffer> {
+  const image = sharp(buffer, {
+    limitInputPixels: UPLOAD_MAX_INPUT_PIXELS,
+    sequentialRead: true,
+  });
+
+  try {
+    await image.metadata();
+  } catch {
+    throw new InvalidImageError();
+  }
+
+  try {
+    return await image
+      .rotate()
+      .resize(PROCESSED_IMAGE_SIZE, PROCESSED_IMAGE_SIZE, {
+        fit: "contain",
+        background: { r: 0, g: 0, b: 0, alpha: 0 },
+        withoutEnlargement: true,
+      })
+      .webp({ quality: PROCESSED_IMAGE_QUALITY })
+      .toBuffer();
+  } catch (error) {
+    if (isInvalidImageProcessingError(error)) {
+      throw new InvalidImageError();
+    }
+    throw error;
+  }
 }
 
 export async function saveUploadedImage(buffer: Buffer): Promise<string> {
   await fs.mkdir(UPLOAD_DIR, { recursive: true });
 
-  const processedBuffer = await sharp(buffer)
-    .rotate()
-    .resize(PROCESSED_IMAGE_SIZE, PROCESSED_IMAGE_SIZE, {
-      fit: "contain",
-      background: { r: 0, g: 0, b: 0, alpha: 0 },
-      withoutEnlargement: true,
-    })
-    .webp({ quality: PROCESSED_IMAGE_QUALITY })
-    .toBuffer();
+  const processedBuffer = await processImageBuffer(buffer);
 
   const filename = `${createHash("sha256").update(processedBuffer).digest("hex")}.webp`;
   const filepath = path.join(UPLOAD_DIR, filename);

@@ -23,7 +23,7 @@ Key product behaviors:
 - **State**: Zustand 5 (tier board state)
 - **Drag and Drop**: `@dnd-kit/core`, `@dnd-kit/sortable`
 - **Styling**: Tailwind CSS 4
-- **Images**: `sharp` (upload resize -> WebP)
+- **Images**: `sharp` (authenticated upload resize -> WebP, per-device rate-limited)
 
 ## Data Model
 

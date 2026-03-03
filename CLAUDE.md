@@ -33,8 +33,9 @@ See `docs/ARCHITECTURE.md` for full details. Key points:
 - Dark theme (neutral-950 bg, neutral-100 text, amber-400/500 accents)
 - API routes return JSON, validate with Zod, use Prisma directly
 - Client state for drag-and-drop managed by Zustand (`src/hooks/useTierList.ts`)
-- Participant identity in localStorage, no auth system
+- Device-backed identity is enforced via signed session cookie (`src/lib/auth.ts`)
 - Images uploaded to `public/uploads/`, resized to 200x200 WebP via sharp
+- Uploads require authenticated device identity and are rate-limited per device
 - Biome for linting and formatting (not ESLint/Prettier)
 - Shared icon components in `src/components/ui/icons.tsx`
 

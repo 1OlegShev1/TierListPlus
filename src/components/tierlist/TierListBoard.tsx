@@ -22,6 +22,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react
 import { ImageUploader, type UploadedImage } from "@/components/shared/ImageUploader";
 import { CloseIcon } from "@/components/ui/icons";
 import { useTierListStore } from "@/hooks/useTierList";
+import { useUser } from "@/hooks/useUser";
 import { apiDelete, apiPatch, apiPost, getErrorMessage } from "@/lib/api-client";
 import { TIER_COLORS } from "@/lib/constants";
 import { clearDraft, getDraft, saveDraft } from "@/lib/vote-draft";
@@ -135,6 +136,7 @@ export function TierListBoard({
   templateIsHidden = false,
   onSubmitted,
 }: TierListBoardProps) {
+  const { userId, isLoading: userLoading, error: userError } = useUser();
   const {
     initialize,
     setActiveId,
@@ -657,6 +659,7 @@ export function TierListBoard({
   const savedTemplateLabel = savesWorkingTemplate ? "Published to Templates" : "Copy Saved";
   const saveTemplateMobileLabel = savesWorkingTemplate ? "Publish" : "Copy";
   const savedTemplateMobileLabel = savesWorkingTemplate ? "Published" : "Copied";
+  const uploadsDisabled = userLoading || !userId;
   const unrankedEmptyMessage =
     pendingUploads.length > 0
       ? null
@@ -753,6 +756,9 @@ export function TierListBoard({
           <p className="text-right text-sm text-red-400">{saveTemplateError}</p>
         )}
         {submitError && <p className="text-right text-sm text-red-400">{submitError}</p>}
+        {userError && canLiveEditItems && (
+          <p className="text-right text-sm text-red-400">{userError}</p>
+        )}
         {addItemError && <p className="text-right text-sm text-red-400">{addItemError}</p>}
       </div>
       <DndContext
@@ -842,7 +848,14 @@ export function TierListBoard({
                   <ImageUploader
                     onUploaded={handlePendingUpload}
                     multiple
-                    idleLabel="Upload"
+                    idleLabel={
+                      userLoading
+                        ? "Preparing identity..."
+                        : uploadsDisabled
+                          ? "Identity required"
+                          : "Upload"
+                    }
+                    disabled={uploadsDisabled}
                     className="h-[112px] w-[112px] flex-shrink-0 sm:h-[120px] sm:w-[120px] md:h-[128px] md:w-[128px]"
                   />
                   {pendingUploads.length > 0 && (
