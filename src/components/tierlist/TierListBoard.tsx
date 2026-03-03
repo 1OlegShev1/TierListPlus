@@ -18,7 +18,7 @@ import {
 import { nanoid } from "nanoid";
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { ImageUploader, type UploadedImage } from "@/components/shared/ImageUploader";
 import { CloseIcon } from "@/components/ui/icons";
 import { useTierListStore } from "@/hooks/useTierList";
@@ -125,6 +125,41 @@ function seedTiersFromRanking(
   return seededTiers;
 }
 
+function StatusNotice({
+  tone,
+  children,
+  onDismiss,
+}: {
+  tone: "amber" | "emerald";
+  children: ReactNode;
+  onDismiss: () => void;
+}) {
+  const toneClassName =
+    tone === "emerald"
+      ? "border-emerald-500/40 text-emerald-100 shadow-[0_12px_36px_-22px_rgba(16,185,129,0.9)]"
+      : "border-amber-500/40 text-amber-100 shadow-[0_12px_36px_-22px_rgba(245,158,11,0.95)]";
+  const toneButtonClassName =
+    tone === "emerald"
+      ? "text-emerald-200/70 hover:bg-emerald-500/10 hover:text-emerald-100"
+      : "text-amber-200/70 hover:bg-amber-500/10 hover:text-amber-100";
+
+  return (
+    <div
+      className={`pointer-events-auto flex w-full items-start gap-3 rounded-xl border bg-neutral-950/90 px-3 py-2 text-sm leading-5 backdrop-blur-sm sm:w-[22rem] ${toneClassName}`}
+    >
+      <div className="min-w-0 flex-1">{children}</div>
+      <button
+        type="button"
+        onClick={onDismiss}
+        className={`mt-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full transition-colors ${toneButtonClassName}`}
+        aria-label="Dismiss notice"
+      >
+        <CloseIcon className="h-3.5 w-3.5" />
+      </button>
+    </div>
+  );
+}
+
 export function TierListBoard({
   sessionId,
   participantId,
@@ -166,6 +201,7 @@ export function TierListBoard({
   const [savingTemplate, setSavingTemplate] = useState(false);
   const [saveTemplateError, setSaveTemplateError] = useState<string | null>(null);
   const [savedTemplateId, setSavedTemplateId] = useState<string | null>(null);
+  const [showSavedTemplateNotice, setShowSavedTemplateNotice] = useState(false);
   const [expandedItemId, setExpandedItemId] = useState<string | null>(null);
 
   // ---- FLIP refs ----
@@ -644,6 +680,7 @@ export function TierListBoard({
     try {
       const result = await apiPost<{ id: string }>(`/api/sessions/${sessionId}/template`, {});
       setSavedTemplateId(result.id);
+      setShowSavedTemplateNotice(true);
     } catch (err) {
       setSaveTemplateError(getErrorMessage(err, "Could not save this list"));
     } finally {
@@ -656,9 +693,9 @@ export function TierListBoard({
   const canLiveEditItems = canEditTierConfig && templateIsHidden;
   const savesWorkingTemplate = canEditTierConfig && templateIsHidden;
   const saveTemplateActionLabel = savesWorkingTemplate ? "Publish to Lists" : "Save as New List";
-  const savedTemplateLabel = savesWorkingTemplate ? "Published to Lists" : "List Saved";
   const saveTemplateMobileLabel = savesWorkingTemplate ? "Publish" : "Save List";
-  const savedTemplateMobileLabel = savesWorkingTemplate ? "Published" : "Saved";
+  const openSavedTemplateLabel = savesWorkingTemplate ? "Open Published List" : "Open Saved List";
+  const openSavedTemplateMobileLabel = "Open";
   const uploadsDisabled = userLoading || !userId;
   const unrankedEmptyMessage =
     pendingUploads.length > 0
@@ -684,26 +721,43 @@ export function TierListBoard({
     return () => clearTimeout(t);
   }, [bracketSeeded]);
 
+  useEffect(() => {
+    if (!showSavedTemplateNotice) return;
+    const t = setTimeout(() => setShowSavedTemplateNotice(false), 5000);
+    return () => clearTimeout(t);
+  }, [showSavedTemplateNotice]);
+
   return (
-    <div className="flex flex-col">
-      {draftRestored && (
-        <div className="mb-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-sm text-amber-400">
-          Your last draft is back
+    <div className="relative flex flex-col">
+      <div
+        aria-live="polite"
+        aria-atomic="true"
+        className="pointer-events-none fixed inset-x-3 bottom-[calc(env(safe-area-inset-bottom)+0.75rem)] z-40 flex justify-center sm:absolute sm:inset-x-auto sm:bottom-auto sm:right-0 sm:top-0 sm:z-30 sm:justify-end"
+      >
+        <div className="flex w-full max-w-[22rem] flex-col gap-2">
+          {draftRestored && (
+            <StatusNotice tone="amber" onDismiss={() => setDraftRestored(false)}>
+              Draft restored.
+            </StatusNotice>
+          )}
+          {bracketSeeded && (
+            <StatusNotice tone="emerald" onDismiss={() => setBracketSeeded(false)}>
+              Bracket seed applied. You can still move anything before locking it in.
+            </StatusNotice>
+          )}
+          {savedTemplateId && showSavedTemplateNotice && (
+            <StatusNotice tone="emerald" onDismiss={() => setShowSavedTemplateNotice(false)}>
+              {savesWorkingTemplate ? "List published." : "List saved."}{" "}
+              <Link
+                href={`/templates/${savedTemplateId}`}
+                className="font-medium underline underline-offset-2 hover:text-white"
+              >
+                Open it
+              </Link>
+            </StatusNotice>
+          )}
         </div>
-      )}
-      {bracketSeeded && (
-        <div className="mb-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-sm text-emerald-400">
-          Bracket assist applied. You can freely move items before submitting.
-        </div>
-      )}
-      {savedTemplateId && (
-        <div className="mb-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-sm text-emerald-400">
-          {savesWorkingTemplate ? "List published for reuse. " : "List copy saved for later. "}
-          <Link href={`/templates/${savedTemplateId}`} className="underline hover:text-emerald-300">
-            Open list
-          </Link>
-        </div>
-      )}
+      </div>
       <div className="mb-2 space-y-2 sm:mb-3">
         <div className="flex flex-wrap items-center justify-end gap-2">
           {totalItems >= 2 && (
@@ -717,29 +771,30 @@ export function TierListBoard({
               <span className="hidden sm:inline">Quick Bracket</span>
             </button>
           )}
-          {canSaveTemplate && (
-            <button
-              type="button"
-              onClick={handleSaveTemplate}
-              disabled={savingTemplate}
-              className="rounded-lg border border-neutral-700 px-3 py-2 text-sm font-medium text-neutral-200 transition-colors hover:border-emerald-400 hover:text-emerald-300 disabled:opacity-50 sm:px-4 sm:py-1.5"
-            >
-              <span className="sm:hidden">
-                {savingTemplate
-                  ? "Saving"
-                  : savedTemplateId
-                    ? savedTemplateMobileLabel
-                    : saveTemplateMobileLabel}
-              </span>
-              <span className="hidden sm:inline">
-                {savingTemplate
-                  ? "Saving..."
-                  : savedTemplateId
-                    ? savedTemplateLabel
-                    : saveTemplateActionLabel}
-              </span>
-            </button>
-          )}
+          {canSaveTemplate &&
+            (savedTemplateId ? (
+              <Link
+                href={`/templates/${savedTemplateId}`}
+                className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-sm font-medium text-emerald-200 transition-colors hover:border-emerald-400 hover:text-emerald-100 sm:px-4 sm:py-1.5"
+              >
+                <span className="sm:hidden">{openSavedTemplateMobileLabel}</span>
+                <span className="hidden sm:inline">{openSavedTemplateLabel}</span>
+              </Link>
+            ) : (
+              <button
+                type="button"
+                onClick={handleSaveTemplate}
+                disabled={savingTemplate}
+                className="rounded-lg border border-neutral-700 px-3 py-2 text-sm font-medium text-neutral-200 transition-colors hover:border-emerald-400 hover:text-emerald-300 disabled:opacity-50 sm:px-4 sm:py-1.5"
+              >
+                <span className="sm:hidden">
+                  {savingTemplate ? "Saving" : saveTemplateMobileLabel}
+                </span>
+                <span className="hidden sm:inline">
+                  {savingTemplate ? "Saving..." : saveTemplateActionLabel}
+                </span>
+              </button>
+            ))}
           <button
             type="button"
             onClick={handleSubmit}
