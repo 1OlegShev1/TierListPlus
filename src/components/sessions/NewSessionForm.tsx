@@ -8,9 +8,15 @@ import { Input } from "@/components/ui/Input";
 import { saveParticipant } from "@/hooks/useParticipant";
 import { useUser } from "@/hooks/useUser";
 import { apiFetch, apiPost, getErrorMessage } from "@/lib/api-client";
-import type { TemplateSummary } from "@/types";
+import type { Item, TemplateSummary } from "@/types";
 
 const FEATURED_COUNT = 8;
+
+interface SelectedTemplateDetails {
+  id: string;
+  name: string;
+  items: Item[];
+}
 
 export function NewSessionForm() {
   const router = useRouter();
@@ -19,12 +25,14 @@ export function NewSessionForm() {
   const preselectedTemplateId = searchParams.get("templateId");
 
   const [templates, setTemplates] = useState<TemplateSummary[]>([]);
-  const [templatesFetchStatus, setTemplatesFetchStatus] = useState<"loading" | "ready" | "error">(
-    "loading",
-  );
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(
     preselectedTemplateId,
   );
+  const [selectedTemplateDetails, setSelectedTemplateDetails] =
+    useState<SelectedTemplateDetails | null>(null);
+  const [selectedTemplateFetchStatus, setSelectedTemplateFetchStatus] = useState<
+    "idle" | "loading" | "ready" | "error"
+  >("idle");
   const [step, setStep] = useState<"pick" | "details">(preselectedTemplateId ? "details" : "pick");
   const [templateQuery, setTemplateQuery] = useState("");
   const [name, setName] = useState("");
@@ -35,20 +43,43 @@ export function NewSessionForm() {
 
   useEffect(() => {
     apiFetch<TemplateSummary[]>(`/api/templates?previewLimit=${FEATURED_COUNT}`)
-      .then((data) => {
-        setTemplates(data);
-        setTemplatesFetchStatus("ready");
-      })
-      .catch(() => setTemplatesFetchStatus("error"));
+      .then(setTemplates)
+      .catch(() => {});
   }, []);
 
-  const selectedTemplate = selectedTemplateId
+  useEffect(() => {
+    if (!selectedTemplateId) {
+      setSelectedTemplateDetails(null);
+      setSelectedTemplateFetchStatus("idle");
+      return;
+    }
+
+    let isCurrent = true;
+    setSelectedTemplateDetails(null);
+    setSelectedTemplateFetchStatus("loading");
+
+    apiFetch<SelectedTemplateDetails>(`/api/templates/${selectedTemplateId}`)
+      .then((data) => {
+        if (!isCurrent) return;
+        setSelectedTemplateDetails(data);
+        setSelectedTemplateFetchStatus("ready");
+      })
+      .catch(() => {
+        if (!isCurrent) return;
+        setSelectedTemplateFetchStatus("error");
+      });
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [selectedTemplateId]);
+
+  const selectedTemplateSummary = selectedTemplateId
     ? (templates.find((t) => t.id === selectedTemplateId) ?? null)
     : null;
-  const templateSelectionPending = !!selectedTemplateId && templatesFetchStatus === "loading";
-  const templateSelectionUnverified = !!selectedTemplateId && templatesFetchStatus === "error";
+  const selectedTemplateLoading = !!selectedTemplateId && selectedTemplateFetchStatus === "loading";
   const selectedTemplateUnavailable =
-    !!selectedTemplateId && templatesFetchStatus === "ready" && !selectedTemplate;
+    !!selectedTemplateId && selectedTemplateFetchStatus === "error";
 
   const pickTemplate = (id: string | null) => {
     setSelectedTemplateId(id);
@@ -61,8 +92,7 @@ export function NewSessionForm() {
     !creating &&
     !userLoading &&
     !!userId &&
-    !templateSelectionPending &&
-    !templateSelectionUnverified &&
+    !selectedTemplateLoading &&
     !selectedTemplateUnavailable;
 
   const create = async () => {
@@ -107,50 +137,66 @@ export function NewSessionForm() {
 
       <div className="space-y-6">
         <div>
-          <div className="flex items-center justify-between rounded-lg border border-neutral-800 bg-neutral-900 px-4 py-3">
-            <div className="min-w-0">
-              {selectedTemplate ? (
-                <>
-                  <p className="truncate font-medium">{selectedTemplate.name}</p>
-                  <p className="text-sm text-neutral-500">
-                    {selectedTemplate._count.items} items — you can edit them after creating
-                  </p>
-                </>
-              ) : templateSelectionPending ? (
-                <>
-                  <p className="font-medium">Loading selected template...</p>
-                  <p className="text-sm text-neutral-500">Verifying your starting point</p>
-                </>
-              ) : templateSelectionUnverified ? (
-                <>
-                  <p className="font-medium">Could not verify selected template</p>
-                  <p className="text-sm text-neutral-500">
-                    Choose another starting point before creating the session
-                  </p>
-                </>
-              ) : selectedTemplateUnavailable ? (
-                <>
-                  <p className="font-medium">Selected template unavailable</p>
-                  <p className="text-sm text-neutral-500">
-                    Choose another starting point before creating the session
-                  </p>
-                </>
-              ) : (
-                <>
-                  <p className="font-medium">Blank session</p>
-                  <p className="text-sm text-neutral-500">
-                    You'll add items after creating the session
-                  </p>
-                </>
-              )}
+          <div className="rounded-lg border border-neutral-800 bg-neutral-900 px-4 py-3">
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                {selectedTemplateDetails ? (
+                  <>
+                    <p className="truncate font-medium">{selectedTemplateDetails.name}</p>
+                    <p className="text-sm text-neutral-500">
+                      {selectedTemplateDetails.items.length} items — you can edit them after
+                      creating
+                    </p>
+                  </>
+                ) : selectedTemplateLoading ? (
+                  <>
+                    <p className="truncate font-medium">
+                      {selectedTemplateSummary?.name ?? "Loading selected template..."}
+                    </p>
+                    <p className="text-sm text-neutral-500">Loading full item preview...</p>
+                  </>
+                ) : selectedTemplateUnavailable ? (
+                  <>
+                    <p className="font-medium">Selected template unavailable</p>
+                    <p className="text-sm text-neutral-500">
+                      Choose another starting point before creating the session
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <p className="font-medium">Blank session</p>
+                    <p className="text-sm text-neutral-500">
+                      You'll add items after creating the session
+                    </p>
+                  </>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => setStep("pick")}
+                className="shrink-0 text-sm text-amber-400 transition-colors hover:text-amber-300"
+              >
+                Change
+              </button>
             </div>
-            <button
-              type="button"
-              onClick={() => setStep("pick")}
-              className="ml-3 shrink-0 text-sm text-amber-400 transition-colors hover:text-amber-300"
-            >
-              Change
-            </button>
+
+            {selectedTemplateDetails && selectedTemplateDetails.items.length > 0 && (
+              <div className="mt-4 border-t border-neutral-800 pt-4">
+                <p className="mb-2 text-xs font-medium uppercase tracking-wide text-neutral-500">
+                  Template Items
+                </p>
+                <div className="grid grid-cols-4 gap-2 sm:grid-cols-6">
+                  {selectedTemplateDetails.items.map((item) => (
+                    <img
+                      key={item.id}
+                      src={item.imageUrl}
+                      alt={item.label}
+                      className="aspect-square w-full rounded-md object-cover"
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
