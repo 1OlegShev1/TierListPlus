@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { DeleteSessionButton } from "@/components/sessions/DeleteSessionButton";
+import { DeleteVoteButton } from "@/components/sessions/DeleteVoteButton";
 import { TierListBoard } from "@/components/tierlist/TierListBoard";
 import { ErrorMessage } from "@/components/ui/ErrorMessage";
 import { LockClosedIcon, LockOpenIcon } from "@/components/ui/icons";
@@ -189,7 +189,7 @@ export default function VotePage() {
               View Results
             </Link>
             {isOwner && (
-              <DeleteSessionButton
+              <DeleteVoteButton
                 sessionId={session.id}
                 creatorId={session.creatorId}
                 label="Delete"

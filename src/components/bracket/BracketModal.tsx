@@ -188,16 +188,16 @@ export function BracketModal({ items, onComplete, onCancel }: BracketModalProps)
         <div className="px-4 pt-4 sm:px-6 sm:pt-6">
           <div className="mb-4 text-center sm:mb-6">
             <h2 id="bracket-modal-title" className="text-lg font-bold">
-              Rank with Bracket
+              Head-to-Head Mode
             </h2>
             <p className="mt-1 text-xs text-neutral-500">
               {isComplete
-                ? "Bracket complete!"
-                : `Round ${currentRound} of ${bracketState.rounds} · ${decidedManualVotes}/${totalManualVotes} matchups decided`}
+                ? "Head-to-head run complete!"
+                : `Round ${currentRound} of ${bracketState.rounds} · ${decidedManualVotes}/${totalManualVotes} face-offs done`}
             </p>
             <p className="mt-2 text-[11px] text-neutral-500">
-              Applying ranking replaces current placements in this scope. You can still adjust
-              before submitting.
+              This reshuffles your current placements here. You can still tweak them before you lock
+              them in.
             </p>
           </div>
         </div>
@@ -209,7 +209,7 @@ export function BracketModal({ items, onComplete, onCancel }: BracketModalProps)
 
           {isComplete && (
             <div className="space-y-2">
-              <p className="text-center text-sm text-neutral-400">Final ranking:</p>
+              <p className="text-center text-sm text-neutral-400">Your quick ranking:</p>
               <ol className="space-y-1">
                 {ranked.map((id, i) => {
                   const item = itemMap.get(id);
@@ -258,7 +258,7 @@ export function BracketModal({ items, onComplete, onCancel }: BracketModalProps)
             </Button>
             {isComplete && (
               <Button onClick={handleFinish} className="px-4 text-sm">
-                Apply Ranking
+                Use This Ranking
               </Button>
             )}
           </div>

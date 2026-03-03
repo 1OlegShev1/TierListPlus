@@ -3,12 +3,16 @@ import { notFound, redirect } from "next/navigation";
 import { getCookieAuth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
-export default async function SessionPage({ params }: { params: Promise<{ sessionId: string }> }) {
+export default async function VoteEntryPage({
+  params,
+}: {
+  params: Promise<{ sessionId: string }>;
+}) {
   const { sessionId } = await params;
   const cookieStore = await cookies();
   const auth = await getCookieAuth(cookieStore);
   const requestUserId = auth?.userId ?? null;
-  const session = await prisma.session.findUnique({
+  const vote = await prisma.session.findUnique({
     where: { id: sessionId },
     select: {
       id: true,
@@ -19,16 +23,16 @@ export default async function SessionPage({ params }: { params: Promise<{ sessio
     },
   });
 
-  if (!session) notFound();
-  const isOwner = !!requestUserId && session.creatorId === requestUserId;
+  if (!vote) notFound();
+  const isOwner = !!requestUserId && vote.creatorId === requestUserId;
   const isParticipant = requestUserId
     ? (await prisma.participant.count({
         where: { sessionId, userId: requestUserId },
       })) > 0
     : false;
-  if (session.isPrivate && !isOwner && !isParticipant) notFound();
+  if (vote.isPrivate && !isOwner && !isParticipant) notFound();
 
-  if (session.status !== "OPEN") {
+  if (vote.status !== "OPEN") {
     redirect(`/sessions/${sessionId}/results`);
   }
 
@@ -36,5 +40,5 @@ export default async function SessionPage({ params }: { params: Promise<{ sessio
     redirect(`/sessions/${sessionId}/vote`);
   }
 
-  redirect(`/sessions/join?code=${encodeURIComponent(session.joinCode)}`);
+  redirect(`/sessions/join?code=${encodeURIComponent(vote.joinCode)}`);
 }

@@ -8,19 +8,19 @@ import { useUser } from "@/hooks/useUser";
 import { apiDelete, getErrorMessage } from "@/lib/api-client";
 import { cn } from "@/lib/utils";
 
-interface DeleteSessionButtonProps {
+interface DeleteVoteButtonProps {
   sessionId: string;
   creatorId: string | null;
   className?: string;
   label?: string;
 }
 
-export function DeleteSessionButton({
+export function DeleteVoteButton({
   sessionId,
   creatorId,
   className,
   label,
-}: DeleteSessionButtonProps) {
+}: DeleteVoteButtonProps) {
   const { userId } = useUser();
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -37,7 +37,7 @@ export function DeleteSessionButton({
       router.push("/sessions");
       router.refresh();
     } catch (err) {
-      setError(getErrorMessage(err, "Failed to delete session"));
+      setError(getErrorMessage(err, "Could not delete this vote"));
       setDeleting(false);
     }
   };
@@ -47,8 +47,8 @@ export function DeleteSessionButton({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        aria-label={label ?? "Delete session"}
-        title={label ?? "Delete session"}
+        aria-label={label ?? "Delete vote"}
+        title={label ?? "Delete vote"}
         className={cn(
           label
             ? "inline-flex cursor-pointer items-center justify-center gap-1.5 rounded-full border border-red-500/40 bg-red-500/10 px-3 py-1.5 text-sm font-medium text-red-200 transition-colors hover:border-red-400 hover:bg-red-500/15 hover:text-red-100"
@@ -61,10 +61,9 @@ export function DeleteSessionButton({
       </button>
       <ConfirmDialog
         open={open}
-        title="Delete Session"
+        title="Delete Vote"
         description={
-          error ??
-          "This will permanently delete this session, all votes, participants, and bracket data. This cannot be undone."
+          error ?? "This deletes the whole vote, every ballot, and the bracket. You can't undo it."
         }
         onConfirm={handleDelete}
         onCancel={() => {

@@ -1,11 +1,11 @@
 import { Suspense } from "react";
-import { NewSessionForm } from "@/components/sessions/NewSessionForm";
+import { NewVoteForm } from "@/components/sessions/NewVoteForm";
 import { Loading } from "@/components/ui/Loading";
 
-export default function NewSessionPage() {
+export default function NewVotePage() {
   return (
     <Suspense fallback={<Loading />}>
-      <NewSessionForm />
+      <NewVoteForm />
     </Suspense>
   );
 }

@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import Link from "next/link";
 import { buttonVariants } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { ItemPreview } from "@/components/ui/ItemPreview";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { getCookieAuth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -10,11 +11,11 @@ import { formatDate } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
-export default async function TemplatesPage() {
+export default async function ListsPage() {
   const cookieStore = await cookies();
   const auth = await getCookieAuth(cookieStore);
   const userId = auth?.userId ?? null;
-  const templates = await prisma.template.findMany({
+  const lists = await prisma.template.findMany({
     where: getTemplateVisibilityWhere(userId),
     include: {
       _count: { select: { items: true } },
@@ -26,46 +27,35 @@ export default async function TemplatesPage() {
   return (
     <div>
       <PageHeader
-        title="Templates"
+        title="Lists"
         actions={
           <Link href="/templates/new" className={buttonVariants.primary}>
-            + New Template
+            + Make a Tier List
           </Link>
         }
       />
 
-      {templates.length === 0 ? (
+      {lists.length === 0 ? (
         <EmptyState
-          title="No templates yet"
-          description="Create your first template to get started"
+          title="No lists yet"
+          description="Make your first tier list and start some arguments"
         />
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {templates.map((template) => (
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          {lists.map((list) => (
             <Link
-              key={template.id}
-              href={`/templates/${template.id}`}
-              className="rounded-xl border border-neutral-800 bg-neutral-900 p-4 transition-colors hover:border-neutral-600"
+              key={list.id}
+              href={`/templates/${list.id}`}
+              className="rounded-2xl border border-neutral-800 bg-neutral-900/95 p-5 transition-colors hover:border-neutral-600"
             >
-              <div className="mb-3 grid grid-cols-4 gap-1">
-                {template.items.map((item) => (
-                  <img
-                    key={item.id}
-                    src={item.imageUrl}
-                    alt={item.label}
-                    className="aspect-square w-full rounded object-cover"
-                  />
-                ))}
-                {Array.from({ length: Math.max(0, 4 - template.items.length) }, (_, i) => (
-                  // biome-ignore lint/suspicious/noArrayIndexKey: static empty placeholders never reorder
-                  <div key={i} className="aspect-square w-full rounded bg-neutral-800" />
-                ))}
-              </div>
-              <h3 className="font-medium">{template.name}</h3>
-              <p className="mt-1 text-xs text-neutral-500">
-                {template._count.items} items &middot; {formatDate(template.createdAt)}
+              <ItemPreview items={list.items} className="mb-4" />
+              <h3 className="text-lg font-semibold text-neutral-100">{list.name}</h3>
+              <p className="mt-2 text-sm text-neutral-500">
+                {list._count.items} picks &middot; {formatDate(list.createdAt)}
               </p>
-              {!template.isPublic && <p className="mt-1 text-xs text-amber-400">Private to you</p>}
+              {!list.isPublic && (
+                <p className="mt-2 text-sm font-medium text-amber-400">Private to you</p>
+              )}
             </Link>
           ))}
         </div>

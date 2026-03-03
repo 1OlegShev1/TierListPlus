@@ -1,14 +1,14 @@
 import { cookies } from "next/headers";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { DeleteTemplateButton } from "@/components/templates/DeleteTemplateButton";
-import { DuplicateTemplateButton } from "@/components/templates/DuplicateTemplateButton";
+import { DeleteListButton } from "@/components/templates/DeleteListButton";
+import { DuplicateListButton } from "@/components/templates/DuplicateListButton";
 import { buttonVariants } from "@/components/ui/Button";
 import { getCookieAuth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { canAccessTemplate, isTemplateOwner } from "@/lib/template-access";
 
-export default async function TemplateDetailPage({
+export default async function ListDetailPage({
   params,
 }: {
   params: Promise<{ templateId: string }>;
@@ -17,43 +17,41 @@ export default async function TemplateDetailPage({
   const cookieStore = await cookies();
   const auth = await getCookieAuth(cookieStore);
   const userId = auth?.userId ?? null;
-  const template = await prisma.template.findUnique({
+  const list = await prisma.template.findUnique({
     where: { id: templateId },
     include: { items: { orderBy: { sortOrder: "asc" } } },
   });
 
-  if (!template || !canAccessTemplate(template, userId)) notFound();
+  if (!list || !canAccessTemplate(list, userId)) notFound();
 
-  const owner = isTemplateOwner(template, userId);
+  const owner = isTemplateOwner(list, userId);
 
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">{template.name}</h1>
-          {template.description && (
-            <p className="mt-1 text-sm text-neutral-400">{template.description}</p>
-          )}
+          <h1 className="text-2xl font-bold">{list.name}</h1>
+          {list.description && <p className="mt-1 text-sm text-neutral-400">{list.description}</p>}
           <p className="mt-1 text-xs text-neutral-500">
-            {template.isPublic ? "Public template" : owner ? "Private to you" : "Private"}
+            {list.isPublic ? "Public list" : owner ? "Private to you" : "Private list"}
           </p>
         </div>
         <div className="flex items-center gap-3">
-          {!owner && template.isPublic && <DuplicateTemplateButton templateId={templateId} />}
-          {owner && <DeleteTemplateButton templateId={templateId} creatorId={template.creatorId} />}
+          {!owner && list.isPublic && <DuplicateListButton listId={templateId} />}
+          {owner && <DeleteListButton listId={templateId} creatorId={list.creatorId} />}
           {owner && (
             <Link href={`/templates/${templateId}/edit`} className={buttonVariants.secondary}>
               Edit
             </Link>
           )}
           <Link href={`/sessions/new?templateId=${templateId}`} className={buttonVariants.primary}>
-            Start Session
+            Start Vote
           </Link>
         </div>
       </div>
 
       <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8">
-        {template.items.map((item) => (
+        {list.items.map((item) => (
           <div key={item.id} className="rounded-lg border border-neutral-800 bg-neutral-900 p-2">
             <img
               src={item.imageUrl}

@@ -88,7 +88,7 @@ function ResultsContent() {
         setConsensusTiers(consensusData);
       })
       .catch((err) => {
-        setError(getErrorMessage(err, "Failed to load results. Please try again."));
+        setError(getErrorMessage(err, "Couldn't load the rankings. Try refreshing."));
       })
       .finally(() => setLoading(false));
   }, [sessionId, clearParticipant, saveParticipant]);
@@ -115,7 +115,7 @@ function ResultsContent() {
       })
       .catch((err) => {
         if (stale) return;
-        setParticipantError(getErrorMessage(err, "Failed to load participant votes."));
+        setParticipantError(getErrorMessage(err, "Couldn't load that ballot."));
         setParticipantTiers(null);
         setParticipantName(null);
       })
@@ -205,7 +205,7 @@ function ResultsContent() {
     return () => window.clearTimeout(timeout);
   }, [participantId, selectedItem]);
 
-  if (loading) return <Loading message="Loading results..." />;
+  if (loading) return <Loading message="Loading the rankings..." />;
   if (error) return <ErrorMessage message={error} />;
 
   const participantsWithSavedVotes = session?.participants.filter((p) => p.hasSavedVotes) ?? [];
@@ -215,14 +215,14 @@ function ResultsContent() {
   const currentParticipantId = session?.currentParticipantId ?? null;
   const isIndividualView = !!participantId;
   const displayTiers = participantTiers ?? consensusTiers;
-  const consensusLabel = `Consensus (${totalParticipants})`;
+  const consensusLabel = `Everyone (${totalParticipants})`;
   const baseSubtitle = isIndividualView
     ? participantName
-      ? `Viewing ${participantName}'s votes`
+      ? `${participantName}'s ballot`
       : selectedParticipant
-        ? `Viewing ${selectedParticipant.nickname}'s votes`
-        : "Loading votes..."
-    : `Viewing ${consensusLabel}`;
+        ? `${selectedParticipant.nickname}'s ballot`
+        : "Loading ballot..."
+    : `${consensusLabel} together`;
   const subtitle = (
     <span className="inline-flex items-center gap-3">
       <span>{baseSubtitle}</span>
@@ -231,7 +231,7 @@ function ResultsContent() {
         aria-atomic="true"
         className="min-w-[110px] text-xs text-neutral-500"
       >
-        {participantLoading ? "Updating votes..." : ""}
+        {participantLoading ? "Refreshing..." : ""}
       </span>
     </span>
   );
@@ -239,7 +239,7 @@ function ResultsContent() {
   return (
     <div>
       <PageHeader
-        title={`${session?.name} — Results`}
+        title={`${session?.name} Rankings`}
         subtitle={subtitle}
         actions={
           <div className="flex shrink-0 gap-2">
@@ -248,7 +248,7 @@ function ResultsContent() {
                 href={`/sessions/${sessionId}`}
                 className={`${buttonVariants.primary} !px-4 !py-1.5 !text-sm whitespace-nowrap`}
               >
-                {currentParticipantId ? "Edit My Vote" : "Join to Vote"}
+                {currentParticipantId ? "Jump Back In" : "Join This Vote"}
               </Link>
             )}
             {session?.status !== "OPEN" && (
@@ -256,7 +256,7 @@ function ResultsContent() {
                 href="/sessions"
                 className={`${buttonVariants.secondary} !px-4 !py-1.5 !text-sm whitespace-nowrap`}
               >
-                Back to Sessions
+                Back to Votes
               </Link>
             )}
           </div>
@@ -266,7 +266,7 @@ function ResultsContent() {
       {/* View selector */}
       {session && (
         <div className="mb-6">
-          <h2 className="mb-3 text-sm font-medium text-neutral-400">View By</h2>
+          <h2 className="mb-3 text-sm font-medium text-neutral-400">See</h2>
           <div className="flex flex-wrap gap-2">
             <Link
               href={`/sessions/${sessionId}/results`}
@@ -289,7 +289,7 @@ function ResultsContent() {
                 }`}
               >
                 {p.nickname}
-                {!p.isComplete && p.missingItemCount > 0 ? ` (${p.missingItemCount} missing)` : ""}
+                {!p.isComplete && p.missingItemCount > 0 ? ` (${p.missingItemCount} left)` : ""}
               </Link>
             ))}
           </div>
@@ -365,7 +365,7 @@ function ResultsContent() {
                 ))}
                 {tier.items.length === 0 && (
                   <span className="flex h-[60px] items-center px-2 text-xs text-neutral-600 sm:h-[70px] sm:px-2.5 md:h-[84px] md:px-3 lg:h-[96px] lg:px-4 lg:text-sm">
-                    No items
+                    No picks
                   </span>
                 )}
               </div>

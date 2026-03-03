@@ -7,11 +7,11 @@ import { apiPost, getErrorMessage } from "@/lib/api-client";
 import { Button } from "../ui/Button";
 import { ErrorMessage } from "../ui/ErrorMessage";
 
-interface DuplicateTemplateButtonProps {
-  templateId: string;
+interface DuplicateListButtonProps {
+  listId: string;
 }
 
-export function DuplicateTemplateButton({ templateId }: DuplicateTemplateButtonProps) {
+export function DuplicateListButton({ listId }: DuplicateListButtonProps) {
   const router = useRouter();
   const { userId, isLoading: userLoading, error: userError, retry } = useUser();
   const [duplicating, setDuplicating] = useState(false);
@@ -24,11 +24,11 @@ export function DuplicateTemplateButton({ templateId }: DuplicateTemplateButtonP
     setError(null);
 
     try {
-      const template = await apiPost<{ id: string }>(`/api/templates/${templateId}/duplicate`, {});
-      router.push(`/templates/${template.id}/edit`);
+      const list = await apiPost<{ id: string }>(`/api/templates/${listId}/duplicate`, {});
+      router.push(`/templates/${list.id}/edit`);
       router.refresh();
     } catch (err) {
-      setError(getErrorMessage(err, "Failed to duplicate template"));
+      setError(getErrorMessage(err, "Could not copy this list"));
       setDuplicating(false);
     }
   };
@@ -40,13 +40,13 @@ export function DuplicateTemplateButton({ templateId }: DuplicateTemplateButtonP
         onClick={duplicate}
         disabled={duplicating || userLoading || !userId}
       >
-        {duplicating ? "Duplicating..." : "Duplicate to Edit"}
+        {duplicating ? "Copying..." : "Make Your Own Copy"}
       </Button>
       {userError && (
         <>
           <ErrorMessage message={userError} />
           <Button variant="ghost" onClick={retry}>
-            Retry Identity Setup
+            Retry Device Setup
           </Button>
         </>
       )}

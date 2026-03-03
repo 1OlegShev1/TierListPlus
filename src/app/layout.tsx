@@ -16,9 +16,9 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className="dark">
-      <body className="flex h-[100dvh] flex-col overflow-hidden pt-[env(safe-area-inset-top)] bg-neutral-950 text-neutral-100 antialiased">
+      <body className="flex h-[100dvh] flex-col overflow-hidden bg-neutral-950 pt-[env(safe-area-inset-top)] text-[0.96rem] text-neutral-100 antialiased sm:text-base">
         <NavBar />
-        <main className="mx-auto w-full min-h-0 max-w-6xl flex-1 overflow-y-auto px-3 pt-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] sm:px-4 sm:pt-8 sm:pb-8">
+        <main className="mx-auto min-h-0 w-full max-w-7xl flex-1 overflow-y-auto px-4 pt-6 pb-[calc(env(safe-area-inset-bottom)+1.25rem)] sm:px-6 sm:pt-10 sm:pb-10">
           {children}
         </main>
       </body>

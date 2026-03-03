@@ -1,15 +1,16 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
-import { Button } from "@/components/ui/Button";
+import { Button, buttonVariants } from "@/components/ui/Button";
 import { ErrorMessage } from "@/components/ui/ErrorMessage";
 import { Input } from "@/components/ui/Input";
 import { Loading } from "@/components/ui/Loading";
 import { saveParticipant } from "@/hooks/useParticipant";
 import { useUser } from "@/hooks/useUser";
 
-function JoinSessionForm() {
+function JoinVoteForm() {
   const router = useRouter();
   const { userId, isLoading: userLoading, error: userError, retry: retryUser } = useUser();
   const searchParams = useSearchParams();
@@ -29,7 +30,7 @@ function JoinSessionForm() {
     if (joining) return;
     if (!joinCode.trim() || !nickname.trim()) return;
     if (userLoading || !userId) {
-      setError("Preparing your device identity, please try again.");
+      setError("Getting your device ready. Try again in a second.");
       return;
     }
     setJoining(true);
@@ -47,7 +48,7 @@ function JoinSessionForm() {
 
       if (!res.ok) {
         const data = await res.json();
-        setError(typeof data.error === "string" ? data.error : "Failed to join");
+        setError(typeof data.error === "string" ? data.error : "Could not join this vote");
         return;
       }
 
@@ -62,7 +63,10 @@ function JoinSessionForm() {
 
   return (
     <div className="mx-auto max-w-md pt-10">
-      <h1 className="mb-6 text-center text-2xl font-bold">Join a Session</h1>
+      <Link href="/sessions" className={`${buttonVariants.ghost} mb-4 inline-flex items-center`}>
+        &larr; Back to Votes
+      </Link>
+      <h1 className="mb-6 text-center text-2xl font-bold">Join a Vote</h1>
 
       <form className="space-y-4" onSubmit={handleSubmit}>
         <label className="block">
@@ -95,7 +99,7 @@ function JoinSessionForm() {
             {error && <ErrorMessage message={error} />}
             {userError && (
               <Button variant="secondary" onClick={retryUser} className="w-full">
-                Retry Identity Setup
+                Retry Device Setup
               </Button>
             )}
           </div>
@@ -106,17 +110,17 @@ function JoinSessionForm() {
           disabled={joining || userLoading || !joinCode.trim() || !nickname.trim() || !userId}
           className="w-full py-3"
         >
-          {joining ? "Joining..." : "Join Session"}
+          {joining ? "Joining..." : "Join Vote"}
         </Button>
       </form>
     </div>
   );
 }
 
-export default function JoinSessionPage() {
+export default function JoinVotePage() {
   return (
     <Suspense fallback={<Loading />}>
-      <JoinSessionForm />
+      <JoinVoteForm />
     </Suspense>
   );
 }

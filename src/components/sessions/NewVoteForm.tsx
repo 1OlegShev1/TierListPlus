@@ -8,33 +8,30 @@ import { Input } from "@/components/ui/Input";
 import { saveParticipant } from "@/hooks/useParticipant";
 import { useUser } from "@/hooks/useUser";
 import { apiFetch, apiPost, getErrorMessage } from "@/lib/api-client";
-import type { Item, TemplateSummary } from "@/types";
+import type { Item, ListSummary } from "@/types";
 
 const FEATURED_COUNT = 8;
 
-interface SelectedTemplateDetails {
+interface SelectedListDetails {
   id: string;
   name: string;
   items: Item[];
 }
 
-export function NewSessionForm() {
+export function NewVoteForm() {
   const router = useRouter();
   const { userId, isLoading: userLoading, error: userError, retry: retryUser } = useUser();
   const searchParams = useSearchParams();
-  const preselectedTemplateId = searchParams.get("templateId");
+  const preselectedListId = searchParams.get("templateId");
 
-  const [templates, setTemplates] = useState<TemplateSummary[]>([]);
-  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(
-    preselectedTemplateId,
-  );
-  const [selectedTemplateDetails, setSelectedTemplateDetails] =
-    useState<SelectedTemplateDetails | null>(null);
-  const [selectedTemplateFetchStatus, setSelectedTemplateFetchStatus] = useState<
+  const [lists, setLists] = useState<ListSummary[]>([]);
+  const [selectedListId, setSelectedListId] = useState<string | null>(preselectedListId);
+  const [selectedListDetails, setSelectedListDetails] = useState<SelectedListDetails | null>(null);
+  const [selectedListFetchStatus, setSelectedListFetchStatus] = useState<
     "idle" | "loading" | "ready" | "error"
   >("idle");
-  const [step, setStep] = useState<"pick" | "details">(preselectedTemplateId ? "details" : "pick");
-  const [templateQuery, setTemplateQuery] = useState("");
+  const [step, setStep] = useState<"pick" | "details">(preselectedListId ? "details" : "pick");
+  const [listQuery, setListQuery] = useState("");
   const [name, setName] = useState("");
   const [nickname, setNickname] = useState("");
   const [isPrivate, setIsPrivate] = useState(true);
@@ -42,47 +39,46 @@ export function NewSessionForm() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    apiFetch<TemplateSummary[]>(`/api/templates?previewLimit=${FEATURED_COUNT}`)
-      .then(setTemplates)
+    apiFetch<ListSummary[]>(`/api/templates?previewLimit=${FEATURED_COUNT}`)
+      .then(setLists)
       .catch(() => {});
   }, []);
 
   useEffect(() => {
-    if (!selectedTemplateId) {
-      setSelectedTemplateDetails(null);
-      setSelectedTemplateFetchStatus("idle");
+    if (!selectedListId) {
+      setSelectedListDetails(null);
+      setSelectedListFetchStatus("idle");
       return;
     }
 
     let isCurrent = true;
-    setSelectedTemplateDetails(null);
-    setSelectedTemplateFetchStatus("loading");
+    setSelectedListDetails(null);
+    setSelectedListFetchStatus("loading");
 
-    apiFetch<SelectedTemplateDetails>(`/api/templates/${selectedTemplateId}`)
+    apiFetch<SelectedListDetails>(`/api/templates/${selectedListId}`)
       .then((data) => {
         if (!isCurrent) return;
-        setSelectedTemplateDetails(data);
-        setSelectedTemplateFetchStatus("ready");
+        setSelectedListDetails(data);
+        setSelectedListFetchStatus("ready");
       })
       .catch(() => {
         if (!isCurrent) return;
-        setSelectedTemplateFetchStatus("error");
+        setSelectedListFetchStatus("error");
       });
 
     return () => {
       isCurrent = false;
     };
-  }, [selectedTemplateId]);
+  }, [selectedListId]);
 
-  const selectedTemplateSummary = selectedTemplateId
-    ? (templates.find((t) => t.id === selectedTemplateId) ?? null)
+  const selectedListSummary = selectedListId
+    ? (lists.find((list) => list.id === selectedListId) ?? null)
     : null;
-  const selectedTemplateLoading = !!selectedTemplateId && selectedTemplateFetchStatus === "loading";
-  const selectedTemplateUnavailable =
-    !!selectedTemplateId && selectedTemplateFetchStatus === "error";
+  const selectedListLoading = !!selectedListId && selectedListFetchStatus === "loading";
+  const selectedListUnavailable = !!selectedListId && selectedListFetchStatus === "error";
 
-  const pickTemplate = (id: string | null) => {
-    setSelectedTemplateId(id);
+  const pickList = (id: string | null) => {
+    setSelectedListId(id);
     setStep("details");
   };
 
@@ -92,8 +88,8 @@ export function NewSessionForm() {
     !creating &&
     !userLoading &&
     !!userId &&
-    !selectedTemplateLoading &&
-    !selectedTemplateUnavailable;
+    !selectedListLoading &&
+    !selectedListUnavailable;
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -110,7 +106,7 @@ export function NewSessionForm() {
         participantId: string;
         participantNickname: string;
       }>("/api/sessions", {
-        ...(selectedTemplateId ? { templateId: selectedTemplateId } : {}),
+        ...(selectedListId ? { templateId: selectedListId } : {}),
         name,
         nickname: nickname.trim(),
         isPrivate,
@@ -119,7 +115,7 @@ export function NewSessionForm() {
       saveParticipant(data.id, data.participantId, data.participantNickname);
       router.push(`/sessions/${data.id}/vote`);
     } catch (err) {
-      setError(getErrorMessage(err, "Failed to create session"));
+      setError(getErrorMessage(err, "Could not start this vote"));
     } finally {
       setCreating(false);
     }
@@ -127,51 +123,45 @@ export function NewSessionForm() {
 
   if (step === "pick") {
     return (
-      <TemplatePicker
-        templates={templates}
-        query={templateQuery}
-        onQueryChange={setTemplateQuery}
-        onPick={pickTemplate}
-      />
+      <ListPicker lists={lists} query={listQuery} onQueryChange={setListQuery} onPick={pickList} />
     );
   }
 
   return (
     <div className="mx-auto max-w-2xl">
-      <h1 className="mb-6 text-2xl font-bold">Start a Session</h1>
+      <h1 className="mb-6 text-2xl font-bold">Start a Vote</h1>
 
       <form className="space-y-6" onSubmit={handleSubmit}>
         <div>
           <div className="rounded-lg border border-neutral-800 bg-neutral-900 px-4 py-3">
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0">
-                {selectedTemplateDetails ? (
+                {selectedListDetails ? (
                   <>
-                    <p className="truncate font-medium">{selectedTemplateDetails.name}</p>
+                    <p className="truncate font-medium">{selectedListDetails.name}</p>
                     <p className="text-sm text-neutral-500">
-                      {selectedTemplateDetails.items.length} items — you can edit them after
-                      creating
+                      {selectedListDetails.items.length} picks — you can edit them after creating
                     </p>
                   </>
-                ) : selectedTemplateLoading ? (
+                ) : selectedListLoading ? (
                   <>
                     <p className="truncate font-medium">
-                      {selectedTemplateSummary?.name ?? "Loading selected template..."}
+                      {selectedListSummary?.name ?? "Loading this list..."}
                     </p>
-                    <p className="text-sm text-neutral-500">Loading full item preview...</p>
+                    <p className="text-sm text-neutral-500">Loading the full preview...</p>
                   </>
-                ) : selectedTemplateUnavailable ? (
+                ) : selectedListUnavailable ? (
                   <>
-                    <p className="font-medium">Selected template unavailable</p>
+                    <p className="font-medium">That list is not available</p>
                     <p className="text-sm text-neutral-500">
-                      Choose another starting point before creating the session
+                      Pick another list before you start the vote
                     </p>
                   </>
                 ) : (
                   <>
-                    <p className="font-medium">Blank session</p>
+                    <p className="font-medium">Start from scratch</p>
                     <p className="text-sm text-neutral-500">
-                      You'll add items after creating the session
+                      You will add the picks after you start the vote
                     </p>
                   </>
                 )}
@@ -181,17 +171,17 @@ export function NewSessionForm() {
                 onClick={() => setStep("pick")}
                 className="shrink-0 text-sm text-amber-400 transition-colors hover:text-amber-300"
               >
-                Change
+                Change list
               </button>
             </div>
 
-            {selectedTemplateDetails && selectedTemplateDetails.items.length > 0 && (
+            {selectedListDetails && selectedListDetails.items.length > 0 && (
               <div className="mt-4 border-t border-neutral-800 pt-4">
                 <p className="mb-2 text-xs font-medium uppercase tracking-wide text-neutral-500">
-                  Template Items
+                  List Picks
                 </p>
                 <div className="grid grid-cols-4 gap-2 sm:grid-cols-6">
-                  {selectedTemplateDetails.items.map((item) => (
+                  {selectedListDetails.items.map((item) => (
                     <img
                       key={item.id}
                       src={item.imageUrl}
@@ -206,10 +196,10 @@ export function NewSessionForm() {
         </div>
 
         <label className="block">
-          <span className="mb-2 block text-sm font-medium text-neutral-400">Session Name</span>
+          <span className="mb-2 block text-sm font-medium text-neutral-400">Vote Name</span>
           <Input
             type="text"
-            placeholder="e.g., Friday Rankings"
+            placeholder="e.g., Best Burgers in Town"
             value={name}
             onChange={(e) => setName(e.target.value)}
             className="w-full"
@@ -236,9 +226,9 @@ export function NewSessionForm() {
             className="h-4 w-4 accent-amber-500"
           />
           <div>
-            <p className="font-medium">Show in public Sessions list</p>
+            <p className="font-medium">Show in public Votes list</p>
             <p className="text-sm text-neutral-500">
-              Disabled by default. People can still join private sessions by join code.
+              Off by default. People can still join private votes with the code.
             </p>
           </div>
         </label>
@@ -249,7 +239,7 @@ export function NewSessionForm() {
             {error && <ErrorMessage message={error} />}
             {userError && (
               <Button variant="secondary" onClick={retryUser}>
-                Retry Identity Setup
+                Retry Device Setup
               </Button>
             )}
           </div>
@@ -257,7 +247,7 @@ export function NewSessionForm() {
 
         <div className="flex gap-3">
           <Button type="submit" disabled={!canCreate}>
-            {creating ? "Creating..." : "Create Session"}
+            {creating ? "Starting..." : "Start Vote"}
           </Button>
           <Button variant="secondary" onClick={() => router.back()}>
             Cancel
@@ -268,34 +258,34 @@ export function NewSessionForm() {
   );
 }
 
-function TemplatePicker({
-  templates,
+function ListPicker({
+  lists,
   query,
   onQueryChange,
   onPick,
 }: {
-  templates: TemplateSummary[];
+  lists: ListSummary[];
   query: string;
   onQueryChange: (q: string) => void;
   onPick: (id: string | null) => void;
 }) {
   const [showAll, setShowAll] = useState(false);
   const isSearching = query.trim().length > 0;
-  const filtered = templates.filter((t) =>
-    t.name.toLowerCase().includes(query.trim().toLowerCase()),
+  const filtered = lists.filter((list) =>
+    list.name.toLowerCase().includes(query.trim().toLowerCase()),
   );
-  const featured = templates.slice(0, FEATURED_COUNT);
-  const canBrowseMore = templates.length > FEATURED_COUNT;
+  const featured = lists.slice(0, FEATURED_COUNT);
+  const canBrowseMore = lists.length > FEATURED_COUNT;
   const shouldShowList = isSearching || showAll;
 
   // For the search results list, group by private/public
-  const privateResults = filtered.filter((t) => !t.isPublic);
-  const publicResults = filtered.filter((t) => t.isPublic);
+  const privateResults = filtered.filter((list) => !list.isPublic);
+  const publicResults = filtered.filter((list) => list.isPublic);
   const hasGroups = privateResults.length > 0 && publicResults.length > 0;
 
   return (
     <div className="mx-auto max-w-2xl">
-      <h1 className="mb-6 text-2xl font-bold">Choose a starting point</h1>
+      <h1 className="mb-6 text-2xl font-bold">Pick a list to start from</h1>
 
       <button
         type="button"
@@ -307,18 +297,18 @@ function TemplatePicker({
         </div>
         <div className="min-w-0">
           <p className="font-medium text-neutral-200">Start blank</p>
-          <p className="text-sm text-neutral-500">Add items after creating the session</p>
+          <p className="text-sm text-neutral-500">Add the picks after you start the vote</p>
         </div>
       </button>
 
-      {templates.length > 0 && (
+      {lists.length > 0 && (
         <>
           {!isSearching && featured.length > 0 && (
             <>
-              <p className="mb-3 text-sm font-medium text-neutral-400">Top templates</p>
+              <p className="mb-3 text-sm font-medium text-neutral-400">Popular lists</p>
               <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
-                {featured.map((t) => (
-                  <TemplateCard key={t.id} template={t} onSelect={() => onPick(t.id)} />
+                {featured.map((list) => (
+                  <ListCard key={list.id} list={list} onSelect={() => onPick(list.id)} />
                 ))}
               </div>
             </>
@@ -326,7 +316,7 @@ function TemplatePicker({
 
           <Input
             type="text"
-            placeholder="Search all templates..."
+            placeholder="Search all lists..."
             value={query}
             onChange={(e) => onQueryChange(e.target.value)}
             autoFocus
@@ -339,34 +329,28 @@ function TemplatePicker({
               onClick={() => setShowAll((current) => !current)}
               className="mt-3 text-sm text-amber-400 transition-colors hover:text-amber-300"
             >
-              {showAll ? "Show fewer" : "Show all templates"}
+              {showAll ? "Show fewer" : "Show all lists"}
             </button>
           )}
 
           {shouldShowList && (
             <div className="mt-2 space-y-1">
               {filtered.length === 0 && (
-                <p className="px-1 py-4 text-sm text-neutral-500">
-                  No templates match that search.
-                </p>
+                <p className="px-1 py-4 text-sm text-neutral-500">No lists match that search.</p>
               )}
 
               {hasGroups && privateResults.length > 0 && (
-                <p className="px-1 pt-1 pb-1 text-xs font-medium text-neutral-500">
-                  Your Templates
-                </p>
+                <p className="px-1 pt-1 pb-1 text-xs font-medium text-neutral-500">Your Lists</p>
               )}
-              {privateResults.map((t) => (
-                <TemplateRow key={t.id} template={t} onSelect={() => onPick(t.id)} />
+              {privateResults.map((list) => (
+                <ListRow key={list.id} list={list} onSelect={() => onPick(list.id)} />
               ))}
 
               {hasGroups && publicResults.length > 0 && (
-                <p className="px-1 pt-3 pb-1 text-xs font-medium text-neutral-500">
-                  Public Templates
-                </p>
+                <p className="px-1 pt-3 pb-1 text-xs font-medium text-neutral-500">Public Lists</p>
               )}
-              {publicResults.map((t) => (
-                <TemplateRow key={t.id} template={t} onSelect={() => onPick(t.id)} />
+              {publicResults.map((list) => (
+                <ListRow key={list.id} list={list} onSelect={() => onPick(list.id)} />
               ))}
             </div>
           )}
@@ -376,7 +360,7 @@ function TemplatePicker({
   );
 }
 
-function TemplateCard({ template, onSelect }: { template: TemplateSummary; onSelect: () => void }) {
+function ListCard({ list, onSelect }: { list: ListSummary; onSelect: () => void }) {
   return (
     <button
       type="button"
@@ -384,7 +368,7 @@ function TemplateCard({ template, onSelect }: { template: TemplateSummary; onSel
       className="rounded-xl border border-neutral-800 bg-neutral-900 p-2.5 text-left transition-colors hover:border-neutral-600"
     >
       <div className="mb-2 grid grid-cols-2 gap-1">
-        {template.items.map((item) => (
+        {list.items.map((item) => (
           <img
             key={item.id}
             src={item.imageUrl}
@@ -392,26 +376,26 @@ function TemplateCard({ template, onSelect }: { template: TemplateSummary; onSel
             className="aspect-square w-full rounded object-cover"
           />
         ))}
-        {Array.from({ length: Math.max(0, 4 - template.items.length) }, (_, i) => (
+        {Array.from({ length: Math.max(0, 4 - list.items.length) }, (_, i) => (
           // biome-ignore lint/suspicious/noArrayIndexKey: static empty placeholders never reorder
           <div key={i} className="aspect-square w-full rounded bg-neutral-800" />
         ))}
       </div>
-      <p className="truncate text-sm font-medium">{template.name}</p>
-      <p className="text-xs text-neutral-500">{template._count.items} items</p>
+      <p className="truncate text-sm font-medium">{list.name}</p>
+      <p className="text-xs text-neutral-500">{list._count.items} picks</p>
     </button>
   );
 }
 
-function TemplateRow({ template, onSelect }: { template: TemplateSummary; onSelect: () => void }) {
+function ListRow({ list, onSelect }: { list: ListSummary; onSelect: () => void }) {
   return (
     <button
       type="button"
       onClick={onSelect}
       className="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-neutral-900"
     >
-      <span className="min-w-0 truncate font-medium">{template.name}</span>
-      <span className="ml-3 shrink-0 text-xs text-neutral-500">{template._count.items} items</span>
+      <span className="min-w-0 truncate font-medium">{list.name}</span>
+      <span className="ml-3 shrink-0 text-xs text-neutral-500">{list._count.items} picks</span>
     </button>
   );
 }

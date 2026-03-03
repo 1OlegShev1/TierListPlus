@@ -645,7 +645,7 @@ export function TierListBoard({
       const result = await apiPost<{ id: string }>(`/api/sessions/${sessionId}/template`, {});
       setSavedTemplateId(result.id);
     } catch (err) {
-      setSaveTemplateError(getErrorMessage(err, "Failed to save template"));
+      setSaveTemplateError(getErrorMessage(err, "Could not save this list"));
     } finally {
       setSavingTemplate(false);
     }
@@ -655,10 +655,10 @@ export function TierListBoard({
   const totalItems = liveSessionItems.length;
   const canLiveEditItems = canEditTierConfig && templateIsHidden;
   const savesWorkingTemplate = canEditTierConfig && templateIsHidden;
-  const saveTemplateActionLabel = savesWorkingTemplate ? "Publish to Templates" : "Save Copy";
-  const savedTemplateLabel = savesWorkingTemplate ? "Published to Templates" : "Copy Saved";
-  const saveTemplateMobileLabel = savesWorkingTemplate ? "Publish" : "Copy";
-  const savedTemplateMobileLabel = savesWorkingTemplate ? "Published" : "Copied";
+  const saveTemplateActionLabel = savesWorkingTemplate ? "Publish to Lists" : "Save as New List";
+  const savedTemplateLabel = savesWorkingTemplate ? "Published to Lists" : "List Saved";
+  const saveTemplateMobileLabel = savesWorkingTemplate ? "Publish" : "Save List";
+  const savedTemplateMobileLabel = savesWorkingTemplate ? "Published" : "Saved";
   const uploadsDisabled = userLoading || !userId;
   const unrankedEmptyMessage =
     pendingUploads.length > 0
@@ -667,8 +667,8 @@ export function TierListBoard({
         ? canLiveEditItems
           ? "Upload one or more images to start building this list."
           : canEditTierConfig
-            ? "This older session cannot add live items. Start a new session to change the item set."
-            : "Waiting for the session owner to add items."
+            ? "This older vote can't add live items. Start a new vote to change the lineup."
+            : "Waiting for the vote host to add items."
         : "All items ranked!";
 
   // Auto-dismiss draft restored indicator
@@ -688,7 +688,7 @@ export function TierListBoard({
     <div className="flex flex-col">
       {draftRestored && (
         <div className="mb-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-sm text-amber-400">
-          Draft restored from your previous session
+          Your last draft is back
         </div>
       )}
       {bracketSeeded && (
@@ -698,11 +698,9 @@ export function TierListBoard({
       )}
       {savedTemplateId && (
         <div className="mb-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-sm text-emerald-400">
-          {savesWorkingTemplate
-            ? "Template published for reuse. "
-            : "Template copy saved for reuse. "}
+          {savesWorkingTemplate ? "List published for reuse. " : "List copy saved for later. "}
           <Link href={`/templates/${savedTemplateId}`} className="underline hover:text-emerald-300">
-            Open template
+            Open list
           </Link>
         </div>
       )}
@@ -716,7 +714,7 @@ export function TierListBoard({
               className="rounded-lg border border-neutral-700 px-3 py-2 text-sm font-medium text-neutral-200 transition-colors hover:border-amber-400 hover:text-amber-300 disabled:opacity-50 sm:px-4 sm:py-1.5"
             >
               <span className="sm:hidden">Bracket</span>
-              <span className="hidden sm:inline">Bracket Assist</span>
+              <span className="hidden sm:inline">Quick Bracket</span>
             </button>
           )}
           {canSaveTemplate && (
@@ -749,7 +747,7 @@ export function TierListBoard({
             className="rounded-lg bg-amber-500 px-3 py-2 text-sm font-medium text-black transition-colors hover:bg-amber-400 disabled:opacity-50 sm:px-5 sm:py-1.5"
           >
             <span className="sm:hidden">{submitting ? "Saving" : "Save"}</span>
-            <span className="hidden sm:inline">{submitting ? "Saving..." : "Save Ranking"}</span>
+            <span className="hidden sm:inline">{submitting ? "Saving..." : "Lock In Ranking"}</span>
           </button>
         </div>
         {saveTemplateError && (
@@ -826,13 +824,13 @@ export function TierListBoard({
                         type="button"
                         onClick={() => handleRemovePendingUpload(pending.id)}
                         className="absolute right-1.5 top-1.5 z-10 flex h-6 w-6 items-center justify-center rounded-full border border-neutral-700 bg-black/70 text-neutral-200 opacity-0 transition-all hover:border-red-500 hover:bg-red-600 hover:text-white focus-visible:opacity-100 group-hover:opacity-100 group-focus-within:opacity-100"
-                        aria-label="Remove pending item"
+                        aria-label="Remove pending pick"
                       >
                         <CloseIcon className="h-3.5 w-3.5" />
                       </button>
                       <img
                         src={pending.imageUrl}
-                        alt="Pending item"
+                        alt="Pending pick"
                         className="aspect-square w-full rounded object-cover"
                       />
                       <input
@@ -845,7 +843,7 @@ export function TierListBoard({
                           e.preventDefault();
                           e.currentTarget.blur();
                         }}
-                        placeholder="Label"
+                        placeholder="Name this pick"
                         maxLength={100}
                         className="mt-1 w-full rounded border border-neutral-700 bg-neutral-900 px-2 py-1 text-xs text-white placeholder:text-neutral-500 focus:border-amber-500 focus:outline-none"
                       />
@@ -856,9 +854,9 @@ export function TierListBoard({
                     multiple
                     idleLabel={
                       userLoading
-                        ? "Preparing identity..."
+                        ? "Getting ready..."
                         : uploadsDisabled
-                          ? "Identity required"
+                          ? "Device needed"
                           : "Upload"
                     }
                     disabled={uploadsDisabled}
@@ -871,7 +869,7 @@ export function TierListBoard({
                       disabled={addingItem}
                       className="flex h-[112px] w-[112px] flex-shrink-0 flex-col items-center justify-center rounded-lg border border-neutral-700 bg-neutral-950 px-2 text-center text-sm font-medium text-neutral-200 transition-colors hover:border-amber-400 hover:text-amber-300 disabled:opacity-50 sm:h-[120px] sm:w-[120px] md:h-[128px] md:w-[128px]"
                     >
-                      <span>{addingItem ? "Adding..." : "Add items"}</span>
+                      <span>{addingItem ? "Adding..." : "Add picks"}</span>
                       <span className="mt-1 text-xs text-neutral-500">
                         {pendingUploads.length} ready
                       </span>

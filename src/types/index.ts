@@ -53,13 +53,13 @@ export interface SessionData {
   currentParticipantNickname: string | null;
 }
 
-/** Template summary for lists and dropdowns */
-export interface TemplateSummary {
+/** List summary for lists and dropdowns */
+export interface ListSummary {
   id: string;
   name: string;
   isPublic: boolean;
   _count: { items: number };
-  items: { id: string; imageUrl: string }[];
+  items: { id: string; imageUrl: string; label?: string | null }[];
 }
 
 /** A single vote placement (item in a tier at a rank) */

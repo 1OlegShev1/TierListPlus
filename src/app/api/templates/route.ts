@@ -14,6 +14,7 @@ export const GET = withHandler(async (request) => {
   const previewLimitRaw = searchParams.get("previewLimit");
   const previewLimit =
     previewLimitRaw && /^\d+$/.test(previewLimitRaw) ? Number.parseInt(previewLimitRaw, 10) : 0;
+
   const templates = await prisma.template.findMany({
     where: getTemplateVisibilityWhere(userId),
     include: { _count: { select: { items: true } } },
@@ -32,7 +33,7 @@ export const GET = withHandler(async (request) => {
       items: {
         take: PREVIEW_ITEM_COUNT,
         orderBy: { sortOrder: "asc" },
-        select: { id: true, imageUrl: true },
+        select: { id: true, imageUrl: true, label: true },
       },
     },
   });

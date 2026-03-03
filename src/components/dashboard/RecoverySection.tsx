@@ -173,12 +173,12 @@ export function RecoverySection() {
   return (
     <div className="rounded-xl border border-neutral-800 bg-neutral-900 p-4 sm:p-6">
       <h2 className="mb-3 text-base font-semibold text-neutral-300 sm:mb-4 sm:text-lg">
-        Linked Devices
+        Move Between Devices
       </h2>
 
       <div className="mb-6">
         <p className="mb-3 text-sm text-neutral-400">
-          Generate a one-time link code and use it on another device within 15 minutes.
+          Grab a one-time code and use it on another device within 15 minutes.
         </p>
         {activeLinkCode ? (
           <div className="space-y-3">
@@ -222,7 +222,7 @@ export function RecoverySection() {
 
       <div className="border-t border-neutral-800 pt-4 sm:pt-6">
         <p className="mb-3 text-sm text-neutral-400">
-          Enter a one-time code on this device and choose how it should appear in your device list.
+          Paste a one-time code on this device and choose how it should show up in your list.
         </p>
         {linked ? (
           <p className="text-sm text-green-400">Device linked successfully! Reloading...</p>
@@ -258,13 +258,13 @@ export function RecoverySection() {
 
       <div className="mt-6 border-t border-neutral-800 pt-4 sm:pt-6">
         <div className="mb-3 flex items-center justify-between">
-          <p className="text-sm text-neutral-400">Active devices</p>
+          <p className="text-sm text-neutral-400">Your devices</p>
           {loading && <span className="text-xs text-neutral-500">Loading...</span>}
         </div>
         {loadError && <ErrorMessage message={loadError} />}
         {revokeError && <ErrorMessage message={revokeError} />}
         {!loading && devices.length === 0 ? (
-          <p className="text-sm text-neutral-500">No linked devices found.</p>
+          <p className="text-sm text-neutral-500">No extra devices linked yet.</p>
         ) : (
           <div className="space-y-3">
             {devices.map((device) => (

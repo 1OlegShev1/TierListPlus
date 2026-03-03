@@ -8,12 +8,12 @@ import { TrashIcon } from "@/components/ui/icons";
 import { useUser } from "@/hooks/useUser";
 import { apiDelete, getErrorMessage } from "@/lib/api-client";
 
-interface DeleteTemplateButtonProps {
-  templateId: string;
+interface DeleteListButtonProps {
+  listId: string;
   creatorId: string | null;
 }
 
-export function DeleteTemplateButton({ templateId, creatorId }: DeleteTemplateButtonProps) {
+export function DeleteListButton({ listId, creatorId }: DeleteListButtonProps) {
   const { userId } = useUser();
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -26,11 +26,11 @@ export function DeleteTemplateButton({ templateId, creatorId }: DeleteTemplateBu
     setDeleting(true);
     setError(null);
     try {
-      await apiDelete(`/api/templates/${templateId}`);
+      await apiDelete(`/api/templates/${listId}`);
       router.push("/templates");
       router.refresh();
     } catch (err) {
-      setError(getErrorMessage(err, "Failed to delete template"));
+      setError(getErrorMessage(err, "Could not delete this list"));
       setDeleting(false);
     }
   };
@@ -46,10 +46,10 @@ export function DeleteTemplateButton({ templateId, creatorId }: DeleteTemplateBu
       </Button>
       <ConfirmDialog
         open={open}
-        title="Delete Template"
+        title="Delete List"
         description={
           error ??
-          "This will permanently delete this template and all its items. Sessions created from it will not be affected."
+          "This deletes this list and all its items. Votes already started from it will still stay up."
         }
         onConfirm={handleDelete}
         onCancel={() => {

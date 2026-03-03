@@ -12,21 +12,21 @@ import { useUser } from "@/hooks/useUser";
 import { apiFetch, apiPatch, apiPost, getErrorMessage } from "@/lib/api-client";
 import type { TemplateItemData } from "@/types";
 
-interface TemplateEditorProps {
-  templateId?: string;
+interface ListEditorProps {
+  listId?: string;
   initialName?: string;
   initialDescription?: string;
   initialIsPublic?: boolean;
   initialItems?: TemplateItemData[];
 }
 
-export function TemplateEditor({
-  templateId,
+export function ListEditor({
+  listId,
   initialName = "",
   initialDescription = "",
   initialIsPublic = false,
   initialItems = [],
-}: TemplateEditorProps) {
+}: ListEditorProps) {
   const router = useRouter();
   const { userId, isLoading: userLoading, error: userError, retry: retryUser } = useUser();
   const [name, setName] = useState(initialName);
@@ -97,7 +97,7 @@ export function TemplateEditor({
     setError(null);
 
     try {
-      let id = templateId;
+      let id = listId;
 
       if (!id) {
         const template = await apiPost<{ id: string }>("/api/templates", {
@@ -138,7 +138,7 @@ export function TemplateEditor({
 
       router.push(`/templates/${id}`);
     } catch (err) {
-      setError(getErrorMessage(err, "Failed to save. Please try again."));
+      setError(getErrorMessage(err, "Could not save this list. Try again."));
     } finally {
       setSaving(false);
     }
@@ -154,14 +154,14 @@ export function TemplateEditor({
       <div className="space-y-4">
         <Input
           type="text"
-          placeholder="Template name"
+          placeholder="List name"
           value={name}
           onChange={(e) => setName(e.target.value)}
           onKeyDown={handleNameKeyDown}
           className="w-full text-lg"
         />
         <Textarea
-          placeholder="Description (optional)"
+          placeholder="What are people ranking? (optional)"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           rows={2}
@@ -178,16 +178,16 @@ export function TemplateEditor({
             className="h-4 w-4 accent-amber-500"
           />
           <div>
-            <p className="font-medium">Show in public Templates list</p>
+            <p className="font-medium">Show in public Lists</p>
             <p className="text-sm text-neutral-500">
-              Disabled by default. Private templates are only visible to you.
+              Off by default. Private lists are only visible to you.
             </p>
           </div>
         </label>
       </div>
 
       <div>
-        <h3 className="mb-3 text-sm font-medium text-neutral-400">Items ({items.length})</h3>
+        <h3 className="mb-3 text-sm font-medium text-neutral-400">Picks ({items.length})</h3>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
           {items.map((item, index) => (
             <div
@@ -198,7 +198,7 @@ export function TemplateEditor({
                 type="button"
                 onClick={() => removeItem(index)}
                 className="absolute right-1 top-1 z-10 flex h-6 w-6 items-center justify-center rounded-full border border-neutral-700 bg-black/70 text-neutral-200 opacity-0 transition-all hover:border-red-500 hover:bg-red-600 hover:text-white focus-visible:opacity-100 group-hover:opacity-100 group-focus-within:opacity-100"
-                aria-label={`Remove ${item.label || "item"}`}
+                aria-label={`Remove ${item.label || "pick"}`}
               >
                 <CloseIcon className="h-3.5 w-3.5" />
               </button>
@@ -212,7 +212,7 @@ export function TemplateEditor({
                   itemLabelRefs.current[index] = node;
                 }}
                 type="text"
-                placeholder="Label"
+                placeholder="Name this pick"
                 value={item.label}
                 onChange={(e) => updateItemLabel(index, e.target.value)}
                 onKeyDown={(e) => {
@@ -232,11 +232,7 @@ export function TemplateEditor({
             disabled={uploadsDisabled}
             triggerRef={uploadTriggerRef}
             idleLabel={
-              userLoading
-                ? "Preparing identity..."
-                : uploadsDisabled
-                  ? "Identity required"
-                  : undefined
+              userLoading ? "Getting ready..." : uploadsDisabled ? "Device needed" : undefined
             }
           />
         </div>
@@ -248,7 +244,7 @@ export function TemplateEditor({
           {error && <ErrorMessage message={error} />}
           {userError && (
             <Button variant="secondary" onClick={retryUser}>
-              Retry Identity Setup
+              Retry Device Setup
             </Button>
           )}
         </div>
@@ -256,7 +252,7 @@ export function TemplateEditor({
 
       <div className="flex gap-3">
         <Button ref={saveButtonRef} type="submit" disabled={!canSave}>
-          {saving ? "Saving..." : templateId ? "Save Changes" : "Create Template"}
+          {saving ? "Saving..." : listId ? "Save List" : "Create List"}
         </Button>
         <Button variant="secondary" onClick={() => router.back()}>
           Cancel
