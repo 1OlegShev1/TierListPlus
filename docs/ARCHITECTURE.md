@@ -8,7 +8,7 @@ Users create templates, start sessions, join with a code, and submit **per-user*
 Key product behaviors:
 - Session privacy is **private by default** (`Session.isPrivate = true`)
 - Template visibility is **private by default** (`Template.isPublic = false`)
-- Every new session gets a **hidden working template** so hosts can edit session items live, then publish or copy that item set later
+- Every new session gets a **hidden working template** so hosts can edit session items live, then publish or copy detached snapshots of that item set later
 - Hosts can **lock joins** (`Session.isLocked = true`) without closing the session
 - Votes are tied to participant identity and cannot be submitted as another participant
 - Bracket is a **personal assist tool** on the vote board (session-wide assist + per-tier rank assist)
@@ -148,8 +148,9 @@ Routes under `/api/sessions/[sessionId]/bracket/*` still exist, but UI voting no
 - `DELETE /api/sessions/[sessionId]/items/[itemId]`
   - Same access rules as add-item; refuses removal after saved votes exist for that item
 - `POST /api/sessions/[sessionId]/template`
-  - Owner can publish the hidden working template (inherits session public/private visibility)
-  - Any other authenticated user with session access can save a private copy of the current session items
+  - Owner can publish the current session items as a new detached visible template snapshot (inherits session public/private visibility)
+  - The hidden working template remains internal to the session and is never exposed as a normal template
+  - Any other authenticated user with session access can save a private detached copy of the current session items
 - `GET/POST /api/sessions/[sessionId]/votes`
   - `POST` requires complete ranking and participant ownership
 - `GET /api/sessions/[sessionId]/votes/consensus`
