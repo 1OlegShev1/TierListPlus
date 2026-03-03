@@ -20,6 +20,8 @@ import { POST } from "@/app/api/users/recover/route";
 import { jsonRequest } from "../../helpers/request";
 
 describe("users recover route", () => {
+  const now = Date.now();
+
   beforeEach(() => {
     mocks.prisma.linkCode.findUnique.mockReset();
     mocks.requireRequestAuth.mockReset().mockResolvedValue({
@@ -51,7 +53,7 @@ describe("users recover route", () => {
     mocks.prisma.linkCode.findUnique.mockResolvedValue({
       id: "link_1",
       userId: "user_2",
-      expiresAt: new Date("2026-03-01T00:00:00.000Z"),
+      expiresAt: new Date(now - 86_400_000),
       consumedAt: null,
     });
     response = await POST(
@@ -68,7 +70,7 @@ describe("users recover route", () => {
     mocks.prisma.linkCode.findUnique.mockResolvedValue({
       id: "link_1",
       userId: "user_2",
-      expiresAt: new Date("2026-03-03T00:00:00.000Z"),
+      expiresAt: new Date(now + 86_400_000),
       consumedAt: null,
     });
     mocks.requireRequestAuth.mockResolvedValueOnce({
