@@ -4,6 +4,7 @@ This setup runs:
 - `app` (Next.js + Prisma) on internal Docker network only
 - `db` (PostgreSQL)
 - `caddy` (public HTTPS on ports `80/443`)
+- `uploads_data` Docker volume mounted at `/app/public/uploads` inside `app`
 
 Deploy flow runs database migrations once per release before starting `app`.
 
@@ -135,12 +136,14 @@ Default target host is `tieradmin@46.62.140.254`. You can override:
 ```
 
 What script does:
-1. `rsync` project to server (keeps remote `.env.production`)
+1. `rsync` project to server (keeps remote `.env.production`, skips repo docs and repo-side upload files)
 2. builds `app` + `migrate` images
 3. starts `db` and waits for healthcheck
 4. runs one-off Prisma migrations (`migrate` service)
 5. starts `app` and `caddy`
 6. prints service status
+
+Important: production uploads are stored in the named `uploads_data` Docker volume, not in the checked-out repo tree. The deploy script intentionally excludes `public/uploads/*` from sync so local development files do not overwrite production assets.
 
 ## Verify
 
@@ -191,6 +194,8 @@ Recommended schedule: once per day. Example root cron entry on the server:
 ```bash
 0 3 * * * cd /opt/tierlistplus && docker compose --profile with-domain --env-file .env.production -f docker-compose.prod.yml exec -T app node scripts/cleanup-orphan-uploads.mjs >> /var/log/tierlistplus-upload-gc.log 2>&1
 ```
+
+This cleanup operates on the same `uploads_data` volume mounted into the app container.
 
 ## Backup database
 

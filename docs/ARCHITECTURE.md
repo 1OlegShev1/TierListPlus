@@ -8,6 +8,7 @@ Users create templates, start sessions, join with a code, and submit **per-user*
 Key product behaviors:
 - Session privacy is **private by default** (`Session.isPrivate = true`)
 - Template visibility is **private by default** (`Template.isPublic = false`)
+- Every new session gets a **hidden working template** so hosts can edit session items live, then publish or copy that item set later
 - Hosts can **lock joins** (`Session.isLocked = true`) without closing the session
 - Votes are tied to participant identity and cannot be submitted as another participant
 - Bracket is a **personal assist tool** on the vote board (session-wide assist + per-tier rank assist)
@@ -32,7 +33,15 @@ Important models and fields:
 
 - `User`
   - Device-level identity (cookie-backed), optional `recoveryCode`
+- `Device`
+  - One browser/device per user identity, revocable without deleting the user
+- `LinkCode`
+  - Short-lived code used to link an additional device to an existing user
+- `Template`
+  - `isPublic` controls list visibility
+  - `isHidden` marks internal working templates created for sessions and excludes them from normal template browsing
 - `Session`
+  - `sourceTemplateId`: original visible template used to seed the working copy (nullable)
   - `creatorId`: host/owner
   - `isPrivate` (default `true`)
   - `isLocked` (default `false`)
@@ -48,13 +57,18 @@ Important models and fields:
 Recent migrations:
 - `20260227110000_add_session_privacy_and_lock`
 - `20260227123000_add_participant_submitted_at`
+- `20260302110000_add_template_visibility`
+- `20260302133000_add_devices_and_link_codes`
+- `20260302153000_enforce_unique_user_participant_per_session`
+- `20260302170000_add_hidden_working_templates`
 
 ## Authorization Model
 
 Identity:
-1. Client ensures a device user (`/api/users`)
-2. Server stores signed `HttpOnly` session cookie
-3. API reads user ID from cookie (`src/lib/user-session.ts`)
+1. Client ensures a device-backed identity (`/api/users`)
+2. Server stores a signed `HttpOnly` session cookie for `userId + deviceId`
+3. API reads that identity from the cookie (`src/lib/user-session.ts`)
+4. Device linking and recovery flows can mint `LinkCode`s and revoke stale `Device`s without changing the underlying user
 
 Access rules:
 - Session reads for private sessions require owner or joined participant (`requireSessionAccess`)
@@ -106,11 +120,12 @@ Routes under `/api/sessions/[sessionId]/bracket/*` still exist, but UI voting no
 
 ### Templates
 - `GET/POST /api/templates`
-  - Anonymous `GET` returns public templates
-  - Authenticated `GET` returns public + owned templates
+  - Anonymous `GET` returns public non-hidden templates
+  - Authenticated `GET` returns public + owned non-hidden templates
+  - `previewLimit=<N>` includes up to 4 preview images on only the first `N` templates
 - `GET/PATCH/DELETE /api/templates/[templateId]`
-  - `GET` requires template to be public or owned
-  - `PATCH/DELETE` owner-only
+  - `GET` requires template to be non-hidden and public or owned
+  - `PATCH/DELETE` are owner-only and reject hidden working templates
 - `POST /api/templates/[templateId]/duplicate`
   - Creates a new private owned copy from any accessible template
 - `POST /api/templates/[templateId]/items`
@@ -120,11 +135,21 @@ Routes under `/api/sessions/[sessionId]/bracket/*` still exist, but UI voting no
 - `GET/POST /api/sessions`
   - Anonymous `GET` returns public sessions
   - Authenticated `GET` returns public + owned + participated sessions
+  - `POST` always creates a private hidden working template, optionally seeded from `templateId`
+  - `POST` stores `sourceTemplateId` when a visible template was used as the starting point
   - `POST` currently persists `bracketEnabled: true` for new sessions
 - `POST /api/sessions/join`
   - Enforces `OPEN` and lock rules (`isLocked`)
 - `GET/PATCH/DELETE /api/sessions/[sessionId]`
+  - `GET` includes participant completion summary plus `templateIsHidden`
   - `PATCH/DELETE` owner-only
+- `POST /api/sessions/[sessionId]/items`
+  - Owner-only, `OPEN` sessions only, and only for sessions backed by a hidden working template
+- `DELETE /api/sessions/[sessionId]/items/[itemId]`
+  - Same access rules as add-item; refuses removal after saved votes exist for that item
+- `POST /api/sessions/[sessionId]/template`
+  - Owner can publish the hidden working template (inherits session public/private visibility)
+  - Any other authenticated user with session access can save a private copy of the current session items
 - `GET/POST /api/sessions/[sessionId]/votes`
   - `POST` requires complete ranking and participant ownership
 - `GET /api/sessions/[sessionId]/votes/consensus`
@@ -142,6 +167,8 @@ Routes under `/api/sessions/[sessionId]/bracket/*` still exist, but UI voting no
 - `GET /api/users/session`
 - `POST /api/users/recover`
 - `POST /api/users/[userId]/recovery`
+- `GET /api/users/devices`
+- `DELETE /api/users/devices/[deviceId]`
 - `GET /api/dashboard`
 
 ## Directory Notes
@@ -150,11 +177,11 @@ Key paths:
 - `src/app/sessions/*`
   - `join`, `new`, `[sessionId]` (redirect), `[sessionId]/vote`, `[sessionId]/results`
 - `src/components/tierlist/TierListBoard.tsx`
-  - main vote UX, draft save, session/per-tier bracket assist, submit
+  - main vote UX, draft save, live session item editing for hidden working templates, session/per-tier bracket assist, submit
 - `src/components/bracket/BracketModal.tsx`
   - local bracket assist modal
 - `src/app/api/sessions/*`
-  - privacy, lock, vote, and session controls
+  - privacy, lock, live item editing, template publish/copy, vote, and session controls
 
 ## Run and Verify
 
