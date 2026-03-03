@@ -42,6 +42,7 @@ export function TierColorPicker({
   return (
     <div ref={ref} className="relative flex self-stretch">
       <button
+        type="button"
         onClick={() => {
           if (canEdit) setOpen((v) => !v);
         }}
@@ -59,6 +60,7 @@ export function TierColorPicker({
             {TIER_COLORS.map((c) => (
               <button
                 key={c}
+                type="button"
                 onClick={() => {
                   onColorChange(c);
                   setOpen(false);

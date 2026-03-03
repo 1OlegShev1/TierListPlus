@@ -120,7 +120,7 @@ export function TemplateEditor({
       </div>
 
       <div>
-        <label className="flex items-center gap-3 rounded-lg border border-neutral-800 bg-neutral-900 p-4">
+        <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-neutral-800 bg-neutral-900 p-4 transition-colors hover:border-neutral-700 hover:bg-neutral-800">
           <input
             type="checkbox"
             checked={isPublic}
@@ -145,6 +145,7 @@ export function TemplateEditor({
               className="group relative rounded-lg border border-neutral-800 bg-neutral-900 p-2"
             >
               <button
+                type="button"
                 onClick={() => removeItem(index)}
                 className="absolute -right-2 -top-2 z-10 hidden h-5 w-5 items-center justify-center rounded-full bg-red-600 text-xs text-white group-hover:flex"
                 aria-label={`Remove ${item.label || "item"}`}

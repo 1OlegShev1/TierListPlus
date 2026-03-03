@@ -77,6 +77,7 @@ export function TierRowActions({
     <div className="relative">
       <button
         ref={buttonRef}
+        type="button"
         onClick={toggle}
         className="cursor-pointer rounded border border-neutral-700 bg-neutral-900/80 p-1 text-neutral-300 hover:border-neutral-500 hover:text-neutral-100"
         title="Tier actions"
@@ -94,12 +95,14 @@ export function TierRowActions({
           }`}
         >
           <button
+            type="button"
             onClick={() => act(onInsertAbove)}
             className="flex w-full cursor-pointer items-center gap-2 px-3 py-1.5 text-left text-sm text-neutral-300 hover:bg-neutral-700"
           >
             <PlusIcon className="h-4 w-4" /> Insert above
           </button>
           <button
+            type="button"
             onClick={() => act(onInsertBelow)}
             className="flex w-full cursor-pointer items-center gap-2 px-3 py-1.5 text-left text-sm text-neutral-300 hover:bg-neutral-700"
           >
@@ -107,6 +110,7 @@ export function TierRowActions({
           </button>
           <hr className="my-1 border-neutral-700" />
           <button
+            type="button"
             onClick={() => act(onDelete)}
             disabled={!canDelete}
             className="flex w-full cursor-pointer items-center gap-2 px-3 py-1.5 text-left text-sm text-red-400 hover:bg-neutral-700 disabled:cursor-default disabled:opacity-30 disabled:hover:bg-transparent"

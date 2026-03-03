@@ -117,6 +117,7 @@ export function TierRow({
             />
           ) : (
             <button
+              type="button"
               onClick={() => {
                 if (canEditTier) setEditingLabel(true);
               }}
@@ -154,6 +155,7 @@ export function TierRow({
         {items.length >= 2 && (
           <div className="flex flex-shrink-0 items-center border-l border-neutral-800 px-1 sm:px-1.5 md:px-2">
             <button
+              type="button"
               onClick={() => setShowBracket(true)}
               className="cursor-pointer rounded px-1 py-0.5 text-[11px] font-medium text-neutral-500 transition-colors hover:bg-neutral-800 hover:text-amber-400 sm:px-1.5 sm:py-1 sm:text-xs md:px-2 md:py-1.5 md:text-sm"
               title="Rank items with 1v1 bracket"
@@ -170,6 +172,7 @@ export function TierRow({
             className={`flex w-10 flex-shrink-0 flex-col items-center justify-center gap-1 border-l border-neutral-800 bg-neutral-950/60 sm:w-11 md:w-12 lg:w-12 ${isFirst ? "rounded-tr-lg" : ""} ${isLast ? "rounded-br-lg" : ""}`}
           >
             <button
+              type="button"
               onClick={onMoveUp}
               disabled={isFirst}
               className="cursor-pointer rounded p-1 text-neutral-400 hover:bg-neutral-800 hover:text-neutral-100 disabled:cursor-default disabled:opacity-30"
@@ -189,6 +192,7 @@ export function TierRow({
             />
 
             <button
+              type="button"
               onClick={onMoveDown}
               disabled={isLast}
               className="cursor-pointer rounded p-1 text-neutral-400 hover:bg-neutral-800 hover:text-neutral-100 disabled:cursor-default disabled:opacity-30"

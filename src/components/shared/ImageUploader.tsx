@@ -291,6 +291,7 @@ export function ImageUploader({
               </ul>
             </div>
             <button
+              type="button"
               onClick={dismissErrors}
               className="shrink-0 text-xs text-neutral-500 hover:text-neutral-300"
               aria-label="Dismiss errors"

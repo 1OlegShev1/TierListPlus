@@ -14,6 +14,12 @@ export const buttonVariants: Record<ButtonVariant, string> = {
   ghost: "text-sm text-neutral-500 transition-colors hover:text-neutral-300",
 };
 
-export function Button({ variant = "primary", className, ...props }: ButtonProps) {
-  return <button className={cn("cursor-pointer", buttonVariants[variant], className)} {...props} />;
+export function Button({ variant = "primary", className, type = "button", ...props }: ButtonProps) {
+  return (
+    <button
+      type={type}
+      className={cn("cursor-pointer", buttonVariants[variant], className)}
+      {...props}
+    />
+  );
 }

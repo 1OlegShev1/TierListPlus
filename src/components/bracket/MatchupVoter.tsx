@@ -37,6 +37,7 @@ export function MatchupVoter({
   const renderItem = (item: Item) => (
     <button
       key={item.id}
+      type="button"
       onClick={() => onVote(item.id)}
       disabled={disabled}
       className={`group flex ${s.card} flex-col items-center rounded-2xl border-2 border-neutral-700 bg-neutral-900 transition-all hover:border-amber-400 hover:bg-neutral-800 disabled:opacity-50`}

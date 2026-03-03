@@ -322,6 +322,7 @@ function ResultsContent() {
                 {tier.items.map((item) => (
                   <button
                     key={item.id}
+                    type="button"
                     onClick={() => {
                       if (!isTouchInput) handleItemSelect(item);
                     }}

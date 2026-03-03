@@ -781,6 +781,7 @@ export function TierListBoard({
           <div className="mb-2 flex gap-2 rounded-lg border border-neutral-800 bg-neutral-950/95 p-2 sm:mb-1.5 sm:justify-end sm:border-0 sm:bg-transparent sm:p-0">
             {totalItems >= 2 && (
               <button
+                type="button"
                 onClick={() => setShowSessionBracket(true)}
                 disabled={submitting}
                 className="flex-1 rounded-lg border border-neutral-700 px-3 py-2 text-sm font-medium text-neutral-200 transition-colors hover:border-amber-400 hover:text-amber-300 disabled:opacity-50 sm:flex-none sm:px-4 sm:py-1.5"
@@ -790,6 +791,7 @@ export function TierListBoard({
             )}
             {canSaveTemplate && (
               <button
+                type="button"
                 onClick={handleSaveTemplate}
                 disabled={savingTemplate}
                 className="flex-1 rounded-lg border border-neutral-700 px-3 py-2 text-sm font-medium text-neutral-200 transition-colors hover:border-emerald-400 hover:text-emerald-300 disabled:opacity-50 sm:flex-none sm:px-4 sm:py-1.5"
@@ -802,6 +804,7 @@ export function TierListBoard({
               </button>
             )}
             <button
+              type="button"
               onClick={handleSubmit}
               disabled={submitting || totalItems === 0 || rankedCount !== totalItems}
               className="flex-1 rounded-lg bg-amber-500 px-3 py-2 text-sm font-medium text-black transition-colors hover:bg-amber-400 disabled:opacity-50 sm:flex-none sm:px-5 sm:py-1.5"
