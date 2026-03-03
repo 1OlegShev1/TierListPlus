@@ -177,7 +177,7 @@ export function NewSessionForm() {
           />
         </label>
 
-        <label className="flex items-center gap-3 rounded-lg border border-neutral-800 bg-neutral-900 p-4">
+        <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-neutral-800 bg-neutral-900 p-4 transition-colors hover:border-neutral-700 hover:bg-neutral-800">
           <input
             type="checkbox"
             checked={!isPrivate}
