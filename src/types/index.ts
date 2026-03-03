@@ -43,7 +43,6 @@ export interface SessionData {
   joinCode: string;
   status: string;
   creatorId: string | null;
-  sourceTemplateId: string | null;
   isPrivate: boolean;
   isLocked: boolean;
   bracketEnabled: boolean;

@@ -45,7 +45,6 @@ export const GET = withHandler(async (request, { params }) => {
   return NextResponse.json({
     ...session,
     participants,
-    sourceTemplateId: session.sourceTemplateId,
     templateIsHidden: session.template.isHidden,
     currentParticipantId: currentParticipant?.id ?? null,
     currentParticipantNickname: currentParticipant?.nickname ?? null,

@@ -62,7 +62,13 @@ describe("session detail route", () => {
 
     const response = await GET(new Request("https://example.test"), routeCtx({ sessionId: "s1" }));
     expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toEqual(
+    const payload = await response.json();
+    expect(payload).toEqual(
+      expect.not.objectContaining({
+        sourceTemplateId: expect.anything(),
+      }),
+    );
+    expect(payload).toEqual(
       expect.objectContaining({
         currentParticipantId: "participant_1",
         currentParticipantNickname: "Oleg",
