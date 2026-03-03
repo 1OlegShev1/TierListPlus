@@ -112,6 +112,149 @@ describe("sessions collection route", () => {
     expect(response.status).toBe(201);
   });
 
+  it("creates a blank session with its own hidden working template", async () => {
+    mocks.prisma.template.create.mockResolvedValueOnce(
+      makeTemplate({
+        id: "working_template_blank",
+        name: "Blank board",
+        isHidden: true,
+        items: [],
+      }),
+    );
+    mocks.prisma.session.create.mockResolvedValueOnce(
+      makeSession({
+        id: "session_blank",
+        name: "Blank board",
+        templateId: "working_template_blank",
+        sourceTemplateId: null,
+        items: [],
+      }),
+    );
+
+    const response = await POST(
+      jsonRequest("POST", "https://example.test", { name: "Blank board" }),
+      { params: Promise.resolve({}) },
+    );
+
+    expect(response.status).toBe(201);
+    expect(mocks.prisma.template.findUnique).not.toHaveBeenCalled();
+    expect(mocks.prisma.template.create).toHaveBeenCalledWith({
+      data: {
+        name: "Blank board",
+        description: null,
+        creatorId: "user_1",
+        isPublic: false,
+        isHidden: true,
+      },
+      include: {
+        items: { orderBy: { sortOrder: "asc" } },
+      },
+    });
+    expect(mocks.prisma.session.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        name: "Blank board",
+        templateId: "working_template_blank",
+        sourceTemplateId: null,
+        isPrivate: true,
+        items: { create: [] },
+      }),
+      include: {
+        items: true,
+        _count: { select: { participants: true } },
+      },
+    });
+  });
+
+  it("creates a hidden working template from the chosen source template and tracks its origin", async () => {
+    mocks.prisma.template.findUnique.mockResolvedValueOnce(
+      makeTemplate({
+        id: "template_source",
+        name: "Starter pack",
+        description: "Seeded",
+        creatorId: "user_1",
+        items: [
+          makeSessionItem({ id: "source_1", label: "One", imageUrl: "/img/1.webp", sortOrder: 0 }),
+          makeSessionItem({ id: "source_2", label: "Two", imageUrl: "/img/2.webp", sortOrder: 1 }),
+        ],
+      }),
+    );
+    mocks.prisma.template.create.mockResolvedValueOnce(
+      makeTemplate({
+        id: "working_template_seeded",
+        name: "Starter pack",
+        description: "Seeded",
+        isHidden: true,
+        items: [
+          makeSessionItem({ id: "working_1", label: "One", imageUrl: "/img/1.webp", sortOrder: 0 }),
+          makeSessionItem({ id: "working_2", label: "Two", imageUrl: "/img/2.webp", sortOrder: 1 }),
+        ],
+      }),
+    );
+    mocks.prisma.session.create.mockResolvedValueOnce(
+      makeSession({
+        id: "session_seeded",
+        name: "Friday vote",
+        templateId: "working_template_seeded",
+        sourceTemplateId: "template_source",
+      }),
+    );
+
+    const response = await POST(
+      jsonRequest("POST", "https://example.test", {
+        templateId: "template_source",
+        name: "Friday vote",
+      }),
+      { params: Promise.resolve({}) },
+    );
+
+    expect(response.status).toBe(201);
+    expect(mocks.prisma.template.create).toHaveBeenCalledWith({
+      data: {
+        name: "Starter pack",
+        description: "Seeded",
+        creatorId: "user_1",
+        isPublic: false,
+        isHidden: true,
+        items: {
+          create: [
+            { label: "One", imageUrl: "/img/1.webp", sortOrder: 0 },
+            { label: "Two", imageUrl: "/img/2.webp", sortOrder: 1 },
+          ],
+        },
+      },
+      include: {
+        items: { orderBy: { sortOrder: "asc" } },
+      },
+    });
+    expect(mocks.prisma.session.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        name: "Friday vote",
+        templateId: "working_template_seeded",
+        sourceTemplateId: "template_source",
+        items: {
+          create: [
+            {
+              templateItemId: "working_1",
+              label: "One",
+              imageUrl: "/img/1.webp",
+              sortOrder: 0,
+            },
+            {
+              templateItemId: "working_2",
+              label: "Two",
+              imageUrl: "/img/2.webp",
+              sortOrder: 1,
+            },
+          ],
+        },
+      }),
+      include: {
+        items: true,
+        _count: { select: { participants: true } },
+      },
+    });
+  });
+
   it("retries join code collisions, defaults to private, and auto-joins with nickname", async () => {
     mocks.prisma.template.findUnique.mockResolvedValue(
       makeTemplate({

@@ -5,6 +5,9 @@ const mocks = vi.hoisted(() => ({
       update: vi.fn(),
       delete: vi.fn(),
     },
+    template: {
+      delete: vi.fn(),
+    },
   },
   requireSessionAccess: vi.fn(),
   requireSessionOwner: vi.fn(),
@@ -35,6 +38,7 @@ describe("session detail route", () => {
     mocks.prisma.session.findUnique.mockReset();
     mocks.prisma.session.update.mockReset();
     mocks.prisma.session.delete.mockReset();
+    mocks.prisma.template.delete.mockReset();
     mocks.tryDeleteManagedUploadIfUnreferenced.mockReset().mockResolvedValue(true);
   });
 
@@ -67,7 +71,7 @@ describe("session detail route", () => {
     );
   });
 
-  it("patches updates and deletes the session", async () => {
+  it("patches updates and deletes visible-template sessions without deleting the template", async () => {
     mocks.prisma.session.update.mockResolvedValue(makeSession({ isLocked: true }));
     let response = await PATCH(
       jsonRequest("PATCH", "https://example.test", { isLocked: true }),
@@ -92,6 +96,60 @@ describe("session detail route", () => {
     response = await DELETE(new Request("https://example.test", { method: "DELETE" }), routeCtx({ sessionId: "s1" }));
     expect(response.status).toBe(204);
     expect(mocks.prisma.session.delete).toHaveBeenCalledWith({ where: { id: "s1" } });
+    expect(mocks.prisma.template.delete).not.toHaveBeenCalled();
     expect(mocks.tryDeleteManagedUploadIfUnreferenced).toHaveBeenCalledTimes(2);
+  });
+
+  it("deletes the hidden working template when removing its last session", async () => {
+    mocks.prisma.session.findUnique.mockResolvedValue({
+      items: [{ imageUrl: "/one.webp" }, { imageUrl: "/two.webp" }],
+      template: {
+        id: "template_hidden_1",
+        isHidden: true,
+        items: [{ imageUrl: "/two.webp" }, { imageUrl: "/three.webp" }],
+        _count: { sessions: 1 },
+      },
+    });
+
+    const response = await DELETE(
+      new Request("https://example.test", { method: "DELETE" }),
+      routeCtx({ sessionId: "s1" }),
+    );
+
+    expect(response.status).toBe(204);
+    expect(mocks.prisma.session.delete).toHaveBeenCalledWith({ where: { id: "s1" } });
+    expect(mocks.prisma.template.delete).toHaveBeenCalledWith({
+      where: { id: "template_hidden_1" },
+    });
+    expect(mocks.tryDeleteManagedUploadIfUnreferenced).toHaveBeenCalledTimes(3);
+    expect(mocks.tryDeleteManagedUploadIfUnreferenced).toHaveBeenCalledWith(
+      "/three.webp",
+      "session + working template delete",
+    );
+  });
+
+  it("keeps a shared hidden working template when other sessions still reference it", async () => {
+    mocks.prisma.session.findUnique.mockResolvedValue({
+      items: [{ imageUrl: "/one.webp" }, { imageUrl: "/one.webp" }],
+      template: {
+        id: "template_hidden_2",
+        isHidden: true,
+        items: [{ imageUrl: "/two.webp" }],
+        _count: { sessions: 2 },
+      },
+    });
+
+    const response = await DELETE(
+      new Request("https://example.test", { method: "DELETE" }),
+      routeCtx({ sessionId: "s1" }),
+    );
+
+    expect(response.status).toBe(204);
+    expect(mocks.prisma.template.delete).not.toHaveBeenCalled();
+    expect(mocks.tryDeleteManagedUploadIfUnreferenced).toHaveBeenCalledTimes(1);
+    expect(mocks.tryDeleteManagedUploadIfUnreferenced).toHaveBeenCalledWith(
+      "/one.webp",
+      "session delete",
+    );
   });
 });

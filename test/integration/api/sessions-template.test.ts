@@ -36,13 +36,13 @@ describe("session template save route", () => {
     mocks.requireRequestAuth.mockReset().mockResolvedValue({ userId: "user_1" });
   });
 
-  it("publishes the hidden working template for the owner", async () => {
+  it("publishes the hidden working template as a detached visible copy for the owner", async () => {
     mocks.prisma.session.findUnique.mockResolvedValue({
       id: "session_1",
       name: "Friday's fun",
       creatorId: "user_1",
       isPrivate: true,
-      items: [],
+      items: [{ label: "Pizza", imageUrl: "/img/pizza.webp", sortOrder: 0 }],
       template: {
         id: "template_1",
         name: "Friday's fun",
@@ -50,7 +50,7 @@ describe("session template save route", () => {
         isHidden: true,
       },
     });
-    mocks.prisma.template.update.mockResolvedValue({ id: "template_1" });
+    mocks.prisma.template.create.mockResolvedValue({ id: "template_published" });
 
     const response = await POST(
       new Request("https://example.test", { method: "POST" }),
@@ -58,15 +58,55 @@ describe("session template save route", () => {
     );
 
     expect(response.status).toBe(200);
-    expect(mocks.prisma.template.update).toHaveBeenCalledWith({
-      where: { id: "template_1" },
+    expect(mocks.prisma.template.create).toHaveBeenCalledWith({
       data: {
-        isHidden: false,
+        name: "Friday's fun",
+        description: null,
+        creatorId: "user_1",
         isPublic: false,
+        items: {
+          create: [{ label: "Pizza", imageUrl: "/img/pizza.webp", sortOrder: 0 }],
+        },
       },
       select: { id: true },
     });
-    await expect(response.json()).resolves.toEqual({ id: "template_1", mode: "published" });
+    expect(mocks.prisma.template.update).not.toHaveBeenCalled();
+    await expect(response.json()).resolves.toEqual({ id: "template_published", mode: "published" });
+  });
+
+  it("publishes the owner's hidden working template with public visibility when the session is public", async () => {
+    mocks.prisma.session.findUnique.mockResolvedValue({
+      id: "session_public",
+      name: "Open Friday's fun",
+      creatorId: "user_1",
+      isPrivate: false,
+      items: [{ label: "Pizza", imageUrl: "/img/pizza.webp", sortOrder: 0 }],
+      template: {
+        description: "Public set",
+        isHidden: true,
+      },
+    });
+    mocks.prisma.template.create.mockResolvedValue({ id: "template_public" });
+
+    const response = await POST(
+      new Request("https://example.test", { method: "POST" }),
+      routeCtx({ sessionId: "session_public" }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(mocks.prisma.template.create).toHaveBeenCalledWith({
+      data: {
+        name: "Open Friday's fun",
+        description: "Public set",
+        creatorId: "user_1",
+        isPublic: true,
+        items: {
+          create: [{ label: "Pizza", imageUrl: "/img/pizza.webp", sortOrder: 0 }],
+        },
+      },
+      select: { id: true },
+    });
+    await expect(response.json()).resolves.toEqual({ id: "template_public", mode: "published" });
   });
 
   it("creates a copy for visible-template sessions instead of returning an inert existing result", async () => {

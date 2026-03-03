@@ -25,8 +25,6 @@ export const POST = withHandler(async (request, { params }) => {
       },
       template: {
         select: {
-          id: true,
-          name: true,
           description: true,
           isHidden: true,
         },
@@ -39,11 +37,19 @@ export const POST = withHandler(async (request, { params }) => {
   const isOwner = session.creatorId === requestUserId;
 
   if (isOwner && session.template.isHidden) {
-    const template = await prisma.template.update({
-      where: { id: session.template.id },
+    const template = await prisma.template.create({
       data: {
-        isHidden: false,
+        name: session.name,
+        description: session.template.description,
+        creatorId: requestUserId,
         isPublic: !session.isPrivate,
+        items: {
+          create: session.items.map((item, index) => ({
+            label: item.label,
+            imageUrl: item.imageUrl,
+            sortOrder: item.sortOrder ?? index,
+          })),
+        },
       },
       select: { id: true },
     });

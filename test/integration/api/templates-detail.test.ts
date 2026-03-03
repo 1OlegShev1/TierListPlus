@@ -83,4 +83,28 @@ describe("template detail route", () => {
     expect(mocks.prisma.template.delete).toHaveBeenCalledWith({ where: { id: "t1" } });
     expect(mocks.tryDeleteManagedUploadIfUnreferenced).toHaveBeenCalledTimes(1);
   });
+
+  it("does not allow direct edits or deletes of hidden working templates", async () => {
+    mocks.getRequestAuth.mockResolvedValue({ userId: "user_1" });
+    mocks.prisma.template.findUnique
+      .mockResolvedValueOnce({ id: "t_hidden", creatorId: "user_1", isHidden: true })
+      .mockResolvedValueOnce({ id: "t_hidden", creatorId: "user_1", isHidden: true });
+
+    let response = await PATCH(
+      jsonRequest("PATCH", "https://example.test", { name: "Renamed" }),
+      routeCtx({ templateId: "t_hidden" }),
+    );
+    expect(response.status).toBe(404);
+    await expect(response.json()).resolves.toEqual({ error: "Template not found" });
+
+    response = await DELETE(
+      new Request("https://example.test", { method: "DELETE" }),
+      routeCtx({ templateId: "t_hidden" }),
+    );
+    expect(response.status).toBe(404);
+    await expect(response.json()).resolves.toEqual({ error: "Template not found" });
+
+    expect(mocks.prisma.template.update).not.toHaveBeenCalled();
+    expect(mocks.prisma.template.delete).not.toHaveBeenCalled();
+  });
 });
