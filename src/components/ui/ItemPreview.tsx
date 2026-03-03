@@ -12,20 +12,17 @@ export function ItemPreview({
   className,
 }: {
   items: PreviewItem[];
-  variant?: "grid" | "strip";
+  variant?: "grid" | "stack";
   className?: string;
 }) {
   const previewItems = items.slice(0, 4);
+  const variantClasses =
+    variant === "stack"
+      ? "grid w-14 shrink-0 grid-cols-2 gap-1 sm:w-16"
+      : "grid w-24 shrink-0 grid-cols-2 gap-1.5 sm:w-28";
 
   return (
-    <div
-      className={cn(
-        variant === "grid"
-          ? "grid grid-cols-2 gap-1.5"
-          : "grid w-24 shrink-0 grid-cols-4 gap-1.5 sm:w-28",
-        className,
-      )}
-    >
+    <div className={cn(variantClasses, className)}>
       {previewItems.map((item) => (
         <img
           key={item.id}

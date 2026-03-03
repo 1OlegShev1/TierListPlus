@@ -5,6 +5,8 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { ErrorMessage } from "@/components/ui/ErrorMessage";
 import { Input } from "@/components/ui/Input";
+import { ItemPreview } from "@/components/ui/ItemPreview";
+import { ListPreviewCard } from "@/components/ui/ListPreviewCard";
 import { saveParticipant } from "@/hooks/useParticipant";
 import { useUser } from "@/hooks/useUser";
 import { apiFetch, apiPost, getErrorMessage } from "@/lib/api-client";
@@ -362,27 +364,13 @@ function ListPicker({
 
 function ListCard({ list, onSelect }: { list: ListSummary; onSelect: () => void }) {
   return (
-    <button
-      type="button"
-      onClick={onSelect}
-      className="rounded-xl border border-neutral-800 bg-neutral-900 p-2.5 text-left transition-colors hover:border-neutral-600"
-    >
-      <div className="mb-2 grid grid-cols-2 gap-1">
-        {list.items.map((item) => (
-          <img
-            key={item.id}
-            src={item.imageUrl}
-            alt=""
-            className="aspect-square w-full rounded object-cover"
-          />
-        ))}
-        {Array.from({ length: Math.max(0, 4 - list.items.length) }, (_, i) => (
-          // biome-ignore lint/suspicious/noArrayIndexKey: static empty placeholders never reorder
-          <div key={i} className="aspect-square w-full rounded bg-neutral-800" />
-        ))}
-      </div>
-      <p className="truncate text-sm font-medium">{list.name}</p>
-      <p className="text-xs text-neutral-500">{list._count.items} picks</p>
+    <button type="button" onClick={onSelect} className="block text-left">
+      <ListPreviewCard
+        title={list.name}
+        meta={`${list._count.items} picks`}
+        items={list.items}
+        className="transition-colors hover:border-neutral-600"
+      />
     </button>
   );
 }
@@ -392,10 +380,13 @@ function ListRow({ list, onSelect }: { list: ListSummary; onSelect: () => void }
     <button
       type="button"
       onClick={onSelect}
-      className="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-neutral-900"
+      className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-neutral-900"
     >
-      <span className="min-w-0 truncate font-medium">{list.name}</span>
-      <span className="ml-3 shrink-0 text-xs text-neutral-500">{list._count.items} picks</span>
+      <ItemPreview items={list.items} variant="stack" />
+      <span className="min-w-0 flex-1">
+        <span className="block truncate font-medium">{list.name}</span>
+        <span className="block text-xs text-neutral-500">{list._count.items} picks</span>
+      </span>
     </button>
   );
 }

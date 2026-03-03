@@ -4,9 +4,11 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { buttonVariants } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { ItemPreview } from "@/components/ui/ItemPreview";
+import { ListPreviewCard } from "@/components/ui/ListPreviewCard";
 import { Loading } from "@/components/ui/Loading";
+import { SectionHeader } from "@/components/ui/SectionHeader";
 import { StatusBadge } from "@/components/ui/StatusBadge";
+import { VotePreviewSummary } from "@/components/ui/VotePreviewSummary";
 import { useUser } from "@/hooks/useUser";
 import { apiFetch } from "@/lib/api-client";
 import { formatDate } from "@/lib/utils";
@@ -76,19 +78,19 @@ export function HomeContent() {
   const fromMyListsPreview = votesFromMyLists.slice(0, HOME_SECTION_LIMIT);
 
   return (
-    <div className="space-y-12">
-      <section className="rounded-[2rem] border border-neutral-800 bg-gradient-to-br from-neutral-900 via-neutral-950 to-neutral-950 p-6 sm:p-10">
+    <div className="space-y-10 pt-2 sm:pt-3">
+      <section className="rounded-3xl border border-neutral-800 bg-gradient-to-br from-neutral-900 via-neutral-950 to-neutral-950 p-5 sm:p-8">
         <p className="text-sm font-semibold uppercase tracking-[0.24em] text-amber-400/80">
           TierList+
         </p>
-        <h1 className="mt-4 text-4xl font-bold tracking-tight sm:text-6xl">
+        <h1 className="mt-3 text-3xl font-bold tracking-tight sm:text-5xl">
           Rank anything with your friends
         </h1>
-        <p className="mt-4 max-w-3xl text-base text-neutral-400 sm:text-xl">
+        <p className="mt-3 max-w-2xl text-sm text-neutral-400 sm:text-lg">
           Make a tier list, start a vote, and jump back into the latest chaos.
         </p>
-        <div className="mt-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="mt-6 flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-wrap items-center gap-3">
             <Link href="/sessions/new" className={buttonVariants.primary}>
               Start a Vote
             </Link>
@@ -101,7 +103,7 @@ export function HomeContent() {
           </Link>
         </div>
       </section>
-      <div className="space-y-12 px-1 sm:px-2">
+      <div className="space-y-10 px-5 sm:px-8">
         {isEmpty && (
           <div className="rounded-3xl border border-dashed border-neutral-800 bg-neutral-950/50 px-6 py-10 text-center">
             <p className="text-xl font-medium text-neutral-200">Nothing cooking yet</p>
@@ -113,12 +115,7 @@ export function HomeContent() {
 
         {keepGoingPreview.length > 0 && (
           <section>
-            <div className="mb-5 flex items-center justify-between gap-3">
-              <h2 className="text-xl font-semibold text-neutral-200 sm:text-2xl">Keep Going</h2>
-              <Link href="/sessions" className={`${buttonVariants.secondary} !px-4 !py-2 !text-sm`}>
-                See all votes
-              </Link>
-            </div>
+            <SectionHeader title="Keep Going" actionHref="/sessions" actionLabel="See all votes" />
             <div className="space-y-4">
               {keepGoingPreview.map((vote) => (
                 <VoteRow
@@ -135,27 +132,16 @@ export function HomeContent() {
 
         {listPreview.length > 0 && (
           <section>
-            <div className="mb-5 flex items-center justify-between gap-3">
-              <h2 className="text-xl font-semibold text-neutral-200 sm:text-2xl">Your Lists</h2>
-              <Link
-                href="/templates"
-                className={`${buttonVariants.secondary} !px-4 !py-2 !text-sm`}
-              >
-                See all lists
-              </Link>
-            </div>
+            <SectionHeader title="Your Lists" actionHref="/templates" actionLabel="See all lists" />
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {listPreview.map((t) => (
-                <Link
-                  key={t.id}
-                  href={`/templates/${t.id}`}
-                  className="rounded-2xl border border-neutral-800 bg-neutral-900/95 p-5 transition-colors hover:border-neutral-600"
-                >
-                  <ItemPreview items={t.items} className="mb-4" />
-                  <h3 className="text-lg font-semibold text-neutral-100">{t.name}</h3>
-                  <p className="mt-2 text-sm text-neutral-500">
-                    {t._count.items} picks &middot; {formatDate(t.createdAt)}
-                  </p>
+                <Link key={t.id} href={`/templates/${t.id}`} className="block">
+                  <ListPreviewCard
+                    title={t.name}
+                    meta={`${t._count.items} picks · ${formatDate(t.createdAt)}`}
+                    items={t.items}
+                    className="transition-colors hover:border-neutral-600"
+                  />
                 </Link>
               ))}
             </div>
@@ -164,19 +150,12 @@ export function HomeContent() {
 
         {fromMyListsPreview.length > 0 && (
           <section>
-            <div className="mb-5 flex items-center justify-between gap-3">
-              <div>
-                <h2 className="text-xl font-semibold text-neutral-200 sm:text-2xl">
-                  From Your Lists
-                </h2>
-                <p className="mt-2 text-base text-neutral-500">
-                  Public votes other people started using your tier lists.
-                </p>
-              </div>
-              <Link href="/sessions" className={`${buttonVariants.secondary} !px-4 !py-2 !text-sm`}>
-                See all votes
-              </Link>
-            </div>
+            <SectionHeader
+              title="From Your Lists"
+              subtitle="Public votes other people started using your tier lists."
+              actionHref="/sessions"
+              actionLabel="See all votes"
+            />
             <div className="space-y-4">
               {fromMyListsPreview.map((vote) => (
                 <VoteRow
@@ -211,16 +190,12 @@ function VoteRow({ vote, contextLabel }: { vote: VoteSummary; contextLabel?: str
   return (
     <Link
       href={`/sessions/${vote.id}`}
-      className="flex flex-col gap-4 rounded-2xl border border-neutral-800 bg-neutral-900/95 p-5 transition-colors hover:border-neutral-600 sm:flex-row sm:items-center sm:justify-between"
+      className="flex items-start justify-between gap-3 rounded-xl border border-neutral-800 bg-neutral-900 p-4 transition-colors hover:border-neutral-600"
     >
-      <div className="flex min-w-0 items-center gap-4">
-        <ItemPreview items={vote.items} variant="strip" />
-        <div className="min-w-0">
-          <h3 className="truncate text-lg font-semibold text-neutral-100">{vote.name}</h3>
-          <p className="mt-1 text-sm text-neutral-500">{metaParts.join(" · ")}</p>
-        </div>
+      <VotePreviewSummary title={vote.name} meta={metaParts.join(" · ")} items={vote.items} />
+      <div className="shrink-0 pt-0.5">
+        <StatusBadge status={vote.status} />
       </div>
-      <StatusBadge status={vote.status} />
     </Link>
   );
 }

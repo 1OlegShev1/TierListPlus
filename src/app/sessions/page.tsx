@@ -3,9 +3,10 @@ import Link from "next/link";
 import { DeleteVoteButton } from "@/components/sessions/DeleteVoteButton";
 import { buttonVariants } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { ItemPreview } from "@/components/ui/ItemPreview";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { SectionHeader } from "@/components/ui/SectionHeader";
 import { StatusBadge } from "@/components/ui/StatusBadge";
+import { VotePreviewSummary } from "@/components/ui/VotePreviewSummary";
 import { getCookieAuth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { formatDate } from "@/lib/utils";
@@ -143,10 +144,7 @@ function VotesSection({
 }) {
   return (
     <section>
-      <div className="mb-5">
-        <h2 className="text-xl font-semibold text-neutral-200 sm:text-2xl">{title}</h2>
-        <p className="mt-2 text-base text-neutral-500">{subtitle}</p>
-      </div>
+      <SectionHeader title={title} subtitle={subtitle} />
       <div className="space-y-4">
         {votes.map((vote) => (
           <VoteRow key={vote.id} vote={vote} />
@@ -158,16 +156,13 @@ function VotesSection({
 
 function VoteRow({ vote }: { vote: VoteListItem }) {
   return (
-    <div className="flex flex-col gap-4 rounded-2xl border border-neutral-800 bg-neutral-900/95 p-5 transition-colors hover:border-neutral-600 sm:flex-row sm:items-center">
-      <Link href={`/sessions/${vote.id}`} className="flex min-w-0 flex-1 items-center gap-4">
-        <ItemPreview items={vote.items} variant="strip" />
-        <div className="min-w-0">
-          <h3 className="truncate text-lg font-semibold text-neutral-100">{vote.name}</h3>
-          <p className="mt-1 text-sm text-neutral-500">
-            {getVoteMeta(vote.template, vote._count.participants)} &middot;{" "}
-            {formatDate(vote.createdAt)}
-          </p>
-        </div>
+    <div className="flex flex-col gap-3 rounded-xl border border-neutral-800 bg-neutral-900 p-4 transition-colors hover:border-neutral-600 sm:flex-row sm:items-center">
+      <Link href={`/sessions/${vote.id}`} className="min-w-0 flex-1">
+        <VotePreviewSummary
+          title={vote.name}
+          meta={`${getVoteMeta(vote.template, vote._count.participants)} · ${formatDate(vote.createdAt)}`}
+          items={vote.items}
+        />
       </Link>
       <div className="flex flex-wrap items-center gap-2">
         <StatusBadge status={vote.status} />

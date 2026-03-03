@@ -8,10 +8,10 @@ export function PageHeader({
   actions?: React.ReactNode;
 }) {
   return (
-    <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+    <div className="mb-6 flex items-center justify-between">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">{title}</h1>
-        {subtitle && <p className="mt-2 text-base text-neutral-500">{subtitle}</p>}
+        <h1 className="text-2xl font-bold">{title}</h1>
+        {subtitle && <p className="text-sm text-neutral-500">{subtitle}</p>}
       </div>
       {actions}
     </div>
