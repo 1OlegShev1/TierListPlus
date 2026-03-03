@@ -2,6 +2,7 @@ import type { Item, TierConfig } from "@/types";
 
 interface VoteData {
   participantId: string;
+  participantNickname?: string;
   sessionItemId: string;
   tierKey: string;
   rankInTier: number;
@@ -13,6 +14,7 @@ export interface ConsensusItem {
   imageUrl: string;
   averageScore: number;
   voteDistribution: Record<string, number>;
+  voterNicknamesByTier: Record<string, string[]>;
   totalVotes: number;
 }
 
@@ -52,11 +54,21 @@ export function computeConsensus(
   // Compute per-item stats
   const itemStats = new Map<
     string,
-    { totalScore: number; count: number; distribution: Record<string, number> }
+    {
+      totalScore: number;
+      count: number;
+      distribution: Record<string, number>;
+      voterNicknamesByTier: Record<string, string[]>;
+    }
   >();
 
   for (const item of sessionItems) {
-    itemStats.set(item.id, { totalScore: 0, count: 0, distribution: {} });
+    itemStats.set(item.id, {
+      totalScore: 0,
+      count: 0,
+      distribution: {},
+      voterNicknamesByTier: {},
+    });
   }
 
   for (const vote of votes) {
@@ -73,6 +85,11 @@ export function computeConsensus(
     stats.totalScore += tierScores[vote.tierKey] + withinTierBonus;
     stats.count += 1;
     stats.distribution[vote.tierKey] = (stats.distribution[vote.tierKey] ?? 0) + 1;
+    if (vote.participantNickname) {
+      const tierNicknames = stats.voterNicknamesByTier[vote.tierKey] ?? [];
+      tierNicknames.push(vote.participantNickname);
+      stats.voterNicknamesByTier[vote.tierKey] = tierNicknames;
+    }
   }
 
   // Enrich items with scores
@@ -81,11 +98,19 @@ export function computeConsensus(
       totalScore: 0,
       count: 0,
       distribution: {},
+      voterNicknamesByTier: {},
     };
+    const voterNicknamesByTier = Object.fromEntries(
+      Object.entries(stats.voterNicknamesByTier).map(([tierKey, nicknames]) => [
+        tierKey,
+        [...nicknames].sort((a, b) => a.localeCompare(b)),
+      ]),
+    ) as Record<string, string[]>;
     return {
       ...item,
       averageScore: stats.count > 0 ? stats.totalScore / stats.count : 0,
       voteDistribution: stats.distribution,
+      voterNicknamesByTier,
       totalVotes: stats.count,
     };
   });

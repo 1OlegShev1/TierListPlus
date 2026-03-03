@@ -46,8 +46,20 @@ describe("session consensus route", () => {
       items: [makeSessionItem({ id: "i1" }), makeSessionItem({ id: "i2", sortOrder: 1 })],
     });
     mocks.prisma.tierVote.findMany.mockResolvedValue([
-      { participantId: "p1", sessionItemId: "i1", tierKey: "S", rankInTier: 0 },
-      { participantId: "p1", sessionItemId: "i2", tierKey: "A", rankInTier: 0 },
+      {
+        participantId: "p1",
+        participant: { nickname: "Alice" },
+        sessionItemId: "i1",
+        tierKey: "S",
+        rankInTier: 0,
+      },
+      {
+        participantId: "p1",
+        participant: { nickname: "Alice" },
+        sessionItemId: "i2",
+        tierKey: "A",
+        rankInTier: 0,
+      },
     ]);
 
     const response = await GET(new Request("https://example.test"), routeCtx({ sessionId: "s1" }));
@@ -56,11 +68,11 @@ describe("session consensus route", () => {
     await expect(response.json()).resolves.toEqual([
       expect.objectContaining({
         key: "S",
-        items: [expect.objectContaining({ id: "i1" })],
+        items: [expect.objectContaining({ id: "i1", voterNicknamesByTier: { S: ["Alice"] } })],
       }),
       expect.objectContaining({
         key: "A",
-        items: [expect.objectContaining({ id: "i2" })],
+        items: [expect.objectContaining({ id: "i2", voterNicknamesByTier: { A: ["Alice"] } })],
       }),
     ]);
   });

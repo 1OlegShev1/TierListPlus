@@ -24,6 +24,16 @@ interface ParticipantVotesResponse {
 }
 
 const DETAILS_PANEL_ANIMATION_MS = 240;
+const MAX_TIER_TOOLTIP_NAMES = 4;
+
+function formatTierVoterPreview(names: string[]): string {
+  const visibleNames = names.slice(0, MAX_TIER_TOOLTIP_NAMES);
+  const hiddenCount = names.length - visibleNames.length;
+  const preview = visibleNames.join(", ");
+
+  if (hiddenCount <= 0) return preview;
+  return `${preview}, +${hiddenCount} more`;
+}
 
 /** Build display tiers from a single participant's votes */
 function buildParticipantTiers(
@@ -46,6 +56,7 @@ function buildParticipantTiers(
         ...v.sessionItem,
         averageScore: 0,
         voteDistribution: {},
+        voterNicknamesByTier: {},
         totalVotes: 0,
       })),
   }));
@@ -313,10 +324,11 @@ function ResultsContent() {
               className="flex min-h-[72px] border-b border-neutral-800 last:border-b-0 sm:min-h-[80px] md:min-h-[90px] lg:min-h-[104px]"
             >
               <div
-                className="flex w-16 flex-shrink-0 items-center justify-center px-1.5 text-center text-sm font-bold sm:w-20 sm:px-2 sm:text-base md:w-24 md:text-lg lg:w-28 lg:text-xl"
+                className="flex w-20 flex-shrink-0 items-center justify-center px-2 py-2 text-center text-sm font-bold sm:w-24 sm:px-3 sm:text-base md:w-28 md:text-lg lg:w-32 lg:text-xl"
                 style={{ backgroundColor: tier.color, color: "#000" }}
+                title={tier.label}
               >
-                {tier.label}
+                <span className="block max-w-full truncate leading-tight">{tier.label}</span>
               </div>
               <div className="flex flex-1 touch-pan-y flex-wrap items-start gap-1 p-1 sm:gap-1.5 sm:p-1.5 md:gap-2 md:p-2">
                 {tier.items.map((item) => (
@@ -383,12 +395,12 @@ function ResultsContent() {
           }`}
         >
           <div
-            className={`grid overflow-hidden transition-[grid-template-rows] duration-[240ms] ease-in-out ${
-              detailsOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+            className={`grid transition-[grid-template-rows] duration-[240ms] ease-in-out ${
+              detailsOpen ? "grid-rows-[1fr] overflow-visible" : "grid-rows-[0fr] overflow-hidden"
             }`}
           >
             <div className="min-h-0">
-              <div className="overflow-hidden rounded-xl border border-neutral-800 bg-gradient-to-b from-neutral-900 to-neutral-950">
+              <div className="rounded-xl border border-neutral-800 bg-gradient-to-b from-neutral-900 to-neutral-950">
                 <div className="flex items-center justify-between border-b border-neutral-800/80 px-4 py-3">
                   <div className="flex items-center gap-3">
                     <img
@@ -412,6 +424,9 @@ function ResultsContent() {
                 <div className="space-y-2 px-4 py-3">
                   {consensusTiers.map((tier) => {
                     const count = detailsItem.voteDistribution[tier.key] ?? 0;
+                    const voterNames = detailsItem.voterNicknamesByTier[tier.key] ?? [];
+                    const tooltipPreview =
+                      voterNames.length > 0 ? formatTierVoterPreview(voterNames) : null;
                     const pct =
                       detailsItem.totalVotes > 0
                         ? Math.min(100, (count / detailsItem.totalVotes) * 100)
@@ -420,34 +435,49 @@ function ResultsContent() {
                     return (
                       <div
                         key={tier.key}
-                        className="grid grid-cols-[3rem_1fr_auto] items-center gap-3"
+                        className="grid grid-cols-[auto_1fr_auto] items-center gap-3 md:gap-4"
                       >
                         <span
-                          className="inline-flex h-6 w-10 items-center justify-center rounded text-xs font-bold"
+                          className="inline-flex min-h-7 min-w-[4.25rem] max-w-[8rem] items-center justify-center overflow-hidden rounded px-2 py-1 text-xs font-bold"
                           style={{ backgroundColor: tier.color, color: "#000" }}
+                          title={tier.label}
                         >
-                          {tier.label}
+                          <span className="block max-w-full truncate leading-none">
+                            {tier.label}
+                          </span>
                         </span>
-                        <div className="relative h-3 overflow-hidden rounded-full border border-neutral-700/80 bg-neutral-900">
-                          <div
-                            aria-hidden="true"
-                            className="absolute inset-0 opacity-30"
-                            style={{
-                              backgroundImage:
-                                "repeating-linear-gradient(90deg, rgba(255,255,255,0.06) 0, rgba(255,255,255,0.06) 6px, transparent 6px, transparent 12px)",
-                            }}
-                          />
-                          <div
-                            className="relative h-full rounded-full transition-[width] duration-500 ease-out"
-                            style={{
-                              width: `${pct}%`,
-                              backgroundColor: tier.color,
-                              boxShadow: `0 0 0 1px ${tier.color}80 inset, 0 0 10px ${tier.color}55`,
-                              minWidth: count > 0 ? "10px" : "0",
-                            }}
-                          />
+                        <div className="group relative">
+                          <div className="relative h-3 overflow-hidden rounded-full border border-neutral-700/80 bg-neutral-900">
+                            <div
+                              aria-hidden="true"
+                              className="absolute inset-0 opacity-30"
+                              style={{
+                                backgroundImage:
+                                  "repeating-linear-gradient(90deg, rgba(255,255,255,0.06) 0, rgba(255,255,255,0.06) 6px, transparent 6px, transparent 12px)",
+                              }}
+                            />
+                            <div
+                              className="relative h-full rounded-full transition-[width] duration-500 ease-out"
+                              style={{
+                                width: `${pct}%`,
+                                backgroundColor: tier.color,
+                                boxShadow: `0 0 0 1px ${tier.color}80 inset, 0 0 10px ${tier.color}55`,
+                                minWidth: count > 0 ? "10px" : "0",
+                              }}
+                            />
+                          </div>
+                          {!isTouchInput && tooltipPreview && (
+                            <div className="pointer-events-none absolute left-0 top-full z-10 mt-2 max-w-xs translate-y-1 rounded-md border border-neutral-700 bg-neutral-950 px-3 py-2 text-left text-xs text-neutral-200 opacity-0 shadow-lg transition-all duration-150 group-hover:translate-y-0 group-hover:opacity-100">
+                              <span className="block font-medium text-neutral-100">
+                                {tooltipPreview}
+                              </span>
+                              <span className="mt-1 block text-[11px] text-neutral-400">
+                                {count} vote{count !== 1 ? "s" : ""} in {tier.label}
+                              </span>
+                            </div>
+                          )}
                         </div>
-                        <span className="w-14 text-right text-xs tabular-nums text-neutral-400">
+                        <span className="w-16 text-right text-xs tabular-nums text-neutral-400">
                           {count} · {pctRounded}%
                         </span>
                       </div>
