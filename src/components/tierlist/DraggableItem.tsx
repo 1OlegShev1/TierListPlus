@@ -34,7 +34,7 @@ export function DraggableItem({
 
   const expanded = !overlay && !isDragging && isExpanded;
   const dndTransform = CSS.Transform.toString(transform);
-  const composedTransform = [dndTransform, expanded ? "scale(1.8)" : null]
+  const composedTransform = [dndTransform, expanded ? "scale(1.6)" : null]
     .filter(Boolean)
     .join(" ");
   const style = overlay

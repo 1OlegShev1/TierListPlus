@@ -655,6 +655,8 @@ export function TierListBoard({
   const savesWorkingTemplate = canEditTierConfig && templateIsHidden;
   const saveTemplateActionLabel = savesWorkingTemplate ? "Publish to Templates" : "Save Copy";
   const savedTemplateLabel = savesWorkingTemplate ? "Published to Templates" : "Copy Saved";
+  const saveTemplateMobileLabel = savesWorkingTemplate ? "Publish" : "Copy";
+  const savedTemplateMobileLabel = savesWorkingTemplate ? "Published" : "Copied";
   const unrankedEmptyMessage =
     pendingUploads.length > 0
       ? null
@@ -701,6 +703,58 @@ export function TierListBoard({
           </Link>
         </div>
       )}
+      <div className="mb-2 space-y-2 sm:mb-3">
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          {totalItems >= 2 && (
+            <button
+              type="button"
+              onClick={() => setShowSessionBracket(true)}
+              disabled={submitting}
+              className="rounded-lg border border-neutral-700 px-3 py-2 text-sm font-medium text-neutral-200 transition-colors hover:border-amber-400 hover:text-amber-300 disabled:opacity-50 sm:px-4 sm:py-1.5"
+            >
+              <span className="sm:hidden">Bracket</span>
+              <span className="hidden sm:inline">Bracket Assist</span>
+            </button>
+          )}
+          {canSaveTemplate && (
+            <button
+              type="button"
+              onClick={handleSaveTemplate}
+              disabled={savingTemplate}
+              className="rounded-lg border border-neutral-700 px-3 py-2 text-sm font-medium text-neutral-200 transition-colors hover:border-emerald-400 hover:text-emerald-300 disabled:opacity-50 sm:px-4 sm:py-1.5"
+            >
+              <span className="sm:hidden">
+                {savingTemplate
+                  ? "Saving"
+                  : savedTemplateId
+                    ? savedTemplateMobileLabel
+                    : saveTemplateMobileLabel}
+              </span>
+              <span className="hidden sm:inline">
+                {savingTemplate
+                  ? "Saving..."
+                  : savedTemplateId
+                    ? savedTemplateLabel
+                    : saveTemplateActionLabel}
+              </span>
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={handleSubmit}
+            disabled={submitting || totalItems === 0 || rankedCount !== totalItems}
+            className="rounded-lg bg-amber-500 px-3 py-2 text-sm font-medium text-black transition-colors hover:bg-amber-400 disabled:opacity-50 sm:px-5 sm:py-1.5"
+          >
+            <span className="sm:hidden">{submitting ? "Saving" : "Save"}</span>
+            <span className="hidden sm:inline">{submitting ? "Saving..." : "Save Ranking"}</span>
+          </button>
+        </div>
+        {saveTemplateError && (
+          <p className="text-right text-sm text-red-400">{saveTemplateError}</p>
+        )}
+        {submitError && <p className="text-right text-sm text-red-400">{submitError}</p>}
+        {addItemError && <p className="text-right text-sm text-red-400">{addItemError}</p>}
+      </div>
       <DndContext
         sensors={sensors}
         collisionDetection={collisionDetection}
@@ -738,7 +792,7 @@ export function TierListBoard({
           ))}
         </div>
 
-        {/* Unranked Pool + Submit — always visible */}
+        {/* Unranked Pool */}
         <div className="flex-shrink-0 pt-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] sm:pb-0">
           <div className="mb-2 flex items-center justify-between">
             <UnrankedHeader />
@@ -808,43 +862,6 @@ export function TierListBoard({
               ) : undefined
             }
           />
-          <div className="mb-2 flex gap-2 rounded-lg border border-neutral-800 bg-neutral-950/95 p-2 sm:mb-1.5 sm:justify-end sm:border-0 sm:bg-transparent sm:p-0">
-            {totalItems >= 2 && (
-              <button
-                type="button"
-                onClick={() => setShowSessionBracket(true)}
-                disabled={submitting}
-                className="flex-1 rounded-lg border border-neutral-700 px-3 py-2 text-sm font-medium text-neutral-200 transition-colors hover:border-amber-400 hover:text-amber-300 disabled:opacity-50 sm:flex-none sm:px-4 sm:py-1.5"
-              >
-                Bracket Assist
-              </button>
-            )}
-            {canSaveTemplate && (
-              <button
-                type="button"
-                onClick={handleSaveTemplate}
-                disabled={savingTemplate}
-                className="flex-1 rounded-lg border border-neutral-700 px-3 py-2 text-sm font-medium text-neutral-200 transition-colors hover:border-emerald-400 hover:text-emerald-300 disabled:opacity-50 sm:flex-none sm:px-4 sm:py-1.5"
-              >
-                {savingTemplate
-                  ? "Saving..."
-                  : savedTemplateId
-                    ? savedTemplateLabel
-                    : saveTemplateActionLabel}
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={handleSubmit}
-              disabled={submitting || totalItems === 0 || rankedCount !== totalItems}
-              className="flex-1 rounded-lg bg-amber-500 px-3 py-2 text-sm font-medium text-black transition-colors hover:bg-amber-400 disabled:opacity-50 sm:flex-none sm:px-5 sm:py-1.5"
-            >
-              {submitting ? "Saving..." : "Save Ranking"}
-            </button>
-          </div>
-          {saveTemplateError && <p className="mb-1 text-sm text-red-400">{saveTemplateError}</p>}
-          {submitError && <p className="mb-1 text-sm text-red-400">{submitError}</p>}
-          {addItemError && <p className="mb-1 text-sm text-red-400">{addItemError}</p>}
         </div>
 
         {/* Drag Overlay */}

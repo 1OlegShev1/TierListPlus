@@ -27,7 +27,7 @@ interface ExistingVotesResponse {
 const resultsLinkClassName =
   "inline-flex items-center rounded-full border border-amber-500/60 bg-amber-500/10 px-3 py-1.5 text-sm font-medium text-amber-300 transition-colors hover:border-amber-400 hover:bg-amber-500/15 hover:text-amber-200";
 const statusBadgeBaseClassName =
-  "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium sm:text-sm";
+  "inline-flex min-h-[38px] items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium";
 
 function buildSeededTiers(votes: ExistingVote[]): Record<string, string[]> {
   const grouped = new Map<string, ExistingVote[]>();
@@ -163,6 +163,10 @@ export default function VotePage() {
           <h1 className="truncate text-lg font-bold sm:text-2xl">{session.name}</h1>
           <div className="mt-0.5 flex flex-wrap items-center gap-2 sm:mt-1 sm:gap-2.5">
             <JoinCodeBanner joinCode={session.joinCode} />
+          </div>
+        </div>
+        <div className="text-left md:text-right">
+          <div className="mt-1.5 flex flex-wrap items-center gap-2 md:justify-end sm:mt-2">
             {isOwner ? (
               <button
                 type="button"
@@ -172,19 +176,15 @@ export default function VotePage() {
                 title={isLocked ? "Unlock joins" : "Lock joins"}
                 className={`${statusBadgeBaseClassName} ${joinStatusToneClassName} ${joinStatusHoverClassName} cursor-pointer transition-colors disabled:cursor-wait disabled:opacity-80`}
               >
-                <JoinStatusIcon className="h-3.5 w-3.5" />
+                <JoinStatusIcon className="h-4 w-4" />
                 {joinStatusLabel}
               </button>
             ) : (
               <span className={`${statusBadgeBaseClassName} ${joinStatusToneClassName}`}>
-                <JoinStatusIcon className="h-3.5 w-3.5" />
+                <JoinStatusIcon className="h-4 w-4" />
                 {joinStatusLabel}
               </span>
             )}
-          </div>
-        </div>
-        <div className="text-left md:text-right">
-          <div className="mt-1.5 flex flex-wrap items-center gap-2 md:justify-end sm:mt-2">
             <Link href={`/sessions/${sessionId}/results`} className={resultsLinkClassName}>
               View Results
             </Link>
