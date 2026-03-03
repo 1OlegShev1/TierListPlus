@@ -1,5 +1,9 @@
 const mocks = vi.hoisted(() => ({
   prisma: {
+    $transaction: vi.fn(),
+    session: {
+      updateMany: vi.fn(),
+    },
     template: {
       findUnique: vi.fn(),
       update: vi.fn(),
@@ -24,6 +28,17 @@ import { jsonRequest, routeCtx } from "../../helpers/request";
 
 describe("template detail route", () => {
   beforeEach(() => {
+    mocks.prisma.$transaction.mockReset().mockImplementation(async (fn: (tx: unknown) => unknown) =>
+      fn({
+        session: {
+          updateMany: mocks.prisma.session.updateMany,
+        },
+        template: {
+          delete: mocks.prisma.template.delete,
+        },
+      }),
+    );
+    mocks.prisma.session.updateMany.mockReset().mockResolvedValue({ count: 0 });
     mocks.prisma.template.findUnique.mockReset();
     mocks.prisma.template.update.mockReset();
     mocks.prisma.template.delete.mockReset();
@@ -80,8 +95,38 @@ describe("template detail route", () => {
 
     response = await DELETE(new Request("https://example.test", { method: "DELETE" }), routeCtx({ templateId: "t1" }));
     expect(response.status).toBe(204);
+    expect(mocks.prisma.session.updateMany).toHaveBeenCalledWith({
+      where: { sourceTemplateId: "t1" },
+      data: { sourceTemplateId: null },
+    });
     expect(mocks.prisma.template.delete).toHaveBeenCalledWith({ where: { id: "t1" } });
     expect(mocks.tryDeleteManagedUploadIfUnreferenced).toHaveBeenCalledTimes(1);
+  });
+
+  it("clears descendant sourceTemplateId references before deleting a visible template", async () => {
+    mocks.getRequestAuth.mockResolvedValue({ userId: "user_1" });
+    mocks.prisma.template.findUnique.mockResolvedValueOnce({
+      id: "t_source",
+      creatorId: "user_1",
+      isHidden: false,
+      items: [{ imageUrl: "/1.webp" }, { imageUrl: "/2.webp" }],
+      _count: { sessions: 0 },
+    });
+    mocks.prisma.session.updateMany.mockResolvedValue({ count: 3 });
+
+    const response = await DELETE(
+      new Request("https://example.test", { method: "DELETE" }),
+      routeCtx({ templateId: "t_source" }),
+    );
+
+    expect(response.status).toBe(204);
+    expect(mocks.prisma.$transaction).toHaveBeenCalledTimes(1);
+    expect(mocks.prisma.session.updateMany).toHaveBeenCalledWith({
+      where: { sourceTemplateId: "t_source" },
+      data: { sourceTemplateId: null },
+    });
+    expect(mocks.prisma.template.delete).toHaveBeenCalledWith({ where: { id: "t_source" } });
+    expect(mocks.tryDeleteManagedUploadIfUnreferenced).toHaveBeenCalledTimes(2);
   });
 
   it("does not allow direct edits or deletes of hidden working templates", async () => {

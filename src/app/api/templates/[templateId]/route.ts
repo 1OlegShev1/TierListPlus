@@ -71,7 +71,13 @@ export const DELETE = withHandler(async (request, { params }) => {
     );
   }
 
-  await prisma.template.delete({ where: { id: templateId } });
+  await prisma.$transaction(async (tx) => {
+    await tx.session.updateMany({
+      where: { sourceTemplateId: templateId },
+      data: { sourceTemplateId: null },
+    });
+    await tx.template.delete({ where: { id: templateId } });
+  });
   const imageUrls = new Set(existing.items.map((item) => item.imageUrl));
   await Promise.all(
     [...imageUrls].map((imageUrl) =>
