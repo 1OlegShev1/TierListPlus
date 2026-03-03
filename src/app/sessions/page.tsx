@@ -9,7 +9,7 @@ import { StatusBadge } from "@/components/ui/StatusBadge";
 import { VotePreviewSummary } from "@/components/ui/VotePreviewSummary";
 import { getCookieAuth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { formatDate } from "@/lib/utils";
+import { buildVoteDisplay, getVoteAction, type VoteViewer } from "@/lib/vote-display";
 
 export const dynamic = "force-dynamic";
 
@@ -17,17 +17,13 @@ interface VoteListItem {
   id: string;
   name: string;
   status: string;
-  createdAt: Date;
+  updatedAt: Date;
   creatorId: string | null;
+  isPrivate: boolean;
+  isLocked: boolean;
   template: { name: string; isHidden: boolean };
   items: { id: string; imageUrl: string; label: string }[];
-  _count: { participants: number };
-}
-
-function getVoteMeta(list: { name: string; isHidden: boolean }, participantCount: number) {
-  return list.isHidden
-    ? `${participantCount} participants`
-    : `${list.name} · ${participantCount} participants`;
+  _count: { participants: number; items: number };
 }
 
 export default async function VotesPage() {
@@ -41,7 +37,7 @@ export default async function VotesPage() {
       orderBy: { sortOrder: "asc" },
       select: { id: true, imageUrl: true, label: true },
     },
-    _count: { select: { participants: true } },
+    _count: { select: { participants: true, items: true } },
   } as const;
 
   const [liveVotes, finishedVotes, publicVotes] = await Promise.all([
@@ -52,7 +48,7 @@ export default async function VotesPage() {
             OR: [{ creatorId: userId }, { participants: { some: { userId } } }],
           },
           include: sessionInclude,
-          orderBy: { createdAt: "desc" },
+          orderBy: { updatedAt: "desc" },
         })
       : Promise.resolve([]),
     userId
@@ -62,7 +58,7 @@ export default async function VotesPage() {
             OR: [{ creatorId: userId }, { participants: { some: { userId } } }],
           },
           include: sessionInclude,
-          orderBy: { createdAt: "desc" },
+          orderBy: { updatedAt: "desc" },
         })
       : Promise.resolve([]),
     prisma.session.findMany({
@@ -75,7 +71,7 @@ export default async function VotesPage() {
           }
         : { isPrivate: false },
       include: sessionInclude,
-      orderBy: { createdAt: "desc" },
+      orderBy: { updatedAt: "desc" },
       take: 12,
     }),
   ]);
@@ -106,25 +102,31 @@ export default async function VotesPage() {
         <div className="space-y-10">
           {liveVotes.length > 0 && (
             <VotesSection
-              title="Live Now"
-              subtitle="Votes you started or jumped into and can still keep pushing."
+              title="Active Votes"
+              subtitle="Votes you started or joined that are still open."
               votes={liveVotes}
+              viewer={userId ? "participant" : "browser"}
+              ownerUserId={userId}
             />
           )}
 
           {finishedVotes.length > 0 && (
             <VotesSection
-              title="Wrapped Up"
-              subtitle="Past votes you were part of, ready for replays and second-guessing."
+              title="Finished Votes"
+              subtitle="Votes you started or joined that are done."
               votes={finishedVotes}
+              viewer={userId ? "participant" : "browser"}
+              ownerUserId={userId}
             />
           )}
 
           {publicVotes.length > 0 && (
             <VotesSection
-              title="Public to Browse"
-              subtitle="Open or finished public votes from other people."
+              title="Public Votes"
+              subtitle="Public votes from other people you can join or look through."
               votes={publicVotes}
+              viewer="browser"
+              ownerUserId={userId}
             />
           )}
         </div>
@@ -137,40 +139,71 @@ function VotesSection({
   title,
   subtitle,
   votes,
+  viewer,
+  ownerUserId,
 }: {
   title: string;
   subtitle: string;
   votes: VoteListItem[];
+  viewer: VoteViewer;
+  ownerUserId: string | null;
 }) {
   return (
     <section>
       <SectionHeader title={title} subtitle={subtitle} />
       <div className="space-y-4">
         {votes.map((vote) => (
-          <VoteRow key={vote.id} vote={vote} />
+          <VoteRow key={vote.id} vote={vote} viewer={resolveViewer(vote, viewer, ownerUserId)} />
         ))}
       </div>
     </section>
   );
 }
 
-function VoteRow({ vote }: { vote: VoteListItem }) {
+function VoteRow({ vote, viewer }: { vote: VoteListItem; viewer: VoteViewer }) {
+  const { chips, meta } = buildVoteDisplay({
+    viewer,
+    isPrivate: vote.isPrivate,
+    isLocked: vote.isLocked,
+    status: vote.status,
+    updatedAt: vote.updatedAt,
+    itemCount: vote._count.items,
+    participantCount: vote._count.participants,
+    listName: vote.template.name,
+    listHidden: vote.template.isHidden,
+  });
+  const action = getVoteAction({
+    viewer,
+    status: vote.status,
+    isPrivate: vote.isPrivate,
+    isLocked: vote.isLocked,
+    sessionId: vote.id,
+  });
+
   return (
     <div className="flex flex-col gap-3 rounded-xl border border-neutral-800 bg-neutral-900 p-4 transition-colors hover:border-neutral-600 sm:flex-row sm:items-center">
       <Link href={`/sessions/${vote.id}`} className="min-w-0 flex-1">
-        <VotePreviewSummary
-          title={vote.name}
-          meta={`${getVoteMeta(vote.template, vote._count.participants)} · ${formatDate(vote.createdAt)}`}
-          items={vote.items}
-        />
+        <VotePreviewSummary title={vote.name} meta={meta} items={vote.items} chips={chips} />
       </Link>
       <div className="flex flex-wrap items-center gap-2">
         <StatusBadge status={vote.status} />
-        <Link href={`/sessions/${vote.id}/results`} className={buttonVariants.secondary}>
-          Results
+        <Link href={action.href} className={buttonVariants.secondary}>
+          {action.label}
         </Link>
         <DeleteVoteButton sessionId={vote.id} creatorId={vote.creatorId} />
       </div>
     </div>
   );
+}
+
+function resolveViewer(
+  vote: VoteListItem,
+  fallback: VoteViewer,
+  userId: string | null,
+): VoteViewer {
+  if (userId && vote.creatorId === userId) {
+    return "owner";
+  }
+
+  return fallback;
 }

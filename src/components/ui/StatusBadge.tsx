@@ -4,6 +4,12 @@ const statusStyles: Record<string, string> = {
   ARCHIVED: "bg-neutral-500/20 text-neutral-400",
 };
 
+const statusLabels: Record<string, string> = {
+  OPEN: "Open",
+  CLOSED: "Closed",
+  ARCHIVED: "Archived",
+};
+
 export function StatusBadge({ status }: { status: string }) {
   return (
     <span
@@ -11,7 +17,7 @@ export function StatusBadge({ status }: { status: string }) {
         statusStyles[status] ?? statusStyles.ARCHIVED
       }`}
     >
-      {status}
+      {statusLabels[status] ?? statusLabels.ARCHIVED}
     </span>
   );
 }

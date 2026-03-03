@@ -27,9 +27,9 @@ export const GET = withHandler(async (request) => {
       include: {
         template: { select: { name: true, isHidden: true } },
         items: previewItems,
-        _count: { select: { participants: true } },
+        _count: { select: { participants: true, items: true } },
       },
-      orderBy: { createdAt: "desc" },
+      orderBy: { updatedAt: "desc" },
     }),
     prisma.session.findMany({
       where: {
@@ -39,9 +39,9 @@ export const GET = withHandler(async (request) => {
       include: {
         template: { select: { name: true, isHidden: true } },
         items: previewItems,
-        _count: { select: { participants: true } },
+        _count: { select: { participants: true, items: true } },
       },
-      orderBy: { createdAt: "desc" },
+      orderBy: { updatedAt: "desc" },
     }),
     myTemplateIds.length === 0
       ? Promise.resolve([])
@@ -54,9 +54,9 @@ export const GET = withHandler(async (request) => {
           include: {
             template: { select: { name: true, isHidden: true } },
             items: previewItems,
-            _count: { select: { participants: true } },
+            _count: { select: { participants: true, items: true } },
           },
-          orderBy: { createdAt: "desc" },
+          orderBy: { updatedAt: "desc" },
           take: 4,
         }),
   ]);

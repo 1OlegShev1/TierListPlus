@@ -12,6 +12,7 @@ import { VotePreviewSummary } from "@/components/ui/VotePreviewSummary";
 import { useUser } from "@/hooks/useUser";
 import { apiFetch } from "@/lib/api-client";
 import { formatDate } from "@/lib/utils";
+import { buildVoteDisplay } from "@/lib/vote-display";
 
 interface ListSummary {
   id: string;
@@ -25,10 +26,12 @@ interface VoteSummary {
   id: string;
   name: string;
   status: string;
-  createdAt: string;
+  updatedAt: string;
+  isPrivate: boolean;
+  isLocked: boolean;
   template: { name: string; isHidden: boolean };
   items: { id: string; imageUrl: string; label: string }[];
-  _count: { participants: number };
+  _count: { participants: number; items: number };
 }
 
 interface HomeData {
@@ -72,7 +75,7 @@ export function HomeContent() {
     ...joinedVotes.map((vote) => ({ ...vote, involvement: "joined" as const })),
   ]
     .filter((vote) => vote.status === "OPEN")
-    .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
+    .sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt));
   const keepGoingPreview = keepGoingSessions.slice(0, HOME_SECTION_LIMIT);
   const listPreview = myLists.slice(0, HOME_SECTION_LIMIT);
   const fromMyListsPreview = votesFromMyLists.slice(0, HOME_SECTION_LIMIT);
@@ -161,7 +164,7 @@ export function HomeContent() {
                 <VoteRow
                   key={`from-your-lists-${vote.id}`}
                   vote={vote}
-                  contextLabel="Someone started this from one of your lists"
+                  contextLabel="Started from one of your lists"
                 />
               ))}
             </div>
@@ -182,17 +185,34 @@ export function HomeContent() {
 }
 
 function VoteRow({ vote, contextLabel }: { vote: VoteSummary; contextLabel?: string }) {
-  const voteMeta = vote.template.isHidden
-    ? `${vote._count.participants} participants`
-    : `${vote.template.name} · ${vote._count.participants} participants`;
-  const metaParts = [contextLabel, voteMeta, formatDate(vote.createdAt)].filter(Boolean);
+  const viewer =
+    contextLabel === "You started this"
+      ? "owner"
+      : contextLabel === "You're already in"
+        ? "participant"
+        : "browser";
+  const { chips, meta } = buildVoteDisplay({
+    viewer,
+    isPrivate: vote.isPrivate,
+    isLocked: vote.isLocked,
+    status: vote.status,
+    updatedAt: vote.updatedAt,
+    itemCount: vote._count.items,
+    participantCount: vote._count.participants,
+    listName: vote.template.name,
+    listHidden: vote.template.isHidden,
+  });
+  const displayMeta =
+    contextLabel && contextLabel !== "You started this" && contextLabel !== "You're already in"
+      ? `${contextLabel} · ${meta}`
+      : meta;
 
   return (
     <Link
       href={`/sessions/${vote.id}`}
       className="flex items-start justify-between gap-3 rounded-xl border border-neutral-800 bg-neutral-900 p-4 transition-colors hover:border-neutral-600"
     >
-      <VotePreviewSummary title={vote.name} meta={metaParts.join(" · ")} items={vote.items} />
+      <VotePreviewSummary title={vote.name} meta={displayMeta} items={vote.items} chips={chips} />
       <div className="shrink-0 pt-0.5">
         <StatusBadge status={vote.status} />
       </div>
