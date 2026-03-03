@@ -60,6 +60,7 @@ export interface TemplateSummary {
   name: string;
   isPublic: boolean;
   _count: { items: number };
+  items: { id: string; imageUrl: string }[];
 }
 
 /** A single vote placement (item in a tier at a rank) */

@@ -35,9 +35,42 @@ describe("templates route", () => {
     });
 
     expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toEqual([expect.objectContaining({ isPublic: true })]);
+    await expect(response.json()).resolves.toEqual([
+      expect.objectContaining({ isPublic: true, items: [] }),
+    ]);
     expect(mocks.prisma.template.findMany).toHaveBeenCalledWith(
       expect.objectContaining({ where: { isPublic: true, isHidden: false } }),
+    );
+    expect(mocks.prisma.template.findMany).toHaveBeenCalledTimes(1);
+  });
+
+  it("only loads preview items for the requested leading templates", async () => {
+    mocks.prisma.template.findMany
+      .mockResolvedValueOnce([
+        makeTemplate({ id: "t1", isPublic: true }),
+        makeTemplate({ id: "t2", isPublic: true }),
+        makeTemplate({ id: "t3", isPublic: true }),
+      ])
+      .mockResolvedValueOnce([
+        { id: "t1", items: [{ id: "i1", imageUrl: "/img/1.webp" }] },
+        { id: "t2", items: [{ id: "i2", imageUrl: "/img/2.webp" }] },
+      ]);
+
+    const response = await GET(new Request("https://example.test?previewLimit=2"), {
+      params: Promise.resolve({}),
+    });
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual([
+      expect.objectContaining({ id: "t1", items: [{ id: "i1", imageUrl: "/img/1.webp" }] }),
+      expect.objectContaining({ id: "t2", items: [{ id: "i2", imageUrl: "/img/2.webp" }] }),
+      expect.objectContaining({ id: "t3", items: [] }),
+    ]);
+    expect(mocks.prisma.template.findMany).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        where: { id: { in: ["t1", "t2"] } },
+      }),
     );
   });
 
