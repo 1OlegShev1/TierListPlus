@@ -28,6 +28,8 @@ export function ItemPreview({
           key={item.id}
           src={item.imageUrl}
           alt={item.label ?? ""}
+          loading="lazy"
+          decoding="async"
           className="aspect-square w-full rounded-lg border border-neutral-800/80 object-cover"
         />
       ))}

@@ -39,6 +39,7 @@ interface HomeData {
   mySessions: VoteSummary[];
   participatedSessions: VoteSummary[];
   fromMyTemplates: VoteSummary[];
+  hasAnyActivity: boolean;
 }
 
 type HomeVoteSummary = VoteSummary & { involvement: "started" | "joined" };
@@ -69,16 +70,14 @@ export function HomeContent() {
   const startedVotes = data.mySessions;
   const joinedVotes = data.participatedSessions;
   const votesFromMyLists = data.fromMyTemplates;
-  const isEmpty = myLists.length === 0 && startedVotes.length === 0 && joinedVotes.length === 0;
+  const isEmpty = myLists.length === 0 && !data.hasAnyActivity;
   const keepGoingSessions: HomeVoteSummary[] = [
     ...startedVotes.map((vote) => ({ ...vote, involvement: "started" as const })),
     ...joinedVotes.map((vote) => ({ ...vote, involvement: "joined" as const })),
-  ]
-    .filter((vote) => vote.status === "OPEN")
-    .sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt));
+  ].sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt));
   const keepGoingPreview = keepGoingSessions.slice(0, HOME_SECTION_LIMIT);
-  const listPreview = myLists.slice(0, HOME_SECTION_LIMIT);
-  const fromMyListsPreview = votesFromMyLists.slice(0, HOME_SECTION_LIMIT);
+  const listPreview = myLists;
+  const fromMyListsPreview = votesFromMyLists;
 
   return (
     <div className="space-y-10 pt-2 sm:pt-3">
