@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { CloseIcon, EllipsisVerticalIcon, PlusIcon } from "@/components/ui/icons";
 
 interface TierRowActionsProps {
@@ -22,37 +22,74 @@ export function TierRowActions({
 }: TierRowActionsProps) {
   const [open, setOpen] = useState(false);
   const [openUpward, setOpenUpward] = useState(false);
+  const menuId = useId();
   const buttonRef = useRef<HTMLButtonElement>(null);
+  const firstActionRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const frame = window.requestAnimationFrame(() => {
+      firstActionRef.current?.focus();
+    });
+    return () => {
+      window.cancelAnimationFrame(frame);
+    };
+  }, [open]);
+
+  const closeMenu = useCallback((restoreFocus = false) => {
+    setOpen(false);
+    if (!restoreFocus) return;
+    window.requestAnimationFrame(() => {
+      buttonRef.current?.focus();
+    });
+  }, []);
 
   // Close on outside click or Escape
   useEffect(() => {
     if (!open) return;
 
-    const handleClick = (e: MouseEvent | TouchEvent) => {
+    const handlePointer = (e: MouseEvent | TouchEvent) => {
       if (
         menuRef.current &&
         !menuRef.current.contains(e.target as Node) &&
         buttonRef.current &&
         !buttonRef.current.contains(e.target as Node)
       ) {
-        setOpen(false);
+        closeMenu();
+      }
+    };
+
+    const handleFocus = (e: FocusEvent) => {
+      const nextTarget = e.target as Node | null;
+      if (
+        nextTarget &&
+        menuRef.current &&
+        !menuRef.current.contains(nextTarget) &&
+        buttonRef.current &&
+        !buttonRef.current.contains(nextTarget)
+      ) {
+        closeMenu();
       }
     };
 
     const handleKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
+      if (e.key !== "Escape") return;
+      e.preventDefault();
+      closeMenu(true);
     };
 
-    document.addEventListener("mousedown", handleClick);
-    document.addEventListener("touchstart", handleClick);
+    document.addEventListener("mousedown", handlePointer);
+    document.addEventListener("touchstart", handlePointer);
+    document.addEventListener("focusin", handleFocus);
     document.addEventListener("keydown", handleKey);
     return () => {
-      document.removeEventListener("mousedown", handleClick);
-      document.removeEventListener("touchstart", handleClick);
+      document.removeEventListener("mousedown", handlePointer);
+      document.removeEventListener("touchstart", handlePointer);
+      document.removeEventListener("focusin", handleFocus);
       document.removeEventListener("keydown", handleKey);
     };
-  }, [open]);
+  }, [open, closeMenu]);
 
   const toggle = () => {
     if (!open) {
@@ -70,7 +107,7 @@ export function TierRowActions({
 
   const act = (fn: () => void) => {
     fn();
-    setOpen(false);
+    closeMenu(true);
   };
 
   return (
@@ -83,18 +120,21 @@ export function TierRowActions({
         title="Tier actions"
         aria-label={`Actions for ${label} tier`}
         aria-expanded={open}
+        aria-controls={open ? menuId : undefined}
       >
         <EllipsisVerticalIcon className="h-4 w-4" />
       </button>
 
       {open && (
         <div
+          id={menuId}
           ref={menuRef}
           className={`absolute right-0 z-20 min-w-[168px] rounded-lg border border-neutral-700 bg-neutral-800 py-1.5 shadow-lg ${
             openUpward ? "bottom-full mb-1" : "top-full mt-1"
           }`}
         >
           <button
+            ref={firstActionRef}
             type="button"
             onClick={() => act(onInsertAbove)}
             className="flex w-full cursor-pointer items-center gap-2 px-3 py-1.5 text-left text-sm text-neutral-300 hover:bg-neutral-700"

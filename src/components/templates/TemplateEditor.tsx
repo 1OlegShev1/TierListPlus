@@ -164,6 +164,12 @@ export function TemplateEditor({
                 placeholder="Label"
                 value={item.label}
                 onChange={(e) => updateItemLabel(index, e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.nativeEvent.isComposing) return;
+                  if (e.key !== "Enter") return;
+                  e.preventDefault();
+                  e.currentTarget.blur();
+                }}
                 className="mt-2 w-full rounded border border-neutral-700 bg-neutral-800 px-2 py-1 text-xs text-white placeholder:text-neutral-500 focus:border-amber-500 focus:outline-none"
               />
             </div>

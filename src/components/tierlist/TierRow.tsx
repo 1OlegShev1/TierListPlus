@@ -111,6 +111,7 @@ export function TierRow({
               onChange={(e) => setLocalLabel(e.target.value)}
               onBlur={commitLabel}
               onKeyDown={(e) => {
+                if (e.nativeEvent.isComposing) return;
                 if (e.key === "Enter") commitLabel();
                 if (e.key === "Escape") {
                   setLocalLabel(label);

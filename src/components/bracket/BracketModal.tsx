@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { MatchupVoter } from "@/components/bracket/MatchupVoter";
 import { Button } from "@/components/ui/Button";
 import { generateBracket } from "@/lib/bracket-generator";
@@ -14,7 +14,83 @@ interface BracketModalProps {
 }
 
 export function BracketModal({ items, onComplete, onCancel }: BracketModalProps) {
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const previousFocusRef = useRef<HTMLElement | null>(null);
   const itemMap = useMemo(() => new Map(items.map((i) => [i.id, i])), [items]);
+
+  useEffect(() => {
+    const getFocusableElements = () => {
+      if (!dialogRef.current) return [];
+      return Array.from(
+        dialogRef.current.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        ),
+      );
+    };
+
+    previousFocusRef.current =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
+
+    const frame = window.requestAnimationFrame(() => {
+      const [firstFocusable] = getFocusableElements();
+      (firstFocusable ?? dialogRef.current)?.focus();
+    });
+
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        onCancel();
+        return;
+      }
+
+      if (e.key !== "Tab") return;
+
+      const focusableElements = getFocusableElements();
+      if (focusableElements.length === 0) {
+        e.preventDefault();
+        dialogRef.current?.focus();
+        return;
+      }
+
+      const activeElement =
+        document.activeElement instanceof HTMLElement ? document.activeElement : null;
+      const firstFocusable = focusableElements[0];
+      const lastFocusable = focusableElements.at(-1);
+
+      if (!firstFocusable || !lastFocusable) return;
+
+      if (e.shiftKey) {
+        if (
+          !activeElement ||
+          activeElement === firstFocusable ||
+          !dialogRef.current?.contains(activeElement)
+        ) {
+          e.preventDefault();
+          lastFocusable.focus();
+        }
+        return;
+      }
+
+      if (!activeElement || !dialogRef.current?.contains(activeElement)) {
+        e.preventDefault();
+        firstFocusable.focus();
+        return;
+      }
+
+      if (activeElement === lastFocusable) {
+        e.preventDefault();
+        firstFocusable.focus();
+      }
+    };
+
+    document.addEventListener("keydown", handleKey);
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+      document.removeEventListener("keydown", handleKey);
+      previousFocusRef.current?.focus();
+    };
+  }, [onCancel]);
 
   const [bracketState, setBracketState] = useState(() => {
     const { rounds, matchups } = generateBracket(items.map((i) => i.id));
@@ -101,10 +177,19 @@ export function BracketModal({ items, onComplete, onCancel }: BracketModalProps)
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-black/70 p-3 backdrop-blur-sm sm:flex sm:items-center sm:justify-center sm:p-6">
-      <div className="mx-auto flex max-h-[calc(100dvh-1.5rem)] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-neutral-800 bg-neutral-950 sm:max-h-[calc(100dvh-3rem)]">
+      <div
+        ref={dialogRef}
+        tabIndex={-1}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="bracket-modal-title"
+        className="mx-auto flex max-h-[calc(100dvh-1.5rem)] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-neutral-800 bg-neutral-950 sm:max-h-[calc(100dvh-3rem)]"
+      >
         <div className="px-4 pt-4 sm:px-6 sm:pt-6">
           <div className="mb-4 text-center sm:mb-6">
-            <h2 className="text-lg font-bold">Rank with Bracket</h2>
+            <h2 id="bracket-modal-title" className="text-lg font-bold">
+              Rank with Bracket
+            </h2>
             <p className="mt-1 text-xs text-neutral-500">
               {isComplete
                 ? "Bracket complete!"

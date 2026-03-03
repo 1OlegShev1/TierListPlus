@@ -20,7 +20,13 @@ function JoinSessionForm() {
   const [error, setError] = useState("");
   const [joining, setJoining] = useState(false);
 
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    void join();
+  };
+
   const join = async () => {
+    if (joining) return;
     if (!joinCode.trim() || !nickname.trim()) return;
     if (userLoading || !userId) {
       setError("Preparing your device identity, please try again.");
@@ -58,7 +64,7 @@ function JoinSessionForm() {
     <div className="mx-auto max-w-md pt-10">
       <h1 className="mb-6 text-center text-2xl font-bold">Join a Session</h1>
 
-      <div className="space-y-4">
+      <form className="space-y-4" onSubmit={handleSubmit}>
         <label className="block">
           <span className="mb-2 block text-sm font-medium text-neutral-400">Join Code</span>
           <Input
@@ -96,13 +102,13 @@ function JoinSessionForm() {
         )}
 
         <Button
-          onClick={join}
+          type="submit"
           disabled={joining || userLoading || !joinCode.trim() || !nickname.trim() || !userId}
           className="w-full py-3"
         >
           {joining ? "Joining..." : "Join Session"}
         </Button>
-      </div>
+      </form>
     </div>
   );
 }

@@ -839,6 +839,12 @@ export function TierListBoard({
                         type="text"
                         value={pending.label}
                         onChange={(e) => handlePendingLabelChange(pending.id, e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.nativeEvent.isComposing) return;
+                          if (e.key !== "Enter") return;
+                          e.preventDefault();
+                          e.currentTarget.blur();
+                        }}
                         placeholder="Label"
                         maxLength={100}
                         className="mt-1 w-full rounded border border-neutral-700 bg-neutral-900 px-2 py-1 text-xs text-white placeholder:text-neutral-500 focus:border-amber-500 focus:outline-none"

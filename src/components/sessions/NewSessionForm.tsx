@@ -95,6 +95,11 @@ export function NewSessionForm() {
     !selectedTemplateLoading &&
     !selectedTemplateUnavailable;
 
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    void create();
+  };
+
   const create = async () => {
     if (!canCreate) return;
     setCreating(true);
@@ -135,7 +140,7 @@ export function NewSessionForm() {
     <div className="mx-auto max-w-2xl">
       <h1 className="mb-6 text-2xl font-bold">Start a Session</h1>
 
-      <div className="space-y-6">
+      <form className="space-y-6" onSubmit={handleSubmit}>
         <div>
           <div className="rounded-lg border border-neutral-800 bg-neutral-900 px-4 py-3">
             <div className="flex items-center justify-between gap-3">
@@ -251,14 +256,14 @@ export function NewSessionForm() {
         )}
 
         <div className="flex gap-3">
-          <Button onClick={create} disabled={!canCreate}>
+          <Button type="submit" disabled={!canCreate}>
             {creating ? "Creating..." : "Create Session"}
           </Button>
           <Button variant="secondary" onClick={() => router.back()}>
             Cancel
           </Button>
         </div>
-      </div>
+      </form>
     </div>
   );
 }
