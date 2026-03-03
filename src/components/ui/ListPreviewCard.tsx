@@ -1,5 +1,4 @@
 import { ItemPreview } from "@/components/ui/ItemPreview";
-import { splitUpdatedMeta } from "@/lib/display-meta";
 import type { ListDisplayChip } from "@/lib/list-display";
 import { cn } from "@/lib/utils";
 
@@ -11,21 +10,21 @@ interface PreviewItem {
 
 export function ListPreviewCard({
   title,
-  meta,
+  detailsLabel,
+  secondaryLabel,
   items,
   chips = [],
   note,
   className,
 }: {
   title: string;
-  meta: string;
+  detailsLabel?: string | null;
+  secondaryLabel?: string | null;
   items: PreviewItem[];
   chips?: ListDisplayChip[];
   note?: string;
   className?: string;
 }) {
-  const metaDisplay = splitUpdatedMeta(meta);
-
   return (
     <div
       className={cn("h-full rounded-xl border border-neutral-800 bg-neutral-900 p-4", className)}
@@ -55,17 +54,17 @@ export function ListPreviewCard({
               ))}
             </div>
           )}
-          {metaDisplay.details && (
+          {detailsLabel && (
             <p
-              title={metaDisplay.details}
+              title={detailsLabel}
               className={cn("text-sm text-neutral-500", chips.length > 0 ? "mt-3" : "mt-2.5")}
             >
-              {metaDisplay.details}
+              {detailsLabel}
             </p>
           )}
-          {metaDisplay.updated && (
-            <p title={metaDisplay.updated} className="mt-1 text-sm text-neutral-600">
-              {metaDisplay.updated}
+          {secondaryLabel && (
+            <p title={secondaryLabel} className="mt-1 text-sm text-neutral-600">
+              {secondaryLabel}
             </p>
           )}
           {note && <p className="mt-1 text-xs font-medium text-amber-400">{note}</p>}

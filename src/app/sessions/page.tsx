@@ -243,7 +243,7 @@ function VotesSection({
 }
 
 function VoteRow({ vote, viewer }: { vote: VoteListItem; viewer: VoteViewer }) {
-  const { chips, meta, sourceLabel } = buildVoteDisplay({
+  const { chips, detailsLabel, secondaryLabel, sourceLabel } = buildVoteDisplay({
     viewer,
     isPrivate: vote.isPrivate,
     isLocked: vote.isLocked,
@@ -268,7 +268,8 @@ function VoteRow({ vote, viewer }: { vote: VoteListItem; viewer: VoteViewer }) {
       <Link href={`/sessions/${vote.id}`} className="min-w-0 flex-1">
         <VotePreviewSummary
           title={vote.name}
-          meta={meta}
+          detailsLabel={detailsLabel}
+          secondaryLabel={secondaryLabel}
           items={vote.items}
           chips={chips}
           sourceLabel={sourceLabel}

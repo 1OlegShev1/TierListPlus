@@ -25,6 +25,7 @@ export function buildListDisplay({
 
   return {
     chips,
-    meta: `${itemCount} picks · Updated ${formatDate(updatedAt)}`,
+    detailsLabel: `${itemCount} picks`,
+    secondaryLabel: `Updated ${formatDate(updatedAt)}`,
   };
 }

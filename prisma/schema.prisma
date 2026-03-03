@@ -65,7 +65,7 @@ model Template {
   creator        User?      @relation(fields: [creatorId], references: [id])
   items          TemplateItem[]
   sessions       Session[]  @relation("SessionTemplate")
-  sourceSessions Session[]  @relation("SessionSourceTemplate")
+  sourceSessions Session[] @relation("SessionSourceTemplate")
 
   @@index([creatorId])
 }

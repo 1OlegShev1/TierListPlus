@@ -46,16 +46,12 @@ export function buildVoteDisplay({
   }
 
   const sourceLabel = listHidden ? null : listName;
-  const metaParts = [
-    `${itemCount} picks`,
-    `${participantCount} joined`,
-    `Updated ${formatDate(updatedAt)}`,
-  ];
 
   return {
     chips,
     sourceLabel,
-    meta: metaParts.join(" · "),
+    detailsLabel: `${itemCount} picks · ${participantCount} joined`,
+    secondaryLabel: `Updated ${formatDate(updatedAt)}`,
   };
 }
 

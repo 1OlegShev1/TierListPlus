@@ -14,8 +14,8 @@ describe("buildListDisplay", () => {
       { label: "Your list", tone: "accent" },
       { label: "Private", tone: "neutral" },
     ]);
-    expect(display.meta).toContain("19 picks");
-    expect(display.meta).toContain("Updated");
+    expect(display.detailsLabel).toBe("19 picks");
+    expect(display.secondaryLabel).toContain("Updated");
   });
 
   it("describes a shared public list", () => {
@@ -30,7 +30,7 @@ describe("buildListDisplay", () => {
       { label: "Shared list", tone: "accent" },
       { label: "Public", tone: "neutral" },
     ]);
-    expect(display.meta).toContain("10 picks");
-    expect(display.meta).toContain("Updated");
+    expect(display.detailsLabel).toBe("10 picks");
+    expect(display.secondaryLabel).toContain("Updated");
   });
 });

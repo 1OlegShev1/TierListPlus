@@ -160,7 +160,7 @@ function ListSection({
       {lists.length > 0 ? (
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {lists.map((list) => {
-            const { chips, meta } = buildListDisplay({
+            const { chips, detailsLabel, secondaryLabel } = buildListDisplay({
               viewer,
               isPublic: list.isPublic,
               updatedAt: list.updatedAt,
@@ -171,7 +171,8 @@ function ListSection({
               <Link key={list.id} href={`/templates/${list.id}`} className="block h-full">
                 <ListPreviewCard
                   title={list.name}
-                  meta={meta}
+                  detailsLabel={detailsLabel}
+                  secondaryLabel={secondaryLabel}
                   items={list.items}
                   chips={chips}
                   className="transition-colors hover:border-neutral-600"

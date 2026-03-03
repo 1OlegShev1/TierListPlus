@@ -16,9 +16,8 @@ describe("buildVoteDisplay", () => {
     });
 
     expect(display.sourceLabel).toBe("Programming languages");
-    expect(display.meta).toContain("19 picks");
-    expect(display.meta).toContain("7 joined");
-    expect(display.meta).toContain("Updated");
+    expect(display.detailsLabel).toBe("19 picks · 7 joined");
+    expect(display.secondaryLabel).toContain("Updated");
   });
 
   it("hides the source list when the template name should stay hidden", () => {
@@ -35,6 +34,7 @@ describe("buildVoteDisplay", () => {
     });
 
     expect(display.sourceLabel).toBeNull();
-    expect(display.meta).not.toContain("Secret list");
+    expect(display.detailsLabel).toBe("5 picks · 2 joined");
+    expect(display.secondaryLabel).toContain("Updated");
   });
 });

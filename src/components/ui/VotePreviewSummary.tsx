@@ -1,5 +1,4 @@
 import { ItemPreview } from "@/components/ui/ItemPreview";
-import { splitUpdatedMeta } from "@/lib/display-meta";
 import { cn } from "@/lib/utils";
 import type { VoteDisplayChip } from "@/lib/vote-display";
 
@@ -11,19 +10,19 @@ interface PreviewItem {
 
 export function VotePreviewSummary({
   title,
-  meta,
+  detailsLabel,
+  secondaryLabel,
   items,
   chips = [],
   sourceLabel,
 }: {
   title: string;
-  meta: string;
+  detailsLabel?: string | null;
+  secondaryLabel?: string | null;
   items: PreviewItem[];
   chips?: VoteDisplayChip[];
   sourceLabel?: string | null;
 }) {
-  const metaDisplay = splitUpdatedMeta(meta);
-
   return (
     <div className="flex min-w-0 flex-1 items-center gap-4">
       <ItemPreview items={items} variant="stack" className="w-16 gap-1.5 sm:w-20" />
@@ -63,21 +62,21 @@ export function VotePreviewSummary({
             {sourceLabel}
           </p>
         )}
-        {(metaDisplay.details || metaDisplay.updated) && (
+        {(detailsLabel || secondaryLabel) && (
           <div
             className={cn(
               "flex flex-wrap items-baseline gap-x-4 gap-y-1.5 text-sm",
               sourceLabel ? "mt-2" : chips.length > 0 ? "mt-3" : "mt-2.5",
             )}
           >
-            {metaDisplay.details && (
-              <p title={metaDisplay.details} className="whitespace-nowrap text-neutral-500">
-                {metaDisplay.details}
+            {detailsLabel && (
+              <p title={detailsLabel} className="break-words text-neutral-500">
+                {detailsLabel}
               </p>
             )}
-            {metaDisplay.updated && (
-              <p title={metaDisplay.updated} className="whitespace-nowrap text-neutral-600">
-                {metaDisplay.updated}
+            {secondaryLabel && (
+              <p title={secondaryLabel} className="whitespace-nowrap text-neutral-600">
+                {secondaryLabel}
               </p>
             )}
           </div>

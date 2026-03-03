@@ -140,7 +140,8 @@ export function HomeContent() {
                 <Link key={t.id} href={`/templates/${t.id}`} className="block h-full">
                   <ListPreviewCard
                     title={t.name}
-                    meta={`${t._count.items} picks · ${formatDate(t.createdAt)}`}
+                    detailsLabel={`${t._count.items} picks`}
+                    secondaryLabel={formatDate(t.createdAt)}
                     items={t.items}
                     className="transition-colors hover:border-neutral-600"
                   />
@@ -190,7 +191,7 @@ function VoteRow({ vote, contextLabel }: { vote: VoteSummary; contextLabel?: str
       : contextLabel === "You're already in"
         ? "participant"
         : "browser";
-  const { chips, meta, sourceLabel } = buildVoteDisplay({
+  const { chips, detailsLabel, secondaryLabel, sourceLabel } = buildVoteDisplay({
     viewer,
     isPrivate: vote.isPrivate,
     isLocked: vote.isLocked,
@@ -201,10 +202,10 @@ function VoteRow({ vote, contextLabel }: { vote: VoteSummary; contextLabel?: str
     listName: vote.template.name,
     listHidden: vote.template.isHidden,
   });
-  const displayMeta =
+  const displayDetailsLabel =
     contextLabel && contextLabel !== "You started this" && contextLabel !== "You're already in"
-      ? `${contextLabel} · ${meta}`
-      : meta;
+      ? `${contextLabel} · ${detailsLabel}`
+      : detailsLabel;
 
   return (
     <Link
@@ -213,7 +214,8 @@ function VoteRow({ vote, contextLabel }: { vote: VoteSummary; contextLabel?: str
     >
       <VotePreviewSummary
         title={vote.name}
-        meta={displayMeta}
+        detailsLabel={displayDetailsLabel}
+        secondaryLabel={secondaryLabel}
         items={vote.items}
         chips={chips}
         sourceLabel={sourceLabel}
