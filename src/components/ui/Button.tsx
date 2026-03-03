@@ -1,3 +1,4 @@
+import { forwardRef } from "react";
 import { cn } from "@/lib/utils";
 
 type ButtonVariant = "primary" | "secondary" | "ghost";
@@ -14,12 +15,16 @@ export const buttonVariants: Record<ButtonVariant, string> = {
   ghost: "text-sm text-neutral-500 transition-colors hover:text-neutral-300",
 };
 
-export function Button({ variant = "primary", className, type = "button", ...props }: ButtonProps) {
+export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
+  { variant = "primary", className, type = "button", ...props },
+  ref,
+) {
   return (
     <button
+      ref={ref}
       type={type}
       className={cn("cursor-pointer", buttonVariants[variant], className)}
       {...props}
     />
   );
-}
+});

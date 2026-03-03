@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { CloseIcon } from "@/components/ui/icons";
 import {
   CLIENT_UPLOAD_IMAGE_QUALITY,
@@ -21,6 +21,7 @@ interface ImageUploaderProps {
   compact?: boolean;
   idleLabel?: string;
   disabled?: boolean;
+  triggerRef?: React.Ref<HTMLButtonElement>;
 }
 
 interface UploadProgress {
@@ -135,7 +136,9 @@ export function ImageUploader({
   compact = false,
   idleLabel,
   disabled = false,
+  triggerRef,
 }: ImageUploaderProps) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState<UploadProgress | null>(null);
   const [dragOver, setDragOver] = useState(false);
@@ -244,7 +247,7 @@ export function ImageUploader({
   const handleDrop = useCallback(
     (e: React.DragEvent) => {
       e.preventDefault();
-      if (disabled) return;
+      if (disabled || uploading) return;
       setDragOver(false);
       const fileList = e.dataTransfer.files;
       if (!fileList.length) return;
@@ -261,7 +264,7 @@ export function ImageUploader({
         }
       }
     },
-    [disabled, multiple, showSelectionError, upload, uploadBatch],
+    [disabled, multiple, showSelectionError, upload, uploadBatch, uploading],
   );
 
   const handleFileInput = useCallback(
@@ -294,41 +297,55 @@ export function ImageUploader({
     setFailures([]);
   };
 
+  const openFilePicker = () => {
+    if (disabled || uploading) return;
+    fileInputRef.current?.click();
+  };
+
+  const pickerDisabled = disabled || uploading;
+
   return (
     <div className={`relative ${className ?? ""}`}>
-      <label
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        multiple={multiple}
+        className="hidden"
+        onChange={handleFileInput}
+        disabled={pickerDisabled}
+        aria-label={multiple ? "Upload images" : "Upload image"}
+      />
+      <button
+        ref={triggerRef}
+        type="button"
         className={`flex h-full w-full items-center justify-center rounded-lg transition-colors ${
           disabled
             ? "cursor-not-allowed border-neutral-800 bg-neutral-900/60 opacity-70"
-            : "cursor-pointer"
+            : uploading
+              ? "cursor-progress border-neutral-700 bg-neutral-900/60"
+              : "cursor-pointer"
         } ${
-          dragOver && !disabled
+          dragOver && !pickerDisabled
             ? "border-amber-400 bg-amber-400/10"
             : compact
               ? "border-neutral-700 bg-neutral-950/80 hover:border-neutral-500"
               : "border-neutral-700 hover:border-neutral-500"
-        } ${compact ? "min-h-10 gap-2 border px-3 py-2" : "flex-col border-2 border-dashed"}`}
+        } ${compact ? "min-h-10 gap-2 border px-3 py-2" : "flex-col border-2 border-dashed"} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-2 focus-visible:ring-offset-black`}
+        onClick={openFilePicker}
         onDragOver={(e) => {
           e.preventDefault();
-          if (disabled) return;
+          if (pickerDisabled) return;
           setDragOver(true);
         }}
         onDragLeave={() => {
-          if (disabled) return;
+          if (pickerDisabled) return;
           setDragOver(false);
         }}
         onDrop={handleDrop}
-        aria-disabled={disabled}
+        disabled={pickerDisabled}
+        aria-busy={uploading || undefined}
       >
-        <input
-          type="file"
-          accept="image/*"
-          multiple={multiple}
-          className="hidden"
-          onChange={handleFileInput}
-          disabled={uploading || disabled}
-          aria-label={multiple ? "Upload images" : "Upload image"}
-        />
         {disabled ? (
           <span className="text-sm text-neutral-500">{idleLabel ?? "Upload unavailable"}</span>
         ) : uploading && progress ? (
@@ -353,7 +370,7 @@ export function ImageUploader({
             </span>
           </>
         )}
-      </label>
+      </button>
 
       {failures.length > 0 && (
         <div className="absolute left-0 top-full z-20 mt-3 w-[min(32rem,calc(100vw-2rem))] max-w-[calc(100vw-2rem)] rounded-xl border border-red-900/80 bg-neutral-950/95 p-4 shadow-2xl shadow-black/50 backdrop-blur-sm">

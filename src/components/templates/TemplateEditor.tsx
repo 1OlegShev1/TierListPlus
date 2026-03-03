@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { ImageUploader, type UploadedImage } from "@/components/shared/ImageUploader";
 import { Button } from "@/components/ui/Button";
 import { ErrorMessage } from "@/components/ui/ErrorMessage";
@@ -35,7 +35,11 @@ export function TemplateEditor({
   const [items, setItems] = useState<TemplateItemData[]>(initialItems);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const itemLabelRefs = useRef<Array<HTMLInputElement | null>>([]);
+  const uploadTriggerRef = useRef<HTMLButtonElement>(null);
+  const saveButtonRef = useRef<HTMLButtonElement>(null);
   const uploadsDisabled = userLoading || !userId;
+  const canSave = !saving && !userLoading && !!userId && !!name.trim() && items.length > 0;
 
   const addItem = ({ url, suggestedLabel }: UploadedImage) => {
     setItems((prev) => [...prev, { label: suggestedLabel, imageUrl: url, sortOrder: prev.length }]);
@@ -49,8 +53,46 @@ export function TemplateEditor({
     setItems((prev) => prev.filter((_, i) => i !== index));
   };
 
+  const focusNextItemControl = (index: number, currentInput: HTMLInputElement) => {
+    const nextLabel = itemLabelRefs.current.slice(index + 1).find((input) => input != null);
+    if (nextLabel) {
+      nextLabel.focus();
+      return;
+    }
+
+    const uploadTrigger = uploadTriggerRef.current;
+    if (uploadTrigger && !uploadTrigger.disabled) {
+      uploadTrigger.focus();
+      return;
+    }
+
+    const saveButton = saveButtonRef.current;
+    if (saveButton && !saveButton.disabled) {
+      saveButton.focus();
+      return;
+    }
+
+    currentInput.blur();
+  };
+
+  const focusUploadTrigger = () => {
+    const uploadTrigger = uploadTriggerRef.current;
+    if (uploadTrigger && !uploadTrigger.disabled) {
+      uploadTrigger.focus();
+    }
+  };
+
+  const handleNameKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.nativeEvent.isComposing || e.key !== "Enter") return;
+    if (canSave) return;
+    if (items.length > 0) return;
+
+    e.preventDefault();
+    focusUploadTrigger();
+  };
+
   const save = async () => {
-    if (!name.trim() || userLoading || !userId) return;
+    if (!canSave) return;
     setSaving(true);
     setError(null);
 
@@ -102,14 +144,20 @@ export function TemplateEditor({
     }
   };
 
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    void save();
+  };
+
   return (
-    <div className="space-y-6">
+    <form className="space-y-6" onSubmit={handleSubmit}>
       <div className="space-y-4">
         <Input
           type="text"
           placeholder="Template name"
           value={name}
           onChange={(e) => setName(e.target.value)}
+          onKeyDown={handleNameKeyDown}
           className="w-full text-lg"
         />
         <Textarea
@@ -160,6 +208,9 @@ export function TemplateEditor({
                 className="aspect-square w-full rounded object-cover"
               />
               <input
+                ref={(node) => {
+                  itemLabelRefs.current[index] = node;
+                }}
                 type="text"
                 placeholder="Label"
                 value={item.label}
@@ -168,7 +219,7 @@ export function TemplateEditor({
                   if (e.nativeEvent.isComposing) return;
                   if (e.key !== "Enter") return;
                   e.preventDefault();
-                  e.currentTarget.blur();
+                  focusNextItemControl(index, e.currentTarget);
                 }}
                 className="mt-2 w-full rounded border border-neutral-700 bg-neutral-800 px-2 py-1 text-xs text-white placeholder:text-neutral-500 focus:border-amber-500 focus:outline-none"
               />
@@ -179,6 +230,7 @@ export function TemplateEditor({
             multiple
             className="aspect-square"
             disabled={uploadsDisabled}
+            triggerRef={uploadTriggerRef}
             idleLabel={
               userLoading
                 ? "Preparing identity..."
@@ -203,16 +255,13 @@ export function TemplateEditor({
       )}
 
       <div className="flex gap-3">
-        <Button
-          onClick={save}
-          disabled={saving || userLoading || !userId || !name.trim() || items.length === 0}
-        >
+        <Button ref={saveButtonRef} type="submit" disabled={!canSave}>
           {saving ? "Saving..." : templateId ? "Save Changes" : "Create Template"}
         </Button>
         <Button variant="secondary" onClick={() => router.back()}>
           Cancel
         </Button>
       </div>
-    </div>
+    </form>
   );
 }
