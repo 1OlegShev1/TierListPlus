@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { DeleteListButton } from "@/components/templates/DeleteListButton";
 import { DuplicateListButton } from "@/components/templates/DuplicateListButton";
+import { StartVoteFromTemplateButton } from "@/components/templates/StartVoteFromTemplateButton";
 import { buttonVariants } from "@/components/ui/Button";
 import { ItemArtwork } from "@/components/ui/ItemArtwork";
 import { getCookieAuth } from "@/lib/auth";
@@ -29,7 +30,7 @@ export default async function ListDetailPage({
 
   return (
     <div>
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold">{list.name}</h1>
           {list.description && <p className="mt-1 text-sm text-neutral-400">{list.description}</p>}
@@ -37,7 +38,7 @@ export default async function ListDetailPage({
             {list.isPublic ? "Public list" : owner ? "Private to you" : "Private list"}
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3 sm:justify-end">
           {!owner && list.isPublic && <DuplicateListButton listId={templateId} />}
           {owner && <DeleteListButton listId={templateId} creatorId={list.creatorId} />}
           {owner && (
@@ -45,9 +46,7 @@ export default async function ListDetailPage({
               Edit
             </Link>
           )}
-          <Link href={`/sessions/new?templateId=${templateId}`} className={buttonVariants.primary}>
-            Start Vote
-          </Link>
+          <StartVoteFromTemplateButton templateId={templateId} templateName={list.name} />
         </div>
       </div>
 

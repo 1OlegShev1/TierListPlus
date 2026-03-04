@@ -134,53 +134,90 @@ export function NewVoteForm() {
       <h1 className="mb-6 text-2xl font-bold">Start a Vote</h1>
 
       <form className="space-y-6" onSubmit={handleSubmit}>
+        <label className="block">
+          <span className="mb-2 block text-sm font-medium text-neutral-300">Vote Name</span>
+          <span className="mb-2 block text-xs text-neutral-500">
+            This is the title people will see when they join.
+          </span>
+          <Input
+            type="text"
+            placeholder="e.g., Best Burgers in Town"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            autoFocus
+            className="w-full"
+          />
+        </label>
+
+        <label className="block">
+          <span className="mb-2 block text-sm font-medium text-neutral-300">Your Nickname</span>
+          <span className="mb-2 block text-xs text-neutral-500">
+            You will join this vote with this display name.
+          </span>
+          <Input
+            type="text"
+            placeholder="e.g., Alex"
+            value={nickname}
+            onChange={(e) => setNickname(e.target.value)}
+            maxLength={30}
+            className="w-full"
+          />
+        </label>
+
         <div>
+          <div className="mb-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm font-medium text-neutral-300">List Template</p>
+              <p className="text-xs text-neutral-500">
+                Pick the starting list for this vote. You can still edit it afterward.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setStep("pick")}
+              className="self-start text-sm text-amber-400 transition-colors hover:text-amber-300 sm:self-auto"
+            >
+              Change list
+            </button>
+          </div>
+
           <div className="rounded-lg border border-neutral-800 bg-neutral-900 px-4 py-3">
-            <div className="flex items-center justify-between gap-3">
-              <div className="min-w-0">
-                {selectedListDetails ? (
-                  <>
-                    <p className="truncate font-medium">{selectedListDetails.name}</p>
-                    <p className="text-sm text-neutral-500">
-                      {selectedListDetails.items.length} picks — you can edit them after creating
-                    </p>
-                  </>
-                ) : selectedListLoading ? (
-                  <>
-                    <p className="truncate font-medium">
-                      {selectedListSummary?.name ?? "Loading this list..."}
-                    </p>
-                    <p className="text-sm text-neutral-500">Loading the full preview...</p>
-                  </>
-                ) : selectedListUnavailable ? (
-                  <>
-                    <p className="font-medium">That list is not available</p>
-                    <p className="text-sm text-neutral-500">
-                      Pick another list before you start the vote
-                    </p>
-                  </>
-                ) : (
-                  <>
-                    <p className="font-medium">Start from scratch</p>
-                    <p className="text-sm text-neutral-500">
-                      You will add the picks after you start the vote
-                    </p>
-                  </>
-                )}
-              </div>
-              <button
-                type="button"
-                onClick={() => setStep("pick")}
-                className="shrink-0 text-sm text-amber-400 transition-colors hover:text-amber-300"
-              >
-                Change list
-              </button>
+            <div className="min-w-0">
+              {selectedListDetails ? (
+                <>
+                  <p className="truncate font-medium">{selectedListDetails.name}</p>
+                  <p className="text-sm text-neutral-500">
+                    {selectedListDetails.items.length} picks ready to use
+                  </p>
+                </>
+              ) : selectedListLoading ? (
+                <>
+                  <p className="truncate font-medium">
+                    {selectedListSummary?.name ?? "Loading this list..."}
+                  </p>
+                  <p className="text-sm text-neutral-500">Loading the full preview...</p>
+                </>
+              ) : selectedListUnavailable ? (
+                <>
+                  <p className="font-medium">That list is not available</p>
+                  <p className="text-sm text-neutral-500">
+                    Pick another list before you start the vote
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="font-medium">Start from scratch</p>
+                  <p className="text-sm text-neutral-500">
+                    You will add the picks after you start the vote
+                  </p>
+                </>
+              )}
             </div>
 
             {selectedListDetails && selectedListDetails.items.length > 0 && (
               <div className="mt-4 border-t border-neutral-800 pt-4">
                 <p className="mb-2 text-xs font-medium uppercase tracking-wide text-neutral-500">
-                  List Picks
+                  Preview
                 </p>
                 <div className="grid grid-cols-4 gap-2 sm:grid-cols-6">
                   {selectedListDetails.items.map((item) => (
@@ -198,29 +235,6 @@ export function NewVoteForm() {
             )}
           </div>
         </div>
-
-        <label className="block">
-          <span className="mb-2 block text-sm font-medium text-neutral-400">Vote Name</span>
-          <Input
-            type="text"
-            placeholder="e.g., Best Burgers in Town"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className="w-full"
-          />
-        </label>
-
-        <label className="block">
-          <span className="mb-2 block text-sm font-medium text-neutral-400">Your Nickname</span>
-          <Input
-            type="text"
-            placeholder="e.g., Alex"
-            value={nickname}
-            onChange={(e) => setNickname(e.target.value)}
-            maxLength={30}
-            className="w-full"
-          />
-        </label>
 
         <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-neutral-800 bg-neutral-900 p-4 transition-colors hover:border-neutral-700 hover:bg-neutral-800">
           <input
@@ -249,11 +263,11 @@ export function NewVoteForm() {
           </div>
         )}
 
-        <div className="flex gap-3">
-          <Button type="submit" disabled={!canCreate}>
+        <div className="flex flex-col gap-3 sm:flex-row">
+          <Button type="submit" disabled={!canCreate} className="w-full sm:w-auto">
             {creating ? "Starting..." : "Start Vote"}
           </Button>
-          <Button variant="secondary" onClick={() => router.back()}>
+          <Button variant="secondary" onClick={() => router.back()} className="w-full sm:w-auto">
             Cancel
           </Button>
         </div>
