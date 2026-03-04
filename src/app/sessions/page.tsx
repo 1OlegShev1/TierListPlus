@@ -12,6 +12,7 @@ import { StatusBadge } from "@/components/ui/StatusBadge";
 import { VotePreviewSummary } from "@/components/ui/VotePreviewSummary";
 import { getCookieAuth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { buildSessionCardInclude } from "@/lib/session-query";
 import { buildVoteDisplay, getVoteAction, type VoteViewer } from "@/lib/vote-display";
 
 export const dynamic = "force-dynamic";
@@ -42,15 +43,7 @@ interface VoteSectionData {
   page: number;
 }
 
-const sessionInclude = {
-  template: { select: { name: true, isHidden: true } },
-  items: {
-    take: 4,
-    orderBy: { sortOrder: "asc" },
-    select: { id: true, imageUrl: true, label: true },
-  },
-  _count: { select: { participants: true, items: true } },
-} as const;
+const sessionInclude = buildSessionCardInclude(4);
 
 export default async function VotesPage({
   searchParams,

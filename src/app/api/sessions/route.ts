@@ -5,6 +5,11 @@ import { getRequestAuth, requireRequestAuth } from "@/lib/auth";
 import { DEFAULT_TIER_CONFIG } from "@/lib/constants";
 import { generateJoinCode } from "@/lib/nanoid";
 import { prisma } from "@/lib/prisma";
+import {
+  SESSION_PARTICIPANT_COUNT_SELECT,
+  SESSION_TEMPLATE_SELECT,
+  SORT_ORDER_ASC,
+} from "@/lib/session-query";
 import { canAccessTemplate } from "@/lib/template-access";
 import { createSessionSchema } from "@/lib/validators";
 
@@ -33,8 +38,8 @@ export const GET = withHandler(async (request) => {
           isPrivate: false,
         },
     include: {
-      template: { select: { name: true, isHidden: true } },
-      _count: { select: { participants: true } },
+      template: { select: SESSION_TEMPLATE_SELECT },
+      _count: { select: SESSION_PARTICIPANT_COUNT_SELECT },
     },
     orderBy: { createdAt: "desc" },
   });
@@ -65,7 +70,7 @@ export const POST = withHandler(async (request) => {
   if (templateId) {
     sourceTemplate = await prisma.template.findUnique({
       where: { id: templateId },
-      include: { items: { orderBy: { sortOrder: "asc" } } },
+      include: { items: { orderBy: SORT_ORDER_ASC } },
     });
 
     if (!sourceTemplate) notFound("Template not found");
@@ -94,7 +99,7 @@ export const POST = withHandler(async (request) => {
         : {}),
     },
     include: {
-      items: { orderBy: { sortOrder: "asc" } },
+      items: { orderBy: SORT_ORDER_ASC },
     },
   });
 
