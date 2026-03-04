@@ -1,14 +1,15 @@
 "use client";
 
+import { ItemArtwork } from "@/components/ui/ItemArtwork";
 import type { Item } from "@/types";
 
 const sizeConfig = {
   sm: {
-    container: "gap-4",
-    card: "w-44 gap-2 p-4",
-    img: "h-24 w-24",
-    vs: "text-xl",
-    label: "text-sm font-medium",
+    container: "w-full gap-3",
+    card: "min-w-0 flex-1 gap-2.5 p-2.5 sm:w-44 sm:flex-none sm:gap-2 sm:p-4",
+    img: "mx-auto aspect-square w-full max-w-[8.25rem] sm:h-24 sm:w-24 sm:max-w-none",
+    vs: "text-lg sm:text-xl",
+    label: "w-full text-sm font-medium leading-tight",
   },
   lg: {
     container: "gap-8",
@@ -42,10 +43,13 @@ export function MatchupVoter({
       disabled={disabled}
       className={`group flex ${s.card} flex-col items-center rounded-2xl border-2 border-neutral-700 bg-neutral-900 transition-all hover:border-amber-400 hover:bg-neutral-800 disabled:opacity-50`}
     >
-      <img
+      <ItemArtwork
         src={item.imageUrl}
         alt={item.label}
-        className={`${s.img} rounded-xl object-cover transition-transform group-hover:scale-105`}
+        className={`${s.img} rounded-xl`}
+        imageClassName="transition-transform group-hover:scale-105"
+        presentation="ambient"
+        inset={size === "lg" ? "compact" : "tight"}
       />
       <span className={`text-center ${s.label}`}>{item.label}</span>
     </button>
@@ -54,7 +58,7 @@ export function MatchupVoter({
   return (
     <div className={`flex items-center justify-center ${s.container}`}>
       {renderItem(itemA)}
-      <span className={`${s.vs} font-bold text-neutral-600`}>VS</span>
+      <span className={`shrink-0 ${s.vs} font-bold text-neutral-600`}>VS</span>
       {renderItem(itemB)}
     </div>
   );

@@ -2,6 +2,7 @@
 
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { ItemArtwork } from "@/components/ui/ItemArtwork";
 import { CloseIcon } from "@/components/ui/icons";
 
 interface DraggableItemProps {
@@ -104,7 +105,13 @@ export function DraggableItem({
                 : "border-neutral-700"
         }`}
       >
-        <img src={imageUrl} alt={label} className="h-full w-full object-cover" draggable={false} />
+        <ItemArtwork
+          src={imageUrl}
+          alt={label}
+          className="h-full w-full"
+          presentation="ambient"
+          draggable={false}
+        />
         <span
           className={`pointer-events-none absolute inset-x-0 bottom-0 truncate bg-black/70 px-1 py-0.5 text-center text-[11px] leading-tight text-neutral-200 transition-opacity ${
             expanded

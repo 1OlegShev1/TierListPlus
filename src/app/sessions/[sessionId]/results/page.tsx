@@ -7,6 +7,7 @@ import { CloseVoteButton } from "@/components/sessions/CloseVoteButton";
 import { ReopenVoteButton } from "@/components/sessions/ReopenVoteButton";
 import { buttonVariants } from "@/components/ui/Button";
 import { ErrorMessage } from "@/components/ui/ErrorMessage";
+import { ItemArtwork } from "@/components/ui/ItemArtwork";
 import { Loading } from "@/components/ui/Loading";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { useParticipant } from "@/hooks/useParticipant";
@@ -387,10 +388,11 @@ function ResultsContent() {
                         : "border-neutral-700 hover:border-neutral-500"
                     } ${isIndividualView ? "cursor-default" : "cursor-pointer touch-manipulation"}`}
                   >
-                    <img
+                    <ItemArtwork
                       src={item.imageUrl}
                       alt={item.label}
-                      className="h-full w-full object-cover"
+                      className="h-full w-full"
+                      presentation="ambient"
                     />
                     <span className="absolute inset-x-0 bottom-0 truncate bg-black/70 px-1 py-0.5 text-center text-[11px] leading-tight text-neutral-200 opacity-0 transition-opacity group-hover:opacity-100">
                       {item.label}
@@ -425,10 +427,12 @@ function ResultsContent() {
               <div className="rounded-xl border border-neutral-800 bg-gradient-to-b from-neutral-900 to-neutral-950">
                 <div className="flex items-center justify-between border-b border-neutral-800/80 px-4 py-3">
                   <div className="flex items-center gap-3">
-                    <img
+                    <ItemArtwork
                       src={detailsItem.imageUrl}
                       alt={detailsItem.label}
-                      className="h-12 w-12 rounded-md border border-neutral-700 object-cover"
+                      className="h-12 w-12 rounded-md border border-neutral-700"
+                      presentation="ambient"
+                      inset="compact"
                     />
                     <div>
                       <h3 className="font-medium">{detailsItem.label}</h3>

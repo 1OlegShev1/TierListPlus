@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { DeleteListButton } from "@/components/templates/DeleteListButton";
 import { DuplicateListButton } from "@/components/templates/DuplicateListButton";
 import { buttonVariants } from "@/components/ui/Button";
+import { ItemArtwork } from "@/components/ui/ItemArtwork";
 import { getCookieAuth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { canAccessTemplate, isTemplateOwner } from "@/lib/template-access";
@@ -53,10 +54,12 @@ export default async function ListDetailPage({
       <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8">
         {list.items.map((item) => (
           <div key={item.id} className="rounded-lg border border-neutral-800 bg-neutral-900 p-2">
-            <img
+            <ItemArtwork
               src={item.imageUrl}
               alt={item.label}
-              className="aspect-square w-full rounded object-cover"
+              className="aspect-square w-full rounded"
+              presentation="ambient"
+              inset="compact"
             />
             <p className="mt-1 truncate text-center text-xs text-neutral-300">{item.label}</p>
           </div>
