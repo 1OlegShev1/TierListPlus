@@ -175,24 +175,29 @@ export default function VotePage() {
                 disabled={lockUpdating}
                 aria-label={isLocked ? "Unlock joins" : "Lock joins"}
                 title={isLocked ? "Unlock joins" : "Lock joins"}
-                className={`${statusBadgeBaseClassName} ${joinStatusToneClassName} ${joinStatusHoverClassName} cursor-pointer transition-colors disabled:cursor-wait disabled:opacity-80`}
+                className={`${statusBadgeBaseClassName} ${joinStatusToneClassName} ${joinStatusHoverClassName} shrink-0 cursor-pointer transition-colors disabled:cursor-wait disabled:opacity-80`}
               >
                 <JoinStatusIcon className="h-4 w-4" />
                 {joinStatusLabel}
               </button>
             ) : (
-              <span className={`${statusBadgeBaseClassName} ${joinStatusToneClassName}`}>
+              <span className={`${statusBadgeBaseClassName} ${joinStatusToneClassName} shrink-0`}>
                 <JoinStatusIcon className="h-4 w-4" />
                 {joinStatusLabel}
               </span>
             )}
-            <Link href={`/sessions/${sessionId}/results`} className={resultsLinkClassName}>
-              View Results
+            <Link
+              href={`/sessions/${sessionId}/results`}
+              className={`${resultsLinkClassName} shrink-0 whitespace-nowrap`}
+            >
+              <span className="sm:hidden">Results</span>
+              <span className="hidden sm:inline">View Results</span>
             </Link>
             <CloseVoteButton
               sessionId={session.id}
               creatorId={session.creatorId}
               status={session.status}
+              className="shrink-0"
               redirectHref={`/sessions/${sessionId}/results`}
             />
             {isOwner && (
@@ -200,6 +205,7 @@ export default function VotePage() {
                 sessionId={session.id}
                 creatorId={session.creatorId}
                 label="Delete"
+                className="shrink-0"
               />
             )}
           </div>

@@ -511,6 +511,10 @@ export function TierListBoard({
 
       if (!activeContainer || !overContainer || activeContainer === overContainer) return;
 
+      // Avoid mutating back into the unranked container while hovering its empty space.
+      // On mobile, that path can cause the source/target layouts to oscillate and recurse.
+      if (isOverContainer && overContainer === "unranked") return;
+
       const store = useTierListStore.getState();
       const overItems =
         overContainer === "unranked" ? store.unranked : (store.tiers[overContainer] ?? []);
@@ -543,6 +547,23 @@ export function TierListBoard({
       const overContainer = isOverContainer ? overId : findContainer(overId);
 
       if (!activeContainer || !overContainer) return;
+
+      if (activeContainer !== overContainer) {
+        const store = useTierListStore.getState();
+        const overItems =
+          overContainer === "unranked" ? store.unranked : (store.tiers[overContainer] ?? []);
+
+        let newIndex: number;
+        if (isOverContainer) {
+          newIndex = overItems.length;
+        } else {
+          const overIndex = overItems.indexOf(overId);
+          newIndex = overIndex >= 0 ? overIndex : overItems.length;
+        }
+
+        store.moveItem(activeId, overContainer, newIndex);
+        return;
+      }
 
       if (activeContainer === overContainer) {
         const store = useTierListStore.getState();
@@ -865,9 +886,6 @@ export function TierListBoard({
             className="mb-2 max-h-none min-h-[112px]"
             onRemoveItem={canLiveEditItems ? handleRemoveLiveItem : undefined}
             removingItemId={removingItemId}
-            expandedItemId={expandedItemId}
-            onExpandItem={handleExpandItem}
-            onCollapseExpanded={handleCollapseExpanded}
             afterItems={
               canLiveEditItems ? (
                 <div className="mt-2 flex w-full flex-wrap items-start gap-2 border-t border-neutral-800 pt-2">

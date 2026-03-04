@@ -238,7 +238,7 @@ function ResultsContent() {
         : "Loading ballot..."
     : `${consensusLabel} together`;
   const subtitle = (
-    <span className="inline-flex items-center gap-3">
+    <span className="inline-flex flex-wrap items-center gap-x-3 gap-y-1">
       <span>{baseSubtitle}</span>
       <span
         aria-live="polite"
@@ -256,19 +256,23 @@ function ResultsContent() {
         title={`${session?.name} Rankings`}
         subtitle={subtitle}
         actions={
-          <div className="flex shrink-0 gap-2">
+          <div className="flex w-full flex-wrap items-center justify-end gap-2 sm:w-auto sm:shrink-0">
             {session?.status === "OPEN" && (
               <>
                 <Link
                   href={`/sessions/${sessionId}`}
                   className={`${buttonVariants.primary} !px-4 !py-1.5 !text-sm whitespace-nowrap`}
                 >
-                  {currentParticipantId ? "Jump Back In" : "Join This Vote"}
+                  <span className="sm:hidden">{currentParticipantId ? "Resume" : "Join"}</span>
+                  <span className="hidden sm:inline">
+                    {currentParticipantId ? "Jump Back In" : "Join This Vote"}
+                  </span>
                 </Link>
                 <CloseVoteButton
                   sessionId={sessionId}
                   creatorId={session?.creatorId ?? null}
                   status={session?.status ?? "CLOSED"}
+                  label="Close"
                   onClosed={() =>
                     setSession((current) => (current ? { ...current, status: "CLOSED" } : current))
                   }
@@ -281,12 +285,14 @@ function ResultsContent() {
                   href="/sessions"
                   className={`${buttonVariants.secondary} !px-4 !py-1.5 !text-sm whitespace-nowrap`}
                 >
-                  Back to Votes
+                  <span className="sm:hidden">Back</span>
+                  <span className="hidden sm:inline">Back to Votes</span>
                 </Link>
                 <ReopenVoteButton
                   sessionId={sessionId}
                   creatorId={session?.creatorId ?? null}
                   status={session?.status ?? "OPEN"}
+                  label="Reopen"
                   onReopened={() =>
                     setSession((current) => (current ? { ...current, status: "OPEN" } : current))
                   }
@@ -425,8 +431,8 @@ function ResultsContent() {
           >
             <div className="min-h-0">
               <div className="rounded-xl border border-neutral-800 bg-gradient-to-b from-neutral-900 to-neutral-950">
-                <div className="flex items-center justify-between border-b border-neutral-800/80 px-4 py-3">
-                  <div className="flex items-center gap-3">
+                <div className="flex flex-col gap-3 border-b border-neutral-800/80 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex min-w-0 flex-1 items-center gap-3">
                     <ItemArtwork
                       src={detailsItem.imageUrl}
                       alt={detailsItem.label}
@@ -434,16 +440,17 @@ function ResultsContent() {
                       presentation="ambient"
                       inset="compact"
                     />
-                    <div>
-                      <h3 className="font-medium">{detailsItem.label}</h3>
+                    <div className="min-w-0">
+                      <h3 className="truncate font-medium">{detailsItem.label}</h3>
                       <p className="text-sm text-neutral-400">
                         Avg score: {detailsItem.averageScore.toFixed(2)} &middot;{" "}
                         {detailsItem.totalVotes} vote{detailsItem.totalVotes !== 1 ? "s" : ""}
                       </p>
                     </div>
                   </div>
-                  <span className="rounded-full border border-neutral-700 bg-neutral-900 px-2 py-1 text-[11px] uppercase tracking-wide text-neutral-400">
-                    Vote Distribution
+                  <span className="self-start rounded-full border border-neutral-700 bg-neutral-900 px-2 py-1 text-[11px] uppercase tracking-wide text-neutral-400 sm:self-auto">
+                    <span className="sm:hidden">Vote Split</span>
+                    <span className="hidden sm:inline">Vote Distribution</span>
                   </span>
                 </div>
 
