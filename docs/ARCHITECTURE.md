@@ -10,6 +10,7 @@ Key product behaviors:
 - Template visibility is **private by default** (`Template.isPublic = false`)
 - Every new session gets a **hidden working template** so hosts can edit session items live, then publish or copy detached snapshots of that item set later
 - Hosts can **lock joins** (`Session.isLocked = true`) without closing the session
+- Hosts can **close** voting when a session is done and **reopen** it later if needed
 - Votes are tied to participant identity and cannot be submitted as another participant
 - Bracket is a **personal assist tool** on the vote board (session-wide assist + per-tier rank assist)
 - `/sessions/[sessionId]` resolves access then redirects to `/sessions/[sessionId]/vote` (vote-first flow)
@@ -84,6 +85,16 @@ Core helpers: `src/lib/api-helpers.ts`
 
 ## Voting Lifecycle
 
+Host controls:
+- `OPEN`
+  - New participants may join (unless `isLocked`)
+  - Existing participants may submit or update rankings
+- `CLOSED`
+  - No new joins
+  - Vote board is no longer accepting changes
+  - Results remain visible
+- Owners can transition `OPEN -> CLOSED` (close vote) and `CLOSED -> OPEN` (reopen vote)
+
 1. User joins session and gets/stores `participantId` locally.
 2. Vote board loads:
    - session data
@@ -106,6 +117,10 @@ Result visibility:
 - Consensus uses all persisted `TierVote` rows
 - Individual vote list in results uses derived `hasSubmitted`:
   - `submittedAt != null` OR participant has persisted tier votes
+
+Home/dashboard visibility:
+- Home surfaces only `OPEN` sessions
+- Closed sessions move out of home and remain discoverable from the main Votes page
 
 ## Bracket Behavior
 
@@ -143,6 +158,7 @@ Routes under `/api/sessions/[sessionId]/bracket/*` still exist, but UI voting no
 - `GET/PATCH/DELETE /api/sessions/[sessionId]`
   - `GET` includes participant completion summary plus `templateIsHidden`
   - `PATCH/DELETE` owner-only
+  - `PATCH` may update `status`, `isPrivate`, `isLocked`, and `tierConfig`
 - `POST /api/sessions/[sessionId]/items`
   - Owner-only, `OPEN` sessions only, and only for sessions backed by a hidden working template
 - `DELETE /api/sessions/[sessionId]/items/[itemId]`
