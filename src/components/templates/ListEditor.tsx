@@ -187,6 +187,29 @@ export function ListEditor({
         </label>
       </div>
 
+      <div className="space-y-2">
+        <div className="flex w-full flex-wrap items-center justify-end gap-3">
+          <Button variant="secondary" onClick={() => router.back()}>
+            Cancel
+          </Button>
+          <Button ref={saveButtonRef} type="submit" disabled={!canSave}>
+            {saving ? "Saving..." : listId ? "Save List" : "Create List"}
+          </Button>
+        </div>
+
+        {(userError || error) && (
+          <div className="space-y-2">
+            {userError && <ErrorMessage message={userError} />}
+            {error && <ErrorMessage message={error} />}
+            {userError && (
+              <Button variant="secondary" onClick={retryUser}>
+                Retry Device Setup
+              </Button>
+            )}
+          </div>
+        )}
+      </div>
+
       <div>
         <h3 className="mb-3 text-sm font-medium text-neutral-400">Picks ({items.length})</h3>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
@@ -239,27 +262,6 @@ export function ListEditor({
             }
           />
         </div>
-      </div>
-
-      {(userError || error) && (
-        <div className="space-y-2">
-          {userError && <ErrorMessage message={userError} />}
-          {error && <ErrorMessage message={error} />}
-          {userError && (
-            <Button variant="secondary" onClick={retryUser}>
-              Retry Device Setup
-            </Button>
-          )}
-        </div>
-      )}
-
-      <div className="flex gap-3">
-        <Button ref={saveButtonRef} type="submit" disabled={!canSave}>
-          {saving ? "Saving..." : listId ? "Save List" : "Create List"}
-        </Button>
-        <Button variant="secondary" onClick={() => router.back()}>
-          Cancel
-        </Button>
       </div>
     </form>
   );

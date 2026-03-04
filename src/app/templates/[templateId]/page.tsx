@@ -38,15 +38,15 @@ export default async function ListDetailPage({
             {list.isPublic ? "Public list" : owner ? "Private to you" : "Private list"}
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-3 sm:justify-end">
+        <div className="flex w-full flex-wrap items-center justify-end gap-3 sm:w-auto sm:shrink-0">
           {!owner && list.isPublic && <DuplicateListButton listId={templateId} />}
-          {owner && <DeleteListButton listId={templateId} creatorId={list.creatorId} />}
           {owner && (
             <Link href={`/templates/${templateId}/edit`} className={buttonVariants.secondary}>
               Edit
             </Link>
           )}
           <StartVoteFromTemplateButton templateId={templateId} templateName={list.name} />
+          {owner && <DeleteListButton listId={templateId} creatorId={list.creatorId} />}
         </div>
       </div>
 

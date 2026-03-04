@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { ErrorMessage } from "@/components/ui/ErrorMessage";
@@ -20,19 +20,33 @@ interface SelectedListDetails {
   items: Item[];
 }
 
-export function NewVoteForm() {
+export function NewVoteForm({
+  initialLists = [],
+  initialSelectedListId = null,
+  initialSelectedListDetails = null,
+  initialSelectedListUnavailable = false,
+}: {
+  initialLists?: ListSummary[];
+  initialSelectedListId?: string | null;
+  initialSelectedListDetails?: SelectedListDetails | null;
+  initialSelectedListUnavailable?: boolean;
+}) {
   const router = useRouter();
   const { userId, isLoading: userLoading, error: userError, retry: retryUser } = useUser();
-  const searchParams = useSearchParams();
-  const preselectedListId = searchParams.get("templateId");
-
-  const [lists, setLists] = useState<ListSummary[]>([]);
-  const [selectedListId, setSelectedListId] = useState<string | null>(preselectedListId);
-  const [selectedListDetails, setSelectedListDetails] = useState<SelectedListDetails | null>(null);
+  const [lists] = useState<ListSummary[]>(initialLists);
+  const [selectedListId, setSelectedListId] = useState<string | null>(initialSelectedListId);
+  const [selectedListDetails, setSelectedListDetails] = useState<SelectedListDetails | null>(
+    initialSelectedListDetails,
+  );
   const [selectedListFetchStatus, setSelectedListFetchStatus] = useState<
     "idle" | "loading" | "ready" | "error"
-  >("idle");
-  const [step, setStep] = useState<"pick" | "details">(preselectedListId ? "details" : "pick");
+  >(() => {
+    if (!initialSelectedListId) return "idle";
+    if (initialSelectedListDetails) return "ready";
+    if (initialSelectedListUnavailable) return "error";
+    return "loading";
+  });
+  const [step, setStep] = useState<"pick" | "details">(initialSelectedListId ? "details" : "pick");
   const [listQuery, setListQuery] = useState("");
   const [name, setName] = useState("");
   const [nickname, setNickname] = useState("");
@@ -41,15 +55,18 @@ export function NewVoteForm() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    apiFetch<ListSummary[]>(`/api/templates?previewLimit=${FEATURED_COUNT}`)
-      .then(setLists)
-      .catch(() => {});
-  }, []);
-
-  useEffect(() => {
     if (!selectedListId) {
       setSelectedListDetails(null);
       setSelectedListFetchStatus("idle");
+      return;
+    }
+
+    if (
+      selectedListId === initialSelectedListId &&
+      (initialSelectedListDetails || initialSelectedListUnavailable)
+    ) {
+      setSelectedListDetails(initialSelectedListDetails);
+      setSelectedListFetchStatus(initialSelectedListDetails ? "ready" : "error");
       return;
     }
 
@@ -71,7 +88,12 @@ export function NewVoteForm() {
     return () => {
       isCurrent = false;
     };
-  }, [selectedListId]);
+  }, [
+    initialSelectedListDetails,
+    initialSelectedListId,
+    initialSelectedListUnavailable,
+    selectedListId,
+  ]);
 
   const selectedListSummary = selectedListId
     ? (lists.find((list) => list.id === selectedListId) ?? null)

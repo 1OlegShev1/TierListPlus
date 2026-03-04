@@ -112,7 +112,7 @@ export default async function VotesPage({
       <PageHeader
         title="Votes"
         actions={
-          <div className="flex items-center gap-2">
+          <div className="flex w-full flex-wrap items-center justify-end gap-2 sm:w-auto sm:shrink-0">
             <Link href="/sessions/join" className={buttonVariants.secondary}>
               Join a Vote
             </Link>

@@ -65,18 +65,21 @@ export function HomeContent({ initialData = null }: { initialData?: HomeData | n
         <p className="mt-3 max-w-2xl text-sm text-neutral-400 sm:text-lg">
           Make a tier list, start a vote, and jump back into the latest chaos.
         </p>
-        <div className="mt-6 flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="mt-6 flex flex-col items-start gap-3 sm:flex-row sm:items-center">
+          <Link
+            href="/sessions/new"
+            className={`${buttonVariants.primary} inline-flex items-center justify-center`}
+          >
+            Start a Vote
+          </Link>
           <div className="flex flex-wrap items-center gap-3">
-            <Link href="/sessions/new" className={buttonVariants.primary}>
-              Start a Vote
-            </Link>
             <Link href="/sessions/join" className={buttonVariants.secondary}>
               Join a Vote
             </Link>
+            <Link href="/templates/new" className={buttonVariants.secondary}>
+              Make a Tier List
+            </Link>
           </div>
-          <Link href="/templates/new" className={buttonVariants.secondary}>
-            Make a Tier List
-          </Link>
         </div>
       </section>
       <div className="space-y-10 px-5 sm:px-8">

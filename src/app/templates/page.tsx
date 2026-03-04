@@ -83,9 +83,11 @@ export default async function ListsPage({
       <PageHeader
         title="Lists"
         actions={
-          <Link href="/templates/new" className={buttonVariants.primary}>
-            + Make a Tier List
-          </Link>
+          <div className="flex w-full flex-wrap items-center justify-end gap-2 sm:w-auto sm:shrink-0">
+            <Link href="/templates/new" className={buttonVariants.primary}>
+              + Make a Tier List
+            </Link>
+          </div>
         }
       />
 
