@@ -121,6 +121,22 @@ describe("session detail route", () => {
     });
   });
 
+  it("allows the owner to reopen a closed session", async () => {
+    mocks.prisma.session.update.mockResolvedValue(makeSession({ status: "OPEN" }));
+
+    const response = await PATCH(
+      jsonRequest("PATCH", "https://example.test", { status: "OPEN" }),
+      routeCtx({ sessionId: "s1" }),
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual(expect.objectContaining({ status: "OPEN" }));
+    expect(mocks.prisma.session.update).toHaveBeenCalledWith({
+      where: { id: "s1" },
+      data: { status: "OPEN" },
+    });
+  });
+
   it("deletes the hidden working template when removing its last session", async () => {
     mocks.prisma.session.findUnique.mockResolvedValue({
       items: [{ imageUrl: "/one.webp" }, { imageUrl: "/two.webp" }],

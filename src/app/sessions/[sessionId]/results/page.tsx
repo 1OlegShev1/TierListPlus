@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef, useState } from "react";
 import { CloseVoteButton } from "@/components/sessions/CloseVoteButton";
+import { ReopenVoteButton } from "@/components/sessions/ReopenVoteButton";
 import { buttonVariants } from "@/components/ui/Button";
 import { ErrorMessage } from "@/components/ui/ErrorMessage";
 import { Loading } from "@/components/ui/Loading";
@@ -274,12 +275,22 @@ function ResultsContent() {
               </>
             )}
             {session?.status !== "OPEN" && (
-              <Link
-                href="/sessions"
-                className={`${buttonVariants.secondary} !px-4 !py-1.5 !text-sm whitespace-nowrap`}
-              >
-                Back to Votes
-              </Link>
+              <>
+                <Link
+                  href="/sessions"
+                  className={`${buttonVariants.secondary} !px-4 !py-1.5 !text-sm whitespace-nowrap`}
+                >
+                  Back to Votes
+                </Link>
+                <ReopenVoteButton
+                  sessionId={sessionId}
+                  creatorId={session?.creatorId ?? null}
+                  status={session?.status ?? "OPEN"}
+                  onReopened={() =>
+                    setSession((current) => (current ? { ...current, status: "OPEN" } : current))
+                  }
+                />
+              </>
             )}
           </div>
         }

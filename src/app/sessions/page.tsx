@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import Link from "next/link";
 import { CloseVoteButton } from "@/components/sessions/CloseVoteButton";
 import { DeleteVoteButton } from "@/components/sessions/DeleteVoteButton";
+import { ReopenVoteButton } from "@/components/sessions/ReopenVoteButton";
 import { buttonVariants } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -286,6 +287,12 @@ function VoteRow({ vote, viewer }: { vote: VoteListItem; viewer: VoteViewer }) {
           creatorId={vote.creatorId}
           status={vote.status}
           label="Close"
+        />
+        <ReopenVoteButton
+          sessionId={vote.id}
+          creatorId={vote.creatorId}
+          status={vote.status}
+          label="Reopen"
         />
         <DeleteVoteButton sessionId={vote.id} creatorId={vote.creatorId} />
       </div>

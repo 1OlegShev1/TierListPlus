@@ -1,0 +1,85 @@
+"use client";
+
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { useUser } from "@/hooks/useUser";
+import { apiPatch, getErrorMessage } from "@/lib/api-client";
+import { cn } from "@/lib/utils";
+
+interface ReopenVoteButtonProps {
+  sessionId: string;
+  creatorId: string | null;
+  status: string;
+  className?: string;
+  label?: string;
+  onReopened?: () => void;
+}
+
+export function ReopenVoteButton({
+  sessionId,
+  creatorId,
+  status,
+  className,
+  label = "Reopen vote",
+  onReopened,
+}: ReopenVoteButtonProps) {
+  const { userId } = useUser();
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const [reopening, setReopening] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  if (!creatorId || creatorId !== userId || status !== "CLOSED" || isOpen) return null;
+
+  const handleReopen = async () => {
+    if (reopening) return;
+    setReopening(true);
+    setError(null);
+    try {
+      await apiPatch(`/api/sessions/${sessionId}`, { status: "OPEN" });
+      setOpen(false);
+      setIsOpen(true);
+      onReopened?.();
+      router.refresh();
+    } catch (err) {
+      setError(getErrorMessage(err, "Could not reopen this vote"));
+      setReopening(false);
+    }
+  };
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        aria-label={label}
+        title={label}
+        className={cn(
+          "inline-flex cursor-pointer items-center justify-center rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1.5 text-sm font-medium text-emerald-200 transition-colors hover:border-emerald-400 hover:bg-emerald-500/15 hover:text-emerald-100",
+          className,
+        )}
+      >
+        <span>{label}</span>
+      </button>
+      <ConfirmDialog
+        open={open}
+        title="Reopen Vote"
+        description={
+          error ??
+          "This reopens voting. People will be able to join again and participants can keep editing rankings."
+        }
+        confirmLabel="Reopen vote"
+        loadingLabel="Reopening..."
+        confirmVariant="primary"
+        onConfirm={handleReopen}
+        onCancel={() => {
+          setOpen(false);
+          setError(null);
+        }}
+        loading={reopening}
+      />
+    </>
+  );
+}
