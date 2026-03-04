@@ -128,11 +128,13 @@ export function TierRow({
               onClick={() => {
                 if (canEditTier) setEditingLabel(true);
               }}
-              className={`text-sm font-bold sm:text-base md:text-lg lg:text-xl ${canEditTier ? "cursor-text hover:underline" : "cursor-default"}`}
+              className={`px-1 text-[11px] leading-tight font-bold sm:px-0 sm:text-base md:text-lg lg:text-xl ${canEditTier ? "cursor-text hover:underline" : "cursor-default"}`}
               title={canEditTier ? "Click to edit label" : undefined}
               aria-label={canEditTier ? `Edit ${label} tier label` : `${label} tier`}
             >
-              {label}
+              <span className="line-clamp-2 break-words text-center sm:line-clamp-none">
+                {label}
+              </span>
             </button>
           )}
         </div>

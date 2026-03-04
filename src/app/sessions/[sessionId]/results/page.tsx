@@ -357,7 +357,9 @@ function ResultsContent() {
                 style={{ backgroundColor: tier.color, color: "#000" }}
                 title={tier.label}
               >
-                <span className="block max-w-full truncate leading-tight">{tier.label}</span>
+                <span className="block max-w-full text-[11px] leading-tight line-clamp-2 break-words sm:text-base sm:line-clamp-none md:text-lg lg:text-xl">
+                  {tier.label}
+                </span>
               </div>
               <div className="flex flex-1 touch-pan-y flex-wrap items-start gap-1 p-1 sm:gap-1.5 sm:p-1.5 md:gap-2 md:p-2">
                 {tier.items.map((item) => (
@@ -468,14 +470,14 @@ function ResultsContent() {
                     return (
                       <div
                         key={tier.key}
-                        className="grid grid-cols-[auto_1fr_auto] items-center gap-3 md:gap-4"
+                        className="grid grid-cols-[5rem_1fr_auto] items-center gap-3 sm:grid-cols-[6rem_1fr_auto] md:grid-cols-[7rem_1fr_auto] md:gap-4 lg:grid-cols-[8rem_1fr_auto]"
                       >
                         <span
-                          className="inline-flex min-h-7 min-w-[4.25rem] max-w-[8rem] items-center justify-center overflow-hidden rounded px-2 py-1 text-xs font-bold"
+                          className="inline-flex h-7 w-full items-center justify-center overflow-hidden rounded px-2 py-1 text-xs font-bold"
                           style={{ backgroundColor: tier.color, color: "#000" }}
                           title={tier.label}
                         >
-                          <span className="block max-w-full truncate leading-none">
+                          <span className="block w-full truncate text-center leading-none">
                             {tier.label}
                           </span>
                         </span>
