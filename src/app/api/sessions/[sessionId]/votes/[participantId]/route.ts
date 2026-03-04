@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { notFound, requireSessionAccess, verifyParticipant, withHandler } from "@/lib/api-helpers";
+import { requireSessionAccess, verifyParticipant, withHandler } from "@/lib/api-helpers";
 import { prisma } from "@/lib/prisma";
 
 export const GET = withHandler(async (request, { params }) => {
@@ -15,10 +15,6 @@ export const GET = withHandler(async (request, { params }) => {
     },
     orderBy: { rankInTier: "asc" },
   });
-
-  if (votes.length === 0) {
-    notFound("This participant has not submitted votes yet");
-  }
 
   return NextResponse.json({ participant, votes });
 });

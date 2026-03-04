@@ -16,6 +16,7 @@ export interface UploadedImage {
 
 interface ImageUploaderProps {
   onUploaded: (image: UploadedImage) => void;
+  onUploadStateChange?: (uploading: boolean) => void;
   multiple?: boolean;
   className?: string;
   compact?: boolean;
@@ -131,6 +132,7 @@ async function uploadFile(file: File): Promise<UploadedImage> {
 
 export function ImageUploader({
   onUploaded,
+  onUploadStateChange,
   multiple = false,
   className,
   compact = false,
@@ -145,6 +147,14 @@ export function ImageUploader({
   const [error, setError] = useState<string | null>(null);
   const [failures, setFailures] = useState<string[]>([]);
 
+  const setUploadingState = useCallback(
+    (next: boolean) => {
+      setUploading(next);
+      onUploadStateChange?.(next);
+    },
+    [onUploadStateChange],
+  );
+
   const showSelectionError = useCallback((message: string, fileName?: string) => {
     setError(message);
     setFailures(fileName ? [`${fileName} - ${message}`] : []);
@@ -152,7 +162,7 @@ export function ImageUploader({
 
   const upload = useCallback(
     async (file: File) => {
-      setUploading(true);
+      setUploadingState(true);
       setError(null);
       setFailures([]);
       try {
@@ -163,15 +173,15 @@ export function ImageUploader({
         setError(msg);
         setFailures([`${file.name} - ${msg}`]);
       } finally {
-        setUploading(false);
+        setUploadingState(false);
       }
     },
-    [onUploaded],
+    [onUploaded, setUploadingState],
   );
 
   const uploadBatch = useCallback(
     async (files: File[]) => {
-      setUploading(true);
+      setUploadingState(true);
       setError(null);
       setFailures([]);
 
@@ -189,7 +199,7 @@ export function ImageUploader({
 
       if (imageFiles.length === 0) {
         setFailures(failed);
-        setUploading(false);
+        setUploadingState(false);
         if (failed.length > 0) {
           setError(`No valid images selected`);
         }
@@ -238,10 +248,10 @@ export function ImageUploader({
         );
       }
 
-      setUploading(false);
+      setUploadingState(false);
       setProgress(null);
     },
-    [onUploaded],
+    [onUploaded, setUploadingState],
   );
 
   const handleDrop = useCallback(

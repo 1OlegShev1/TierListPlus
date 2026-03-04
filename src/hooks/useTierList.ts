@@ -23,6 +23,7 @@ interface TierListState {
   addTier: (key: string) => void;
   removeTier: (key: string) => void;
   appendItem: (item: Item) => void;
+  updateItem: (item: Item) => void;
   removeItem: (itemId: string) => void;
   getVotes: () => VotePayload[];
 }
@@ -182,6 +183,16 @@ export const useTierListStore = create<TierListState>((set, get) => ({
         items,
         unranked: [...state.unranked, item.id],
       };
+    });
+  },
+
+  updateItem: (item) => {
+    set((state) => {
+      if (!state.items.has(item.id)) return state;
+
+      const items = new Map(state.items);
+      items.set(item.id, item);
+      return { items };
     });
   },
 

@@ -47,6 +47,7 @@ export interface SessionData {
   isLocked: boolean;
   bracketEnabled: boolean;
   templateIsHidden: boolean;
+  canManageItems: boolean;
   tierConfig: TierConfig[];
   items: Item[];
   currentParticipantId: string | null;

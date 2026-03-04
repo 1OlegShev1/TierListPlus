@@ -29,7 +29,7 @@ describe("participant votes route", () => {
     mocks.verifyParticipant.mockReset().mockResolvedValue(makeParticipant({ id: "participant_1" }));
   });
 
-  it("returns 404 when no submitted votes exist", async () => {
+  it("returns an empty vote list when no submitted votes exist", async () => {
     mocks.prisma.tierVote.findMany.mockResolvedValue([]);
 
     const response = await GET(new Request("https://example.test"), routeCtx({
@@ -37,9 +37,10 @@ describe("participant votes route", () => {
       participantId: "participant_1",
     }));
 
-    expect(response.status).toBe(404);
+    expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({
-      error: "This participant has not submitted votes yet",
+      participant: expect.objectContaining({ id: "participant_1" }),
+      votes: [],
     });
   });
 

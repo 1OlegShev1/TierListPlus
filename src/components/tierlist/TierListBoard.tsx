@@ -20,7 +20,6 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { type ReactNode, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { ImageUploader, type UploadedImage } from "@/components/shared/ImageUploader";
-import { ItemArtwork } from "@/components/ui/ItemArtwork";
 import { CloseIcon } from "@/components/ui/icons";
 import { useTierListStore } from "@/hooks/useTierList";
 import { useUser } from "@/hooks/useUser";
@@ -29,6 +28,7 @@ import { TIER_COLORS } from "@/lib/constants";
 import { clearDraft, getDraft, saveDraft } from "@/lib/vote-draft";
 import type { Item, TierConfig } from "@/types";
 import { DraggableItem } from "./DraggableItem";
+import { EditableUnrankedItemCard } from "./EditableUnrankedItemCard";
 import { TierRow } from "./TierRow";
 import { UnrankedDropZone, UnrankedHeader } from "./UnrankedPool";
 
@@ -45,14 +45,9 @@ interface TierListBoardProps {
   seededTiers?: Record<string, string[]>;
   canEditTierConfig?: boolean;
   canSaveTemplate?: boolean;
+  canManageItems?: boolean;
   templateIsHidden?: boolean;
   onSubmitted: () => void;
-}
-
-interface PendingUploadItem {
-  id: string;
-  imageUrl: string;
-  label: string;
 }
 
 // ---- FLIP animation helpers ----
@@ -169,6 +164,7 @@ export function TierListBoard({
   seededTiers,
   canEditTierConfig = false,
   canSaveTemplate = false,
+  canManageItems = false,
   templateIsHidden = false,
   onSubmitted,
 }: TierListBoardProps) {
@@ -184,31 +180,47 @@ export function TierListBoard({
     addTier: addTierToStore,
     removeTier: removeTierFromStore,
     appendItem,
+    updateItem,
     removeItem,
   } = useTierListStore();
 
   const [tierConfig, setTierConfig] = useState<TierConfig[]>(initialTierConfig);
-  const [liveSessionItems, setLiveSessionItems] = useState<Item[]>(sessionItems);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [draftRestored, setDraftRestored] = useState(false);
   const [bracketSeeded, setBracketSeeded] = useState(false);
   const [showSessionBracket, setShowSessionBracket] = useState(false);
-  const [pendingUploads, setPendingUploads] = useState<PendingUploadItem[]>([]);
-  const [addingItem, setAddingItem] = useState(false);
+  const [creatingItemCount, setCreatingItemCount] = useState(0);
+  const [savingItemId, setSavingItemId] = useState<string | null>(null);
   const [removingItemId, setRemovingItemId] = useState<string | null>(null);
-  const [addItemError, setAddItemError] = useState<string | null>(null);
+  const [itemMutationError, setItemMutationError] = useState<string | null>(null);
   const [savingTemplate, setSavingTemplate] = useState(false);
   const [saveTemplateError, setSaveTemplateError] = useState<string | null>(null);
   const [savedTemplateId, setSavedTemplateId] = useState<string | null>(null);
   const [showSavedTemplateNotice, setShowSavedTemplateNotice] = useState(false);
   const [expandedItemId, setExpandedItemId] = useState<string | null>(null);
+  const [isUploadingFiles, setIsUploadingFiles] = useState(false);
 
   // ---- FLIP refs ----
   const containerRef = useRef<HTMLDivElement>(null);
   const flipRef = useRef<{ positions: Map<string, DOMRect>; keys: Set<string> } | null>(null);
   const skipFlipRef = useRef(false);
+  const createItemQueueRef = useRef<Promise<void>>(Promise.resolve());
+  const uploadingFilesRef = useRef(false);
+  const mountedRef = useRef(true);
+  const latestSessionIdRef = useRef(sessionId);
+
+  useEffect(() => {
+    latestSessionIdRef.current = sessionId;
+  }, [sessionId]);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   /** Call before any setTierConfig to snapshot current positions. */
   const captureFlip = useCallback(() => {
@@ -598,6 +610,19 @@ export function TierListBoard({
   // ---- Submit ----
 
   const handleSubmit = async () => {
+    if (uploadingFilesRef.current || isUploadingFiles) {
+      setSubmitError("Wait for uploads to finish before locking in ranking.");
+      return;
+    }
+    if (creatingItemCount > 0) {
+      setSubmitError("Wait for item uploads to finish before locking in ranking.");
+      return;
+    }
+    if (savingItemId || removingItemId) {
+      setSubmitError("Finish item changes before locking in ranking.");
+      return;
+    }
+
     // Flush any pending tier config save
     if (canEditTierConfig && saveTimeoutRef.current) {
       clearTimeout(saveTimeoutRef.current);
@@ -605,7 +630,8 @@ export function TierListBoard({
       try {
         await apiPatch(`/api/sessions/${sessionId}`, { tierConfig });
       } catch (err) {
-        console.error("Failed to save tier config before submit:", err);
+        setSubmitError(getErrorMessage(err, "Failed to save tier changes. Please try again."));
+        return;
       }
     }
 
@@ -626,76 +652,146 @@ export function TierListBoard({
     }
   };
 
-  const handleAddPendingItems = async () => {
-    if (!canLiveEditItems || pendingUploads.length === 0 || addingItem) return;
+  const handleUploadStateChange = useCallback(
+    (uploading: boolean) => {
+      if (!mountedRef.current || latestSessionIdRef.current !== sessionId) return;
+      uploadingFilesRef.current = uploading;
+      setIsUploadingFiles(uploading);
+    },
+    [sessionId],
+  );
 
-    setAddingItem(true);
-    setAddItemError(null);
-    const createdItems: Item[] = [];
-    const remainingUploads: PendingUploadItem[] = [];
-
+  const cleanupAbandonedUpload = useCallback(async (imageUrl: string) => {
     try {
-      for (const pending of pendingUploads) {
+      await fetch("/api/upload", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ imageUrl }),
+      });
+    } catch {
+      // Best-effort cleanup only. Server-side sweep still handles leftovers.
+    }
+  }, []);
+
+  const handleUploadedImage = useCallback(
+    ({ url, suggestedLabel }: UploadedImage) => {
+      const requestSessionId = sessionId;
+      if (
+        !canManageItems ||
+        submitting ||
+        submitted ||
+        !mountedRef.current ||
+        latestSessionIdRef.current !== requestSessionId
+      ) {
+        void cleanupAbandonedUpload(url);
+        return;
+      }
+
+      setCreatingItemCount((count) => count + 1);
+      setItemMutationError(null);
+
+      const createItem = async () => {
         try {
           const item = await apiPost<Item>(`/api/sessions/${sessionId}/items`, {
-            label: pending.label.trim(),
-            imageUrl: pending.imageUrl,
+            label: suggestedLabel.trim(),
+            imageUrl: url,
           });
-          createdItems.push(item);
-        } catch (err) {
-          remainingUploads.push(
-            pending,
-            ...pendingUploads.slice(pendingUploads.indexOf(pending) + 1),
-          );
-          throw err;
-        }
-      }
-    } catch (err) {
-      setAddItemError(getErrorMessage(err, "Failed to add item"));
-    } finally {
-      if (createdItems.length > 0) {
-        for (const item of createdItems) {
+          if (!mountedRef.current || latestSessionIdRef.current !== requestSessionId) {
+            void cleanupAbandonedUpload(url);
+            return;
+          }
           appendItem(item);
+        } catch (err) {
+          void cleanupAbandonedUpload(url);
+          if (!mountedRef.current || latestSessionIdRef.current !== requestSessionId) return;
+          setItemMutationError(getErrorMessage(err, "Failed to add item"));
+        } finally {
+          if (mountedRef.current && latestSessionIdRef.current === requestSessionId) {
+            setCreatingItemCount((count) => Math.max(0, count - 1));
+          }
         }
-        setLiveSessionItems((prev) => [...prev, ...createdItems]);
+      };
+
+      createItemQueueRef.current = createItemQueueRef.current
+        .catch(() => undefined)
+        .then(createItem);
+    },
+    [appendItem, canManageItems, cleanupAbandonedUpload, sessionId, submitted, submitting],
+  );
+
+  const handleSaveLiveItemLabel = useCallback(
+    async (itemId: string, label: string) => {
+      const requestSessionId = sessionId;
+      if (
+        !canManageItems ||
+        savingItemId ||
+        removingItemId ||
+        submitting ||
+        submitted ||
+        !mountedRef.current ||
+        latestSessionIdRef.current !== requestSessionId
+      ) {
+        return false;
       }
-      setPendingUploads(remainingUploads);
-      setAddingItem(false);
-    }
-  };
 
-  const handlePendingUpload = ({ url, suggestedLabel }: UploadedImage) => {
-    setPendingUploads((prev) => [...prev, { id: nanoid(6), imageUrl: url, label: suggestedLabel }]);
-    setAddItemError(null);
-  };
-
-  const handlePendingLabelChange = (id: string, label: string) => {
-    setPendingUploads((prev) => prev.map((item) => (item.id === id ? { ...item, label } : item)));
-  };
-
-  const handleRemovePendingUpload = (id: string) => {
-    setPendingUploads((prev) => prev.filter((item) => item.id !== id));
-    setAddItemError(null);
-  };
+      setSavingItemId(itemId);
+      setItemMutationError(null);
+      try {
+        const item = await apiPatch<Item>(`/api/sessions/${sessionId}/items/${itemId}`, {
+          label,
+        });
+        if (!mountedRef.current || latestSessionIdRef.current !== requestSessionId) return false;
+        updateItem(item);
+        return true;
+      } catch (err) {
+        if (!mountedRef.current || latestSessionIdRef.current !== requestSessionId) return false;
+        setItemMutationError(getErrorMessage(err, "Failed to update item"));
+        return false;
+      } finally {
+        if (mountedRef.current && latestSessionIdRef.current === requestSessionId) {
+          setSavingItemId(null);
+        }
+      }
+    },
+    [canManageItems, removingItemId, savingItemId, sessionId, submitted, submitting, updateItem],
+  );
 
   const handleRemoveLiveItem = async (itemId: string) => {
-    if (!canLiveEditItems || removingItemId) return;
+    const requestSessionId = sessionId;
+    if (
+      !canManageItems ||
+      removingItemId ||
+      savingItemId ||
+      submitting ||
+      submitted ||
+      !mountedRef.current ||
+      latestSessionIdRef.current !== requestSessionId
+    ) {
+      return;
+    }
 
     setRemovingItemId(itemId);
-    setAddItemError(null);
+    setItemMutationError(null);
     try {
       await apiDelete(`/api/sessions/${sessionId}/items/${itemId}`);
+      if (!mountedRef.current || latestSessionIdRef.current !== requestSessionId) return;
       removeItem(itemId);
-      setLiveSessionItems((prev) => prev.filter((item) => item.id !== itemId));
     } catch (err) {
-      setAddItemError(getErrorMessage(err, "Failed to remove item"));
+      if (!mountedRef.current || latestSessionIdRef.current !== requestSessionId) return;
+      setItemMutationError(getErrorMessage(err, "Failed to remove item"));
     } finally {
-      setRemovingItemId(null);
+      if (mountedRef.current && latestSessionIdRef.current === requestSessionId) {
+        setRemovingItemId(null);
+      }
     }
   };
 
   const handleSaveTemplate = async () => {
     if (!canSaveTemplate || savingTemplate) return;
+    if (hasPendingItemMutations) {
+      setSaveTemplateError("Finish item changes before saving this list.");
+      return;
+    }
 
     setSavingTemplate(true);
     setSaveTemplateError(null);
@@ -711,24 +807,45 @@ export function TierListBoard({
   };
 
   const activeItem = activeId ? items.get(activeId) : null;
-  const totalItems = liveSessionItems.length;
-  const canLiveEditItems = canEditTierConfig && templateIsHidden;
+  const liveItems = initializedRef.current ? Array.from(items.values()) : sessionItems;
+  const totalItems = liveItems.length;
+  const hasPendingItemMutations =
+    isUploadingFiles || creatingItemCount > 0 || !!savingItemId || !!removingItemId;
   const savesWorkingTemplate = canEditTierConfig && templateIsHidden;
   const saveTemplateActionLabel = savesWorkingTemplate ? "Publish to Lists" : "Save as New List";
   const saveTemplateMobileLabel = savesWorkingTemplate ? "Publish" : "Save List";
   const openSavedTemplateLabel = savesWorkingTemplate ? "Open Published List" : "Open Saved List";
   const openSavedTemplateMobileLabel = "Open";
-  const uploadsDisabled = userLoading || !userId;
+  const uploadsDisabled = userLoading || !userId || submitting || submitted;
   const unrankedEmptyMessage =
-    pendingUploads.length > 0
-      ? null
-      : totalItems === 0
-        ? canLiveEditItems
-          ? "Upload one or more images to start building this list."
-          : canEditTierConfig
-            ? "This older vote can't add live items. Start a new vote to change the lineup."
-            : "Waiting for the vote host to add items."
-        : "All items ranked!";
+    totalItems === 0
+      ? canManageItems
+        ? "Upload items, then drag them into tiers."
+        : canEditTierConfig
+          ? "This vote can't edit items. Start a new vote to change the lineup."
+          : "Waiting for the vote host to add items."
+      : "All items ranked!";
+  const uploadCard = canManageItems ? (
+    <div className="w-[112px] flex-shrink-0 rounded-lg border border-neutral-700 bg-neutral-950 p-1.5 sm:w-[120px] md:w-[128px]">
+      <ImageUploader
+        onUploaded={handleUploadedImage}
+        onUploadStateChange={handleUploadStateChange}
+        multiple
+        idleLabel={
+          userLoading
+            ? "Getting ready..."
+            : uploadsDisabled
+              ? "Device needed"
+              : creatingItemCount > 0
+                ? "Adding..."
+                : "Upload"
+        }
+        disabled={uploadsDisabled}
+        className="aspect-square w-full"
+      />
+      <div aria-hidden="true" className="mt-1 h-[30px]" />
+    </div>
+  ) : null;
 
   // Auto-dismiss draft restored indicator
   useEffect(() => {
@@ -785,8 +902,15 @@ export function TierListBoard({
           {totalItems >= 2 && (
             <button
               type="button"
-              onClick={() => setShowSessionBracket(true)}
-              disabled={submitting}
+              onClick={() => {
+                if (hasPendingItemMutations) {
+                  setItemMutationError("Finish item changes before opening Quick Bracket.");
+                  return;
+                }
+                setItemMutationError(null);
+                setShowSessionBracket(true);
+              }}
+              disabled={submitting || hasPendingItemMutations}
               className="rounded-lg border border-neutral-700 px-3 py-2 text-sm font-medium text-neutral-200 transition-colors hover:border-amber-400 hover:text-amber-300 disabled:opacity-50 sm:px-4 sm:py-1.5"
             >
               <span className="sm:hidden">Bracket</span>
@@ -806,7 +930,7 @@ export function TierListBoard({
               <button
                 type="button"
                 onClick={handleSaveTemplate}
-                disabled={savingTemplate}
+                disabled={savingTemplate || hasPendingItemMutations}
                 className="rounded-lg border border-neutral-700 px-3 py-2 text-sm font-medium text-neutral-200 transition-colors hover:border-emerald-400 hover:text-emerald-300 disabled:opacity-50 sm:px-4 sm:py-1.5"
               >
                 <span className="sm:hidden">
@@ -820,7 +944,12 @@ export function TierListBoard({
           <button
             type="button"
             onClick={handleSubmit}
-            disabled={submitting || totalItems === 0 || rankedCount !== totalItems}
+            disabled={
+              submitting ||
+              hasPendingItemMutations ||
+              totalItems === 0 ||
+              rankedCount !== totalItems
+            }
             className="rounded-lg bg-amber-500 px-3 py-2 text-sm font-medium text-black transition-colors hover:bg-amber-400 disabled:opacity-50 sm:px-5 sm:py-1.5"
           >
             <span className="sm:hidden">{submitting ? "Saving" : "Save"}</span>
@@ -831,10 +960,12 @@ export function TierListBoard({
           <p className="text-right text-sm text-red-400">{saveTemplateError}</p>
         )}
         {submitError && <p className="text-right text-sm text-red-400">{submitError}</p>}
-        {userError && canLiveEditItems && (
+        {userError && canManageItems && (
           <p className="text-right text-sm text-red-400">{userError}</p>
         )}
-        {addItemError && <p className="text-right text-sm text-red-400">{addItemError}</p>}
+        {itemMutationError && (
+          <p className="text-right text-sm text-red-400">{itemMutationError}</p>
+        )}
       </div>
       <DndContext
         sensors={sensors}
@@ -865,9 +996,9 @@ export function TierListBoard({
                 onInsertAbove={() => handleInsertTier(index)}
                 onInsertBelow={() => handleInsertTier(index + 1)}
                 onDelete={() => handleDeleteTier(tier.key)}
-                expandedItemId={expandedItemId}
-                onExpandItem={handleExpandItem}
-                onCollapseExpanded={handleCollapseExpanded}
+                expandedItemId={canManageItems ? null : expandedItemId}
+                onExpandItem={canManageItems ? () => {} : handleExpandItem}
+                onCollapseExpanded={canManageItems ? () => {} : handleCollapseExpanded}
               />
             </div>
           ))}
@@ -884,76 +1015,27 @@ export function TierListBoard({
           <UnrankedDropZone
             emptyMessage={unrankedEmptyMessage}
             className="mb-2 max-h-none min-h-[112px]"
-            onRemoveItem={canLiveEditItems ? handleRemoveLiveItem : undefined}
+            onRemoveItem={!canManageItems ? undefined : handleRemoveLiveItem}
             removingItemId={removingItemId}
-            afterItems={
-              canLiveEditItems ? (
-                <div className="mt-2 flex w-full flex-wrap items-start gap-2 border-t border-neutral-800 pt-2">
-                  {pendingUploads.map((pending) => (
-                    <div
-                      key={pending.id}
-                      className="group relative w-[112px] flex-shrink-0 rounded-lg border border-neutral-700 bg-neutral-950 p-1.5 sm:w-[120px] md:w-[128px]"
-                    >
-                      <button
-                        type="button"
-                        onClick={() => handleRemovePendingUpload(pending.id)}
-                        className="absolute right-1.5 top-1.5 z-10 flex h-6 w-6 items-center justify-center rounded-full border border-neutral-700 bg-black/70 text-neutral-200 opacity-0 transition-all hover:border-red-500 hover:bg-red-600 hover:text-white focus-visible:opacity-100 group-hover:opacity-100 group-focus-within:opacity-100"
-                        aria-label="Remove pending pick"
-                      >
-                        <CloseIcon className="h-3.5 w-3.5" />
-                      </button>
-                      <ItemArtwork
-                        src={pending.imageUrl}
-                        alt="Pending pick"
-                        className="aspect-square w-full rounded"
-                        presentation="ambient"
-                        inset="compact"
-                      />
-                      <input
-                        type="text"
-                        value={pending.label}
-                        onChange={(e) => handlePendingLabelChange(pending.id, e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.nativeEvent.isComposing) return;
-                          if (e.key !== "Enter") return;
-                          e.preventDefault();
-                          e.currentTarget.blur();
-                        }}
-                        placeholder="Name this pick"
-                        maxLength={100}
-                        className="mt-1 w-full rounded border border-neutral-700 bg-neutral-900 px-2 py-1 text-xs text-white placeholder:text-neutral-500 focus:border-amber-500 focus:outline-none"
-                      />
-                    </div>
-                  ))}
-                  <ImageUploader
-                    onUploaded={handlePendingUpload}
-                    multiple
-                    idleLabel={
-                      userLoading
-                        ? "Getting ready..."
-                        : uploadsDisabled
-                          ? "Device needed"
-                          : "Upload"
-                    }
-                    disabled={uploadsDisabled}
-                    className="h-[112px] w-[112px] flex-shrink-0 sm:h-[120px] sm:w-[120px] md:h-[128px] md:w-[128px]"
-                  />
-                  {pendingUploads.length > 0 && (
-                    <button
-                      type="button"
-                      onClick={handleAddPendingItems}
-                      disabled={addingItem}
-                      className="flex h-[112px] w-[112px] flex-shrink-0 flex-col items-center justify-center rounded-lg border border-neutral-700 bg-neutral-950 px-2 text-center text-sm font-medium text-neutral-200 transition-colors hover:border-amber-400 hover:text-amber-300 disabled:opacity-50 sm:h-[120px] sm:w-[120px] md:h-[128px] md:w-[128px]"
-                    >
-                      <span>{addingItem ? "Adding..." : "Add picks"}</span>
-                      <span className="mt-1 text-xs text-neutral-500">
-                        {pendingUploads.length} ready
-                      </span>
-                    </button>
-                  )}
-                </div>
-              ) : undefined
+            renderItem={
+              canManageItems
+                ? (item) => (
+                    <EditableUnrankedItemCard
+                      key={item.id}
+                      id={item.id}
+                      label={item.label}
+                      imageUrl={item.imageUrl}
+                      onSaveLabel={handleSaveLiveItemLabel}
+                      onRemove={() => {
+                        void handleRemoveLiveItem(item.id);
+                      }}
+                      saving={savingItemId === item.id}
+                      removing={removingItemId === item.id}
+                    />
+                  )
+                : undefined
             }
+            afterItems={uploadCard ?? undefined}
           />
         </div>
 
@@ -972,11 +1054,11 @@ export function TierListBoard({
 
       {showSessionBracket && (
         <BracketModal
-          items={liveSessionItems}
+          items={liveItems}
           onComplete={(rankedIds) => {
             const seeded = seedTiersFromRanking(rankedIds, tierConfig);
             initialize(
-              liveSessionItems,
+              liveItems,
               tierConfig.map((t) => t.key),
               seeded,
               null,

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { badRequest, withHandler } from "@/lib/api-helpers";
+import { badRequest, validateBody, withHandler } from "@/lib/api-helpers";
 import { requireRequestAuth } from "@/lib/auth";
 import { takeRateLimitToken } from "@/lib/rate-limit";
 import { InvalidImageError, saveUploadedImage } from "@/lib/upload";
@@ -8,6 +8,8 @@ import {
   UPLOAD_RATE_LIMIT_MAX_REQUESTS,
   UPLOAD_RATE_LIMIT_WINDOW_MS,
 } from "@/lib/upload-config";
+import { tryDeleteManagedUploadIfUnreferenced } from "@/lib/upload-gc";
+import { cleanupUploadSchema } from "@/lib/validators";
 
 export const POST = withHandler(async (request) => {
   const auth = await requireRequestAuth(request);
@@ -44,4 +46,12 @@ export const POST = withHandler(async (request) => {
     }
     throw error;
   }
+});
+
+export const DELETE = withHandler(async (request) => {
+  await requireRequestAuth(request);
+  const { imageUrl } = await validateBody(request, cleanupUploadSchema);
+
+  await tryDeleteManagedUploadIfUnreferenced(imageUrl, "client upload cleanup");
+  return new Response(null, { status: 204 });
 });

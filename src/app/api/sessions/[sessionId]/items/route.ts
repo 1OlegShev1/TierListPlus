@@ -1,9 +1,7 @@
 import { NextResponse } from "next/server";
 import {
-  badRequest,
-  notFound,
   requireOpenSession,
-  requireSessionOwner,
+  requireSessionItemManager,
   validateBody,
   withHandler,
 } from "@/lib/api-helpers";
@@ -12,24 +10,17 @@ import { addSessionItemSchema } from "@/lib/validators";
 
 export const POST = withHandler(async (request, { params }) => {
   const { sessionId } = await params;
-  await requireSessionOwner(request, sessionId);
+  const { session } = await requireSessionItemManager(request, sessionId, {
+    includeTemplateId: true,
+  });
   await requireOpenSession(sessionId);
 
   const data = await validateBody(request, addSessionItemSchema);
-  const session = await prisma.session.findUnique({
-    where: { id: sessionId },
-    select: {
-      templateId: true,
-      template: { select: { isHidden: true } },
-    },
-  });
-
-  if (!session) notFound("Session not found");
-  if (!session.template.isHidden) {
-    badRequest("This session must be recreated before live item editing is available");
-  }
 
   const sessionItem = await prisma.$transaction(async (tx) => {
+    // Serialize sort-order allocation per session across all clients/tabs.
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext('session_items'), hashtext(${sessionId}))`;
+
     const lastItem = await tx.sessionItem.findFirst({
       where: { sessionId },
       orderBy: { sortOrder: "desc" },

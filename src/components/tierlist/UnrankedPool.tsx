@@ -4,6 +4,7 @@ import { useDroppable } from "@dnd-kit/core";
 import { rectSortingStrategy, SortableContext } from "@dnd-kit/sortable";
 import { useTierListStore } from "@/hooks/useTierList";
 import { cn } from "@/lib/utils";
+import type { Item } from "@/types";
 import { DraggableItem } from "./DraggableItem";
 
 export function UnrankedHeader() {
@@ -22,6 +23,7 @@ interface UnrankedDropZoneProps {
   afterItems?: React.ReactNode;
   onRemoveItem?: (itemId: string) => void;
   removingItemId?: string | null;
+  renderItem?: (item: Item) => React.ReactNode;
 }
 
 export function UnrankedDropZone({
@@ -31,6 +33,7 @@ export function UnrankedDropZone({
   afterItems,
   onRemoveItem,
   removingItemId,
+  renderItem,
 }: UnrankedDropZoneProps = {}) {
   const unranked = useTierListStore((s) => s.unranked);
   const itemMap = useTierListStore((s) => s.items);
@@ -52,6 +55,9 @@ export function UnrankedDropZone({
         {unranked.map((id) => {
           const item = itemMap.get(id);
           if (!item) return null;
+          if (renderItem) {
+            return renderItem(item);
+          }
           return (
             <DraggableItem
               key={id}
@@ -64,12 +70,12 @@ export function UnrankedDropZone({
           );
         })}
       </SortableContext>
+      {afterItems}
       {unranked.length === 0 && emptyMessage && (
         <span className="flex h-[54px] items-center px-2 text-xs text-neutral-600 sm:h-[58px] sm:px-2.5 md:h-[68px] md:px-3 lg:h-[96px] lg:px-4 lg:text-sm">
           {emptyMessage}
         </span>
       )}
-      {afterItems}
     </div>
   );
 }

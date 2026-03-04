@@ -97,16 +97,11 @@ export default function VotePage() {
           saveParticipant(currentParticipantId, data.currentParticipantNickname);
         }
 
-        try {
-          const existing = await apiFetch<ExistingVotesResponse>(
-            `/api/sessions/${sessionId}/votes/${currentParticipantId}`,
-          );
-          if (stale) return;
-          setSeededTiers(buildSeededTiers(existing.votes));
-        } catch {
-          if (stale) return;
-          setSeededTiers(undefined);
-        }
+        const existing = await apiFetch<ExistingVotesResponse>(
+          `/api/sessions/${sessionId}/votes/${currentParticipantId}`,
+        );
+        if (stale) return;
+        setSeededTiers(buildSeededTiers(existing.votes));
       } catch (err) {
         if (stale) return;
         setError(getErrorMessage(err, "Failed to load session. Please try again."));
@@ -214,6 +209,7 @@ export default function VotePage() {
       </div>
 
       <TierListBoard
+        key={sessionId}
         sessionId={sessionId}
         participantId={resolvedParticipantId}
         tierConfig={session.tierConfig}
@@ -221,6 +217,7 @@ export default function VotePage() {
         seededTiers={seededTiers}
         canEditTierConfig={canEditTierConfig}
         canSaveTemplate={!!userId}
+        canManageItems={session.canManageItems}
         templateIsHidden={session.templateIsHidden}
         onSubmitted={() => router.push(`/sessions/${sessionId}/results`)}
       />

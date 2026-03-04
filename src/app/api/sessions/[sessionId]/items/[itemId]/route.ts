@@ -2,26 +2,53 @@ import {
   badRequest,
   notFound,
   requireOpenSession,
-  requireSessionOwner,
+  requireSessionItemManager,
+  validateBody,
   withHandler,
 } from "@/lib/api-helpers";
 import { prisma } from "@/lib/prisma";
 import { tryDeleteManagedUploadIfUnreferenced } from "@/lib/upload-gc";
+import { updateSessionItemSchema } from "@/lib/validators";
+
+export const PATCH = withHandler(async (request, { params }) => {
+  const { sessionId, itemId } = await params;
+  await requireSessionItemManager(request, sessionId);
+  await requireOpenSession(sessionId);
+
+  const data = await validateBody(request, updateSessionItemSchema);
+  if (Object.keys(data).length === 0) {
+    badRequest("No item changes provided");
+  }
+
+  const sessionItem = await prisma.sessionItem.findFirst({
+    where: { id: itemId, sessionId },
+    select: {
+      id: true,
+      templateItemId: true,
+    },
+  });
+
+  if (!sessionItem) notFound("Session item not found");
+
+  const updated = await prisma.$transaction(async (tx) => {
+    await tx.templateItem.update({
+      where: { id: sessionItem.templateItemId },
+      data,
+    });
+
+    return tx.sessionItem.update({
+      where: { id: sessionItem.id },
+      data,
+    });
+  });
+
+  return Response.json(updated);
+});
 
 export const DELETE = withHandler(async (request, { params }) => {
   const { sessionId, itemId } = await params;
-  await requireSessionOwner(request, sessionId);
+  await requireSessionItemManager(request, sessionId);
   await requireOpenSession(sessionId);
-
-  const session = await prisma.session.findUnique({
-    where: { id: sessionId },
-    select: { template: { select: { isHidden: true } } },
-  });
-
-  if (!session) notFound("Session not found");
-  if (!session.template.isHidden) {
-    badRequest("This session must be recreated before live item editing is available");
-  }
 
   const sessionItem = await prisma.sessionItem.findFirst({
     where: { id: itemId, sessionId },

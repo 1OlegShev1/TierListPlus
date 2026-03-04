@@ -10,6 +10,8 @@ import { DraggableItem } from "./DraggableItem";
 import { TierColorPicker } from "./TierColorPicker";
 import { TierRowActions } from "./TierRowActions";
 
+const EMPTY_TIER_ITEMS: string[] = [];
+
 interface TierRowProps {
   tierKey: string;
   label: string;
@@ -49,7 +51,7 @@ export function TierRow({
   onExpandItem,
   onCollapseExpanded,
 }: TierRowProps) {
-  const items = useTierListStore((s) => s.tiers[tierKey] ?? []);
+  const items = useTierListStore((s) => s.tiers[tierKey] ?? EMPTY_TIER_ITEMS);
   const itemMap = useTierListStore((s) => s.items);
   const reorderTier = useTierListStore((s) => s.reorderTier);
   const [showBracket, setShowBracket] = useState(false);

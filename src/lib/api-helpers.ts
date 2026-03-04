@@ -239,6 +239,41 @@ export async function requireSessionOwner(request: Request, sessionId: string) {
   return { session, requestUserId };
 }
 
+/** Central policy for whether a signed-in user may add/remove/rename session items. */
+export function canManageSessionItems(
+  templateIsHidden: boolean,
+  creatorId: string | null,
+  requestUserId: string | null,
+) {
+  return !!templateIsHidden && !!requestUserId && creatorId === requestUserId;
+}
+
+/** Require that the current signed-in user may manage session items for a session. */
+export async function requireSessionItemManager(
+  request: Request,
+  sessionId: string,
+  options?: { includeTemplateId?: boolean },
+) {
+  const { userId: requestUserId } = await requireRequestAuth(request);
+  const session = await prisma.session.findUnique({
+    where: { id: sessionId },
+    select: {
+      id: true,
+      creatorId: true,
+      templateId: options?.includeTemplateId ?? false,
+      template: { select: { isHidden: true } },
+    },
+  });
+
+  if (!session) notFound("Session not found");
+  if (!canManageSessionItems(session.template.isHidden, session.creatorId, requestUserId)) {
+    requireOwner(session.creatorId, requestUserId);
+    badRequest("This session must be recreated before live item editing is available");
+  }
+
+  return { session, requestUserId };
+}
+
 /** Shared Prisma include for bracket matchups with full item details + votes */
 export const bracketMatchupInclude = {
   itemA: { select: { id: true, label: true, imageUrl: true } },

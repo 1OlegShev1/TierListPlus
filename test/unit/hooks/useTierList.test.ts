@@ -70,4 +70,22 @@ describe("useTierListStore", () => {
     expect(useTierListStore.getState().tiers).toEqual({ S: ["i1"], B: [] });
     expect(useTierListStore.getState().unranked).toContain("i2");
   });
+
+  it("updates item details without changing placement", () => {
+    useTierListStore.getState().initialize(items, ["S", "A"], { S: ["i1"] });
+
+    useTierListStore.getState().updateItem({
+      id: "i1",
+      label: "Renamed",
+      imageUrl: "/renamed",
+    });
+
+    expect(useTierListStore.getState().items.get("i1")).toEqual({
+      id: "i1",
+      label: "Renamed",
+      imageUrl: "/renamed",
+    });
+    expect(useTierListStore.getState().tiers.S).toEqual(["i1"]);
+    expect(useTierListStore.getState().unranked).toEqual(["i2", "i3"]);
+  });
 });

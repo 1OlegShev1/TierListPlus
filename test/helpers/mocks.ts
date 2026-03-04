@@ -28,6 +28,7 @@ export function createPrismaMock() {
     sessionItem: {
       findFirst: vi.fn(),
       count: vi.fn(),
+      update: vi.fn(),
       delete: vi.fn(),
     },
     template: {
@@ -36,6 +37,7 @@ export function createPrismaMock() {
       create: vi.fn(),
     },
     templateItem: {
+      update: vi.fn(),
       delete: vi.fn(),
     },
     device: {

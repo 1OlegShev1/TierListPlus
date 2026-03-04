@@ -1,17 +1,16 @@
 const mocks = vi.hoisted(() => ({
   prisma: {
     $transaction: vi.fn(),
-    session: {
-      findUnique: vi.fn(),
-    },
     sessionItem: {
       findFirst: vi.fn(),
+      update: vi.fn(),
     },
     templateItem: {
       create: vi.fn(),
+      update: vi.fn(),
     },
   },
-  requireSessionOwner: vi.fn(),
+  requireSessionItemManager: vi.fn(),
   requireOpenSession: vi.fn(),
   tryDeleteManagedUploadIfUnreferenced: vi.fn(),
 }));
@@ -21,7 +20,7 @@ vi.mock("@/lib/api-helpers", async () => {
   const actual = await vi.importActual<typeof import("@/lib/api-helpers")>("@/lib/api-helpers");
   return {
     ...actual,
-    requireSessionOwner: mocks.requireSessionOwner,
+    requireSessionItemManager: mocks.requireSessionItemManager,
     requireOpenSession: mocks.requireOpenSession,
   };
 });
@@ -29,26 +28,31 @@ vi.mock("@/lib/upload-gc", () => ({
   tryDeleteManagedUploadIfUnreferenced: mocks.tryDeleteManagedUploadIfUnreferenced,
 }));
 
-import { DELETE } from "@/app/api/sessions/[sessionId]/items/[itemId]/route";
+import { ApiError } from "@/lib/api-helpers";
+import { DELETE, PATCH } from "@/app/api/sessions/[sessionId]/items/[itemId]/route";
 import { POST } from "@/app/api/sessions/[sessionId]/items/route";
 import { jsonRequest, routeCtx } from "../../helpers/request";
 
 describe("session item delete route", () => {
   beforeEach(() => {
     mocks.prisma.$transaction.mockReset();
-    mocks.prisma.session.findUnique.mockReset().mockResolvedValue({
-      templateId: "template_1",
-      template: { isHidden: true },
+    mocks.requireSessionItemManager.mockReset().mockResolvedValue({
+      session: {
+        templateId: "template_1",
+        template: { isHidden: true },
+      },
     });
     mocks.prisma.sessionItem.findFirst.mockReset();
+    mocks.prisma.sessionItem.update.mockReset();
     mocks.prisma.templateItem.create.mockReset();
-    mocks.requireSessionOwner.mockReset().mockResolvedValue(undefined);
+    mocks.prisma.templateItem.update.mockReset();
     mocks.requireOpenSession.mockReset().mockResolvedValue({ id: "session_1", status: "OPEN" });
     mocks.tryDeleteManagedUploadIfUnreferenced.mockReset().mockResolvedValue(true);
   });
 
   it("creates live items only for hidden-working-template sessions", async () => {
     const tx = {
+      $executeRaw: vi.fn().mockResolvedValue(1),
       sessionItem: {
         findFirst: vi.fn().mockResolvedValue({ sortOrder: 2 }),
         create: vi.fn().mockResolvedValue({
@@ -80,11 +84,11 @@ describe("session item delete route", () => {
         sortOrder: 3,
       },
     });
+    expect(tx.$executeRaw).toHaveBeenCalledTimes(1);
 
-    mocks.prisma.session.findUnique.mockResolvedValueOnce({
-      templateId: "template_legacy",
-      template: { isHidden: false },
-    });
+    mocks.requireSessionItemManager.mockRejectedValueOnce(
+      new ApiError(400, "This session must be recreated before live item editing is available"),
+    );
 
     response = await POST(
       jsonRequest("POST", "https://example.test", { label: "New item", imageUrl: "/img/3.webp" }),
@@ -132,10 +136,61 @@ describe("session item delete route", () => {
     );
   });
 
-  it("rejects deleting items from legacy sessions without a hidden working template", async () => {
-    mocks.prisma.session.findUnique.mockResolvedValueOnce({
-      template: { isHidden: false },
+  it("updates removable session items and their backing template item", async () => {
+    mocks.prisma.sessionItem.findFirst.mockResolvedValue({
+      id: "item_1",
+      templateItemId: "template_item_1",
+      _count: {
+        tierVotes: 0,
+        bracketVotesAsItemA: 0,
+        bracketVotesAsItemB: 0,
+        bracketWins: 0,
+        bracketVoteChoices: 0,
+      },
     });
+    const tx = {
+      sessionItem: {
+        update: vi.fn().mockResolvedValue({
+          id: "item_1",
+          label: "Renamed item",
+          imageUrl: "/img/1.webp",
+          sortOrder: 0,
+        }),
+      },
+      templateItem: {
+        update: vi.fn().mockResolvedValue(undefined),
+      },
+    };
+    mocks.prisma.$transaction.mockImplementation(
+      async (fn: (client: typeof tx) => Promise<unknown>) => fn(tx),
+    );
+
+    const response = await PATCH(
+      jsonRequest("PATCH", "https://example.test", { label: "Renamed item" }),
+      routeCtx({ sessionId: "session_1", itemId: "item_1" }),
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({
+      id: "item_1",
+      label: "Renamed item",
+      imageUrl: "/img/1.webp",
+      sortOrder: 0,
+    });
+    expect(tx.templateItem.update).toHaveBeenCalledWith({
+      where: { id: "template_item_1" },
+      data: { label: "Renamed item" },
+    });
+    expect(tx.sessionItem.update).toHaveBeenCalledWith({
+      where: { id: "item_1" },
+      data: { label: "Renamed item" },
+    });
+  });
+
+  it("rejects deleting items from legacy sessions without a hidden working template", async () => {
+    mocks.requireSessionItemManager.mockRejectedValueOnce(
+      new ApiError(400, "This session must be recreated before live item editing is available"),
+    );
 
     const response = await DELETE(
       new Request("https://example.test", { method: "DELETE" }),
@@ -170,6 +225,42 @@ describe("session item delete route", () => {
     expect(response.status).toBe(400);
     await expect(response.json()).resolves.toEqual({
       error: "This item already has saved votes and cannot be removed",
+    });
+  });
+
+  it("allows editing items even after saved references exist", async () => {
+    mocks.prisma.sessionItem.findFirst.mockResolvedValue({
+      id: "item_1",
+      templateItemId: "template_item_1",
+    });
+    const tx = {
+      sessionItem: {
+        update: vi.fn().mockResolvedValue({
+          id: "item_1",
+          label: "Renamed after votes",
+          imageUrl: "/img/1.webp",
+          sortOrder: 0,
+        }),
+      },
+      templateItem: {
+        update: vi.fn().mockResolvedValue(undefined),
+      },
+    };
+    mocks.prisma.$transaction.mockImplementation(
+      async (fn: (client: typeof tx) => Promise<unknown>) => fn(tx),
+    );
+
+    const response = await PATCH(
+      jsonRequest("PATCH", "https://example.test", { label: "Renamed after votes" }),
+      routeCtx({ sessionId: "session_1", itemId: "item_1" }),
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({
+      id: "item_1",
+      label: "Renamed after votes",
+      imageUrl: "/img/1.webp",
+      sortOrder: 0,
     });
   });
 });

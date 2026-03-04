@@ -20,11 +20,17 @@ export const addTemplateItemSchema = z.object({
 
 export const addSessionItemSchema = addTemplateItemSchema;
 
+export const cleanupUploadSchema = z.object({
+  imageUrl: z.string().min(1),
+});
+
 export const updateTemplateItemSchema = z.object({
   label: z.string().max(100).optional(),
   imageUrl: z.string().min(1).optional(),
   sortOrder: z.number().int().min(0).optional(),
 });
+
+export const updateSessionItemSchema = updateTemplateItemSchema;
 
 export const tierConfigSchema = z.array(
   z.object({

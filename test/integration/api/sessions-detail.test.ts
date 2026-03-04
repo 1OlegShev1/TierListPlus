@@ -70,6 +70,7 @@ describe("session detail route", () => {
     );
     expect(payload).toEqual(
       expect.objectContaining({
+        canManageItems: false,
         currentParticipantId: "participant_1",
         currentParticipantNickname: "Oleg",
         participants: [expect.objectContaining({ hasSubmitted: true })],

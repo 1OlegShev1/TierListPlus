@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import {
+  canManageSessionItems,
   notFound,
   requireSessionAccess,
   requireSessionOwner,
@@ -44,6 +45,11 @@ export const GET = withHandler(async (request, { params }) => {
 
   return NextResponse.json({
     ...session,
+    canManageItems: canManageSessionItems(
+      session.template.isHidden,
+      session.creatorId,
+      requestUserId,
+    ),
     participants,
     templateIsHidden: session.template.isHidden,
     currentParticipantId: currentParticipant?.id ?? null,

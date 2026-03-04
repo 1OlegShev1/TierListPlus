@@ -6,6 +6,7 @@ import { processImageBuffer } from "@/lib/upload";
 const mocks = vi.hoisted(() => ({
   requireRequestAuth: vi.fn(),
   takeRateLimitToken: vi.fn(),
+  tryDeleteManagedUploadIfUnreferenced: vi.fn(),
 }));
 
 vi.mock("@/lib/auth", () => ({
@@ -16,7 +17,11 @@ vi.mock("@/lib/rate-limit", () => ({
   takeRateLimitToken: mocks.takeRateLimitToken,
 }));
 
-import { POST } from "@/app/api/upload/route";
+vi.mock("@/lib/upload-gc", () => ({
+  tryDeleteManagedUploadIfUnreferenced: mocks.tryDeleteManagedUploadIfUnreferenced,
+}));
+
+import { DELETE, POST } from "@/app/api/upload/route";
 import { routeCtx } from "../../helpers/request";
 
 function uploadRequest(file: File): Request {
@@ -59,6 +64,7 @@ describe("upload route", () => {
       allowed: true,
       retryAfterSeconds: 0,
     });
+    mocks.tryDeleteManagedUploadIfUnreferenced.mockReset().mockResolvedValue(true);
   });
 
   afterEach(async () => {
@@ -172,5 +178,22 @@ describe("upload route", () => {
     expect(response.status).toBe(500);
     await expect(response.json()).resolves.toEqual({ error: "Internal server error" });
     expect(consoleSpy).toHaveBeenCalled();
+  });
+
+  it("cleans up an abandoned uploaded file", async () => {
+    const response = await DELETE(
+      new Request("https://example.test/api/upload", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ imageUrl: "/uploads/abc123.webp" }),
+      }),
+      routeCtx({}),
+    );
+
+    expect(response.status).toBe(204);
+    expect(mocks.tryDeleteManagedUploadIfUnreferenced).toHaveBeenCalledWith(
+      "/uploads/abc123.webp",
+      "client upload cleanup",
+    );
   });
 });
