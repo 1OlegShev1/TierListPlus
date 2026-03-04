@@ -6,6 +6,10 @@ import { useTierListStore } from "@/hooks/useTierList";
 import { cn } from "@/lib/utils";
 import type { Item } from "@/types";
 import { DraggableItem } from "./DraggableItem";
+import {
+  COMPACT_UNRANKED_POOL_METRICS_CLASS,
+  EDITABLE_UNRANKED_POOL_METRICS_CLASS,
+} from "./sizing";
 
 export function UnrankedHeader() {
   const count = useTierListStore((s) => s.unranked.length);
@@ -19,6 +23,7 @@ export function UnrankedHeader() {
 interface UnrankedDropZoneProps {
   emptyMessage?: string | null;
   className?: string;
+  size?: "compact" | "editable";
   beforeItems?: React.ReactNode;
   afterItems?: React.ReactNode;
   onRemoveItem?: (itemId: string) => void;
@@ -29,6 +34,7 @@ interface UnrankedDropZoneProps {
 export function UnrankedDropZone({
   emptyMessage = "All items ranked!",
   className,
+  size = "compact",
   beforeItems,
   afterItems,
   onRemoveItem,
@@ -39,12 +45,16 @@ export function UnrankedDropZone({
   const itemMap = useTierListStore((s) => s.items);
 
   const { setNodeRef, isOver } = useDroppable({ id: "unranked" });
+  const metricsClassName =
+    size === "editable"
+      ? EDITABLE_UNRANKED_POOL_METRICS_CLASS
+      : COMPACT_UNRANKED_POOL_METRICS_CLASS;
 
   return (
     <div
       ref={setNodeRef}
       className={cn(
-        `flex max-h-[24vh] min-h-[56px] overflow-y-auto overscroll-contain flex-wrap gap-1 rounded-lg border border-neutral-800 bg-neutral-900 p-1 transition-colors sm:max-h-[26vh] sm:min-h-[60px] sm:p-1.5 md:max-h-[30vh] md:min-h-[72px] md:gap-1.5 lg:max-h-none lg:min-h-[104px] lg:gap-2 lg:p-3 ${
+        `flex min-h-[56px] max-h-[calc((var(--unranked-item-height)*2)+var(--unranked-gap)+(var(--unranked-padding)*2))] overflow-y-auto flex-wrap gap-1 rounded-lg border border-neutral-800 bg-neutral-900 p-1 transition-colors sm:min-h-[60px] sm:p-1.5 md:min-h-[72px] md:gap-1.5 lg:min-h-[104px] lg:gap-2 lg:p-3 ${metricsClassName} ${
           isOver ? "border-amber-500/50 bg-neutral-800/50" : ""
         }`,
         className,

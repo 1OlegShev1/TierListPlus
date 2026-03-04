@@ -1029,7 +1029,8 @@ export function TierListBoard({
           </div>
           <UnrankedDropZone
             emptyMessage={unrankedEmptyMessage}
-            className="mb-2 max-h-none min-h-[112px]"
+            size={canManageItems ? "editable" : "compact"}
+            className="mb-2 min-h-[112px]"
             onRemoveItem={!canManageItems ? undefined : handleRemoveLiveItem}
             removingItemId={removingItemId}
             renderItem={

@@ -5,6 +5,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { useEffect, useRef, useState } from "react";
 import { ItemArtwork } from "@/components/ui/ItemArtwork";
 import { CloseIcon } from "@/components/ui/icons";
+import { EDITABLE_UNRANKED_ITEM_METRICS_CLASS } from "./sizing";
 
 interface EditableUnrankedItemCardProps {
   id: string;
@@ -93,7 +94,7 @@ export function EditableUnrankedItemCard({
     <div
       ref={setNodeRef}
       style={style}
-      className="group relative w-[112px] flex-shrink-0 rounded-lg border border-neutral-700 bg-neutral-950 p-1.5 sm:w-[120px] md:w-[128px]"
+      className={`group relative flex h-[var(--editable-item-height)] w-[var(--editable-item-width)] flex-shrink-0 flex-col rounded-lg border border-neutral-700 bg-neutral-950 p-[var(--editable-item-padding)] ${EDITABLE_UNRANKED_ITEM_METRICS_CLASS}`}
     >
       <button
         type="button"
@@ -114,7 +115,7 @@ export function EditableUnrankedItemCard({
       </button>
 
       {editing ? (
-        <div className="aspect-square w-full overflow-hidden rounded">
+        <div className="h-[var(--editable-item-media-size)] w-full overflow-hidden rounded">
           <ItemArtwork
             src={imageUrl}
             alt={label || "Editable item"}
@@ -129,7 +130,7 @@ export function EditableUnrankedItemCard({
           {...attributes}
           {...listeners}
           onClick={startEditing}
-          className="block aspect-square w-full cursor-grab overflow-hidden rounded active:cursor-grabbing"
+          className="block h-[var(--editable-item-media-size)] w-full cursor-grab overflow-hidden rounded active:cursor-grabbing"
           aria-label={`Edit ${label || "item"} label or drag to rank`}
         >
           <ItemArtwork
@@ -166,7 +167,7 @@ export function EditableUnrankedItemCard({
           maxLength={100}
           disabled={saving}
           placeholder="Name this pick"
-          className="mt-1 w-full rounded border border-neutral-700 bg-neutral-900 px-2 py-1 text-xs text-white placeholder:text-neutral-500 focus:border-amber-500 focus:outline-none disabled:opacity-70"
+          className="mt-[var(--editable-item-label-gap)] h-[var(--editable-item-label-height)] w-full rounded border border-neutral-700 bg-neutral-900 px-2 py-1 text-xs text-white placeholder:text-neutral-500 focus:border-amber-500 focus:outline-none disabled:opacity-70"
           aria-label="Edit item label"
         />
       ) : (
@@ -174,7 +175,7 @@ export function EditableUnrankedItemCard({
           type="button"
           onClick={startEditing}
           disabled={saving || removing}
-          className="mt-1 block w-full truncate rounded border border-transparent px-1 py-1 text-left text-xs text-neutral-200 transition-colors hover:border-neutral-800 hover:bg-neutral-900 disabled:cursor-default disabled:opacity-70"
+          className="mt-[var(--editable-item-label-gap)] block h-[var(--editable-item-label-height)] w-full truncate rounded border border-transparent px-1 py-1 text-left text-xs text-neutral-200 transition-colors hover:border-neutral-800 hover:bg-neutral-900 disabled:cursor-default disabled:opacity-70"
           title={labelText}
           aria-label={`Edit ${label || "item"} label`}
         >

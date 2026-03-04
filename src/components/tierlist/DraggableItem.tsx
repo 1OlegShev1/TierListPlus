@@ -4,6 +4,7 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { ItemArtwork } from "@/components/ui/ItemArtwork";
 import { CloseIcon } from "@/components/ui/icons";
+import { COMPACT_DRAGGABLE_ITEM_METRICS_CLASS } from "./sizing";
 
 interface DraggableItemProps {
   id: string;
@@ -50,7 +51,7 @@ export function DraggableItem({
   return (
     <div
       data-peek-item={overlay ? undefined : "true"}
-      className={`group relative h-[62px] w-[62px] flex-shrink-0 overflow-visible sm:h-[70px] sm:w-[70px] md:h-[78px] md:w-[78px] lg:h-[96px] lg:w-[96px] ${
+      className={`group relative h-[var(--compact-item-size)] w-[var(--compact-item-size)] flex-shrink-0 overflow-visible ${COMPACT_DRAGGABLE_ITEM_METRICS_CLASS} ${
         expanded ? "z-20" : "z-0"
       }`}
     >
