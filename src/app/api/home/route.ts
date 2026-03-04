@@ -68,6 +68,7 @@ export const GET = withHandler(async (request) => {
     }),
     prisma.session.findMany({
       where: {
+        status: "OPEN",
         sourceTemplate: {
           creatorId: userId,
           isHidden: false,

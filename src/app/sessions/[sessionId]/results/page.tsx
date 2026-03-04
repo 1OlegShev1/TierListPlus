@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef, useState } from "react";
+import { CloseVoteButton } from "@/components/sessions/CloseVoteButton";
 import { buttonVariants } from "@/components/ui/Button";
 import { ErrorMessage } from "@/components/ui/ErrorMessage";
 import { Loading } from "@/components/ui/Loading";
@@ -255,12 +256,22 @@ function ResultsContent() {
         actions={
           <div className="flex shrink-0 gap-2">
             {session?.status === "OPEN" && (
-              <Link
-                href={`/sessions/${sessionId}`}
-                className={`${buttonVariants.primary} !px-4 !py-1.5 !text-sm whitespace-nowrap`}
-              >
-                {currentParticipantId ? "Jump Back In" : "Join This Vote"}
-              </Link>
+              <>
+                <Link
+                  href={`/sessions/${sessionId}`}
+                  className={`${buttonVariants.primary} !px-4 !py-1.5 !text-sm whitespace-nowrap`}
+                >
+                  {currentParticipantId ? "Jump Back In" : "Join This Vote"}
+                </Link>
+                <CloseVoteButton
+                  sessionId={sessionId}
+                  creatorId={session?.creatorId ?? null}
+                  status={session?.status ?? "CLOSED"}
+                  onClosed={() =>
+                    setSession((current) => (current ? { ...current, status: "CLOSED" } : current))
+                  }
+                />
+              </>
             )}
             {session?.status !== "OPEN" && (
               <Link

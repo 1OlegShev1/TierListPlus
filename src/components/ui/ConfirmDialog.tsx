@@ -2,12 +2,15 @@
 
 import { useEffect, useRef } from "react";
 import { Button } from "@/components/ui/Button";
+import { cn } from "@/lib/utils";
 
 interface ConfirmDialogProps {
   open: boolean;
   title: string;
   description: string;
   confirmLabel?: string;
+  loadingLabel?: string;
+  confirmVariant?: "primary" | "danger";
   onConfirm: () => void;
   onCancel: () => void;
   loading?: boolean;
@@ -18,6 +21,8 @@ export function ConfirmDialog({
   title,
   description,
   confirmLabel = "Delete",
+  loadingLabel,
+  confirmVariant = "danger",
   onConfirm,
   onCancel,
   loading,
@@ -43,8 +48,17 @@ export function ConfirmDialog({
         <Button variant="secondary" onClick={onCancel} disabled={loading}>
           Cancel
         </Button>
-        <Button onClick={onConfirm} disabled={loading} className="bg-red-600 hover:bg-red-500">
-          {loading ? "Deleting..." : confirmLabel}
+        <Button
+          onClick={onConfirm}
+          disabled={loading}
+          className={cn(
+            confirmVariant === "danger" && "bg-red-600 hover:bg-red-500",
+            confirmVariant === "primary" && "bg-amber-500 text-black hover:bg-amber-400",
+          )}
+        >
+          {loading
+            ? (loadingLabel ?? (confirmVariant === "danger" ? "Deleting..." : "Working..."))
+            : confirmLabel}
         </Button>
       </div>
     </dialog>

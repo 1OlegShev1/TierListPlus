@@ -79,6 +79,7 @@ export interface TemplateItemData {
 
 /** Session result summary for the results page */
 export interface SessionResult {
+  creatorId: string | null;
   status: string;
   name: string;
   joinCode: string;

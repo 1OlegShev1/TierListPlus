@@ -87,11 +87,7 @@ describe("session detail route", () => {
     await expect(response.json()).resolves.toEqual(expect.objectContaining({ isLocked: true }));
 
     mocks.prisma.session.findUnique.mockResolvedValue({
-      items: [
-        { imageUrl: "/one.webp" },
-        { imageUrl: "/one.webp" },
-        { imageUrl: "/two.webp" },
-      ],
+      items: [{ imageUrl: "/one.webp" }, { imageUrl: "/one.webp" }, { imageUrl: "/two.webp" }],
       template: {
         id: "template_1",
         isHidden: false,
@@ -99,11 +95,30 @@ describe("session detail route", () => {
         _count: { sessions: 1 },
       },
     });
-    response = await DELETE(new Request("https://example.test", { method: "DELETE" }), routeCtx({ sessionId: "s1" }));
+    response = await DELETE(
+      new Request("https://example.test", { method: "DELETE" }),
+      routeCtx({ sessionId: "s1" }),
+    );
     expect(response.status).toBe(204);
     expect(mocks.prisma.session.delete).toHaveBeenCalledWith({ where: { id: "s1" } });
     expect(mocks.prisma.template.delete).not.toHaveBeenCalled();
     expect(mocks.tryDeleteManagedUploadIfUnreferenced).toHaveBeenCalledTimes(2);
+  });
+
+  it("allows the owner to close a session", async () => {
+    mocks.prisma.session.update.mockResolvedValue(makeSession({ status: "CLOSED" }));
+
+    const response = await PATCH(
+      jsonRequest("PATCH", "https://example.test", { status: "CLOSED" }),
+      routeCtx({ sessionId: "s1" }),
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual(expect.objectContaining({ status: "CLOSED" }));
+    expect(mocks.prisma.session.update).toHaveBeenCalledWith({
+      where: { id: "s1" },
+      data: { status: "CLOSED" },
+    });
   });
 
   it("deletes the hidden working template when removing its last session", async () => {

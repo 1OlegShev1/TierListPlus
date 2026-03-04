@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { CloseVoteButton } from "@/components/sessions/CloseVoteButton";
 import { DeleteVoteButton } from "@/components/sessions/DeleteVoteButton";
 import { TierListBoard } from "@/components/tierlist/TierListBoard";
 import { ErrorMessage } from "@/components/ui/ErrorMessage";
@@ -188,6 +189,12 @@ export default function VotePage() {
             <Link href={`/sessions/${sessionId}/results`} className={resultsLinkClassName}>
               View Results
             </Link>
+            <CloseVoteButton
+              sessionId={session.id}
+              creatorId={session.creatorId}
+              status={session.status}
+              redirectHref={`/sessions/${sessionId}/results`}
+            />
             {isOwner && (
               <DeleteVoteButton
                 sessionId={session.id}

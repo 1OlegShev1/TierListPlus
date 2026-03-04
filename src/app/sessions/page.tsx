@@ -1,6 +1,7 @@
 import type { Prisma } from "@prisma/client";
 import { cookies } from "next/headers";
 import Link from "next/link";
+import { CloseVoteButton } from "@/components/sessions/CloseVoteButton";
 import { DeleteVoteButton } from "@/components/sessions/DeleteVoteButton";
 import { buttonVariants } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -280,6 +281,12 @@ function VoteRow({ vote, viewer }: { vote: VoteListItem; viewer: VoteViewer }) {
         <Link href={action.href} className={`${buttonVariants.secondary} sm:px-6`}>
           {action.label}
         </Link>
+        <CloseVoteButton
+          sessionId={vote.id}
+          creatorId={vote.creatorId}
+          status={vote.status}
+          label="Close"
+        />
         <DeleteVoteButton sessionId={vote.id} creatorId={vote.creatorId} />
       </div>
     </div>
