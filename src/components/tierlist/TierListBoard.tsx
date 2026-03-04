@@ -20,6 +20,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { type ReactNode, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { ImageUploader, type UploadedImage } from "@/components/shared/ImageUploader";
+import { ItemArtwork } from "@/components/ui/ItemArtwork";
 import { CloseIcon } from "@/components/ui/icons";
 import { useTierListStore } from "@/hooks/useTierList";
 import { useUser } from "@/hooks/useUser";
@@ -883,10 +884,12 @@ export function TierListBoard({
                       >
                         <CloseIcon className="h-3.5 w-3.5" />
                       </button>
-                      <img
+                      <ItemArtwork
                         src={pending.imageUrl}
                         alt="Pending pick"
-                        className="aspect-square w-full rounded object-cover"
+                        className="aspect-square w-full rounded"
+                        presentation="ambient"
+                        inset="compact"
                       />
                       <input
                         type="text"

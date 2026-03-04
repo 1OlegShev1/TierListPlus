@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { ErrorMessage } from "@/components/ui/ErrorMessage";
 import { Input } from "@/components/ui/Input";
+import { ItemArtwork } from "@/components/ui/ItemArtwork";
 import { ItemPreview } from "@/components/ui/ItemPreview";
 import { saveParticipant } from "@/hooks/useParticipant";
 import { useUser } from "@/hooks/useUser";
@@ -183,11 +184,13 @@ export function NewVoteForm() {
                 </p>
                 <div className="grid grid-cols-4 gap-2 sm:grid-cols-6">
                   {selectedListDetails.items.map((item) => (
-                    <img
+                    <ItemArtwork
                       key={item.id}
                       src={item.imageUrl}
                       alt={item.label}
-                      className="aspect-square w-full rounded-md object-cover"
+                      className="aspect-square w-full rounded-md"
+                      presentation="ambient"
+                      inset="compact"
                     />
                   ))}
                 </div>

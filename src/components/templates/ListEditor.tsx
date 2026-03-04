@@ -6,6 +6,7 @@ import { ImageUploader, type UploadedImage } from "@/components/shared/ImageUplo
 import { Button } from "@/components/ui/Button";
 import { ErrorMessage } from "@/components/ui/ErrorMessage";
 import { Input } from "@/components/ui/Input";
+import { ItemArtwork } from "@/components/ui/ItemArtwork";
 import { CloseIcon } from "@/components/ui/icons";
 import { Textarea } from "@/components/ui/Textarea";
 import { useUser } from "@/hooks/useUser";
@@ -202,10 +203,12 @@ export function ListEditor({
               >
                 <CloseIcon className="h-3.5 w-3.5" />
               </button>
-              <img
+              <ItemArtwork
                 src={item.imageUrl}
                 alt={item.label}
-                className="aspect-square w-full rounded object-cover"
+                className="aspect-square w-full rounded"
+                presentation="ambient"
+                inset="compact"
               />
               <input
                 ref={(node) => {

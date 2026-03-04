@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import { ItemArtwork } from "./ItemArtwork";
 
 interface PreviewItem {
   id: string;
@@ -24,13 +25,15 @@ export function ItemPreview({
   return (
     <div className={cn(variantClasses, className)}>
       {previewItems.map((item) => (
-        <img
+        <ItemArtwork
           key={item.id}
           src={item.imageUrl}
           alt={item.label ?? ""}
           loading="lazy"
           decoding="async"
-          className="aspect-square w-full rounded-lg border border-neutral-800/80 object-cover"
+          className="aspect-square w-full rounded-lg border border-neutral-800/80"
+          presentation="ambient"
+          inset="compact"
         />
       ))}
       {Array.from({ length: Math.max(0, 4 - previewItems.length) }, (_, index) => (
