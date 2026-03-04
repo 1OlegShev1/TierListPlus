@@ -165,6 +165,54 @@ describe("sessions collection route", () => {
     });
   });
 
+  it("trims the session name before persisting new sessions", async () => {
+    mocks.prisma.template.create.mockResolvedValueOnce(
+      makeTemplate({
+        id: "working_template_trimmed",
+        name: "Trimmed Name",
+        isHidden: true,
+        items: [],
+      }),
+    );
+    mocks.prisma.session.create.mockResolvedValueOnce(
+      makeSession({
+        id: "session_trimmed",
+        name: "Trimmed Name",
+        templateId: "working_template_trimmed",
+        sourceTemplateId: null,
+        items: [],
+      }),
+    );
+
+    const response = await POST(
+      jsonRequest("POST", "https://example.test", { name: "  Trimmed Name  " }),
+      { params: Promise.resolve({}) },
+    );
+
+    expect(response.status).toBe(201);
+    expect(mocks.prisma.template.create).toHaveBeenCalledWith({
+      data: {
+        name: "Trimmed Name",
+        description: null,
+        creatorId: "user_1",
+        isPublic: false,
+        isHidden: true,
+      },
+      include: {
+        items: { orderBy: { sortOrder: "asc" } },
+      },
+    });
+    expect(mocks.prisma.session.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        name: "Trimmed Name",
+      }),
+      include: {
+        items: true,
+        _count: { select: { participants: true } },
+      },
+    });
+  });
+
   it("creates a hidden working template from the chosen source template and tracks its origin", async () => {
     mocks.prisma.template.findUnique.mockResolvedValueOnce(
       makeTemplate({

@@ -8,6 +8,11 @@ import {
   withHandler,
 } from "@/lib/api-helpers";
 import { prisma } from "@/lib/prisma";
+import {
+  SESSION_PARTICIPANT_COUNT_SELECT,
+  SESSION_TEMPLATE_SELECT,
+  SORT_ORDER_ASC,
+} from "@/lib/session-query";
 import { tryDeleteManagedUploadIfUnreferenced } from "@/lib/upload-gc";
 import { updateSessionSchema } from "@/lib/validators";
 
@@ -17,13 +22,13 @@ export const GET = withHandler(async (request, { params }) => {
   const session = await prisma.session.findUnique({
     where: { id: sessionId },
     include: {
-      template: { select: { name: true, isHidden: true } },
-      items: { orderBy: { sortOrder: "asc" } },
+      template: { select: SESSION_TEMPLATE_SELECT },
+      items: { orderBy: SORT_ORDER_ASC },
       participants: {
         orderBy: { createdAt: "asc" },
         include: { _count: { select: { tierVotes: true } } },
       },
-      _count: { select: { participants: true } },
+      _count: { select: SESSION_PARTICIPANT_COUNT_SELECT },
     },
   });
 

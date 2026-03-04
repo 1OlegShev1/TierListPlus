@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { buildSessionCardInclude, buildSessionPreviewItemsInclude } from "@/lib/session-query";
 
 export const HOME_SECTION_LIMIT = 4;
 
@@ -31,11 +32,8 @@ export interface HomeData {
 }
 
 export async function loadHomeData(userId: string): Promise<HomeData> {
-  const previewItems = {
-    take: HOME_SECTION_LIMIT,
-    orderBy: { sortOrder: "asc" as const },
-    select: { id: true, imageUrl: true, label: true },
-  };
+  const previewItems = buildSessionPreviewItemsInclude(HOME_SECTION_LIMIT);
+  const sessionCardInclude = buildSessionCardInclude(HOME_SECTION_LIMIT);
 
   const [
     myTemplates,
@@ -68,11 +66,7 @@ export async function loadHomeData(userId: string): Promise<HomeData> {
         creatorId: userId,
         status: "OPEN",
       },
-      include: {
-        template: { select: { name: true, isHidden: true } },
-        items: previewItems,
-        _count: { select: { participants: true, items: true } },
-      },
+      include: sessionCardInclude,
       orderBy: { updatedAt: "desc" },
       take: HOME_SECTION_LIMIT,
     }),
@@ -82,11 +76,7 @@ export async function loadHomeData(userId: string): Promise<HomeData> {
         participants: { some: { userId } },
         NOT: { creatorId: userId },
       },
-      include: {
-        template: { select: { name: true, isHidden: true } },
-        items: previewItems,
-        _count: { select: { participants: true, items: true } },
-      },
+      include: sessionCardInclude,
       orderBy: { updatedAt: "desc" },
       take: HOME_SECTION_LIMIT,
     }),
@@ -100,11 +90,7 @@ export async function loadHomeData(userId: string): Promise<HomeData> {
         creatorId: { not: userId },
         isPrivate: false,
       },
-      include: {
-        template: { select: { name: true, isHidden: true } },
-        items: previewItems,
-        _count: { select: { participants: true, items: true } },
-      },
+      include: sessionCardInclude,
       orderBy: { updatedAt: "desc" },
       take: HOME_SECTION_LIMIT,
     }),
