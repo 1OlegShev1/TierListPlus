@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { ErrorMessage } from "@/components/ui/ErrorMessage";
 import { Input } from "@/components/ui/Input";
@@ -53,6 +53,7 @@ export function NewVoteForm({
   const [isPrivate, setIsPrivate] = useState(true);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState("");
+  const createInFlightRef = useRef(false);
 
   useEffect(() => {
     if (!selectedListId) {
@@ -106,9 +107,11 @@ export function NewVoteForm({
     setStep("details");
   };
 
+  const trimmedName = name.trim();
+  const trimmedNickname = nickname.trim();
   const canCreate =
-    !!name.trim() &&
-    !!nickname.trim() &&
+    !!trimmedName &&
+    !!trimmedNickname &&
     !creating &&
     !userLoading &&
     !!userId &&
@@ -121,7 +124,8 @@ export function NewVoteForm({
   };
 
   const create = async () => {
-    if (!canCreate) return;
+    if (!canCreate || createInFlightRef.current) return;
+    createInFlightRef.current = true;
     setCreating(true);
     setError("");
     try {
@@ -131,8 +135,8 @@ export function NewVoteForm({
         participantNickname: string;
       }>("/api/sessions", {
         ...(selectedListId ? { templateId: selectedListId } : {}),
-        name,
-        nickname: nickname.trim(),
+        name: trimmedName,
+        nickname: trimmedNickname,
         isPrivate,
       });
 
@@ -141,6 +145,7 @@ export function NewVoteForm({
     } catch (err) {
       setError(getErrorMessage(err, "Could not start this vote"));
     } finally {
+      createInFlightRef.current = false;
       setCreating(false);
     }
   };

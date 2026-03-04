@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { CloseVoteButton } from "@/components/sessions/CloseVoteButton";
 import { ReopenVoteButton } from "@/components/sessions/ReopenVoteButton";
 import { buttonVariants } from "@/components/ui/Button";
@@ -9,10 +9,10 @@ import { ErrorMessage } from "@/components/ui/ErrorMessage";
 import { ItemArtwork } from "@/components/ui/ItemArtwork";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { useParticipant } from "@/hooks/useParticipant";
-import type { ConsensusItem, ConsensusTier } from "@/lib/consensus";
+import type { ConsensusTier } from "@/lib/consensus";
 import type { SessionResult } from "@/types";
+import { useResultsDetailsPanel } from "./useResultsDetailsPanel";
 
-const DETAILS_PANEL_ANIMATION_MS = 240;
 const MAX_TIER_TOOLTIP_NAMES = 4;
 
 function formatTierVoterPreview(names: string[]): string {
@@ -43,13 +43,20 @@ export function ResultsPageClient({
 }) {
   const { save: saveParticipant, clear: clearParticipant } = useParticipant(sessionId);
   const [session, setSession] = useState(initialSession);
-  const [selectedItem, setSelectedItem] = useState<ConsensusItem | null>(null);
-  const [detailsItem, setDetailsItem] = useState<ConsensusItem | null>(null);
-  const [detailsOpen, setDetailsOpen] = useState(false);
-  const [isTouchInput, setIsTouchInput] = useState(false);
-  const detailsPanelRef = useRef<HTMLDivElement | null>(null);
-  const wasDetailsOpenRef = useRef(false);
-  const touchStartRef = useRef<{ id: string; x: number; y: number } | null>(null);
+  const {
+    selectedItem,
+    detailsItem,
+    detailsOpen,
+    detailsPanelRef,
+    isTouchInput,
+    handleItemClick,
+    handleItemTouchStart,
+    handleItemTouchEnd,
+    handleItemTouchCancel,
+  } = useResultsDetailsPanel({
+    participantId,
+    initialParticipantError,
+  });
 
   useEffect(() => {
     if (session.currentParticipantId && session.currentParticipantNickname) {
@@ -63,78 +70,6 @@ export function ResultsPageClient({
     session.currentParticipantId,
     session.currentParticipantNickname,
   ]);
-
-  useEffect(() => {
-    const media = window.matchMedia("(hover: none) and (pointer: coarse)");
-    const update = () => {
-      const hasTouch = navigator.maxTouchPoints > 0;
-      setIsTouchInput(media.matches || hasTouch);
-    };
-    update();
-    media.addEventListener("change", update);
-    return () => media.removeEventListener("change", update);
-  }, []);
-
-  useEffect(() => {
-    const justOpened = detailsOpen && !wasDetailsOpenRef.current;
-    wasDetailsOpenRef.current = detailsOpen;
-
-    if (!justOpened || !detailsItem || participantId || initialParticipantError) {
-      return;
-    }
-
-    let raf1 = 0;
-    let raf2 = 0;
-    raf1 = window.requestAnimationFrame(() => {
-      raf2 = window.requestAnimationFrame(() => {
-        const panel = detailsPanelRef.current;
-        if (!panel) return;
-
-        const rect = panel.getBoundingClientRect();
-        const viewportHeight = window.innerHeight;
-        const topOffset = isTouchInput ? 68 : 88;
-        const bottomBuffer = isTouchInput ? 20 : 28;
-
-        const needsScroll =
-          rect.top < topOffset ||
-          rect.top > viewportHeight - 120 ||
-          rect.bottom > viewportHeight - bottomBuffer;
-
-        if (!needsScroll) return;
-        panel.scrollIntoView({
-          behavior: isTouchInput ? "auto" : "smooth",
-          block: "start",
-        });
-      });
-    });
-
-    return () => {
-      window.cancelAnimationFrame(raf1);
-      window.cancelAnimationFrame(raf2);
-    };
-  }, [detailsItem, detailsOpen, initialParticipantError, isTouchInput, participantId]);
-
-  useEffect(() => {
-    if (participantId) {
-      setDetailsOpen(false);
-      setDetailsItem(null);
-      return;
-    }
-
-    if (selectedItem) {
-      setDetailsItem(selectedItem);
-      const raf = window.requestAnimationFrame(() => {
-        setDetailsOpen(true);
-      });
-      return () => window.cancelAnimationFrame(raf);
-    }
-
-    setDetailsOpen(false);
-    const timeout = window.setTimeout(() => {
-      setDetailsItem(null);
-    }, DETAILS_PANEL_ANIMATION_MS);
-    return () => window.clearTimeout(timeout);
-  }, [participantId, selectedItem]);
 
   const participantsWithSavedVotes = session.participants.filter((p) => p.hasSavedVotes);
   const totalParticipants = participantsWithSavedVotes.length;
@@ -155,11 +90,6 @@ export function ResultsPageClient({
   const voteHref = currentParticipantId
     ? `/sessions/${sessionId}/vote`
     : `/sessions/join?code=${encodeURIComponent(session.joinCode)}`;
-
-  const handleItemSelect = (item: ConsensusItem) => {
-    if (isIndividualView) return;
-    setSelectedItem((current) => (current?.id === item.id ? null : item));
-  };
 
   return (
     <div>
@@ -269,30 +199,10 @@ export function ResultsPageClient({
                   <button
                     key={item.id}
                     type="button"
-                    onClick={() => {
-                      if (!isTouchInput) handleItemSelect(item);
-                    }}
-                    onTouchStart={(event) => {
-                      if (isIndividualView || !isTouchInput) return;
-                      const touch = event.touches[0];
-                      if (!touch) return;
-                      touchStartRef.current = { id: item.id, x: touch.clientX, y: touch.clientY };
-                    }}
-                    onTouchEnd={(event) => {
-                      if (isIndividualView || !isTouchInput) return;
-                      const touch = event.changedTouches[0];
-                      const start = touchStartRef.current;
-                      touchStartRef.current = null;
-                      if (!touch || !start || start.id !== item.id) return;
-                      const movedX = Math.abs(touch.clientX - start.x);
-                      const movedY = Math.abs(touch.clientY - start.y);
-                      if (movedX > 8 || movedY > 8) return;
-                      event.preventDefault();
-                      handleItemSelect(item);
-                    }}
-                    onTouchCancel={() => {
-                      touchStartRef.current = null;
-                    }}
+                    onClick={() => handleItemClick(item)}
+                    onTouchStart={(event) => handleItemTouchStart(item.id, event)}
+                    onTouchEnd={(event) => handleItemTouchEnd(item, event)}
+                    onTouchCancel={handleItemTouchCancel}
                     className={`group relative h-[62px] w-[62px] flex-shrink-0 overflow-hidden rounded-md border transition-colors sm:h-[70px] sm:w-[70px] md:h-[78px] md:w-[78px] lg:h-[96px] lg:w-[96px] ${
                       !isIndividualView && selectedItem?.id === item.id
                         ? "border-amber-400 ring-2 ring-amber-400"

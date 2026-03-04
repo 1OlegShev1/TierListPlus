@@ -62,6 +62,11 @@ describe("validators", () => {
         nickname: "Host",
       }),
     ).toBeTruthy();
+    expect(
+      createSessionSchema.parse({
+        name: "  Session with padding  ",
+      }).name,
+    ).toBe("Session with padding");
     expect(joinSessionSchema.safeParse({ joinCode: "", nickname: "Nick" }).success).toBe(false);
     expect(
       submitVotesSchema.safeParse({

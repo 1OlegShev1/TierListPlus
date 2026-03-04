@@ -43,7 +43,7 @@ export const tierConfigSchema = z.array(
 
 export const createSessionSchema = z.object({
   templateId: z.string().min(1).optional(),
-  name: z.string().min(1).max(100),
+  name: z.string().trim().min(1).max(100),
   tierConfig: tierConfigSchema.optional(),
   isPrivate: z.boolean().optional(),
   nickname: z.string().min(1).max(30).optional(),
