@@ -25,6 +25,7 @@ export function StartVoteFromTemplateButton({
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [nickname, setNickname] = useState("");
+  const [isPrivate, setIsPrivate] = useState(true);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState("");
 
@@ -59,7 +60,7 @@ export function StartVoteFromTemplateButton({
         templateId,
         name: name.trim(),
         nickname: nickname.trim(),
-        isPrivate: true,
+        isPrivate,
       });
 
       saveParticipant(data.id, data.participantId, data.participantNickname);
@@ -127,6 +128,21 @@ export function StartVoteFromTemplateButton({
               maxLength={30}
               className="w-full"
             />
+          </label>
+
+          <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-neutral-800 bg-neutral-950/60 p-4 transition-colors hover:border-neutral-700 hover:bg-neutral-800">
+            <input
+              type="checkbox"
+              checked={!isPrivate}
+              onChange={(e) => setIsPrivate(!e.target.checked)}
+              className="h-4 w-4 accent-amber-500"
+            />
+            <div>
+              <p className="font-medium">Show in public Votes list</p>
+              <p className="text-sm text-neutral-500">
+                Off by default. People can still join private votes with the code.
+              </p>
+            </div>
           </label>
 
           {(userError || error) && (
