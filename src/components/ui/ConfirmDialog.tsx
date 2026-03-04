@@ -10,6 +10,7 @@ interface ConfirmDialogProps {
   description: string;
   confirmLabel?: string;
   loadingLabel?: string;
+  preserveLabelWhileLoading?: boolean;
   confirmVariant?: "primary" | "danger";
   onConfirm: () => void;
   onCancel: () => void;
@@ -22,6 +23,7 @@ export function ConfirmDialog({
   description,
   confirmLabel = "Delete",
   loadingLabel,
+  preserveLabelWhileLoading = false,
   confirmVariant = "danger",
   onConfirm,
   onCancel,
@@ -35,6 +37,12 @@ export function ConfirmDialog({
     if (open && !el.open) el.showModal();
     if (!open && el.open) el.close();
   }, [open]);
+
+  const confirmButtonLabel = loading
+    ? preserveLabelWhileLoading
+      ? confirmLabel
+      : (loadingLabel ?? (confirmVariant === "danger" ? "Deleting..." : "Working..."))
+    : confirmLabel;
 
   return (
     <dialog
@@ -56,9 +64,7 @@ export function ConfirmDialog({
             confirmVariant === "primary" && "bg-amber-500 text-black hover:bg-amber-400",
           )}
         >
-          {loading
-            ? (loadingLabel ?? (confirmVariant === "danger" ? "Deleting..." : "Working..."))
-            : confirmLabel}
+          {confirmButtonLabel}
         </Button>
       </div>
     </dialog>

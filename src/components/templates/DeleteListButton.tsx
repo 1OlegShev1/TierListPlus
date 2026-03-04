@@ -56,6 +56,7 @@ export function DeleteListButton({ listId, creatorId }: DeleteListButtonProps) {
           setOpen(false);
           setError(null);
         }}
+        preserveLabelWhileLoading
         loading={deleting}
       />
     </>

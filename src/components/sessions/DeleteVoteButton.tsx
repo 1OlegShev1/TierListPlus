@@ -70,6 +70,7 @@ export function DeleteVoteButton({
           setOpen(false);
           setError(null);
         }}
+        preserveLabelWhileLoading
         loading={deleting}
       />
     </>

@@ -1,19 +1,15 @@
-"use client";
-
-import Link from "next/link";
-import { useParams, useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useRef, useState } from "react";
-import { CloseVoteButton } from "@/components/sessions/CloseVoteButton";
-import { ReopenVoteButton } from "@/components/sessions/ReopenVoteButton";
-import { buttonVariants } from "@/components/ui/Button";
-import { ErrorMessage } from "@/components/ui/ErrorMessage";
-import { ItemArtwork } from "@/components/ui/ItemArtwork";
-import { Loading } from "@/components/ui/Loading";
-import { PageHeader } from "@/components/ui/PageHeader";
-import { useParticipant } from "@/hooks/useParticipant";
-import { apiFetch, getErrorMessage } from "@/lib/api-client";
-import type { ConsensusItem, ConsensusTier } from "@/lib/consensus";
+import { cookies } from "next/headers";
+import { notFound } from "next/navigation";
+import { getCookieAuth } from "@/lib/auth";
+import { type ConsensusTier, computeConsensus } from "@/lib/consensus";
+import { prisma } from "@/lib/prisma";
+import { tierConfigSchema } from "@/lib/validators";
 import type { Item, SessionResult, TierConfig } from "@/types";
+import { ResultsPageClient } from "./ResultsPageClient";
+
+export const dynamic = "force-dynamic";
+
+type SearchParams = Record<string, string | string[] | undefined>;
 
 interface ParticipantVote {
   tierKey: string;
@@ -21,24 +17,6 @@ interface ParticipantVote {
   sessionItem: Item;
 }
 
-interface ParticipantVotesResponse {
-  participant: { id: string; nickname: string };
-  votes: ParticipantVote[];
-}
-
-const DETAILS_PANEL_ANIMATION_MS = 240;
-const MAX_TIER_TOOLTIP_NAMES = 4;
-
-function formatTierVoterPreview(names: string[]): string {
-  const visibleNames = names.slice(0, MAX_TIER_TOOLTIP_NAMES);
-  const hiddenCount = names.length - visibleNames.length;
-  const preview = visibleNames.join(", ");
-
-  if (hiddenCount <= 0) return preview;
-  return `${preview}, +${hiddenCount} more`;
-}
-
-/** Build display tiers from a single participant's votes */
 function buildParticipantTiers(
   votes: ParticipantVote[],
   tierConfig: TierConfig[],
@@ -51,12 +29,13 @@ function buildParticipantTiers(
     const bucket = grouped.get(vote.tierKey);
     if (bucket) bucket.push(vote);
   }
+
   return tierConfig.map((tier) => ({
     ...tier,
     items: (grouped.get(tier.key) ?? [])
       .sort((a, b) => a.rankInTier - b.rankInTier)
-      .map((v) => ({
-        ...v.sessionItem,
+      .map((vote) => ({
+        ...vote.sessionItem,
         averageScore: 0,
         voteDistribution: {},
         voterNicknamesByTier: {},
@@ -65,473 +44,130 @@ function buildParticipantTiers(
   }));
 }
 
-function ResultsContent() {
-  const { sessionId } = useParams<{ sessionId: string }>();
-  const searchParams = useSearchParams();
-  const participantId = searchParams.get("participant");
-  const { save: saveParticipant, clear: clearParticipant } = useParticipant(sessionId);
+export default async function ResultsPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ sessionId: string }>;
+  searchParams?: Promise<SearchParams> | SearchParams;
+}) {
+  const { sessionId } = await params;
+  const resolvedSearchParams = (await searchParams) ?? {};
+  const participantId =
+    typeof resolvedSearchParams.participant === "string" ? resolvedSearchParams.participant : null;
 
-  const [consensusTiers, setConsensusTiers] = useState<ConsensusTier[]>([]);
-  const [participantTiers, setParticipantTiers] = useState<ConsensusTier[] | null>(null);
-  const [participantName, setParticipantName] = useState<string | null>(null);
-  const [participantLoading, setParticipantLoading] = useState(false);
-  const [participantError, setParticipantError] = useState<string | null>(null);
-  const [session, setSession] = useState<SessionResult | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [selectedItem, setSelectedItem] = useState<ConsensusItem | null>(null);
-  const [detailsItem, setDetailsItem] = useState<ConsensusItem | null>(null);
-  const [detailsOpen, setDetailsOpen] = useState(false);
-  const [isTouchInput, setIsTouchInput] = useState(false);
-  const detailsPanelRef = useRef<HTMLDivElement | null>(null);
-  const wasDetailsOpenRef = useRef(false);
-  const touchStartRef = useRef<{ id: string; x: number; y: number } | null>(null);
+  const cookieStore = await cookies();
+  const auth = await getCookieAuth(cookieStore);
+  const requestUserId = auth?.userId ?? null;
 
-  useEffect(() => {
-    Promise.all([
-      apiFetch<SessionResult>(`/api/sessions/${sessionId}`),
-      apiFetch<ConsensusTier[]>(`/api/sessions/${sessionId}/votes/consensus`),
-    ])
-      .then(([sessionData, consensusData]) => {
-        if (sessionData.currentParticipantId && sessionData.currentParticipantNickname) {
-          saveParticipant(sessionData.currentParticipantId, sessionData.currentParticipantNickname);
-        } else {
-          clearParticipant();
-        }
-        setSession(sessionData);
-        setConsensusTiers(consensusData);
-      })
-      .catch((err) => {
-        setError(getErrorMessage(err, "Couldn't load the rankings. Try refreshing."));
-      })
-      .finally(() => setLoading(false));
-  }, [sessionId, clearParticipant, saveParticipant]);
+  const session = await prisma.session.findUnique({
+    where: { id: sessionId },
+    include: {
+      items: {
+        orderBy: { sortOrder: "asc" },
+        select: { id: true, label: true, imageUrl: true },
+      },
+      participants: {
+        orderBy: { createdAt: "asc" },
+        include: { _count: { select: { tierVotes: true } } },
+      },
+    },
+  });
 
-  useEffect(() => {
-    if (!participantId || !session) {
-      setParticipantTiers(null);
-      setParticipantName(null);
-      setParticipantError(null);
-      setParticipantLoading(false);
-      return;
-    }
+  if (!session) notFound();
 
-    let stale = false;
-    setSelectedItem(null);
-    setParticipantLoading(true);
-    setParticipantError(null);
+  const currentParticipant = requestUserId
+    ? (session.participants.find((participant) => participant.userId === requestUserId) ?? null)
+    : null;
+  const isOwner = !!requestUserId && session.creatorId === requestUserId;
+  const isParticipant = !!currentParticipant;
 
-    apiFetch<ParticipantVotesResponse>(`/api/sessions/${sessionId}/votes/${participantId}`)
-      .then((data) => {
-        if (stale) return;
-        setParticipantName(data.participant.nickname);
-        setParticipantTiers(buildParticipantTiers(data.votes, session.tierConfig));
-      })
-      .catch((err) => {
-        if (stale) return;
-        setParticipantError(getErrorMessage(err, "Couldn't load that ballot."));
-        setParticipantTiers(null);
-        setParticipantName(null);
-      })
-      .finally(() => {
-        if (!stale) setParticipantLoading(false);
+  if (session.isPrivate && !isOwner && !isParticipant) {
+    notFound();
+  }
+
+  const tierConfig = tierConfigSchema.parse(session.tierConfig);
+  const votes = await prisma.tierVote.findMany({
+    where: { sessionItem: { sessionId } },
+    select: {
+      participantId: true,
+      participant: { select: { nickname: true } },
+      sessionItemId: true,
+      tierKey: true,
+      rankInTier: true,
+    },
+  });
+
+  const consensusTiers = computeConsensus(
+    votes.map((vote) => ({
+      participantId: vote.participantId,
+      participantNickname: vote.participant.nickname,
+      sessionItemId: vote.sessionItemId,
+      tierKey: vote.tierKey,
+      rankInTier: vote.rankInTier,
+    })),
+    tierConfig,
+    session.items,
+  );
+
+  const totalItemCount = session.items.length;
+  const participants = session.participants.map(({ _count, id, nickname, submittedAt }) => ({
+    id,
+    nickname,
+    submittedAt: submittedAt?.toISOString() ?? null,
+    hasSubmitted: _count.tierVotes > 0,
+    hasSavedVotes: _count.tierVotes > 0,
+    rankedItemCount: _count.tierVotes,
+    totalItemCount,
+    missingItemCount: Math.max(0, totalItemCount - _count.tierVotes),
+    isComplete: totalItemCount > 0 && _count.tierVotes >= totalItemCount,
+  }));
+
+  let initialParticipantName: string | null = null;
+  let initialParticipantTiers: ConsensusTier[] | null = null;
+  let initialParticipantError: string | null = null;
+
+  if (participantId) {
+    const selectedParticipant = participants.find(
+      (participant) => participant.id === participantId,
+    );
+    if (!selectedParticipant) {
+      initialParticipantError = "Couldn't load that ballot.";
+    } else {
+      const participantVotes = await prisma.tierVote.findMany({
+        where: { participantId, sessionItem: { sessionId } },
+        include: {
+          sessionItem: { select: { id: true, label: true, imageUrl: true } },
+        },
+        orderBy: { rankInTier: "asc" },
       });
 
-    return () => {
-      stale = true;
-    };
-  }, [participantId, session, sessionId]);
-
-  useEffect(() => {
-    const media = window.matchMedia("(hover: none) and (pointer: coarse)");
-    const update = () => {
-      const hasTouch = navigator.maxTouchPoints > 0;
-      setIsTouchInput(media.matches || hasTouch);
-    };
-    update();
-    media.addEventListener("change", update);
-    return () => media.removeEventListener("change", update);
-  }, []);
-
-  useEffect(() => {
-    const justOpened = detailsOpen && !wasDetailsOpenRef.current;
-    wasDetailsOpenRef.current = detailsOpen;
-
-    if (!justOpened || !detailsItem || participantId || participantLoading || participantError) {
-      return;
+      initialParticipantName = selectedParticipant.nickname;
+      initialParticipantTiers = buildParticipantTiers(participantVotes, tierConfig);
     }
+  }
 
-    let raf1 = 0;
-    let raf2 = 0;
-    raf1 = window.requestAnimationFrame(() => {
-      raf2 = window.requestAnimationFrame(() => {
-        const panel = detailsPanelRef.current;
-        if (!panel) return;
-
-        const rect = panel.getBoundingClientRect();
-        const viewportHeight = window.innerHeight;
-        const topOffset = isTouchInput ? 68 : 88;
-        const bottomBuffer = isTouchInput ? 20 : 28;
-
-        const needsScroll =
-          rect.top < topOffset ||
-          rect.top > viewportHeight - 120 ||
-          rect.bottom > viewportHeight - bottomBuffer;
-
-        if (!needsScroll) return;
-        panel.scrollIntoView({
-          behavior: isTouchInput ? "auto" : "smooth",
-          block: "start",
-        });
-      });
-    });
-
-    return () => {
-      window.cancelAnimationFrame(raf1);
-      window.cancelAnimationFrame(raf2);
-    };
-  }, [detailsItem, detailsOpen, isTouchInput, participantError, participantId, participantLoading]);
-
-  const handleItemSelect = (item: ConsensusItem) => {
-    if (isIndividualView) return;
-    setSelectedItem((current) => (current?.id === item.id ? null : item));
+  const sessionResult: SessionResult = {
+    creatorId: session.creatorId,
+    status: session.status,
+    name: session.name,
+    joinCode: session.joinCode,
+    currentParticipantId: currentParticipant?.id ?? null,
+    currentParticipantNickname: currentParticipant?.nickname ?? null,
+    tierConfig,
+    participants,
   };
 
-  useEffect(() => {
-    if (participantId) {
-      setDetailsOpen(false);
-      setDetailsItem(null);
-      return;
-    }
-
-    if (selectedItem) {
-      setDetailsItem(selectedItem);
-      const raf = window.requestAnimationFrame(() => {
-        setDetailsOpen(true);
-      });
-      return () => window.cancelAnimationFrame(raf);
-    }
-
-    setDetailsOpen(false);
-    const timeout = window.setTimeout(() => {
-      setDetailsItem(null);
-    }, DETAILS_PANEL_ANIMATION_MS);
-    return () => window.clearTimeout(timeout);
-  }, [participantId, selectedItem]);
-
-  if (loading) return <Loading message="Loading the rankings..." />;
-  if (error) return <ErrorMessage message={error} />;
-
-  const participantsWithSavedVotes = session?.participants.filter((p) => p.hasSavedVotes) ?? [];
-  const totalParticipants = participantsWithSavedVotes.length;
-  const selectedParticipant =
-    participantsWithSavedVotes.find((p) => p.id === participantId) ?? null;
-  const currentParticipantId = session?.currentParticipantId ?? null;
-  const isIndividualView = !!participantId;
-  const displayTiers = participantTiers ?? consensusTiers;
-  const consensusLabel = `Everyone (${totalParticipants})`;
-  const baseSubtitle = isIndividualView
-    ? participantName
-      ? `${participantName}'s ballot`
-      : selectedParticipant
-        ? `${selectedParticipant.nickname}'s ballot`
-        : "Loading ballot..."
-    : `${consensusLabel} together`;
-  const subtitle = (
-    <span className="inline-flex flex-wrap items-center gap-x-3 gap-y-1">
-      <span>{baseSubtitle}</span>
-      <span
-        aria-live="polite"
-        aria-atomic="true"
-        className="min-w-[110px] text-xs text-neutral-500"
-      >
-        {participantLoading ? "Refreshing..." : ""}
-      </span>
-    </span>
-  );
-
   return (
-    <div>
-      <PageHeader
-        title={`${session?.name} Rankings`}
-        subtitle={subtitle}
-        actions={
-          <div className="flex w-full flex-wrap items-center justify-end gap-2 sm:w-auto sm:shrink-0">
-            {session?.status === "OPEN" && (
-              <>
-                <Link
-                  href={`/sessions/${sessionId}`}
-                  className={`${buttonVariants.primary} !px-4 !py-1.5 !text-sm whitespace-nowrap`}
-                >
-                  <span className="sm:hidden">{currentParticipantId ? "Resume" : "Join"}</span>
-                  <span className="hidden sm:inline">
-                    {currentParticipantId ? "Jump Back In" : "Join This Vote"}
-                  </span>
-                </Link>
-                <CloseVoteButton
-                  sessionId={sessionId}
-                  creatorId={session?.creatorId ?? null}
-                  status={session?.status ?? "CLOSED"}
-                  label="Close"
-                  onClosed={() =>
-                    setSession((current) => (current ? { ...current, status: "CLOSED" } : current))
-                  }
-                />
-              </>
-            )}
-            {session?.status !== "OPEN" && (
-              <>
-                <Link
-                  href="/sessions"
-                  className={`${buttonVariants.secondary} !px-4 !py-1.5 !text-sm whitespace-nowrap`}
-                >
-                  <span className="sm:hidden">Back</span>
-                  <span className="hidden sm:inline">Back to Votes</span>
-                </Link>
-                <ReopenVoteButton
-                  sessionId={sessionId}
-                  creatorId={session?.creatorId ?? null}
-                  status={session?.status ?? "OPEN"}
-                  label="Reopen"
-                  onReopened={() =>
-                    setSession((current) => (current ? { ...current, status: "OPEN" } : current))
-                  }
-                />
-              </>
-            )}
-          </div>
-        }
-      />
-
-      {/* View selector */}
-      {session && (
-        <div className="mb-6">
-          <h2 className="mb-3 text-sm font-medium text-neutral-400">See</h2>
-          <div className="flex flex-wrap gap-2">
-            <Link
-              href={`/sessions/${sessionId}/results`}
-              className={`rounded-full border px-3 py-1 text-sm transition-colors ${
-                !isIndividualView
-                  ? "border-amber-500 bg-amber-500/10 text-amber-400"
-                  : "border-neutral-700 text-neutral-300 hover:border-amber-500 hover:text-amber-400"
-              }`}
-            >
-              {consensusLabel}
-            </Link>
-            {participantsWithSavedVotes.map((p) => (
-              <Link
-                key={p.id}
-                href={`/sessions/${sessionId}/results?participant=${p.id}`}
-                className={`rounded-full border px-3 py-1 text-sm transition-colors ${
-                  participantId === p.id
-                    ? "border-amber-500 bg-amber-500/10 text-amber-400"
-                    : "border-neutral-700 text-neutral-300 hover:border-amber-500 hover:text-amber-400"
-                }`}
-              >
-                {p.nickname}
-                {!p.isComplete && p.missingItemCount > 0 ? ` (${p.missingItemCount} left)` : ""}
-              </Link>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Participant loading/error */}
-      {participantError && <ErrorMessage message={participantError} />}
-
-      {/* Tier List */}
-      {!participantError && (
-        <div
-          aria-busy={participantLoading}
-          className={`overflow-hidden rounded-lg border border-neutral-800 touch-pan-y transition-[opacity,filter] duration-150 ease-out ${
-            participantLoading ? "opacity-90 saturate-75" : "opacity-100 saturate-100"
-          }`}
-        >
-          {displayTiers.map((tier) => (
-            <div
-              key={tier.key}
-              className="flex min-h-[72px] border-b border-neutral-800 last:border-b-0 sm:min-h-[80px] md:min-h-[90px] lg:min-h-[104px]"
-            >
-              <div
-                className="flex w-20 flex-shrink-0 items-center justify-center px-2 py-2 text-center text-sm font-bold sm:w-24 sm:px-3 sm:text-base md:w-28 md:text-lg lg:w-32 lg:text-xl"
-                style={{ backgroundColor: tier.color, color: "#000" }}
-                title={tier.label}
-              >
-                <span className="block max-w-full text-[11px] leading-tight line-clamp-2 break-words sm:text-base sm:line-clamp-none md:text-lg lg:text-xl">
-                  {tier.label}
-                </span>
-              </div>
-              <div className="flex flex-1 touch-pan-y flex-wrap items-start gap-1 p-1 sm:gap-1.5 sm:p-1.5 md:gap-2 md:p-2">
-                {tier.items.map((item) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => {
-                      if (!isTouchInput) handleItemSelect(item);
-                    }}
-                    onTouchStart={(e) => {
-                      if (isIndividualView || !isTouchInput) return;
-                      const touch = e.touches[0];
-                      if (!touch) return;
-                      touchStartRef.current = { id: item.id, x: touch.clientX, y: touch.clientY };
-                    }}
-                    onTouchEnd={(e) => {
-                      if (isIndividualView || !isTouchInput) return;
-                      const touch = e.changedTouches[0];
-                      const start = touchStartRef.current;
-                      touchStartRef.current = null;
-                      if (!touch || !start || start.id !== item.id) return;
-                      const movedX = Math.abs(touch.clientX - start.x);
-                      const movedY = Math.abs(touch.clientY - start.y);
-                      if (movedX > 8 || movedY > 8) return;
-                      e.preventDefault();
-                      handleItemSelect(item);
-                    }}
-                    onTouchCancel={() => {
-                      touchStartRef.current = null;
-                    }}
-                    className={`group relative h-[62px] w-[62px] flex-shrink-0 overflow-hidden rounded-md border transition-colors sm:h-[70px] sm:w-[70px] md:h-[78px] md:w-[78px] lg:h-[96px] lg:w-[96px] ${
-                      !isIndividualView && selectedItem?.id === item.id
-                        ? "border-amber-400 ring-2 ring-amber-400"
-                        : "border-neutral-700 hover:border-neutral-500"
-                    } ${isIndividualView ? "cursor-default" : "cursor-pointer touch-manipulation"}`}
-                  >
-                    <ItemArtwork
-                      src={item.imageUrl}
-                      alt={item.label}
-                      className="h-full w-full"
-                      presentation="ambient"
-                    />
-                    <span className="absolute inset-x-0 bottom-0 truncate bg-black/70 px-1 py-0.5 text-center text-[11px] leading-tight text-neutral-200 opacity-0 transition-opacity group-hover:opacity-100">
-                      {item.label}
-                    </span>
-                  </button>
-                ))}
-                {tier.items.length === 0 && (
-                  <span className="flex h-[60px] items-center px-2 text-xs text-neutral-600 sm:h-[70px] sm:px-2.5 md:h-[84px] md:px-3 lg:h-[96px] lg:px-4 lg:text-sm">
-                    No picks
-                  </span>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Item Detail Panel (consensus view only) */}
-      {!isIndividualView && detailsItem && (
-        <div
-          ref={detailsPanelRef}
-          className={`scroll-mt-6 transition-all duration-[240ms] ease-in-out ${
-            detailsOpen ? "mt-6 opacity-100 translate-y-0" : "mt-2 opacity-0 -translate-y-1"
-          }`}
-        >
-          <div
-            className={`grid transition-[grid-template-rows] duration-[240ms] ease-in-out ${
-              detailsOpen ? "grid-rows-[1fr] overflow-visible" : "grid-rows-[0fr] overflow-hidden"
-            }`}
-          >
-            <div className="min-h-0">
-              <div className="rounded-xl border border-neutral-800 bg-gradient-to-b from-neutral-900 to-neutral-950">
-                <div className="flex flex-col gap-3 border-b border-neutral-800/80 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="flex min-w-0 flex-1 items-center gap-3">
-                    <ItemArtwork
-                      src={detailsItem.imageUrl}
-                      alt={detailsItem.label}
-                      className="h-12 w-12 rounded-md border border-neutral-700"
-                      presentation="ambient"
-                      inset="compact"
-                    />
-                    <div className="min-w-0">
-                      <h3 className="truncate font-medium">{detailsItem.label}</h3>
-                      <p className="text-sm text-neutral-400">
-                        Avg score: {detailsItem.averageScore.toFixed(2)} &middot;{" "}
-                        {detailsItem.totalVotes} vote{detailsItem.totalVotes !== 1 ? "s" : ""}
-                      </p>
-                    </div>
-                  </div>
-                  <span className="self-start rounded-full border border-neutral-700 bg-neutral-900 px-2 py-1 text-[11px] uppercase tracking-wide text-neutral-400 sm:self-auto">
-                    <span className="sm:hidden">Vote Split</span>
-                    <span className="hidden sm:inline">Vote Distribution</span>
-                  </span>
-                </div>
-
-                <div className="space-y-2 px-4 py-3">
-                  {consensusTiers.map((tier) => {
-                    const count = detailsItem.voteDistribution[tier.key] ?? 0;
-                    const voterNames = detailsItem.voterNicknamesByTier[tier.key] ?? [];
-                    const tooltipPreview =
-                      voterNames.length > 0 ? formatTierVoterPreview(voterNames) : null;
-                    const pct =
-                      detailsItem.totalVotes > 0
-                        ? Math.min(100, (count / detailsItem.totalVotes) * 100)
-                        : 0;
-                    const pctRounded = Math.round(pct);
-                    return (
-                      <div
-                        key={tier.key}
-                        className="grid grid-cols-[5rem_1fr_auto] items-center gap-3 sm:grid-cols-[6rem_1fr_auto] md:grid-cols-[7rem_1fr_auto] md:gap-4 lg:grid-cols-[8rem_1fr_auto]"
-                      >
-                        <span
-                          className="inline-flex h-7 w-full items-center justify-center overflow-hidden rounded px-2 py-1 text-xs font-bold"
-                          style={{ backgroundColor: tier.color, color: "#000" }}
-                          title={tier.label}
-                        >
-                          <span className="block w-full truncate text-center leading-none">
-                            {tier.label}
-                          </span>
-                        </span>
-                        <div className="group relative">
-                          <div className="relative h-3 overflow-hidden rounded-full border border-neutral-700/80 bg-neutral-900">
-                            <div
-                              aria-hidden="true"
-                              className="absolute inset-0 opacity-30"
-                              style={{
-                                backgroundImage:
-                                  "repeating-linear-gradient(90deg, rgba(255,255,255,0.06) 0, rgba(255,255,255,0.06) 6px, transparent 6px, transparent 12px)",
-                              }}
-                            />
-                            <div
-                              className="relative h-full rounded-full transition-[width] duration-500 ease-out"
-                              style={{
-                                width: `${pct}%`,
-                                backgroundColor: tier.color,
-                                boxShadow: `0 0 0 1px ${tier.color}80 inset, 0 0 10px ${tier.color}55`,
-                                minWidth: count > 0 ? "10px" : "0",
-                              }}
-                            />
-                          </div>
-                          {!isTouchInput && tooltipPreview && (
-                            <div className="pointer-events-none absolute left-0 top-full z-10 mt-2 max-w-xs translate-y-1 rounded-md border border-neutral-700 bg-neutral-950 px-3 py-2 text-left text-xs text-neutral-200 opacity-0 shadow-lg transition-all duration-150 group-hover:translate-y-0 group-hover:opacity-100">
-                              <span className="block font-medium text-neutral-100">
-                                {tooltipPreview}
-                              </span>
-                              <span className="mt-1 block text-[11px] text-neutral-400">
-                                {count} vote{count !== 1 ? "s" : ""} in {tier.label}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                        <span className="w-16 text-right text-xs tabular-nums text-neutral-400">
-                          {count} · {pctRounded}%
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-export default function ResultsPage() {
-  return (
-    <Suspense fallback={<Loading message="Loading results..." />}>
-      <ResultsContent />
-    </Suspense>
+    <ResultsPageClient
+      key={`${sessionId}:${participantId ?? "all"}`}
+      sessionId={sessionId}
+      initialSession={sessionResult}
+      initialConsensusTiers={consensusTiers}
+      participantId={participantId}
+      initialParticipantName={initialParticipantName}
+      initialParticipantTiers={initialParticipantTiers}
+      initialParticipantError={initialParticipantError}
+    />
   );
 }

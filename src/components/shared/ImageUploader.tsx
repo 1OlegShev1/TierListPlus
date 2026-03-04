@@ -2,6 +2,7 @@
 
 import { useCallback, useRef, useState } from "react";
 import { CloseIcon } from "@/components/ui/icons";
+import { useDelayedBusy } from "@/hooks/useDelayedBusy";
 import {
   CLIENT_UPLOAD_IMAGE_QUALITY,
   CLIENT_UPLOAD_IMAGE_SIZE,
@@ -146,6 +147,11 @@ export function ImageUploader({
   const [dragOver, setDragOver] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [failures, setFailures] = useState<string[]>([]);
+  const showUploadingState = useDelayedBusy(uploading, {
+    showDelayMs: 180,
+    minVisibleMs: 320,
+  });
+  const uploadInteractionLocked = uploading || showUploadingState;
 
   const setUploadingState = useCallback(
     (next: boolean) => {
@@ -312,7 +318,7 @@ export function ImageUploader({
     fileInputRef.current?.click();
   };
 
-  const pickerDisabled = disabled || uploading;
+  const pickerDisabled = disabled || uploadInteractionLocked;
 
   return (
     <div className={`relative ${className ?? ""}`}>
@@ -332,7 +338,7 @@ export function ImageUploader({
         className={`flex h-full w-full items-center justify-center rounded-lg transition-colors ${
           disabled
             ? "cursor-not-allowed border-neutral-800 bg-neutral-900/60 opacity-70"
-            : uploading
+            : uploadInteractionLocked
               ? "cursor-progress border-neutral-700 bg-neutral-900/60"
               : "cursor-pointer"
         } ${
@@ -354,15 +360,15 @@ export function ImageUploader({
         }}
         onDrop={handleDrop}
         disabled={pickerDisabled}
-        aria-busy={uploading || undefined}
+        aria-busy={uploadInteractionLocked || undefined}
       >
         {disabled ? (
           <span className="text-sm text-neutral-500">{idleLabel ?? "Upload unavailable"}</span>
-        ) : uploading && progress ? (
+        ) : showUploadingState && progress ? (
           <span className="text-sm text-neutral-400">
             Uploading {progress.completed}/{progress.total}...
           </span>
-        ) : uploading ? (
+        ) : showUploadingState ? (
           <span className="text-sm text-neutral-400">Uploading...</span>
         ) : (
           <>

@@ -21,6 +21,7 @@ import Link from "next/link";
 import { type ReactNode, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { ImageUploader, type UploadedImage } from "@/components/shared/ImageUploader";
 import { CloseIcon } from "@/components/ui/icons";
+import { useDelayedBusy } from "@/hooks/useDelayedBusy";
 import { useTierListStore } from "@/hooks/useTierList";
 import { useUser } from "@/hooks/useUser";
 import { apiDelete, apiPatch, apiPost, getErrorMessage } from "@/lib/api-client";
@@ -201,6 +202,20 @@ export function TierListBoard({
   const [showSavedTemplateNotice, setShowSavedTemplateNotice] = useState(false);
   const [expandedItemId, setExpandedItemId] = useState<string | null>(null);
   const [isUploadingFiles, setIsUploadingFiles] = useState(false);
+  const showSubmitBusyState = useDelayedBusy(submitting, {
+    showDelayMs: 180,
+    minVisibleMs: 320,
+  });
+  const showSaveTemplateBusyState = useDelayedBusy(savingTemplate, {
+    showDelayMs: 180,
+    minVisibleMs: 320,
+  });
+  const showCreatingItemState = useDelayedBusy(creatingItemCount > 0, {
+    showDelayMs: 180,
+    minVisibleMs: 320,
+  });
+  const submitActionLocked = submitting || showSubmitBusyState;
+  const saveTemplateActionLocked = savingTemplate || showSaveTemplateBusyState;
 
   // ---- FLIP refs ----
   const containerRef = useRef<HTMLDivElement>(null);
@@ -836,7 +851,7 @@ export function TierListBoard({
             ? "Getting ready..."
             : uploadsDisabled
               ? "Device needed"
-              : creatingItemCount > 0
+              : showCreatingItemState
                 ? "Adding..."
                 : "Upload"
         }
@@ -930,14 +945,14 @@ export function TierListBoard({
               <button
                 type="button"
                 onClick={handleSaveTemplate}
-                disabled={savingTemplate || hasPendingItemMutations}
+                disabled={saveTemplateActionLocked || hasPendingItemMutations}
                 className="rounded-lg border border-neutral-700 px-3 py-2 text-sm font-medium text-neutral-200 transition-colors hover:border-emerald-400 hover:text-emerald-300 disabled:opacity-50 sm:px-4 sm:py-1.5"
               >
                 <span className="sm:hidden">
-                  {savingTemplate ? "Saving" : saveTemplateMobileLabel}
+                  {showSaveTemplateBusyState ? "Saving" : saveTemplateMobileLabel}
                 </span>
                 <span className="hidden sm:inline">
-                  {savingTemplate ? "Saving..." : saveTemplateActionLabel}
+                  {showSaveTemplateBusyState ? "Saving..." : saveTemplateActionLabel}
                 </span>
               </button>
             ))}
@@ -945,15 +960,15 @@ export function TierListBoard({
             type="button"
             onClick={handleSubmit}
             disabled={
-              submitting ||
+              submitActionLocked ||
               hasPendingItemMutations ||
               totalItems === 0 ||
               rankedCount !== totalItems
             }
             className="rounded-lg bg-amber-500 px-3 py-2 text-sm font-medium text-black transition-colors hover:bg-amber-400 disabled:opacity-50 sm:px-5 sm:py-1.5"
           >
-            <span className="sm:hidden">{submitting ? "Saving" : "Save"}</span>
-            <span className="hidden sm:inline">{submitting ? "Saving..." : "Lock In Ranking"}</span>
+            <span className="sm:hidden">Save</span>
+            <span className="hidden sm:inline">Lock In Ranking</span>
           </button>
         </div>
         {saveTemplateError && (

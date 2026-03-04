@@ -72,6 +72,7 @@ export function ReopenVoteButton({
         }
         confirmLabel="Reopen vote"
         loadingLabel="Reopening..."
+        preserveLabelWhileLoading
         confirmVariant="primary"
         onConfirm={handleReopen}
         onCancel={() => {

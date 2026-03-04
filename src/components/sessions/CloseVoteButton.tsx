@@ -78,6 +78,7 @@ export function CloseVoteButton({
         }
         confirmLabel="Close vote"
         loadingLabel="Closing..."
+        preserveLabelWhileLoading
         confirmVariant="primary"
         onConfirm={handleClose}
         onCancel={() => {
