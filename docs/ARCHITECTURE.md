@@ -62,6 +62,24 @@ Recent migrations:
 - `20260302133000_add_devices_and_link_codes`
 - `20260302153000_enforce_unique_user_participant_per_session`
 - `20260302170000_add_hidden_working_templates`
+- `20260305100000_add_spaces`
+- `20260305113000_enforce_space_resource_invariants`
+
+Space model (v1.1):
+- `Space`
+  - `visibility`: `PRIVATE | OPEN`
+  - owner is represented as a `SpaceMember` with role `OWNER` and also as `creatorId`
+- `SpaceMember`
+  - roles: `OWNER | MEMBER`
+  - unique `(spaceId, userId)`
+- `SpaceInvite`
+  - reusable invite code for private spaces, expirable/revocable
+- `Template.spaceId` and `Session.spaceId` are nullable
+  - `spaceId = null` means personal/public feed resources
+  - `spaceId != null` means space-scoped resources
+  - DB checks enforce:
+    - `Template.spaceId IS NULL OR Template.isPublic = false`
+    - `Session.spaceId IS NULL OR Session.isPrivate = true`
 
 ## Authorization Model
 
@@ -82,6 +100,22 @@ Core helpers: `src/lib/api-helpers.ts`
 - `requireSessionOwner`
 - `requireParticipantOwner`
 - `requireOpenSession`
+
+Space access rules:
+- Private spaces: members-only read
+- Open spaces: anonymous read for space/list/session/result content
+- Open spaces still require signed-in users to vote
+- List/session mutation in spaces: `creator OR space owner`
+
+Policy + resolver boundary:
+- `src/domain/policy/access.ts`
+  - pure authorization decisions (no DB calls)
+- `src/domain/policy/resolvers.ts`
+  - DB-backed access context resolvers for space/session/template
+- `src/domain/*/service.ts`
+  - route-facing business operations
+  - call resolvers + policy functions
+  - keep route handlers thin and consistent
 
 ## Voting Lifecycle
 

@@ -132,8 +132,9 @@ describe("NewVoteForm", () => {
     expect(mocks.apiPost).toHaveBeenCalledTimes(1);
 
     if (!resolveCreate) throw new Error("Expected create request to start");
+    const resolveCreateRequest = resolveCreate;
     await act(async () => {
-      resolveCreate({
+      resolveCreateRequest({
         id: "session_1",
         participantId: "participant_1",
         participantNickname: "Host",

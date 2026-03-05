@@ -23,8 +23,13 @@ import { makeKnownRequestError, makeParticipant } from "../../helpers/mocks";
 
 describe("template helpers and constants", () => {
   it("handles visibility and ownership checks", () => {
-    expect(getTemplateVisibilityWhere(null)).toEqual({ isPublic: true, isHidden: false });
+    expect(getTemplateVisibilityWhere(null)).toEqual({
+      spaceId: null,
+      isPublic: true,
+      isHidden: false,
+    });
     expect(getTemplateVisibilityWhere("user_1")).toEqual({
+      spaceId: null,
       isHidden: false,
       OR: [{ isPublic: true }, { creatorId: "user_1" }],
     });

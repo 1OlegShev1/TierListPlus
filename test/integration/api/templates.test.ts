@@ -39,7 +39,7 @@ describe("templates route", () => {
       expect.objectContaining({ isPublic: true, items: [] }),
     ]);
     expect(mocks.prisma.template.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { isPublic: true, isHidden: false } }),
+      expect.objectContaining({ where: { isPublic: true, isHidden: false, spaceId: null } }),
     );
     expect(mocks.prisma.template.findMany).toHaveBeenCalledTimes(1);
   });
