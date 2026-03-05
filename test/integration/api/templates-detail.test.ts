@@ -152,4 +152,44 @@ describe("template detail route", () => {
     expect(mocks.prisma.template.update).not.toHaveBeenCalled();
     expect(mocks.prisma.template.delete).not.toHaveBeenCalled();
   });
+
+  it("allows space owners to mutate any space list and blocks non-creator members", async () => {
+    mocks.getRequestAuth.mockResolvedValue({ userId: "space_owner" });
+    mocks.prisma.template.findUnique.mockResolvedValueOnce({
+      id: "t_space",
+      creatorId: "member_creator",
+      isHidden: false,
+      spaceId: "space_1",
+      space: { creatorId: "space_owner", members: [] },
+    });
+    mocks.prisma.template.update.mockResolvedValue(
+      makeTemplate({ id: "t_space", name: "Owner edited" }),
+    );
+
+    let response = await PATCH(
+      jsonRequest("PATCH", "https://example.test", { name: "Owner edited" }),
+      routeCtx({ templateId: "t_space" }),
+    );
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual(expect.objectContaining({ name: "Owner edited" }));
+
+    mocks.getRequestAuth.mockResolvedValue({ userId: "member_non_creator" });
+    mocks.prisma.template.findUnique.mockResolvedValueOnce({
+      id: "t_space",
+      creatorId: "member_creator",
+      isHidden: false,
+      spaceId: "space_1",
+      space: {
+        creatorId: "space_owner",
+        members: [{ role: "MEMBER" }],
+      },
+    });
+
+    response = await PATCH(
+      jsonRequest("PATCH", "https://example.test", { name: "Member edit" }),
+      routeCtx({ templateId: "t_space" }),
+    );
+    expect(response.status).toBe(403);
+    await expect(response.json()).resolves.toEqual({ error: "You are not allowed to edit this list" });
+  });
 });
