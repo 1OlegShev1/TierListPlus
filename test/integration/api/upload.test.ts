@@ -24,9 +24,12 @@ vi.mock("@/lib/upload-gc", () => ({
 import { DELETE, POST } from "@/app/api/upload/route";
 import { routeCtx } from "../../helpers/request";
 
-function uploadRequest(file: File): Request {
+function uploadRequest(file: File, variant?: "item" | "space_logo" | "invalid"): Request {
   const formData = new FormData();
   formData.append("file", file);
+  if (variant) {
+    formData.append("variant", variant);
+  }
   return new Request("https://example.test/api/upload", {
     method: "POST",
     body: formData,
@@ -114,6 +117,23 @@ describe("upload route", () => {
 
     expect(response.status).toBe(400);
     await expect(response.json()).resolves.toEqual({ error: "File is not a valid image" });
+  });
+
+  it("returns 400 for unsupported upload variants", async () => {
+    const response = await POST(
+      uploadRequest(
+        new File(
+          ['<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\"></svg>'],
+          "icon.svg",
+          { type: "image/svg+xml" },
+        ),
+        "invalid",
+      ),
+      routeCtx({}),
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({ error: "Invalid upload variant" });
   });
 
   it("returns 400 for corrupt image payloads", async () => {

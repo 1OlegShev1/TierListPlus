@@ -118,6 +118,44 @@ describe("spaces api routes", () => {
     });
   });
 
+  it("passes space customization fields through PATCH", async () => {
+    mocks.getRequestAuth.mockResolvedValue({ userId: "owner_1" });
+    mocks.spacesService.updateSpace.mockResolvedValue({ id: "space_1", name: "Anime" });
+
+    const response = await patchSpace(
+      jsonRequest("PATCH", "https://example.test", {
+        description: "Vote on seasonal picks",
+        logoUrl: "/uploads/abc123.webp",
+        accentColor: "SKY",
+      }),
+      routeCtx({ spaceId: "space_1" }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(mocks.spacesService.updateSpace).toHaveBeenCalledWith("space_1", "owner_1", {
+      description: "Vote on seasonal picks",
+      logoUrl: "/uploads/abc123.webp",
+      accentColor: "SKY",
+    });
+  });
+
+  it("rejects invalid logoUrl payloads before service call", async () => {
+    mocks.getRequestAuth.mockResolvedValue({ userId: "owner_1" });
+
+    const response = await patchSpace(
+      jsonRequest("PATCH", "https://example.test", {
+        logoUrl: "https://bad.example/logo.webp",
+      }),
+      routeCtx({ spaceId: "space_1" }),
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({
+      error: expect.stringContaining("logoUrl"),
+    });
+    expect(mocks.spacesService.updateSpace).not.toHaveBeenCalled();
+  });
+
   it("lists members for members and returns mapped errors from service", async () => {
     mocks.spacesService.listSpaceMembers.mockResolvedValue({
       members: [{ userId: "user_1", role: "OWNER" }],

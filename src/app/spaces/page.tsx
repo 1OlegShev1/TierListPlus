@@ -7,6 +7,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import { getCookieAuth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getSpaceAccentClasses } from "@/lib/space-theme";
 
 export const dynamic = "force-dynamic";
 
@@ -60,6 +61,9 @@ export default async function SpacesPage() {
                 key={space.id}
                 id={space.id}
                 name={space.name}
+                description={space.description}
+                logoUrl={space.logoUrl}
+                accentColor={space.accentColor}
                 visibility={space.visibility}
                 memberCount={space._count.members}
                 listCount={space._count.templates}
@@ -86,6 +90,9 @@ export default async function SpacesPage() {
                 key={space.id}
                 id={space.id}
                 name={space.name}
+                description={space.description}
+                logoUrl={space.logoUrl}
+                accentColor={space.accentColor}
                 visibility={space.visibility}
                 memberCount={space._count.members}
                 listCount={space._count.templates}
@@ -102,6 +109,9 @@ export default async function SpacesPage() {
 function SpaceCard({
   id,
   name,
+  description,
+  logoUrl,
+  accentColor,
   visibility,
   memberCount,
   listCount,
@@ -109,20 +119,50 @@ function SpaceCard({
 }: {
   id: string;
   name: string;
+  description: string | null;
+  logoUrl: string | null;
+  accentColor: "SLATE" | "AMBER" | "SKY" | "EMERALD" | "ROSE";
   visibility: "PRIVATE" | "OPEN";
   memberCount: number;
   listCount: number;
   voteCount: number;
 }) {
   const visibilityLabel = visibility === "OPEN" ? "Open" : "Private";
+  const accent = getSpaceAccentClasses(accentColor);
+  const nameInitial = name.trim().charAt(0).toUpperCase() || "?";
 
   return (
     <Link
       href={`/spaces/${id}`}
-      className="rounded-xl border border-neutral-800 bg-neutral-900 p-4 transition-colors hover:border-neutral-600"
+      className={`relative overflow-hidden rounded-xl border border-neutral-800 bg-neutral-900 p-4 transition-colors ${accent.borderClassName}`}
     >
-      <p className="text-lg font-semibold text-neutral-100">{name}</p>
-      <p className="mt-1 text-xs uppercase tracking-[0.16em] text-neutral-500">{visibilityLabel}</p>
+      <div className={`pointer-events-none absolute inset-0 opacity-80 ${accent.glowClassName}`} />
+      <div className="relative">
+        <div className="flex items-start gap-3">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-neutral-700 bg-neutral-950">
+            {logoUrl ? (
+              <img
+                src={logoUrl}
+                alt={`${name} logo`}
+                className="h-full w-full object-cover"
+                loading="lazy"
+                decoding="async"
+              />
+            ) : (
+              <span className="text-sm font-semibold text-neutral-400">{nameInitial}</span>
+            )}
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-lg font-semibold text-neutral-100">{name}</p>
+            <p
+              className={`mt-1 inline-flex rounded-full border px-2 py-0.5 text-[0.67rem] uppercase tracking-[0.11em] ${accent.badgeClassName}`}
+            >
+              {visibilityLabel}
+            </p>
+          </div>
+        </div>
+      </div>
+      {description ? <p className="relative mt-3 text-sm text-neutral-400">{description}</p> : null}
       <p className="mt-3 text-sm text-neutral-400">
         {memberCount} members · {listCount} lists · {voteCount} votes
       </p>

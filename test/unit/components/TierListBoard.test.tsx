@@ -23,6 +23,14 @@ vi.mock("@/lib/api-client", () => ({
   apiPost: mocks.apiPost,
   apiPatch: mocks.apiPatch,
   apiDelete: mocks.apiDelete,
+  tryCleanupUnattachedUpload: async (imageUrl: string) => {
+    await fetch("/api/upload", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ imageUrl }),
+    });
+    return true;
+  },
   getErrorMessage: (error: unknown, fallback = "Something went wrong") =>
     error instanceof Error ? error.message : fallback,
 }));

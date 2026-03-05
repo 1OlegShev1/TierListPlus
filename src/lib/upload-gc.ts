@@ -2,27 +2,22 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { prisma } from "./prisma";
 import { UNATTACHED_UPLOAD_RETENTION_MS } from "./upload-config";
+import { extractManagedUploadFilename, MANAGED_UPLOAD_FILE_RE } from "./uploads";
 
 const UPLOAD_DIR = path.join(process.cwd(), "public", "uploads");
-const MANAGED_UPLOAD_URL_RE = /^\/uploads\/([A-Za-z0-9_-]+\.webp)$/;
-const MANAGED_UPLOAD_FILE_RE = /^[A-Za-z0-9_-]+\.webp$/;
-
-function extractManagedUploadFilename(imageUrl: string): string | null {
-  const match = MANAGED_UPLOAD_URL_RE.exec(imageUrl);
-  return match?.[1] ?? null;
-}
 
 async function isImageUrlStillReferenced(imageUrl: string): Promise<boolean> {
-  const [templateCount, sessionCount] = await Promise.all([
+  const [templateCount, sessionCount, spaceCount] = await Promise.all([
     prisma.templateItem.count({ where: { imageUrl } }),
     prisma.sessionItem.count({ where: { imageUrl } }),
+    prisma.space.count({ where: { logoUrl: imageUrl } }),
   ]);
 
-  return templateCount + sessionCount > 0;
+  return templateCount + sessionCount + spaceCount > 0;
 }
 
 async function getReferencedUploadFilenames(): Promise<Set<string>> {
-  const [templateImages, sessionImages] = await Promise.all([
+  const [templateImages, sessionImages, spaceLogos] = await Promise.all([
     prisma.templateItem.findMany({
       distinct: ["imageUrl"],
       select: { imageUrl: true },
@@ -31,11 +26,21 @@ async function getReferencedUploadFilenames(): Promise<Set<string>> {
       distinct: ["imageUrl"],
       select: { imageUrl: true },
     }),
+    prisma.space.findMany({
+      where: { logoUrl: { not: null } },
+      distinct: ["logoUrl"],
+      select: { logoUrl: true },
+    }),
   ]);
 
   const referenced = new Set<string>();
   for (const { imageUrl } of [...templateImages, ...sessionImages]) {
     const filename = extractManagedUploadFilename(imageUrl);
+    if (filename) referenced.add(filename);
+  }
+  for (const { logoUrl } of spaceLogos) {
+    if (!logoUrl) continue;
+    const filename = extractManagedUploadFilename(logoUrl);
     if (filename) referenced.add(filename);
   }
 

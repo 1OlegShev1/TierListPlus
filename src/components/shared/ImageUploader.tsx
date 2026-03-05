@@ -24,6 +24,7 @@ interface ImageUploaderProps {
   idleLabel?: string;
   disabled?: boolean;
   triggerRef?: React.Ref<HTMLButtonElement>;
+  uploadVariant?: "item" | "space_logo";
 }
 
 interface UploadProgress {
@@ -66,7 +67,7 @@ function hasExplicitNonImageType(file: File): boolean {
   return file.type.length > 0 && !file.type.startsWith("image/");
 }
 
-async function prepareFileForUpload(file: File): Promise<File> {
+async function prepareFileForUpload(file: File, variant: "item" | "space_logo"): Promise<File> {
   if (typeof window === "undefined" || typeof createImageBitmap !== "function") {
     return file;
   }
@@ -89,7 +90,10 @@ async function prepareFileForUpload(file: File): Promise<File> {
     const context = canvas.getContext("2d");
     if (!context) return file;
 
-    const scale = Math.min(1, targetSize / bitmap.width, targetSize / bitmap.height);
+    const scale =
+      variant === "space_logo"
+        ? Math.max(targetSize / bitmap.width, targetSize / bitmap.height)
+        : Math.min(1, targetSize / bitmap.width, targetSize / bitmap.height);
     const drawWidth = Math.round(bitmap.width * scale);
     const drawHeight = Math.round(bitmap.height * scale);
     const offsetX = Math.floor((targetSize - drawWidth) / 2);
@@ -110,14 +114,15 @@ async function prepareFileForUpload(file: File): Promise<File> {
   }
 }
 
-async function uploadFile(file: File): Promise<UploadedImage> {
-  const preparedFile = await prepareFileForUpload(file);
+async function uploadFile(file: File, variant: "item" | "space_logo"): Promise<UploadedImage> {
+  const preparedFile = await prepareFileForUpload(file, variant);
   if (preparedFile.size > UPLOAD_MAX_BYTES) {
     throw new Error(`File too large (max ${UPLOAD_MAX_MB}MB)`);
   }
 
   const formData = new FormData();
   formData.append("file", preparedFile);
+  formData.append("variant", variant);
   const res = await fetch("/api/upload", { method: "POST", body: formData });
   if (!res.ok) {
     const data = await res.json().catch(() => null);
@@ -140,6 +145,7 @@ export function ImageUploader({
   idleLabel,
   disabled = false,
   triggerRef,
+  uploadVariant = "item",
 }: ImageUploaderProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
@@ -172,7 +178,7 @@ export function ImageUploader({
       setError(null);
       setFailures([]);
       try {
-        const uploadedImage = await uploadFile(file);
+        const uploadedImage = await uploadFile(file, uploadVariant);
         onUploaded(uploadedImage);
       } catch (err) {
         const msg = err instanceof Error ? err.message : "Upload failed";
@@ -182,7 +188,7 @@ export function ImageUploader({
         setUploadingState(false);
       }
     },
-    [onUploaded, setUploadingState],
+    [onUploaded, setUploadingState, uploadVariant],
   );
 
   const uploadBatch = useCallback(
@@ -222,7 +228,7 @@ export function ImageUploader({
         imageFiles.map(async (file, index) => {
           try {
             settledUploads[index] = {
-              uploadedImage: await uploadFile(file),
+              uploadedImage: await uploadFile(file, uploadVariant),
             };
           } catch (err) {
             settledUploads[index] = {
@@ -257,7 +263,7 @@ export function ImageUploader({
       setUploadingState(false);
       setProgress(null);
     },
-    [onUploaded, setUploadingState],
+    [onUploaded, setUploadingState, uploadVariant],
   );
 
   const handleDrop = useCallback(

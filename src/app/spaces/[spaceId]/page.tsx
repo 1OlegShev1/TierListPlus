@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { OpenSpaceMembershipControls } from "@/components/spaces/OpenSpaceMembershipControls";
 import { RemoveSpaceMemberButton } from "@/components/spaces/RemoveSpaceMemberButton";
 import { SpaceInvitePanel } from "@/components/spaces/SpaceInvitePanel";
+import { SpaceSettingsPanel } from "@/components/spaces/SpaceSettingsPanel";
 import { buttonVariants } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -13,6 +14,7 @@ import { VotePreviewSummary } from "@/components/ui/VotePreviewSummary";
 import { getCookieAuth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { canReadSpace, getSpaceAccessForUser } from "@/lib/space";
+import { getSpaceAccentClasses } from "@/lib/space-theme";
 import { buildVoteDisplay } from "@/lib/vote-display";
 
 export const dynamic = "force-dynamic";
@@ -87,12 +89,41 @@ export default async function SpaceDetailPage({
   ]);
 
   const canCreateInSpace = !!userId && space.isMember;
+  const accent = getSpaceAccentClasses(space.accentColor);
+  const nameInitial = space.name.trim().charAt(0).toUpperCase() || "?";
 
   return (
     <div className="space-y-6">
+      <Link href="/spaces" className={`${buttonVariants.ghost} inline-flex items-center`}>
+        &larr; Back to Spaces
+      </Link>
       <PageHeader
-        title={space.name}
-        subtitle={`${space.visibility === "OPEN" ? "Open" : "Private"} space`}
+        title={
+          <div className="flex items-center gap-3">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-neutral-700 bg-neutral-950">
+              {space.logoUrl ? (
+                <img
+                  src={space.logoUrl}
+                  alt={`${space.name} logo`}
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <span className="text-sm font-semibold text-neutral-400">{nameInitial}</span>
+              )}
+            </div>
+            <div className="min-w-0">
+              <p className="truncate text-2xl font-bold text-neutral-100">{space.name}</p>
+              <p
+                className={`mt-1 inline-flex rounded-full border px-2 py-0.5 text-[0.67rem] uppercase tracking-[0.11em] ${accent.badgeClassName}`}
+              >
+                {space.visibility === "OPEN" ? "Open" : "Private"} space
+              </p>
+            </div>
+          </div>
+        }
+        subtitle={
+          space.description ? <span className="text-neutral-400">{space.description}</span> : null
+        }
         actions={
           <OpenSpaceMembershipControls
             spaceId={space.id}
@@ -102,7 +133,7 @@ export default async function SpaceDetailPage({
         }
       />
 
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center gap-5 border-b border-neutral-800">
         <TabLink spaceId={spaceId} tab="votes" active={tab === "votes"} label="Votes" />
         <TabLink spaceId={spaceId} tab="lists" active={tab === "lists"} label="Lists" />
         <TabLink spaceId={spaceId} tab="members" active={tab === "members"} label="Members" />
@@ -197,6 +228,17 @@ export default async function SpaceDetailPage({
             subtitle="People with membership access and creation rights in this space."
           />
 
+          {space.isOwner && (
+            <SpaceSettingsPanel
+              spaceId={space.id}
+              initialName={space.name}
+              initialDescription={space.description}
+              initialLogoUrl={space.logoUrl}
+              initialAccentColor={space.accentColor}
+              initialVisibility={space.visibility}
+            />
+          )}
+
           {space.visibility === "PRIVATE" && space.isOwner && (
             <SpaceInvitePanel spaceId={space.id} />
           )}
@@ -260,10 +302,10 @@ function TabLink({
   return (
     <Link
       href={`/spaces/${spaceId}?tab=${tab}`}
-      className={`inline-flex h-9 items-center rounded-full border px-3 text-sm transition-colors ${
+      className={`inline-flex h-9 items-center border-b-2 px-1 text-sm font-medium transition-colors ${
         active
-          ? "border-amber-500 bg-amber-500/10 text-amber-300"
-          : "border-neutral-700 text-neutral-300 hover:border-neutral-600"
+          ? "border-amber-500 text-amber-300"
+          : "border-transparent text-neutral-400 hover:text-neutral-200"
       }`}
     >
       {label}

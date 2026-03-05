@@ -31,14 +31,22 @@ export const POST = withHandler(async (request) => {
 
   const formData = await request.formData();
   const file = formData.get("file") as File | null;
+  const variantRaw = formData.get("variant");
+  const variant =
+    variantRaw == null
+      ? "item"
+      : variantRaw === "item" || variantRaw === "space_logo"
+        ? variantRaw
+        : null;
 
   if (!file) badRequest("No file provided");
   if (file.size > UPLOAD_MAX_BYTES) badRequest("File too large (max 10MB)");
+  if (!variant) badRequest("Invalid upload variant");
 
   const buffer = Buffer.from(await file.arrayBuffer());
 
   try {
-    const url = await saveUploadedImage(buffer);
+    const url = await saveUploadedImage(buffer, { variant });
     return NextResponse.json({ url });
   } catch (error) {
     if (error instanceof InvalidImageError) {

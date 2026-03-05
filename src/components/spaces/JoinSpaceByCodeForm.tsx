@@ -37,14 +37,14 @@ export function JoinSpaceByCodeForm() {
     <div className="rounded-xl border border-neutral-800 bg-neutral-900 p-4 sm:p-5">
       <h2 className="text-base font-semibold text-neutral-100">Join Private Space</h2>
       <p className="mt-1 text-sm text-neutral-500">Use an invite code from a space owner.</p>
-      <div className="mt-4 flex gap-2">
+      <div className="mt-4 grid gap-2.5 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
         <Input
-          className="font-mono tracking-wide"
+          className="h-11 font-mono tracking-wide"
           placeholder="Invite code"
           value={code}
           onChange={(event) => setCode(event.target.value.toUpperCase())}
         />
-        <Button onClick={join} disabled={!canJoin}>
+        <Button onClick={join} disabled={!canJoin} className="h-11 !px-5 !py-0 !text-sm">
           {joining ? "Joining..." : "Join"}
         </Button>
       </div>

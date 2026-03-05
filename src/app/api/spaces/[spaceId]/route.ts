@@ -16,9 +16,16 @@ export const PATCH = withHandler(async (request, { params }) => {
   const { spaceId } = await params;
   const auth = await getRequestAuth(request);
   const requestUserId = auth?.userId ?? null;
-  const { name, visibility } = await validateBody(request, updateSpaceSchema);
+  const { name, description, logoUrl, accentColor, visibility } = await validateBody(
+    request,
+    updateSpaceSchema,
+  );
+
   const updated = await updateSpace(spaceId, requestUserId, {
     ...(name != null ? { name } : {}),
+    ...(description !== undefined ? { description } : {}),
+    ...(logoUrl !== undefined ? { logoUrl } : {}),
+    ...(accentColor != null ? { accentColor } : {}),
     ...(visibility != null ? { visibility } : {}),
   });
 

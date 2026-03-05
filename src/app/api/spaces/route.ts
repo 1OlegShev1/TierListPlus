@@ -13,10 +13,16 @@ export const GET = withHandler(async (request) => {
 
 export const POST = withHandler(async (request) => {
   const { userId } = await requireRequestAuth(request);
-  const { name, visibility } = await validateBody(request, createSpaceSchema);
+  const { name, description, logoUrl, accentColor, visibility } = await validateBody(
+    request,
+    createSpaceSchema,
+  );
   const space = await createSpace({
     ownerUserId: userId,
     name,
+    ...(description != null ? { description } : {}),
+    ...(logoUrl != null ? { logoUrl } : {}),
+    ...(accentColor != null ? { accentColor } : {}),
     visibility: visibility ?? "PRIVATE",
   });
 

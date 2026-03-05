@@ -1,9 +1,12 @@
-import type { SpaceRole, SpaceVisibility } from "@prisma/client";
+import type { SpaceAccentColor, SpaceRole, SpaceVisibility } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 
 export interface SpaceAccessContext {
   id: string;
   name: string;
+  description: string | null;
+  logoUrl: string | null;
+  accentColor: SpaceAccentColor;
   visibility: SpaceVisibility;
   creatorId: string;
   memberRole: SpaceRole | null;
@@ -45,6 +48,9 @@ export async function resolveSpaceAccessContext(spaceId: string, requestUserId: 
     select: {
       id: true,
       name: true,
+      description: true,
+      logoUrl: true,
+      accentColor: true,
       visibility: true,
       creatorId: true,
       members: requestUserId
@@ -68,6 +74,9 @@ export async function resolveSpaceAccessContext(spaceId: string, requestUserId: 
   return {
     id: space.id,
     name: space.name,
+    description: space.description,
+    logoUrl: space.logoUrl,
+    accentColor: space.accentColor,
     visibility: space.visibility,
     creatorId: space.creatorId,
     memberRole,

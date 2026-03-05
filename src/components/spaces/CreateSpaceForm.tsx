@@ -5,7 +5,6 @@ import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { ErrorMessage } from "@/components/ui/ErrorMessage";
 import { Input } from "@/components/ui/Input";
-import { Select } from "@/components/ui/Select";
 import { useUser } from "@/hooks/useUser";
 import { apiPost, getErrorMessage } from "@/lib/api-client";
 
@@ -42,20 +41,51 @@ export function CreateSpaceForm() {
       <p className="mt-1 text-sm text-neutral-500">
         Private for friend groups, open for communities.
       </p>
-      <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_10rem_auto]">
+      <div className="mt-4 grid gap-2.5 sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-center">
         <Input
+          className="h-11"
           placeholder="e.g., Anime Lovers"
           value={name}
           onChange={(event) => setName(event.target.value)}
         />
-        <Select
-          value={visibility}
-          onChange={(event) => setVisibility(event.target.value as "PRIVATE" | "OPEN")}
-        >
-          <option value="PRIVATE">Private</option>
-          <option value="OPEN">Open</option>
-        </Select>
-        <Button onClick={createSpace} disabled={!canCreate}>
+        <fieldset className="inline-flex h-11 rounded-lg border border-neutral-700 bg-neutral-950/60 p-1">
+          <legend className="sr-only">Space visibility</legend>
+          <label
+            className={`flex min-w-[5.25rem] cursor-pointer items-center justify-center rounded-md px-3 text-sm font-medium transition-colors ${
+              visibility === "PRIVATE"
+                ? "bg-amber-500/15 text-amber-300"
+                : "text-neutral-300 hover:bg-neutral-800 hover:text-neutral-100"
+            }`}
+          >
+            <input
+              type="radio"
+              name="space-visibility"
+              value="PRIVATE"
+              checked={visibility === "PRIVATE"}
+              onChange={() => setVisibility("PRIVATE")}
+              className="sr-only"
+            />
+            Private
+          </label>
+          <label
+            className={`flex min-w-[5.25rem] cursor-pointer items-center justify-center rounded-md px-3 text-sm font-medium transition-colors ${
+              visibility === "OPEN"
+                ? "bg-amber-500/15 text-amber-300"
+                : "text-neutral-300 hover:bg-neutral-800 hover:text-neutral-100"
+            }`}
+          >
+            <input
+              type="radio"
+              name="space-visibility"
+              value="OPEN"
+              checked={visibility === "OPEN"}
+              onChange={() => setVisibility("OPEN")}
+              className="sr-only"
+            />
+            Open
+          </label>
+        </fieldset>
+        <Button onClick={createSpace} disabled={!canCreate} className="h-11 !px-5 !py-0 !text-sm">
           {creating ? "Creating..." : "Create"}
         </Button>
       </div>

@@ -5,10 +5,12 @@ import sharp from "sharp";
 import {
   PROCESSED_IMAGE_QUALITY,
   PROCESSED_IMAGE_SIZE,
+  PROCESSED_SPACE_LOGO_SIZE,
   UPLOAD_MAX_INPUT_PIXELS,
 } from "@/lib/upload-config";
 
 const UPLOAD_DIR = path.join(process.cwd(), "public", "uploads");
+export type UploadImageVariant = "item" | "space_logo";
 
 export class InvalidImageError extends Error {
   constructor(message = "File is not a valid image") {
@@ -37,7 +39,10 @@ function isInvalidImageProcessingError(error: unknown): boolean {
   return INVALID_IMAGE_ERROR_PATTERNS.some((pattern) => message.includes(pattern));
 }
 
-export async function processImageBuffer(buffer: Buffer): Promise<Buffer> {
+export async function processImageBuffer(
+  buffer: Buffer,
+  variant: UploadImageVariant = "item",
+): Promise<Buffer> {
   const image = sharp(buffer, {
     limitInputPixels: UPLOAD_MAX_INPUT_PIXELS,
     sequentialRead: true,
@@ -50,13 +55,26 @@ export async function processImageBuffer(buffer: Buffer): Promise<Buffer> {
   }
 
   try {
+    const resizeOptions =
+      variant === "space_logo"
+        ? {
+            width: PROCESSED_SPACE_LOGO_SIZE,
+            height: PROCESSED_SPACE_LOGO_SIZE,
+            fit: "cover" as const,
+            position: "centre" as const,
+            withoutEnlargement: true,
+          }
+        : {
+            width: PROCESSED_IMAGE_SIZE,
+            height: PROCESSED_IMAGE_SIZE,
+            fit: "contain" as const,
+            background: { r: 0, g: 0, b: 0, alpha: 0 },
+            withoutEnlargement: true,
+          };
+
     return await image
       .rotate()
-      .resize(PROCESSED_IMAGE_SIZE, PROCESSED_IMAGE_SIZE, {
-        fit: "contain",
-        background: { r: 0, g: 0, b: 0, alpha: 0 },
-        withoutEnlargement: true,
-      })
+      .resize(resizeOptions)
       .webp({ quality: PROCESSED_IMAGE_QUALITY })
       .toBuffer();
   } catch (error) {
@@ -67,10 +85,13 @@ export async function processImageBuffer(buffer: Buffer): Promise<Buffer> {
   }
 }
 
-export async function saveUploadedImage(buffer: Buffer): Promise<string> {
+export async function saveUploadedImage(
+  buffer: Buffer,
+  options: { variant?: UploadImageVariant } = {},
+): Promise<string> {
   await fs.mkdir(UPLOAD_DIR, { recursive: true });
 
-  const processedBuffer = await processImageBuffer(buffer);
+  const processedBuffer = await processImageBuffer(buffer, options.variant ?? "item");
 
   const filename = `${createHash("sha256").update(processedBuffer).digest("hex")}.webp`;
   const filepath = path.join(UPLOAD_DIR, filename);

@@ -1,7 +1,11 @@
 const mocks = vi.hoisted(() => ({
   resolveSpaceAccessContext: vi.fn(),
+  tryDeleteManagedUploadIfUnreferenced: vi.fn(),
   prisma: {
     $transaction: vi.fn(),
+    space: {
+      update: vi.fn(),
+    },
     spaceMember: {
       findMany: vi.fn(),
       findUnique: vi.fn(),
@@ -25,12 +29,18 @@ vi.mock("@/lib/prisma", () => ({
   prisma: mocks.prisma,
 }));
 
+vi.mock("@/lib/upload-gc", () => ({
+  tryDeleteManagedUploadIfUnreferenced: mocks.tryDeleteManagedUploadIfUnreferenced,
+}));
+
 import { listSpaceMembers } from "@/domain/spaces/service";
 
 describe("spaces service", () => {
   beforeEach(() => {
     mocks.resolveSpaceAccessContext.mockReset();
+    mocks.tryDeleteManagedUploadIfUnreferenced.mockReset().mockResolvedValue(true);
     mocks.prisma.$transaction.mockReset();
+    mocks.prisma.space.update.mockReset();
     mocks.prisma.spaceMember.findMany.mockReset();
     mocks.prisma.spaceMember.findUnique.mockReset();
     mocks.prisma.spaceMember.delete.mockReset();
@@ -199,6 +209,84 @@ describe("spaces service", () => {
         spaceId: "space_1",
       },
     });
+  });
+
+  it("updates space customization and cleans up replaced logo", async () => {
+    mocks.resolveSpaceAccessContext.mockResolvedValue({
+      id: "space_1",
+      name: "Anime Space",
+      description: "old",
+      logoUrl: "/uploads/old-logo.webp",
+      accentColor: "SLATE",
+      visibility: "OPEN",
+      creatorId: "owner_1",
+      memberRole: "OWNER",
+      isMember: true,
+      isOwner: true,
+    });
+    mocks.prisma.space.update.mockResolvedValue({
+      id: "space_1",
+      name: "Anime Space",
+      description: null,
+      logoUrl: "/uploads/new-logo.webp",
+      accentColor: "SKY",
+      visibility: "OPEN",
+    });
+
+    const { updateSpace } = await import("@/domain/spaces/service");
+    const result = await updateSpace("space_1", "owner_1", {
+      description: null,
+      logoUrl: "/uploads/new-logo.webp",
+      accentColor: "SKY",
+    });
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        logoUrl: "/uploads/new-logo.webp",
+        accentColor: "SKY",
+      }),
+    );
+    expect(mocks.prisma.space.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: "space_1" },
+        data: expect.objectContaining({
+          description: null,
+          logoUrl: "/uploads/new-logo.webp",
+          accentColor: "SKY",
+        }),
+      }),
+    );
+    expect(mocks.tryDeleteManagedUploadIfUnreferenced).toHaveBeenCalledWith(
+      "/uploads/old-logo.webp",
+      "space logo update",
+    );
+  });
+
+  it("rejects invalid logo URLs even if service is called directly", async () => {
+    mocks.resolveSpaceAccessContext.mockResolvedValue({
+      id: "space_1",
+      name: "Anime Space",
+      description: null,
+      logoUrl: null,
+      accentColor: "SLATE",
+      visibility: "OPEN",
+      creatorId: "owner_1",
+      memberRole: "OWNER",
+      isMember: true,
+      isOwner: true,
+    });
+
+    const { updateSpace } = await import("@/domain/spaces/service");
+    await expect(
+      updateSpace("space_1", "owner_1", { logoUrl: "https://bad.example/logo.webp" }),
+    ).rejects.toEqual(
+      expect.objectContaining({
+        status: 400,
+        details: "Invalid logo URL",
+      }),
+    );
+    expect(mocks.prisma.space.update).not.toHaveBeenCalled();
+    expect(mocks.tryDeleteManagedUploadIfUnreferenced).not.toHaveBeenCalled();
   });
 
   it("blocks invite access for non-owners", async () => {

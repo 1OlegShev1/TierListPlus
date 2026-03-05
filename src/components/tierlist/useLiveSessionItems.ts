@@ -2,7 +2,13 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { UploadedImage } from "@/components/shared/ImageUploader";
-import { apiDelete, apiPatch, apiPost, getErrorMessage } from "@/lib/api-client";
+import {
+  apiDelete,
+  apiPatch,
+  apiPost,
+  getErrorMessage,
+  tryCleanupUnattachedUpload,
+} from "@/lib/api-client";
 import type { Item } from "@/types";
 
 interface UseLiveSessionItemsArgs {
@@ -85,15 +91,7 @@ export function useLiveSessionItems({
   );
 
   const cleanupAbandonedUpload = useCallback(async (imageUrl: string) => {
-    try {
-      await fetch("/api/upload", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ imageUrl }),
-      });
-    } catch {
-      // Best-effort cleanup only. Server-side sweep still handles leftovers.
-    }
+    await tryCleanupUnattachedUpload(imageUrl, "tierlist item flow");
   }, []);
 
   const handleUploadedImage = useCallback(

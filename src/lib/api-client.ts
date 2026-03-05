@@ -50,6 +50,27 @@ export function apiDelete<T = void>(url: string): Promise<T> {
   return apiFetch<T>(url, { method: "DELETE" });
 }
 
+/** Best-effort cleanup for uploaded files that never got attached to resources. */
+export async function tryCleanupUnattachedUpload(
+  imageUrl: string,
+  context: string,
+): Promise<boolean> {
+  try {
+    await apiFetch("/api/upload", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ imageUrl }),
+    });
+    return true;
+  } catch (error) {
+    console.warn(`Client upload cleanup failed after ${context}`, {
+      imageUrl,
+      error: getErrorMessage(error, "cleanup failed"),
+    });
+    return false;
+  }
+}
+
 /** Extract a user-friendly error message from an unknown error. */
 export function getErrorMessage(error: unknown, fallback = "Something went wrong"): string {
   if (error instanceof ApiClientError) {

@@ -136,6 +136,14 @@ enum SpaceVisibility {
   OPEN
 }
 
+enum SpaceAccentColor {
+  SLATE
+  AMBER
+  SKY
+  EMERALD
+  ROSE
+}
+
 enum SpaceRole {
   OWNER
   MEMBER
@@ -144,6 +152,9 @@ enum SpaceRole {
 model Space {
   id         String          @id @default(cuid())
   name       String
+  description String?
+  logoUrl    String?
+  accentColor SpaceAccentColor @default(SLATE)
   visibility SpaceVisibility @default(PRIVATE)
   creatorId  String
   createdAt  DateTime        @default(now())

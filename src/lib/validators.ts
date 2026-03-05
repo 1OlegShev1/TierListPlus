@@ -1,4 +1,7 @@
 import { z } from "zod/v4";
+import { MANAGED_UPLOAD_URL_RE } from "@/lib/uploads";
+
+const spaceAccentColorSchema = z.enum(["SLATE", "AMBER", "SKY", "EMERALD", "ROSE"]);
 
 export const createTemplateSchema = z.object({
   name: z.string().min(1).max(100),
@@ -80,11 +83,17 @@ export const updateSessionSchema = z.object({
 
 export const createSpaceSchema = z.object({
   name: z.string().trim().min(1).max(100),
+  description: z.string().trim().max(280).optional(),
+  logoUrl: z.string().trim().regex(MANAGED_UPLOAD_URL_RE).optional(),
+  accentColor: spaceAccentColorSchema.optional(),
   visibility: z.enum(["PRIVATE", "OPEN"]).optional(),
 });
 
 export const updateSpaceSchema = z.object({
   name: z.string().trim().min(1).max(100).optional(),
+  description: z.string().trim().max(280).optional().nullable(),
+  logoUrl: z.string().trim().regex(MANAGED_UPLOAD_URL_RE).optional().nullable(),
+  accentColor: spaceAccentColorSchema.optional(),
   visibility: z.enum(["PRIVATE", "OPEN"]).optional(),
 });
 

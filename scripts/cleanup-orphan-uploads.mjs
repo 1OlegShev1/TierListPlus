@@ -22,7 +22,7 @@ function extractManagedUploadFilename(imageUrl) {
 }
 
 async function getReferencedUploadFilenames() {
-  const [templateImages, sessionImages] = await Promise.all([
+  const [templateImages, sessionImages, spaceLogos] = await Promise.all([
     prisma.templateItem.findMany({
       distinct: ["imageUrl"],
       select: { imageUrl: true },
@@ -31,11 +31,21 @@ async function getReferencedUploadFilenames() {
       distinct: ["imageUrl"],
       select: { imageUrl: true },
     }),
+    prisma.space.findMany({
+      where: { logoUrl: { not: null } },
+      distinct: ["logoUrl"],
+      select: { logoUrl: true },
+    }),
   ]);
 
   const referenced = new Set();
   for (const { imageUrl } of [...templateImages, ...sessionImages]) {
     const filename = extractManagedUploadFilename(imageUrl);
+    if (filename) referenced.add(filename);
+  }
+  for (const { logoUrl } of spaceLogos) {
+    if (!logoUrl) continue;
+    const filename = extractManagedUploadFilename(logoUrl);
     if (filename) referenced.add(filename);
   }
 

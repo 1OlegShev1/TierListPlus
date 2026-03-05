@@ -1,10 +1,13 @@
-import type { SpaceRole, SpaceVisibility } from "@prisma/client";
+import type { SpaceAccentColor, SpaceRole, SpaceVisibility } from "@prisma/client";
 import { canReadSpace as canReadSpacePolicy } from "@/domain/policy/access";
 import { resolveSpaceAccessContext } from "@/domain/policy/resolvers";
 
 export interface SpaceAccess {
   id: string;
   name: string;
+  description: string | null;
+  logoUrl: string | null;
+  accentColor: SpaceAccentColor;
   visibility: SpaceVisibility;
   creatorId: string;
   isMember: boolean;
@@ -26,6 +29,9 @@ export async function getSpaceAccessForUser(
   return {
     id: access.id,
     name: access.name,
+    description: access.description,
+    logoUrl: access.logoUrl,
+    accentColor: access.accentColor,
     visibility: access.visibility,
     creatorId: access.creatorId,
     isMember: access.isMember,
