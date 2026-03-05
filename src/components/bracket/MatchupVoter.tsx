@@ -40,16 +40,20 @@ export function MatchupVoter({
 
   useEffect(() => {
     const media = window.matchMedia("(hover: hover) and (pointer: fine)");
+    const legacyMedia = media as MediaQueryList & {
+      addListener?: (listener: (event: MediaQueryListEvent) => void) => void;
+      removeListener?: (listener: (event: MediaQueryListEvent) => void) => void;
+    };
     const apply = () => setSupportsHover(media.matches);
     apply();
 
-    if ("addEventListener" in media) {
+    if (typeof media.addEventListener === "function") {
       media.addEventListener("change", apply);
       return () => media.removeEventListener("change", apply);
     }
 
-    media.addListener(apply);
-    return () => media.removeListener(apply);
+    legacyMedia.addListener?.(apply);
+    return () => legacyMedia.removeListener?.(apply);
   }, []);
 
   useEffect(() => {
