@@ -1,6 +1,8 @@
 import { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 import type { z } from "zod/v4";
+import { canMutateResource, canReadSession, canReadSpace } from "@/domain/policy/access";
+import { resolveSessionAccessContext, resolveSpaceAccessContext } from "@/domain/policy/resolvers";
 import { getRequestAuth, requireRequestAuth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
@@ -121,6 +123,47 @@ export function forbidden(message = "Not authorized"): never {
   throw new ApiError(403, message);
 }
 
+export function canMutateSpaceResource(
+  creatorId: string | null,
+  requestUserId: string | null,
+  isSpaceOwner: boolean,
+) {
+  return canMutateResource({ creatorId, requestUserId, isSpaceOwner });
+}
+
+export async function resolveSpaceAccess(request: Request, spaceId: string) {
+  const auth = await getRequestAuth(request);
+  const requestUserId = auth?.userId ?? null;
+  const access = await resolveSpaceAccessContext(spaceId, requestUserId);
+  if (!access) notFound("Space not found");
+
+  if (!canReadSpace({ visibility: access.visibility, isMember: access.isMember })) {
+    forbidden("This space is private");
+  }
+
+  return {
+    space: {
+      id: access.id,
+      name: access.name,
+      visibility: access.visibility,
+      creatorId: access.creatorId,
+    },
+    requestUserId,
+    memberRole: access.memberRole,
+    isMember: access.isMember,
+    isOwner: access.isOwner,
+    auth,
+  };
+}
+
+export async function requireSpaceMember(request: Request, spaceId: string) {
+  const access = await resolveSpaceAccess(request, spaceId);
+  if (!access.isMember || !access.requestUserId) {
+    forbidden("You must join this space first");
+  }
+  return access;
+}
+
 /** Verify the requesting user owns a resource. Throws 403 if not. */
 export function requireOwner(creatorId: string | null, requestUserId: string | null) {
   if (!creatorId || !requestUserId || creatorId !== requestUserId) {
@@ -204,38 +247,47 @@ export async function requireOpenSession(sessionId: string) {
 export async function requireSessionAccess(request: Request, sessionId: string) {
   const auth = await getRequestAuth(request);
   const requestUserId = auth?.userId ?? null;
-  const session = await prisma.session.findUnique({
-    where: { id: sessionId },
-    select: {
-      id: true,
-      creatorId: true,
-      isPrivate: true,
-      participants: requestUserId
-        ? {
-            where: { userId: requestUserId },
-            select: { id: true },
-            take: 1,
-          }
-        : false,
-    },
+  const access = await resolveSessionAccessContext(sessionId, requestUserId);
+  if (!access) notFound("Session not found");
+
+  const isReadable = canReadSession({
+    isSpaceScoped: !!access.spaceId,
+    spaceVisibility: access.spaceVisibility,
+    isSpaceMember: access.isSpaceMember,
+    isPrivate: access.isPrivate,
+    isOwner: access.isOwner,
+    isParticipant: access.isParticipant,
   });
-  if (!session) notFound("Session not found");
 
-  const isOwner = !!requestUserId && session.creatorId === requestUserId;
-  const isParticipant =
-    !!requestUserId && Array.isArray(session.participants) && session.participants.length > 0;
-
-  if (session.isPrivate && !isOwner && !isParticipant) {
+  if (!isReadable) {
+    if (access.spaceId && access.spaceVisibility === "PRIVATE" && !access.isSpaceMember) {
+      forbidden("This session is private to space members");
+    }
     forbidden("This session is private");
   }
 
-  return { session, requestUserId, isOwner, isParticipant, auth };
+  return {
+    session: {
+      id: access.id,
+      creatorId: access.creatorId,
+      isPrivate: access.isPrivate,
+      spaceId: access.spaceId,
+    },
+    requestUserId,
+    isOwner: access.isOwner,
+    isParticipant: access.isParticipant,
+    isSpaceMember: access.isSpaceMember,
+    isSpaceOwner: access.isSpaceOwner,
+    auth,
+  };
 }
 
-/** Require that the current signed-in user owns the session. */
+/** Require that the current signed-in user may mutate the session (creator or space owner). */
 export async function requireSessionOwner(request: Request, sessionId: string) {
-  const { session, requestUserId } = await requireSessionAccess(request, sessionId);
-  requireOwner(session.creatorId, requestUserId);
+  const { session, requestUserId, isSpaceOwner } = await requireSessionAccess(request, sessionId);
+  if (!canMutateSpaceResource(session.creatorId, requestUserId, isSpaceOwner)) {
+    requireOwner(session.creatorId, requestUserId);
+  }
   return { session, requestUserId };
 }
 
@@ -244,8 +296,9 @@ export function canManageSessionItems(
   templateIsHidden: boolean,
   creatorId: string | null,
   requestUserId: string | null,
+  isSpaceOwner = false,
 ) {
-  return !!templateIsHidden && !!requestUserId && creatorId === requestUserId;
+  return !!templateIsHidden && canMutateResource({ creatorId, requestUserId, isSpaceOwner });
 }
 
 /** Require that the current signed-in user may manage session items for a session. */
@@ -260,13 +313,35 @@ export async function requireSessionItemManager(
     select: {
       id: true,
       creatorId: true,
+      space: {
+        select: {
+          creatorId: true,
+          members: {
+            where: { userId: requestUserId },
+            select: { role: true },
+            take: 1,
+          },
+        },
+      },
       templateId: options?.includeTemplateId ?? false,
       template: { select: { isHidden: true } },
     },
   });
 
   if (!session) notFound("Session not found");
-  if (!canManageSessionItems(session.template.isHidden, session.creatorId, requestUserId)) {
+  const spaceMember = session.space?.members[0] ?? null;
+  const isSpaceOwner =
+    session.space != null &&
+    (session.space.creatorId === requestUserId || spaceMember?.role === "OWNER");
+
+  if (
+    !canManageSessionItems(
+      session.template.isHidden,
+      session.creatorId,
+      requestUserId,
+      isSpaceOwner,
+    )
+  ) {
     requireOwner(session.creatorId, requestUserId);
     badRequest("This session must be recreated before live item editing is available");
   }
