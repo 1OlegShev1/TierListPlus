@@ -99,6 +99,17 @@ export function ResultsPageClient({
         subtitle={subtitle}
         actions={
           <div className="flex w-full flex-wrap items-center justify-end gap-2 sm:w-auto sm:shrink-0">
+            {(session.spaceId || session.status !== "OPEN") && (
+              <Link
+                href={backToVotesHref}
+                className={`${buttonVariants.secondary} !px-4 !py-1.5 !text-sm whitespace-nowrap`}
+              >
+                <span className="sm:hidden">Back</span>
+                <span className="hidden sm:inline">
+                  {session.spaceId ? "Back to Space Votes" : "Back to Votes"}
+                </span>
+              </Link>
+            )}
             {session.status === "OPEN" && (
               <>
                 <Link
@@ -123,27 +134,16 @@ export function ResultsPageClient({
               </>
             )}
             {session.status !== "OPEN" && (
-              <>
-                <Link
-                  href={backToVotesHref}
-                  className={`${buttonVariants.secondary} !px-4 !py-1.5 !text-sm whitespace-nowrap`}
-                >
-                  <span className="sm:hidden">Back</span>
-                  <span className="hidden sm:inline">
-                    {session.spaceId ? "Back to Space Votes" : "Back to Votes"}
-                  </span>
-                </Link>
-                <ReopenVoteButton
-                  sessionId={sessionId}
-                  creatorId={session.creatorId}
-                  status={session.status}
-                  canManageOverride={session.canManageSession}
-                  label="Reopen"
-                  onReopened={() =>
-                    setSession((current) => (current ? { ...current, status: "OPEN" } : current))
-                  }
-                />
-              </>
+              <ReopenVoteButton
+                sessionId={sessionId}
+                creatorId={session.creatorId}
+                status={session.status}
+                canManageOverride={session.canManageSession}
+                label="Reopen"
+                onReopened={() =>
+                  setSession((current) => (current ? { ...current, status: "OPEN" } : current))
+                }
+              />
             )}
           </div>
         }

@@ -17,6 +17,7 @@ export function buildVoteDisplay({
   participantCount,
   listName,
   listHidden,
+  spaceVisibility,
 }: {
   viewer: VoteViewer;
   isPrivate: boolean;
@@ -27,6 +28,7 @@ export function buildVoteDisplay({
   participantCount: number;
   listName: string;
   listHidden: boolean;
+  spaceVisibility?: "OPEN" | "PRIVATE";
 }) {
   const chips: VoteDisplayChip[] = [];
 
@@ -36,7 +38,14 @@ export function buildVoteDisplay({
     chips.push({ label: "You joined", tone: "accent" });
   }
 
-  chips.push({ label: isPrivate ? "Private" : "Public", tone: "neutral" });
+  const visibilityLabel = spaceVisibility
+    ? spaceVisibility === "OPEN"
+      ? "Open space"
+      : "Private space"
+    : isPrivate
+      ? "Private"
+      : "Public";
+  chips.push({ label: visibilityLabel, tone: "neutral" });
 
   if (status === "OPEN") {
     chips.push({

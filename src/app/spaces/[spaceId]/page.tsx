@@ -131,6 +131,7 @@ export default async function SpaceDetailPage({
                   participantCount: vote._count.participants,
                   listName: vote.template.name,
                   listHidden: vote.template.isHidden,
+                  spaceVisibility: space.visibility,
                 });
 
                 return (

@@ -114,13 +114,15 @@ function SpaceCard({
   listCount: number;
   voteCount: number;
 }) {
+  const visibilityLabel = visibility === "OPEN" ? "Open" : "Private";
+
   return (
     <Link
       href={`/spaces/${id}`}
       className="rounded-xl border border-neutral-800 bg-neutral-900 p-4 transition-colors hover:border-neutral-600"
     >
       <p className="text-lg font-semibold text-neutral-100">{name}</p>
-      <p className="mt-1 text-xs uppercase tracking-[0.16em] text-neutral-500">{visibility}</p>
+      <p className="mt-1 text-xs uppercase tracking-[0.16em] text-neutral-500">{visibilityLabel}</p>
       <p className="mt-3 text-sm text-neutral-400">
         {memberCount} members · {listCount} lists · {voteCount} votes
       </p>

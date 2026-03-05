@@ -37,4 +37,34 @@ describe("buildVoteDisplay", () => {
     expect(display.detailsLabel).toBe("5 picks · 2 joined");
     expect(display.secondaryLabel).toContain("Updated");
   });
+
+  it("shows space-aware visibility chips for space-scoped votes", () => {
+    const openSpaceDisplay = buildVoteDisplay({
+      viewer: "browser",
+      isPrivate: true,
+      isLocked: false,
+      status: "OPEN",
+      updatedAt: "2026-03-03T12:00:00.000Z",
+      itemCount: 8,
+      participantCount: 3,
+      listName: "Anime",
+      listHidden: false,
+      spaceVisibility: "OPEN",
+    });
+    const privateSpaceDisplay = buildVoteDisplay({
+      viewer: "browser",
+      isPrivate: true,
+      isLocked: false,
+      status: "OPEN",
+      updatedAt: "2026-03-03T12:00:00.000Z",
+      itemCount: 8,
+      participantCount: 3,
+      listName: "Team picks",
+      listHidden: false,
+      spaceVisibility: "PRIVATE",
+    });
+
+    expect(openSpaceDisplay.chips.some((chip) => chip.label === "Open space")).toBe(true);
+    expect(privateSpaceDisplay.chips.some((chip) => chip.label === "Private space")).toBe(true);
+  });
 });
