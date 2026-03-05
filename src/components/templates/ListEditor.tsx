@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ImageUploader, type UploadedImage } from "@/components/shared/ImageUploader";
 import { Button } from "@/components/ui/Button";
 import { ErrorMessage } from "@/components/ui/ErrorMessage";
@@ -38,15 +38,18 @@ export function ListEditor({
   const [description, setDescription] = useState(initialDescription);
   const [isPublic, setIsPublic] = useState(initialIsPublic);
   const [items, setItems] = useState<TemplateItemData[]>(initialItems);
+  const [previewingItemIndex, setPreviewingItemIndex] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const itemLabelRefs = useRef<Array<HTMLInputElement | null>>([]);
+  const itemCardRefs = useRef<Array<HTMLDivElement | null>>([]);
   const uploadTriggerRef = useRef<HTMLButtonElement>(null);
   const saveButtonRef = useRef<HTMLButtonElement>(null);
   const uploadsDisabled = userLoading || !userId;
   const canSave = !saving && !userLoading && !!userId && !!name.trim() && items.length > 0;
 
   const addItem = ({ url, suggestedLabel }: UploadedImage) => {
+    setPreviewingItemIndex(null);
     setItems((prev) => [...prev, { label: suggestedLabel, imageUrl: url, sortOrder: prev.length }]);
   };
 
@@ -56,7 +59,36 @@ export function ListEditor({
 
   const removeItem = (index: number) => {
     setItems((prev) => prev.filter((_, i) => i !== index));
+    setPreviewingItemIndex((current) => {
+      if (current == null) return null;
+      if (current === index) return null;
+      return current > index ? current - 1 : current;
+    });
   };
+
+  useEffect(() => {
+    if (previewingItemIndex == null) return;
+    if (previewingItemIndex >= items.length) {
+      setPreviewingItemIndex(null);
+    }
+  }, [items.length, previewingItemIndex]);
+
+  useEffect(() => {
+    if (previewingItemIndex == null) return;
+
+    const handlePointerDown = (event: PointerEvent) => {
+      const activeCard = itemCardRefs.current[previewingItemIndex];
+      if (!activeCard) {
+        setPreviewingItemIndex(null);
+        return;
+      }
+      if (event.target instanceof Node && activeCard.contains(event.target)) return;
+      setPreviewingItemIndex(null);
+    };
+
+    document.addEventListener("pointerdown", handlePointerDown, true);
+    return () => document.removeEventListener("pointerdown", handlePointerDown, true);
+  }, [previewingItemIndex]);
 
   const focusNextItemControl = (index: number, currentInput: HTMLInputElement) => {
     const nextLabel = itemLabelRefs.current.slice(index + 1).find((input) => input != null);
@@ -235,6 +267,9 @@ export function ListEditor({
           {items.map((item, index) => (
             <div
               key={item.id ?? `new-${index}`}
+              ref={(node) => {
+                itemCardRefs.current[index] = node;
+              }}
               className="group relative rounded-lg border border-neutral-800 bg-neutral-900 p-2"
             >
               <button
@@ -245,13 +280,30 @@ export function ListEditor({
               >
                 <CloseIcon className="h-3.5 w-3.5" />
               </button>
-              <ItemArtwork
-                src={item.imageUrl}
-                alt={item.label}
-                className="aspect-square w-full rounded"
-                presentation="ambient"
-                inset="compact"
-              />
+              <button
+                type="button"
+                onClick={() =>
+                  setPreviewingItemIndex((current) => (current === index ? null : index))
+                }
+                onBlur={(event) => {
+                  const card = itemCardRefs.current[index];
+                  const nextFocused = event.relatedTarget;
+                  if (card && nextFocused instanceof Node && card.contains(nextFocused)) return;
+                  setPreviewingItemIndex((current) => (current === index ? null : current));
+                }}
+                className="block w-full overflow-hidden rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-2 focus-visible:ring-offset-neutral-900"
+                aria-label={`Preview animation for ${item.label || "pick"}`}
+              >
+                <ItemArtwork
+                  src={item.imageUrl}
+                  alt={item.label}
+                  className="aspect-square w-full rounded"
+                  presentation="ambient"
+                  inset="compact"
+                  animate={previewingItemIndex === index}
+                  showAnimatedHint
+                />
+              </button>
               <input
                 ref={(node) => {
                   itemLabelRefs.current[index] = node;
@@ -272,6 +324,11 @@ export function ListEditor({
           ))}
           <ImageUploader
             onUploaded={addItem}
+            onUploadStateChange={(uploading) => {
+              if (!uploading) {
+                setPreviewingItemIndex(null);
+              }
+            }}
             multiple
             className="aspect-square w-full"
             disabled={uploadsDisabled}

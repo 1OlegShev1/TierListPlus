@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
+import sharp from "sharp";
 import { processImageBuffer } from "@/lib/upload";
 
 const mocks = vi.hoisted(() => ({
@@ -53,6 +54,30 @@ async function getExpectedUploadPath(
     .catch(() => false);
 
   return { filepath, existedBefore };
+}
+
+async function getExpectedGifUploadPaths(file: File): Promise<{
+  gifPath: string;
+  posterPath: string;
+  gifExistedBefore: boolean;
+  posterExistedBefore: boolean;
+}> {
+  const buffer = Buffer.from(await file.arrayBuffer());
+  const hash = createHash("sha256").update(buffer).digest("hex");
+  const gifPath = path.join(process.cwd(), "public", "uploads", `${hash}.gif`);
+  const posterPath = path.join(process.cwd(), "public", "uploads", `${hash}.poster.webp`);
+  const [gifExistedBefore, posterExistedBefore] = await Promise.all([
+    fs
+      .access(gifPath)
+      .then(() => true)
+      .catch(() => false),
+    fs
+      .access(posterPath)
+      .then(() => true)
+      .catch(() => false),
+  ]);
+
+  return { gifPath, posterPath, gifExistedBefore, posterExistedBefore };
 }
 
 describe("upload route", () => {
@@ -178,6 +203,38 @@ describe("upload route", () => {
       maxRequests: 120,
       windowMs: 60_000,
     });
+  });
+
+  it("stores GIF uploads as gif plus poster thumbnail for item uploads", async () => {
+    const file = new File(
+      [Buffer.from("R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==", "base64")],
+      "tiny.gif",
+      { type: "image/gif" },
+    );
+    const { gifPath, posterPath, gifExistedBefore, posterExistedBefore } =
+      await getExpectedGifUploadPaths(file);
+
+    const response = await POST(uploadRequest(file, "item"), routeCtx({}));
+
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body).toEqual({
+      url: expect.stringMatching(/^\/uploads\/[a-f0-9]+\.gif$/),
+    });
+    expect(uploadPathFromUrl(body.url)).toBe(gifPath);
+
+    if (!gifExistedBefore) {
+      createdFiles.add(gifPath);
+    }
+    if (!posterExistedBefore) {
+      createdFiles.add(posterPath);
+    }
+
+    await expect(fs.readFile(gifPath)).resolves.toBeInstanceOf(Buffer);
+    const posterBuffer = await fs.readFile(posterPath);
+    expect(posterBuffer).toBeInstanceOf(Buffer);
+    const posterMeta = await sharp(posterBuffer, { animated: true }).metadata();
+    expect((posterMeta.pages ?? 1) <= 1).toBe(true);
   });
 
   it("returns 500 for unexpected storage failures", async () => {

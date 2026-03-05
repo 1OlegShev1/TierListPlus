@@ -5,7 +5,7 @@ import { badRequest, forbidden, notFound } from "@/lib/api-helpers";
 import { generateSpaceInviteCode } from "@/lib/nanoid";
 import { prisma } from "@/lib/prisma";
 import { tryDeleteManagedUploadIfUnreferenced } from "@/lib/upload-gc";
-import { extractManagedUploadFilename } from "@/lib/uploads";
+import { extractManagedWebpUploadFilename } from "@/lib/uploads";
 
 const INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 const INVITE_RETRY_LIMIT = 10;
@@ -73,7 +73,7 @@ export async function createSpace(input: {
 
   const description = input.description?.trim() ?? "";
   const logoUrl = input.logoUrl?.trim() || null;
-  if (logoUrl && !extractManagedUploadFilename(logoUrl)) {
+  if (logoUrl && !extractManagedWebpUploadFilename(logoUrl)) {
     badRequest("Invalid logo URL");
   }
 
@@ -162,7 +162,7 @@ export async function updateSpace(
   if (
     patch.logoUrl !== undefined &&
     patch.logoUrl &&
-    !extractManagedUploadFilename(patch.logoUrl)
+    !extractManagedWebpUploadFilename(patch.logoUrl)
   ) {
     badRequest("Invalid logo URL");
   }

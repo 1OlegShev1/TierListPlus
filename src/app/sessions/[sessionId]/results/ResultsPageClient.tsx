@@ -253,6 +253,7 @@ export function ResultsPageClient({
                   alt={detailsItem.label}
                   className="h-full w-full"
                   presentation="ambient"
+                  animate={detailsOpen && !isIndividualView}
                 />
               </div>
               <div className="min-w-0">

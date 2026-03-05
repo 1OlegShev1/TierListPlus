@@ -112,6 +112,8 @@ export function DraggableItem({
           className="h-full w-full"
           presentation="ambient"
           draggable={false}
+          animate={expanded}
+          showAnimatedHint
         />
         <span
           className={`pointer-events-none absolute inset-x-0 bottom-0 truncate bg-black/70 px-1 py-0.5 text-center text-[11px] leading-tight text-neutral-200 transition-opacity ${

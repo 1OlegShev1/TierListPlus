@@ -2,7 +2,11 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { prisma } from "./prisma";
 import { UNATTACHED_UPLOAD_RETENTION_MS } from "./upload-config";
-import { extractManagedUploadFilename, MANAGED_UPLOAD_FILE_RE } from "./uploads";
+import {
+  extractManagedUploadFilename,
+  getCompanionUploadFilenames,
+  MANAGED_UPLOAD_FILE_RE,
+} from "./uploads";
 
 const UPLOAD_DIR = path.join(process.cwd(), "public", "uploads");
 
@@ -36,12 +40,20 @@ async function getReferencedUploadFilenames(): Promise<Set<string>> {
   const referenced = new Set<string>();
   for (const { imageUrl } of [...templateImages, ...sessionImages]) {
     const filename = extractManagedUploadFilename(imageUrl);
-    if (filename) referenced.add(filename);
+    if (!filename) continue;
+    referenced.add(filename);
+    for (const companion of getCompanionUploadFilenames(filename)) {
+      referenced.add(companion);
+    }
   }
   for (const { logoUrl } of spaceLogos) {
     if (!logoUrl) continue;
     const filename = extractManagedUploadFilename(logoUrl);
-    if (filename) referenced.add(filename);
+    if (!filename) continue;
+    referenced.add(filename);
+    for (const companion of getCompanionUploadFilenames(filename)) {
+      referenced.add(companion);
+    }
   }
 
   return referenced;
@@ -55,16 +67,23 @@ export async function deleteManagedUploadIfUnreferenced(imageUrl: string): Promi
     return false;
   }
 
-  const filepath = path.join(UPLOAD_DIR, filename);
-  try {
-    await fs.unlink(filepath);
-    return true;
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
-      return false;
+  const filenames = [filename, ...getCompanionUploadFilenames(filename)];
+  let deletedAny = false;
+
+  for (const fileToDelete of filenames) {
+    const filepath = path.join(UPLOAD_DIR, fileToDelete);
+    try {
+      await fs.unlink(filepath);
+      deletedAny = true;
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+        continue;
+      }
+      throw error;
     }
-    throw error;
   }
+
+  return deletedAny;
 }
 
 export async function tryDeleteManagedUploadIfUnreferenced(

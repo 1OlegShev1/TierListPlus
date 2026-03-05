@@ -3,9 +3,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { DeleteListButton } from "@/components/templates/DeleteListButton";
 import { DuplicateListButton } from "@/components/templates/DuplicateListButton";
+import { ListDetailItemsGrid } from "@/components/templates/ListDetailItemsGrid";
 import { StartVoteFromTemplateButton } from "@/components/templates/StartVoteFromTemplateButton";
 import { buttonVariants } from "@/components/ui/Button";
-import { ItemArtwork } from "@/components/ui/ItemArtwork";
 import { canMutateSpaceResource } from "@/lib/api-helpers";
 import { getCookieAuth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -58,9 +58,15 @@ export default async function ListDetailPage({
     (list.space.creatorId === userId ||
       (Array.isArray(list.space.members) && list.space.members[0]?.role === "OWNER"));
   const canManage = canMutateSpaceResource(list.creatorId, userId, isSpaceOwner);
+  const backHref = list.space ? `/spaces/${list.space.id}#lists` : "/templates";
+  const backLabel = list.space ? "Back to Space" : "Back to Lists";
 
   return (
-    <div>
+    <div className="space-y-4">
+      <Link href={backHref} className={`${buttonVariants.ghost} inline-flex items-center`}>
+        {`← ${backLabel}`}
+      </Link>
+
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold">{list.name}</h1>
@@ -74,14 +80,6 @@ export default async function ListDetailPage({
                   ? "Private to you"
                   : "Private list"}
           </p>
-          {list.space && (
-            <Link
-              href={`/spaces/${list.space.id}`}
-              className="mt-1 inline-flex text-xs text-amber-400 transition-colors hover:text-amber-300"
-            >
-              {`View ${list.space.name} lists`}
-            </Link>
-          )}
         </div>
         <div className="flex w-full flex-wrap items-center justify-end gap-3 sm:w-auto sm:shrink-0">
           {!canManage && (list.isPublic || !!list.spaceId) && (
@@ -103,20 +101,7 @@ export default async function ListDetailPage({
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8">
-        {list.items.map((item) => (
-          <div key={item.id} className="rounded-lg border border-neutral-800 bg-neutral-900 p-2">
-            <ItemArtwork
-              src={item.imageUrl}
-              alt={item.label}
-              className="aspect-square w-full rounded"
-              presentation="ambient"
-              inset="compact"
-            />
-            <p className="mt-1 truncate text-center text-xs text-neutral-300">{item.label}</p>
-          </div>
-        ))}
-      </div>
+      <ListDetailItemsGrid items={list.items} />
     </div>
   );
 }

@@ -1,8 +1,8 @@
 import fs from "node:fs/promises";
 import path from "node:path";
+import { MANAGED_UPLOAD_FILE_RE } from "@/lib/uploads";
 
 const UPLOAD_DIR = path.join(process.cwd(), "public", "uploads");
-const SAFE_FILENAME = /^[A-Za-z0-9_-]+\.webp$/;
 
 export const dynamic = "force-dynamic";
 
@@ -12,7 +12,7 @@ export async function GET(
 ) {
   try {
     const { filename } = await params;
-    if (!SAFE_FILENAME.test(filename)) {
+    if (!MANAGED_UPLOAD_FILE_RE.test(filename)) {
       return new Response("Not found", { status: 404 });
     }
 
@@ -26,9 +26,10 @@ export async function GET(
     }
 
     const file = await fs.readFile(filepath);
+    const contentType = filename.toLowerCase().endsWith(".gif") ? "image/gif" : "image/webp";
     return new Response(file, {
       headers: {
-        "Content-Type": "image/webp",
+        "Content-Type": contentType,
         "Cache-Control": "public, max-age=31536000, immutable",
       },
     });

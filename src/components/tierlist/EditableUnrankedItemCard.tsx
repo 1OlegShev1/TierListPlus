@@ -27,9 +27,11 @@ export function EditableUnrankedItemCard({
   removing = false,
 }: EditableUnrankedItemCardProps) {
   const [editing, setEditing] = useState(false);
+  const [previewing, setPreviewing] = useState(false);
   const [draftLabel, setDraftLabel] = useState(label);
   const inputRef = useRef<HTMLInputElement>(null);
   const committingRef = useRef(false);
+  const rootRef = useRef<HTMLDivElement | null>(null);
 
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id,
@@ -50,6 +52,7 @@ export function EditableUnrankedItemCard({
 
   const startEditing = () => {
     if (saving || removing) return;
+    setPreviewing(false);
     setEditing(true);
   };
 
@@ -90,9 +93,30 @@ export function EditableUnrankedItemCard({
 
   const labelText = label.trim().length > 0 ? label : "Tap to name";
 
+  useEffect(() => {
+    if (!previewing) return;
+
+    const handlePointerDown = (event: PointerEvent) => {
+      if (
+        rootRef.current &&
+        event.target instanceof Node &&
+        rootRef.current.contains(event.target)
+      ) {
+        return;
+      }
+      setPreviewing(false);
+    };
+
+    document.addEventListener("pointerdown", handlePointerDown, true);
+    return () => document.removeEventListener("pointerdown", handlePointerDown, true);
+  }, [previewing]);
+
   return (
     <div
-      ref={setNodeRef}
+      ref={(node) => {
+        rootRef.current = node;
+        setNodeRef(node);
+      }}
       style={style}
       className={`group relative flex h-[var(--editable-item-height)] w-[var(--editable-item-width)] flex-shrink-0 flex-col rounded-lg border border-neutral-700 bg-neutral-950 p-[var(--editable-item-padding)] ${EDITABLE_UNRANKED_ITEM_METRICS_CLASS}`}
     >
@@ -122,6 +146,7 @@ export function EditableUnrankedItemCard({
             className="h-full w-full"
             presentation="ambient"
             inset="compact"
+            showAnimatedHint
           />
         </div>
       ) : (
@@ -129,9 +154,20 @@ export function EditableUnrankedItemCard({
           type="button"
           {...attributes}
           {...listeners}
-          onClick={startEditing}
+          onClick={() => setPreviewing((current) => !current)}
+          onBlur={(event) => {
+            const nextFocused = event.relatedTarget;
+            if (
+              rootRef.current &&
+              nextFocused instanceof Node &&
+              rootRef.current.contains(nextFocused)
+            ) {
+              return;
+            }
+            setPreviewing(false);
+          }}
           className="block h-[var(--editable-item-media-size)] w-full cursor-grab overflow-hidden rounded active:cursor-grabbing"
-          aria-label={`Edit ${label || "item"} label or drag to rank`}
+          aria-label={`Preview animation for ${label || "item"} or drag to rank`}
         >
           <ItemArtwork
             src={imageUrl}
@@ -140,6 +176,8 @@ export function EditableUnrankedItemCard({
             presentation="ambient"
             inset="compact"
             draggable={false}
+            animate={previewing}
+            showAnimatedHint
           />
         </button>
       )}

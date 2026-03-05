@@ -67,7 +67,16 @@ function hasExplicitNonImageType(file: File): boolean {
   return file.type.length > 0 && !file.type.startsWith("image/");
 }
 
+function isGifFile(file: File): boolean {
+  if (file.type.toLowerCase() === "image/gif") return true;
+  return file.name.toLowerCase().endsWith(".gif");
+}
+
 async function prepareFileForUpload(file: File, variant: "item" | "space_logo"): Promise<File> {
+  if (variant === "item" && isGifFile(file)) {
+    return file;
+  }
+
   if (typeof window === "undefined" || typeof createImageBitmap !== "function") {
     return file;
   }
