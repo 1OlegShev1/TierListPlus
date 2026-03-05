@@ -11,6 +11,8 @@ const mocks = vi.hoisted(() => ({
     joinPrivateSpaceByInviteCode: vi.fn(),
     listSpaceMembers: vi.fn(),
     joinOpenSpace: vi.fn(),
+    leaveSpace: vi.fn(),
+    removeSpaceMember: vi.fn(),
   },
 }));
 
@@ -28,6 +30,8 @@ import {
   GET as getMembers,
   POST as postMembers,
 } from "@/app/api/spaces/[spaceId]/members/route";
+import { DELETE as leaveSpace } from "@/app/api/spaces/[spaceId]/members/me/route";
+import { DELETE as removeMember } from "@/app/api/spaces/[spaceId]/members/[userId]/route";
 import {
   GET as getInvite,
   POST as postInvite,
@@ -202,6 +206,56 @@ describe("spaces api routes", () => {
     expect(response.status).toBe(403);
     await expect(response.json()).resolves.toEqual({
       error: "Only the space owner can view space invites",
+    });
+  });
+
+  it("supports leave-space and owner member-removal flows", async () => {
+    mocks.getRequestAuth.mockResolvedValue({ userId: "owner_1" });
+
+    let response = await leaveSpace(
+      new Request("https://example.test", { method: "DELETE" }),
+      routeCtx({ spaceId: "space_1" }),
+    );
+    expect(response.status).toBe(204);
+    expect(mocks.spacesService.leaveSpace).toHaveBeenCalledWith("space_1", "user_1");
+
+    response = await removeMember(
+      new Request("https://example.test", { method: "DELETE" }),
+      routeCtx({ spaceId: "space_1", userId: "member_1" }),
+    );
+    expect(response.status).toBe(204);
+    expect(mocks.spacesService.removeSpaceMember).toHaveBeenCalledWith(
+      "space_1",
+      "owner_1",
+      "member_1",
+    );
+  });
+
+  it("maps leave/remove service errors", async () => {
+    mocks.spacesService.leaveSpace.mockRejectedValueOnce(
+      new ApiError(400, "Space owner cannot leave the space"),
+    );
+
+    let response = await leaveSpace(
+      new Request("https://example.test", { method: "DELETE" }),
+      routeCtx({ spaceId: "space_1" }),
+    );
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({
+      error: "Space owner cannot leave the space",
+    });
+
+    mocks.getRequestAuth.mockResolvedValue({ userId: "user_1" });
+    mocks.spacesService.removeSpaceMember.mockRejectedValueOnce(
+      new ApiError(403, "Only the space owner can remove members"),
+    );
+    response = await removeMember(
+      new Request("https://example.test", { method: "DELETE" }),
+      routeCtx({ spaceId: "space_1", userId: "member_1" }),
+    );
+    expect(response.status).toBe(403);
+    await expect(response.json()).resolves.toEqual({
+      error: "Only the space owner can remove members",
     });
   });
 });

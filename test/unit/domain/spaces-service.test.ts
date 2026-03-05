@@ -4,6 +4,8 @@ const mocks = vi.hoisted(() => ({
     $transaction: vi.fn(),
     spaceMember: {
       findMany: vi.fn(),
+      findUnique: vi.fn(),
+      delete: vi.fn(),
     },
     spaceInvite: {
       findFirst: vi.fn(),
@@ -30,6 +32,8 @@ describe("spaces service", () => {
     mocks.resolveSpaceAccessContext.mockReset();
     mocks.prisma.$transaction.mockReset();
     mocks.prisma.spaceMember.findMany.mockReset();
+    mocks.prisma.spaceMember.findUnique.mockReset();
+    mocks.prisma.spaceMember.delete.mockReset();
     mocks.prisma.spaceInvite.findFirst.mockReset();
     mocks.prisma.template.findMany.mockReset();
     mocks.prisma.template.create.mockReset();
@@ -280,5 +284,89 @@ describe("spaces service", () => {
       }),
     );
     expect(create).toHaveBeenCalledTimes(1);
+  });
+
+  it("prevents owner from leaving and allows regular member leave", async () => {
+    mocks.prisma.spaceMember.findUnique
+      .mockResolvedValueOnce({
+        id: "membership_owner",
+        role: "OWNER",
+        space: { creatorId: "owner_1" },
+      })
+      .mockResolvedValueOnce({
+        id: "membership_member",
+        role: "MEMBER",
+        space: { creatorId: "owner_1" },
+      });
+
+    const { leaveSpace } = await import("@/domain/spaces/service");
+    await expect(leaveSpace("space_1", "owner_1")).rejects.toEqual(
+      expect.objectContaining({
+        status: 400,
+        details: "Space owner cannot leave the space",
+      }),
+    );
+
+    await leaveSpace("space_1", "member_1");
+    expect(mocks.prisma.spaceMember.delete).toHaveBeenCalledWith({
+      where: { id: "membership_member" },
+    });
+  });
+
+  it("enforces owner-only member removal and protects space owner", async () => {
+    const { removeSpaceMember } = await import("@/domain/spaces/service");
+
+    mocks.resolveSpaceAccessContext.mockResolvedValueOnce({
+      id: "space_1",
+      name: "Space",
+      visibility: "PRIVATE",
+      creatorId: "owner_1",
+      memberRole: "MEMBER",
+      isMember: true,
+      isOwner: false,
+    });
+
+    await expect(removeSpaceMember("space_1", "member_1", "member_2")).rejects.toEqual(
+      expect.objectContaining({
+        status: 403,
+        details: "Only the space owner can remove members",
+      }),
+    );
+
+    mocks.resolveSpaceAccessContext.mockResolvedValueOnce({
+      id: "space_1",
+      name: "Space",
+      visibility: "PRIVATE",
+      creatorId: "owner_1",
+      memberRole: "OWNER",
+      isMember: true,
+      isOwner: true,
+    });
+    await expect(removeSpaceMember("space_1", "owner_1", "owner_1")).rejects.toEqual(
+      expect.objectContaining({
+        status: 400,
+        details: "Space owner cannot be removed",
+      }),
+    );
+  });
+
+  it("removes target member when performed by owner", async () => {
+    mocks.resolveSpaceAccessContext.mockResolvedValue({
+      id: "space_1",
+      name: "Space",
+      visibility: "PRIVATE",
+      creatorId: "owner_1",
+      memberRole: "OWNER",
+      isMember: true,
+      isOwner: true,
+    });
+    mocks.prisma.spaceMember.findUnique.mockResolvedValue({ id: "membership_target" });
+
+    const { removeSpaceMember } = await import("@/domain/spaces/service");
+    await removeSpaceMember("space_1", "owner_1", "member_2");
+
+    expect(mocks.prisma.spaceMember.delete).toHaveBeenCalledWith({
+      where: { id: "membership_target" },
+    });
   });
 });
