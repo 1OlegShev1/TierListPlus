@@ -1,7 +1,18 @@
 import { z } from "zod/v4";
 import { MANAGED_UPLOAD_URL_RE } from "@/lib/uploads";
 
-const spaceAccentColorSchema = z.enum(["SLATE", "AMBER", "SKY", "EMERALD", "ROSE"]);
+const spaceAccentColorSchema = z.enum([
+  "SLATE",
+  "AMBER",
+  "SKY",
+  "EMERALD",
+  "ROSE",
+  "SILVER",
+  "ORANGE",
+  "CYAN",
+  "TEAL",
+  "PINK",
+]);
 
 export const createTemplateSchema = z.object({
   name: z.string().min(1).max(100),
@@ -66,12 +77,6 @@ export const submitVotesSchema = z.object({
       rankInTier: z.number().int().min(0),
     }),
   ),
-});
-
-export const bracketVoteSchema = z.object({
-  matchupId: z.string().min(1),
-  participantId: z.string().min(1),
-  chosenItemId: z.string().min(1),
 });
 
 export const updateSessionSchema = z.object({

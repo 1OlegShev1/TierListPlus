@@ -90,7 +90,7 @@ export function ResultsPageClient({
   const voteHref = currentParticipantId
     ? `/sessions/${sessionId}/vote`
     : `/sessions/join?code=${encodeURIComponent(session.joinCode)}`;
-  const backToVotesHref = session.spaceId ? `/spaces/${session.spaceId}?tab=votes` : "/sessions";
+  const backToVotesHref = session.spaceId ? `/spaces/${session.spaceId}` : "/sessions";
 
   return (
     <div>

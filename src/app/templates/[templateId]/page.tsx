@@ -76,7 +76,7 @@ export default async function ListDetailPage({
           </p>
           {list.space && (
             <Link
-              href={`/spaces/${list.space.id}?tab=lists`}
+              href={`/spaces/${list.space.id}`}
               className="mt-1 inline-flex text-xs text-amber-400 transition-colors hover:text-amber-300"
             >
               {`View ${list.space.name} lists`}

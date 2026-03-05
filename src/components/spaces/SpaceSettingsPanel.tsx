@@ -1,7 +1,8 @@
 "use client";
 
+import type { SpaceAccentColor } from "@prisma/client";
 import { useRouter } from "next/navigation";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { ImageUploader, type UploadedImage } from "@/components/shared/ImageUploader";
 import { Button } from "@/components/ui/Button";
 import { ErrorMessage } from "@/components/ui/ErrorMessage";
@@ -9,14 +10,19 @@ import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Textarea";
 import { apiPatch, getErrorMessage, tryCleanupUnattachedUpload } from "@/lib/api-client";
 import { getSpaceAccentClasses, SPACE_ACCENT_OPTIONS } from "@/lib/space-theme";
+import { cn } from "@/lib/utils";
 
 interface SpaceSettingsPanelProps {
   spaceId: string;
   initialName: string;
   initialDescription: string | null;
   initialLogoUrl: string | null;
-  initialAccentColor: "SLATE" | "AMBER" | "SKY" | "EMERALD" | "ROSE";
+  initialAccentColor: SpaceAccentColor;
   initialVisibility: "PRIVATE" | "OPEN";
+  className?: string;
+  showHeader?: boolean;
+  defaultMode?: "view" | "edit";
+  closeHref?: string;
 }
 
 export function SpaceSettingsPanel({
@@ -26,18 +32,23 @@ export function SpaceSettingsPanel({
   initialLogoUrl,
   initialAccentColor,
   initialVisibility,
+  className,
+  showHeader = true,
+  defaultMode = "view",
+  closeHref,
 }: SpaceSettingsPanelProps) {
   const router = useRouter();
-  const [mode, setMode] = useState<"view" | "edit">("view");
+  const [mode, setMode] = useState<"view" | "edit">(defaultMode);
   const [name, setName] = useState(initialName);
   const [description, setDescription] = useState(initialDescription ?? "");
   const [logoUrl, setLogoUrl] = useState<string | null>(initialLogoUrl);
-  const [accentColor, setAccentColor] = useState<"SLATE" | "AMBER" | "SKY" | "EMERALD" | "ROSE">(
-    initialAccentColor,
-  );
+  const [accentColor, setAccentColor] = useState<SpaceAccentColor>(initialAccentColor);
   const [visibility, setVisibility] = useState<"PRIVATE" | "OPEN">(initialVisibility);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [accentPickerOpen, setAccentPickerOpen] = useState(false);
+  const accentPickerRef = useRef<HTMLDivElement>(null);
+  const accentPickerId = useId();
 
   const initialDescriptionNormalized = (initialDescription ?? "").trim();
   const trimmedName = useMemo(() => name.trim(), [name]);
@@ -53,6 +64,38 @@ export function SpaceSettingsPanel({
   const canSave = !saving && trimmedName.length > 0 && isDirty;
   const accent = getSpaceAccentClasses(accentColor);
   const nameInitial = trimmedName.charAt(0).toUpperCase() || "?";
+  const selectedAccentOption = SPACE_ACCENT_OPTIONS.find((option) => option.value === accentColor);
+  const contentSpacingClass = showHeader ? "mt-3" : "";
+  const canToggleMode = showHeader;
+  const closeSettingsHref = closeHref ?? `/spaces/${spaceId}`;
+  const closeModalView = useCallback(() => {
+    if (typeof window === "undefined") return;
+    router.replace(closeSettingsHref);
+    router.refresh();
+  }, [closeSettingsHref, router]);
+
+  useEffect(() => {
+    if (!accentPickerOpen) return;
+    const handlePointer = (event: MouseEvent | TouchEvent) => {
+      if (accentPickerRef.current?.contains(event.target as Node)) return;
+      setAccentPickerOpen(false);
+    };
+    const handleKey = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      setAccentPickerOpen(false);
+    };
+
+    document.addEventListener("mousedown", handlePointer);
+    document.addEventListener("touchstart", handlePointer);
+    document.addEventListener("keydown", handleKey);
+
+    return () => {
+      document.removeEventListener("mousedown", handlePointer);
+      document.removeEventListener("touchstart", handlePointer);
+      document.removeEventListener("keydown", handleKey);
+    };
+  }, [accentPickerOpen]);
 
   const cleanupUploadedLogo = useCallback(async (url: string) => {
     await tryCleanupUnattachedUpload(url, "space settings cleanup");
@@ -73,7 +116,11 @@ export function SpaceSettingsPanel({
       await cleanupUploadedLogo(logoUrl);
     }
     resetDraftState();
-    setMode("view");
+    if (canToggleMode) {
+      setMode("view");
+    } else {
+      closeModalView();
+    }
   };
 
   const onUploadedLogo = async (image: UploadedImage) => {
@@ -101,6 +148,7 @@ export function SpaceSettingsPanel({
     if (!canSave) return;
     setSaving(true);
     setError(null);
+    let keepBusyUntilUnmount = false;
     try {
       await apiPatch(`/api/spaces/${spaceId}`, {
         name: trimmedName,
@@ -109,34 +157,50 @@ export function SpaceSettingsPanel({
         accentColor,
         visibility,
       });
-      setMode("view");
-      router.refresh();
+      if (canToggleMode) {
+        setMode("view");
+        router.refresh();
+      } else {
+        keepBusyUntilUnmount = true;
+        closeModalView();
+      }
     } catch (err) {
       setError(getErrorMessage(err, "Could not update this space"));
     } finally {
-      setSaving(false);
+      if (!keepBusyUntilUnmount) {
+        setSaving(false);
+      }
     }
   };
 
   return (
-    <div className="relative overflow-hidden rounded-xl border border-neutral-800 bg-neutral-900 p-4">
-      <div className={`pointer-events-none absolute inset-0 ${accent.glowClassName}`} />
+    <div
+      className={cn(
+        "relative overflow-visible rounded-xl border border-neutral-800 bg-neutral-900 p-4 sm:p-5",
+        className,
+      )}
+    >
+      <div
+        className={`pointer-events-none absolute inset-x-0 top-0 h-44 opacity-75 ${accent.glowClassName}`}
+      />
       <div className="relative">
-        <div className="flex items-center justify-between gap-3">
-          <h3 className="text-sm font-semibold text-neutral-100">Space Settings</h3>
-          {mode === "view" ? (
-            <Button
-              variant="secondary"
-              onClick={() => setMode("edit")}
-              className="!px-3 !py-1.5 !text-sm"
-            >
-              Edit
-            </Button>
-          ) : null}
-        </div>
+        {showHeader ? (
+          <div className="flex items-center justify-between gap-3">
+            <h3 className="text-sm font-semibold text-neutral-100">Space Settings</h3>
+            {mode === "view" ? (
+              <Button
+                variant="secondary"
+                onClick={() => setMode("edit")}
+                className="!px-3 !py-1.5 !text-sm"
+              >
+                Edit
+              </Button>
+            ) : null}
+          </div>
+        ) : null}
 
         {mode === "view" ? (
-          <div className="mt-3 space-y-3 text-sm">
+          <div className={`${contentSpacingClass} space-y-3 text-sm`}>
             <div className="flex items-center gap-3">
               <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-neutral-700 bg-neutral-950">
                 {logoUrl ? (
@@ -163,120 +227,164 @@ export function SpaceSettingsPanel({
             )}
           </div>
         ) : (
-          <div className="mt-3 space-y-4">
-            <div className="flex flex-wrap items-center gap-3">
-              <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-neutral-700 bg-neutral-950">
-                {logoUrl ? (
-                  <img
-                    src={logoUrl}
-                    alt={`${trimmedName || "Space"} logo`}
-                    className="h-full w-full object-cover"
+          <div className={`${contentSpacingClass} space-y-4`}>
+            <div className="grid gap-4 md:grid-cols-[12rem_minmax(0,1fr)] md:items-start">
+              <div className="flex flex-col items-center space-y-2.5">
+                <div className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-neutral-700 bg-neutral-950">
+                  {logoUrl ? (
+                    <img
+                      src={logoUrl}
+                      alt={`${trimmedName || "Space"} logo`}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <span className="text-sm font-semibold text-neutral-400">{nameInitial}</span>
+                  )}
+                </div>
+                <div className="flex flex-wrap items-center justify-center gap-2">
+                  <ImageUploader
+                    onUploaded={onUploadedLogo}
+                    uploadVariant="space_logo"
+                    compact
+                    idleLabel={logoUrl ? "Replace" : "Upload logo"}
+                    className="w-auto"
                   />
-                ) : (
-                  <span className="text-sm font-semibold text-neutral-400">{nameInitial}</span>
-                )}
+                  {logoUrl ? (
+                    <Button
+                      variant="secondary"
+                      onClick={removeLogo}
+                      disabled={saving}
+                      className="!px-3 !py-2 !text-sm"
+                    >
+                      Clear
+                    </Button>
+                  ) : null}
+                </div>
               </div>
-              <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
-                <ImageUploader
-                  onUploaded={onUploadedLogo}
-                  uploadVariant="space_logo"
-                  compact
-                  idleLabel="Upload logo"
-                  className="w-auto"
+
+              <div className="space-y-4">
+                <Input
+                  value={name}
+                  onChange={(event) => setName(event.target.value)}
+                  placeholder="Space name"
+                  className="w-full"
                 />
-                <Button
-                  variant="secondary"
-                  onClick={removeLogo}
-                  disabled={!logoUrl || saving}
-                  className="!px-3 !py-2 !text-sm"
-                >
-                  Remove logo
-                </Button>
+
+                <Textarea
+                  value={description}
+                  onChange={(event) => setDescription(event.target.value)}
+                  maxLength={280}
+                  rows={3}
+                  placeholder="A short description for people browsing this space"
+                  className="w-full"
+                />
               </div>
             </div>
 
-            <Input
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              placeholder="Space name"
-            />
-
-            <Textarea
-              value={description}
-              onChange={(event) => setDescription(event.target.value)}
-              maxLength={280}
-              rows={3}
-              placeholder="A short description for people browsing this space"
-            />
-
-            <div className="space-y-2">
-              <p className="text-xs font-medium uppercase tracking-[0.12em] text-neutral-500">
-                Card accent
-              </p>
-              <div className="flex flex-wrap items-center gap-2">
-                {SPACE_ACCENT_OPTIONS.map((option) => (
+            <div className="grid gap-4 md:grid-cols-2 md:items-start">
+              <div className="space-y-2">
+                <p className="text-xs font-medium uppercase tracking-[0.12em] text-neutral-500">
+                  Card accent
+                </p>
+                <div ref={accentPickerRef} className="relative inline-flex">
                   <button
-                    key={option.value}
                     type="button"
-                    onClick={() => setAccentColor(option.value)}
-                    className={`inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-xs transition-colors ${
-                      accentColor === option.value
-                        ? "border-neutral-300 bg-neutral-100 text-neutral-900"
-                        : "border-neutral-700 text-neutral-300 hover:border-neutral-500"
+                    onClick={() => setAccentPickerOpen((prev) => !prev)}
+                    className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-neutral-700 bg-neutral-950/70 hover:border-neutral-500"
+                    aria-label="Pick card accent color"
+                    aria-expanded={accentPickerOpen}
+                    aria-controls={accentPickerOpen ? accentPickerId : undefined}
+                  >
+                    <span
+                      className={`h-6 w-6 rounded-full ${selectedAccentOption?.colorClassName ?? "bg-neutral-400"}`}
+                    />
+                  </button>
+                  {accentPickerOpen ? (
+                    <div
+                      id={accentPickerId}
+                      className="absolute bottom-full left-0 z-[70] mb-2 w-[13.5rem] rounded-lg border border-neutral-700 bg-neutral-900 p-2 shadow-lg"
+                    >
+                      <p className="mb-2 text-xs text-neutral-500">Choose accent</p>
+                      <div className="grid grid-cols-5 gap-2">
+                        {SPACE_ACCENT_OPTIONS.map((swatch) => (
+                          <button
+                            key={swatch.value}
+                            type="button"
+                            onClick={() => {
+                              setAccentColor(swatch.value);
+                              setAccentPickerOpen(false);
+                            }}
+                            className={`inline-flex h-8 w-8 items-center justify-center rounded-full border transition-colors ${
+                              accentColor === swatch.value
+                                ? "border-neutral-200"
+                                : "border-neutral-700 hover:border-neutral-500"
+                            }`}
+                            aria-label={`Set accent to ${swatch.label}`}
+                            title={swatch.label}
+                          >
+                            <span className={`h-5 w-5 rounded-full ${swatch.colorClassName}`} />
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <p className="text-xs font-medium uppercase tracking-[0.12em] text-neutral-500">
+                  Visibility
+                </p>
+                <fieldset className="inline-flex h-11 rounded-lg border border-neutral-700 bg-neutral-950/60 p-1">
+                  <legend className="sr-only">Space visibility</legend>
+                  <label
+                    className={`flex min-w-[5.25rem] cursor-pointer items-center justify-center rounded-md px-3 text-sm font-medium transition-colors ${
+                      visibility === "PRIVATE"
+                        ? "bg-amber-500/15 text-amber-300"
+                        : "text-neutral-300 hover:bg-neutral-800 hover:text-neutral-100"
                     }`}
                   >
-                    <span className={`h-2.5 w-2.5 rounded-full ${option.colorClassName}`} />
-                    {option.label}
-                  </button>
-                ))}
+                    <input
+                      type="radio"
+                      name={`space-visibility-${spaceId}`}
+                      value="PRIVATE"
+                      checked={visibility === "PRIVATE"}
+                      onChange={() => setVisibility("PRIVATE")}
+                      className="sr-only"
+                    />
+                    Private
+                  </label>
+                  <label
+                    className={`flex min-w-[5.25rem] cursor-pointer items-center justify-center rounded-md px-3 text-sm font-medium transition-colors ${
+                      visibility === "OPEN"
+                        ? "bg-amber-500/15 text-amber-300"
+                        : "text-neutral-300 hover:bg-neutral-800 hover:text-neutral-100"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name={`space-visibility-${spaceId}`}
+                      value="OPEN"
+                      checked={visibility === "OPEN"}
+                      onChange={() => setVisibility("OPEN")}
+                      className="sr-only"
+                    />
+                    Open
+                  </label>
+                </fieldset>
+                <p className="text-xs text-neutral-500">
+                  Open spaces are discoverable and allow voting from non-members.
+                </p>
               </div>
             </div>
 
-            <fieldset className="inline-flex h-11 rounded-lg border border-neutral-700 bg-neutral-950/60 p-1">
-              <legend className="sr-only">Space visibility</legend>
-              <label
-                className={`flex min-w-[5.25rem] cursor-pointer items-center justify-center rounded-md px-3 text-sm font-medium transition-colors ${
-                  visibility === "PRIVATE"
-                    ? "bg-amber-500/15 text-amber-300"
-                    : "text-neutral-300 hover:bg-neutral-800 hover:text-neutral-100"
-                }`}
-              >
-                <input
-                  type="radio"
-                  name={`space-visibility-${spaceId}`}
-                  value="PRIVATE"
-                  checked={visibility === "PRIVATE"}
-                  onChange={() => setVisibility("PRIVATE")}
-                  className="sr-only"
-                />
-                Private
-              </label>
-              <label
-                className={`flex min-w-[5.25rem] cursor-pointer items-center justify-center rounded-md px-3 text-sm font-medium transition-colors ${
-                  visibility === "OPEN"
-                    ? "bg-amber-500/15 text-amber-300"
-                    : "text-neutral-300 hover:bg-neutral-800 hover:text-neutral-100"
-                }`}
-              >
-                <input
-                  type="radio"
-                  name={`space-visibility-${spaceId}`}
-                  value="OPEN"
-                  checked={visibility === "OPEN"}
-                  onChange={() => setVisibility("OPEN")}
-                  className="sr-only"
-                />
-                Open
-              </label>
-            </fieldset>
-
-            <p className="text-xs text-neutral-500">
-              Open spaces are discoverable and allow voting from non-members.
-            </p>
-
             <div className="flex flex-wrap items-center gap-2">
-              <Button onClick={save} disabled={!canSave} className="!px-4 !py-2 !text-sm">
-                {saving ? "Saving..." : "Save changes"}
+              <Button
+                onClick={save}
+                disabled={!canSave}
+                className="min-w-[8.5rem] !px-4 !py-2 !text-sm"
+              >
+                Save changes
               </Button>
               <Button
                 variant="secondary"

@@ -1,6 +1,8 @@
 import { cookies } from "next/headers";
+import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { ListEditor } from "@/components/templates/ListEditor";
+import { buttonVariants } from "@/components/ui/Button";
 import { getCookieAuth } from "@/lib/auth";
 import { canReadSpace, getSpaceAccessForUser } from "@/lib/space";
 
@@ -25,7 +27,7 @@ export default async function NewListPage({
     if (!spaceAccess) notFound();
     if (!canReadSpace(spaceAccess.visibility, spaceAccess.isMember)) notFound();
     if (!spaceAccess.isMember) {
-      redirect(`/spaces/${spaceAccess.id}?tab=members`);
+      redirect(`/spaces/${spaceAccess.id}`);
     }
     accessSpaceId = spaceAccess.id;
     accessSpaceName = spaceAccess.name;
@@ -33,6 +35,14 @@ export default async function NewListPage({
 
   return (
     <div>
+      {accessSpaceId ? (
+        <Link
+          href={`/spaces/${accessSpaceId}`}
+          className={`${buttonVariants.ghost} mb-3 inline-flex`}
+        >
+          &larr; Back to Space
+        </Link>
+      ) : null}
       <h1 className="mb-6 text-2xl font-bold">Make a Tier List</h1>
       <ListEditor spaceId={accessSpaceId} spaceName={accessSpaceName} />
     </div>

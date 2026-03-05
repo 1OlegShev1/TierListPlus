@@ -3,6 +3,7 @@ const mocks = vi.hoisted(() => ({
   prisma: {
     session: {
       findMany: vi.fn(),
+      create: vi.fn(),
     },
     template: {
       findUnique: vi.fn(),
@@ -36,6 +37,7 @@ describe("sessions service", () => {
   beforeEach(() => {
     mocks.resolveSpaceAccessContext.mockReset();
     mocks.prisma.session.findMany.mockReset();
+    mocks.prisma.session.create.mockReset();
     mocks.prisma.template.findUnique.mockReset();
     mocks.prisma.template.create.mockReset();
     mocks.prisma.participant.create.mockReset();
@@ -117,6 +119,60 @@ describe("sessions service", () => {
       expect.objectContaining({
         status: 404,
         details: "Template not found",
+      }),
+    );
+  });
+
+  it("allows creating space session from accessible global template", async () => {
+    mocks.prisma.template.findUnique.mockResolvedValue({
+      id: "template_1",
+      name: "Public Template",
+      description: "desc",
+      creatorId: "other_user",
+      isPublic: true,
+      isHidden: false,
+      spaceId: null,
+      items: [],
+    });
+    mocks.prisma.template.create.mockResolvedValue({
+      id: "working_template",
+      items: [],
+    });
+    mocks.prisma.session.create.mockResolvedValue({
+      id: "session_1",
+      name: "Vote",
+      templateId: "working_template",
+      sourceTemplateId: "template_1",
+      joinCode: "JOINCODE",
+      creatorId: "user_1",
+      tierConfig: {},
+      isPrivate: true,
+      items: [],
+      _count: { participants: 0 },
+    });
+
+    const created = await createSession({
+      creatorId: "user_1",
+      name: "Vote",
+      templateId: "template_1",
+      spaceId: "space_1",
+    });
+
+    expect(created).toEqual(expect.objectContaining({ id: "session_1" }));
+    expect(mocks.prisma.template.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          spaceId: "space_1",
+        }),
+      }),
+    );
+    expect(mocks.prisma.session.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          sourceTemplateId: "template_1",
+          isPrivate: true,
+          spaceId: "space_1",
+        }),
       }),
     );
   });

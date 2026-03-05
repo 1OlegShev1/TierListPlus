@@ -81,7 +81,7 @@ export function VotePageClient({
           <h1 className="truncate text-lg font-bold sm:text-2xl">{session.name}</h1>
           {session.spaceId && (
             <Link
-              href={`/spaces/${session.spaceId}?tab=votes`}
+              href={`/spaces/${session.spaceId}`}
               className="mt-1 inline-flex text-xs text-amber-400 transition-colors hover:text-amber-300"
             >
               {`In ${session.spaceName ?? "space"} · back to space votes`}

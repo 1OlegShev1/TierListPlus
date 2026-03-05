@@ -58,7 +58,7 @@ describe("space create page access", () => {
     mocks.prisma.template.findUnique.mockReset().mockResolvedValue(null);
   });
 
-  it("redirects open-space non-members from new list page to members tab", async () => {
+  it("redirects open-space non-members from new list page to the space page", async () => {
     mocks.getSpaceAccessForUser.mockResolvedValue({
       id: "space_1",
       name: "Anime",
@@ -71,7 +71,7 @@ describe("space create page access", () => {
     mocks.canReadSpace.mockReturnValue(true);
 
     await expect(NewListPage({ searchParams: { spaceId: "space_1" } })).rejects.toThrow(
-      "REDIRECT:/spaces/space_1?tab=members",
+      "REDIRECT:/spaces/space_1",
     );
   });
 
@@ -90,7 +90,7 @@ describe("space create page access", () => {
     await expect(NewListPage({ searchParams: { spaceId: "space_1" } })).rejects.toThrow("NOT_FOUND");
   });
 
-  it("redirects open-space non-members from new vote page to members tab", async () => {
+  it("redirects open-space non-members from new vote page to the space page", async () => {
     mocks.getSpaceAccessForUser.mockResolvedValue({
       id: "space_1",
       name: "Anime",
@@ -103,7 +103,7 @@ describe("space create page access", () => {
     mocks.canReadSpace.mockReturnValue(true);
 
     await expect(NewVotePage({ searchParams: { spaceId: "space_1" } })).rejects.toThrow(
-      "REDIRECT:/spaces/space_1?tab=members",
+      "REDIRECT:/spaces/space_1",
     );
     expect(mocks.prisma.template.findMany).not.toHaveBeenCalled();
   });

@@ -1,8 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
-import { Button } from "@/components/ui/Button";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Button, buttonVariants } from "@/components/ui/Button";
 import { ErrorMessage } from "@/components/ui/ErrorMessage";
 import { Input } from "@/components/ui/Input";
 import { ItemArtwork } from "@/components/ui/ItemArtwork";
@@ -58,6 +59,7 @@ export function NewVoteForm({
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState("");
   const createInFlightRef = useRef(false);
+  const listById = useMemo(() => new Map(lists.map((list) => [list.id, list])), [lists]);
 
   useEffect(() => {
     if (!selectedListId) {
@@ -78,12 +80,13 @@ export function NewVoteForm({
     let isCurrent = true;
     setSelectedListDetails(null);
     setSelectedListFetchStatus("loading");
-
-    apiFetch<SelectedListDetails>(
-      spaceId
+    const selectedListSummary = listById.get(selectedListId) ?? null;
+    const selectedTemplateEndpoint =
+      spaceId && selectedListSummary?.origin === "SPACE"
         ? `/api/spaces/${spaceId}/templates/${selectedListId}`
-        : `/api/templates/${selectedListId}`,
-    )
+        : `/api/templates/${selectedListId}`;
+
+    apiFetch<SelectedListDetails>(selectedTemplateEndpoint)
       .then((data) => {
         if (!isCurrent) return;
         setSelectedListDetails(data);
@@ -101,13 +104,12 @@ export function NewVoteForm({
     initialSelectedListDetails,
     initialSelectedListId,
     initialSelectedListUnavailable,
+    listById,
     spaceId,
     selectedListId,
   ]);
 
-  const selectedListSummary = selectedListId
-    ? (lists.find((list) => list.id === selectedListId) ?? null)
-    : null;
+  const selectedListSummary = selectedListId ? (listById.get(selectedListId) ?? null) : null;
   const selectedListLoading = !!selectedListId && selectedListFetchStatus === "loading";
   const selectedListUnavailable = !!selectedListId && selectedListFetchStatus === "error";
 
@@ -161,12 +163,24 @@ export function NewVoteForm({
 
   if (step === "pick") {
     return (
-      <ListPicker lists={lists} query={listQuery} onQueryChange={setListQuery} onPick={pickList} />
+      <ListPicker
+        lists={lists}
+        query={listQuery}
+        onQueryChange={setListQuery}
+        onPick={pickList}
+        spaceMode={!!spaceId}
+        backHref={spaceId ? `/spaces/${spaceId}` : null}
+      />
     );
   }
 
   return (
     <div className="mx-auto max-w-2xl">
+      {spaceId ? (
+        <Link href={`/spaces/${spaceId}`} className={`${buttonVariants.ghost} mb-3 inline-flex`}>
+          &larr; Back to Space
+        </Link>
+      ) : null}
       <h1 className="mb-6 text-2xl font-bold">Start a Vote</h1>
       {spaceId && (
         <p className="-mt-4 mb-5 text-sm text-neutral-500">
@@ -230,6 +244,15 @@ export function NewVoteForm({
                   <p className="text-sm text-neutral-500">
                     {selectedListDetails.items.length} picks ready to use
                   </p>
+                  {selectedListSummary?.origin ? (
+                    <p className="mt-1 text-xs uppercase tracking-[0.12em] text-neutral-500">
+                      {selectedListSummary.origin === "SPACE"
+                        ? "Space list"
+                        : selectedListSummary.origin === "PERSONAL"
+                          ? "Your list"
+                          : "Public list"}
+                    </p>
+                  ) : null}
                 </>
               ) : selectedListLoading ? (
                 <>
@@ -312,7 +335,7 @@ export function NewVoteForm({
           </Button>
           <Button
             variant="secondary"
-            onClick={() => (spaceId ? router.push(`/spaces/${spaceId}?tab=votes`) : router.back())}
+            onClick={() => (spaceId ? router.push(`/spaces/${spaceId}`) : router.back())}
             className="w-full sm:w-auto"
           >
             Cancel
@@ -328,11 +351,15 @@ function ListPicker({
   query,
   onQueryChange,
   onPick,
+  spaceMode,
+  backHref,
 }: {
   lists: ListSummary[];
   query: string;
   onQueryChange: (q: string) => void;
   onPick: (id: string | null) => void;
+  spaceMode: boolean;
+  backHref: string | null;
 }) {
   const [showAll, setShowAll] = useState(false);
   const isSearching = query.trim().length > 0;
@@ -342,14 +369,17 @@ function ListPicker({
   const featured = lists.slice(0, FEATURED_COUNT);
   const canBrowseMore = lists.length > FEATURED_COUNT;
   const shouldShowList = isSearching || showAll;
-
-  // For the search results list, group by private/public
-  const privateResults = filtered.filter((list) => !list.isPublic);
-  const publicResults = filtered.filter((list) => list.isPublic);
-  const hasGroups = privateResults.length > 0 && publicResults.length > 0;
+  const groupedResults = groupListsForPicker(filtered, spaceMode);
+  const shouldRenderGroupHeadings =
+    groupedResults.filter((group) => group.items.length > 0).length > 1;
 
   return (
     <div className="mx-auto max-w-2xl">
+      {backHref ? (
+        <Link href={backHref} className={`${buttonVariants.ghost} mb-3 inline-flex`}>
+          &larr; Back to Space
+        </Link>
+      ) : null}
       <h1 className="mb-6 text-2xl font-bold">Pick a list to start from</h1>
 
       <button
@@ -368,16 +398,18 @@ function ListPicker({
 
       {lists.length > 0 && (
         <>
-          {!isSearching && featured.length > 0 && (
+          {!isSearching && featured.length > 0 ? (
             <>
-              <p className="mb-3 text-sm font-medium text-neutral-400">Popular lists</p>
+              <p className="mb-3 text-sm font-medium text-neutral-400">
+                {spaceMode ? "Recommended lists" : "Popular lists"}
+              </p>
               <div className="mb-5 space-y-3">
                 {featured.map((list) => (
                   <ListPickerRow key={list.id} list={list} onSelect={() => onPick(list.id)} />
                 ))}
               </div>
             </>
-          )}
+          ) : null}
 
           <Input
             type="text"
@@ -404,19 +436,21 @@ function ListPicker({
                 <p className="px-1 py-4 text-sm text-neutral-500">No lists match that search.</p>
               )}
 
-              {hasGroups && privateResults.length > 0 && (
-                <p className="px-1 pt-1 pb-1 text-xs font-medium text-neutral-500">Your Lists</p>
-              )}
-              {privateResults.map((list) => (
-                <ListPickerRow key={list.id} list={list} onSelect={() => onPick(list.id)} />
-              ))}
-
-              {hasGroups && publicResults.length > 0 && (
-                <p className="px-1 pt-3 pb-1 text-xs font-medium text-neutral-500">Public Lists</p>
-              )}
-              {publicResults.map((list) => (
-                <ListPickerRow key={list.id} list={list} onSelect={() => onPick(list.id)} />
-              ))}
+              {groupedResults.map((group) => {
+                if (group.items.length === 0) return null;
+                return (
+                  <div key={group.label} className="space-y-1">
+                    {shouldRenderGroupHeadings ? (
+                      <p className="px-1 pt-2 pb-1 text-xs font-medium text-neutral-500">
+                        {group.label}
+                      </p>
+                    ) : null}
+                    {group.items.map((list) => (
+                      <ListPickerRow key={list.id} list={list} onSelect={() => onPick(list.id)} />
+                    ))}
+                  </div>
+                );
+              })}
             </div>
           )}
         </>
@@ -426,6 +460,15 @@ function ListPicker({
 }
 
 function ListPickerRow({ list, onSelect }: { list: ListSummary; onSelect: () => void }) {
+  const listBadge =
+    list.origin === "SPACE"
+      ? "Space"
+      : list.origin === "PERSONAL"
+        ? "Yours"
+        : list.isPublic
+          ? "Public"
+          : null;
+
   return (
     <button
       type="button"
@@ -437,11 +480,35 @@ function ListPickerRow({ list, onSelect }: { list: ListSummary; onSelect: () => 
         <span className="block truncate text-base font-medium text-neutral-100">{list.name}</span>
         <span className="block text-sm text-neutral-500">{list._count.items} picks</span>
       </span>
-      {list.isPublic && (
+      {listBadge ? (
         <span className="shrink-0 rounded-full border border-neutral-700 px-2 py-0.5 text-[11px] text-neutral-400">
-          Public
+          {listBadge}
         </span>
-      )}
+      ) : null}
     </button>
   );
+}
+
+function groupListsForPicker(lists: ListSummary[], spaceMode: boolean) {
+  if (spaceMode) {
+    return [
+      {
+        label: "Space Lists",
+        items: lists.filter((list) => list.origin === "SPACE"),
+      },
+      {
+        label: "Your Lists",
+        items: lists.filter((list) => list.origin === "PERSONAL"),
+      },
+      {
+        label: "Public Lists",
+        items: lists.filter((list) => list.origin === "PUBLIC"),
+      },
+    ];
+  }
+
+  return [
+    { label: "Your Lists", items: lists.filter((list) => !list.isPublic) },
+    { label: "Public Lists", items: lists.filter((list) => list.isPublic) },
+  ];
 }

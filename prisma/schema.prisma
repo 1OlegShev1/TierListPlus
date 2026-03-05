@@ -139,6 +139,11 @@ enum SpaceAccentColor {
   SKY
   EMERALD
   ROSE
+  SILVER
+  ORANGE
+  CYAN
+  TEAL
+  PINK
 }
 
 enum SpaceRole {

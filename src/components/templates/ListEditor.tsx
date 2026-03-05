@@ -207,7 +207,7 @@ export function ListEditor({
         <div className="flex w-full flex-wrap items-center justify-end gap-3">
           <Button
             variant="secondary"
-            onClick={() => (spaceId ? router.push(`/spaces/${spaceId}?tab=lists`) : router.back())}
+            onClick={() => (spaceId ? router.push(`/spaces/${spaceId}`) : router.back())}
           >
             Cancel
           </Button>

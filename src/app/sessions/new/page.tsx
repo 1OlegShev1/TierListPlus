@@ -42,7 +42,7 @@ export default async function NewVotePage({
     if (!spaceAccess) notFound();
     if (!canReadSpace(spaceAccess.visibility, spaceAccess.isMember)) notFound();
     if (!spaceAccess.isMember) {
-      redirect(`/spaces/${spaceAccess.id}?tab=members`);
+      redirect(`/spaces/${spaceAccess.id}`);
     }
     accessSpaceId = spaceAccess.id;
     accessSpaceName = spaceAccess.name;
@@ -51,8 +51,7 @@ export default async function NewVotePage({
   const templates = await prisma.template.findMany({
     where: accessSpaceId
       ? {
-          spaceId: accessSpaceId,
-          isHidden: false,
+          OR: [{ spaceId: accessSpaceId, isHidden: false }, getTemplateVisibilityWhere(userId)],
         }
       : getTemplateVisibilityWhere(userId),
     include: { _count: { select: { items: true } } },
@@ -83,6 +82,15 @@ export default async function NewVotePage({
     id: template.id,
     name: template.name,
     isPublic: template.isPublic,
+    origin: accessSpaceId
+      ? template.spaceId === accessSpaceId
+        ? "SPACE"
+        : userId && template.creatorId === userId
+          ? "PERSONAL"
+          : "PUBLIC"
+      : userId && template.creatorId === userId
+        ? "PERSONAL"
+        : "PUBLIC",
     _count: { items: template._count.items },
     items: previewsByTemplateId.get(template.id) ?? [],
   }));

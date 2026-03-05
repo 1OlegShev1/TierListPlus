@@ -1,0 +1,5 @@
+ALTER TYPE "SpaceAccentColor" ADD VALUE 'SILVER';
+ALTER TYPE "SpaceAccentColor" ADD VALUE 'ORANGE';
+ALTER TYPE "SpaceAccentColor" ADD VALUE 'CYAN';
+ALTER TYPE "SpaceAccentColor" ADD VALUE 'TEAL';
+ALTER TYPE "SpaceAccentColor" ADD VALUE 'PINK';

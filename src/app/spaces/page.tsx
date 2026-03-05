@@ -1,7 +1,7 @@
+import type { SpaceAccentColor } from "@prisma/client";
 import { cookies } from "next/headers";
 import Link from "next/link";
-import { CreateSpaceForm } from "@/components/spaces/CreateSpaceForm";
-import { JoinSpaceByCodeForm } from "@/components/spaces/JoinSpaceByCodeForm";
+import { SpaceActionPanel } from "@/components/spaces/SpaceActionPanel";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { SectionHeader } from "@/components/ui/SectionHeader";
@@ -42,18 +42,16 @@ export default async function SpacesPage() {
     <div className="space-y-8">
       <PageHeader
         title="Spaces"
-        subtitle="Build private group hubs or open communities for shared ranking chaos."
+        subtitle="Discover communities, track active spaces, and jump into shared votes."
       />
-
-      <div className="grid gap-4 lg:grid-cols-2">
-        <CreateSpaceForm />
-        <JoinSpaceByCodeForm />
-      </div>
 
       <section>
         <SectionHeader title="Your Spaces" subtitle="Spaces you own or have joined." />
         {mySpaces.length === 0 ? (
-          <EmptyState title="No spaces yet" description="Create one or join with an invite code." />
+          <EmptyState
+            title="No spaces yet"
+            description="Use Create or Join below when you are ready."
+          />
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {mySpaces.map((space) => (
@@ -102,6 +100,8 @@ export default async function SpacesPage() {
           </div>
         )}
       </section>
+
+      <SpaceActionPanel defaultOpen={mySpaces.length === 0} />
     </div>
   );
 }
@@ -121,7 +121,7 @@ function SpaceCard({
   name: string;
   description: string | null;
   logoUrl: string | null;
-  accentColor: "SLATE" | "AMBER" | "SKY" | "EMERALD" | "ROSE";
+  accentColor: SpaceAccentColor;
   visibility: "PRIVATE" | "OPEN";
   memberCount: number;
   listCount: number;

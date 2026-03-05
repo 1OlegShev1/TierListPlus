@@ -13,10 +13,12 @@ import { pickParticipantSurvivor } from "@/lib/account-linking-helpers";
 import { DEFAULT_TIER_CONFIG, deriveTierKeys } from "@/lib/constants";
 import { canAccessTemplate, getTemplateVisibilityWhere, isTemplateOwner } from "@/lib/template-access";
 import {
+  createSpaceSchema,
   createSessionSchema,
   joinSessionSchema,
   submitVotesSchema,
   tierConfigSchema,
+  updateSpaceSchema,
   updateSessionSchema,
 } from "@/lib/validators";
 import { makeKnownRequestError, makeParticipant } from "../../helpers/mocks";
@@ -83,6 +85,23 @@ describe("validators", () => {
       tierConfigSchema.safeParse([{ key: "S", label: "S", color: "red", sortOrder: 0 }]).success,
     ).toBe(false);
     expect(updateSessionSchema.safeParse({ status: "BAD" }).success).toBe(false);
+    expect(
+      createSpaceSchema.safeParse({
+        name: "Anime lovers",
+        accentColor: "PINK",
+        visibility: "OPEN",
+      }).success,
+    ).toBe(true);
+    expect(
+      updateSpaceSchema.safeParse({
+        accentColor: "TEAL",
+      }).success,
+    ).toBe(true);
+    expect(
+      updateSpaceSchema.safeParse({
+        accentColor: "VIOLET",
+      }).success,
+    ).toBe(false);
   });
 });
 
