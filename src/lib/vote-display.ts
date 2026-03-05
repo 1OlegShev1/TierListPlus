@@ -4,7 +4,7 @@ export type VoteViewer = "owner" | "participant" | "browser";
 
 export interface VoteDisplayChip {
   label: string;
-  tone: "neutral" | "accent" | "success" | "warning";
+  tone: "neutral" | "accent" | "success" | "warning" | "public" | "private";
 }
 
 export function buildVoteDisplay({
@@ -49,7 +49,13 @@ export function buildVoteDisplay({
       : isPrivate
         ? "Private"
         : "Public");
-  chips.push({ label: visibilityLabel, tone: "neutral" });
+  const visibilityTone =
+    visibilityLabel === "Public" || visibilityLabel === "Open space"
+      ? "public"
+      : visibilityLabel === "Private" || visibilityLabel === "Private space"
+        ? "private"
+        : "neutral";
+  chips.push({ label: visibilityLabel, tone: visibilityTone });
 
   if (status === "OPEN") {
     chips.push({
@@ -93,5 +99,5 @@ export function getVoteAction({
     return { label: "View", href: `/sessions/${sessionId}` };
   }
 
-  return { label: "Continue", href: `/sessions/${sessionId}` };
+  return { label: "Resume", href: `/sessions/${sessionId}` };
 }

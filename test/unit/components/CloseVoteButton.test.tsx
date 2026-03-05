@@ -76,20 +76,20 @@ describe("CloseVoteButton", () => {
         sessionId="session_1"
         creatorId="user_1"
         status="OPEN"
-        label="Close"
+        label="End"
         onClosed={onClosed}
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Close" }));
-    fireEvent.click(screen.getByRole("button", { name: "Close vote" }));
+    fireEvent.click(screen.getByRole("button", { name: "End" }));
+    fireEvent.click(screen.getByRole("button", { name: "End vote" }));
 
     await waitFor(() => {
       expect(mocks.apiPatch).toHaveBeenCalledWith("/api/sessions/session_1", { status: "CLOSED" });
     });
 
     await waitFor(() => {
-      expect(screen.queryByRole("button", { name: "Close" })).toBeNull();
+      expect(screen.queryByRole("button", { name: "End" })).toBeNull();
     });
 
     expect(onClosed).toHaveBeenCalledTimes(1);
@@ -103,19 +103,19 @@ describe("CloseVoteButton", () => {
         sessionId="session_2"
         creatorId="user_1"
         status="OPEN"
-        label="Close"
+        label="End"
         redirectHref="/sessions/session_2/results"
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Close" }));
-    fireEvent.click(screen.getByRole("button", { name: "Close vote" }));
+    fireEvent.click(screen.getByRole("button", { name: "End" }));
+    fireEvent.click(screen.getByRole("button", { name: "End vote" }));
 
     await waitFor(() => {
       expect(mocks.push).toHaveBeenCalledWith("/sessions/session_2/results");
     });
 
     expect(mocks.refresh).not.toHaveBeenCalled();
-    expect(screen.queryByRole("button", { name: "Close" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "End" })).toBeNull();
   });
 });

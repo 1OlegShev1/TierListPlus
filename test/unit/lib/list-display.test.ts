@@ -12,7 +12,7 @@ describe("buildListDisplay", () => {
 
     expect(display.chips).toEqual([
       { label: "Your list", tone: "accent" },
-      { label: "Private", tone: "neutral" },
+      { label: "Private", tone: "private" },
     ]);
     expect(display.detailsLabel).toBe("19 picks");
     expect(display.secondaryLabel).toContain("Updated");
@@ -28,7 +28,7 @@ describe("buildListDisplay", () => {
 
     expect(display.chips).toEqual([
       { label: "Shared list", tone: "accent" },
-      { label: "Public", tone: "neutral" },
+      { label: "Public", tone: "public" },
     ]);
     expect(display.detailsLabel).toBe("10 picks");
     expect(display.secondaryLabel).toContain("Updated");

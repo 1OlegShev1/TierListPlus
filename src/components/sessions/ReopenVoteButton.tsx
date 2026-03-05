@@ -60,7 +60,7 @@ export function ReopenVoteButton({
         aria-label={label}
         title={label}
         className={cn(
-          "inline-flex cursor-pointer items-center justify-center rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1.5 text-sm font-medium text-emerald-200 transition-colors hover:border-emerald-400 hover:bg-emerald-500/15 hover:text-emerald-100",
+          "inline-flex h-10 cursor-pointer items-center justify-center rounded-lg border border-emerald-500/50 bg-emerald-500/10 px-4 text-sm font-medium text-emerald-200 transition-colors hover:border-emerald-400 hover:bg-emerald-500/15 hover:text-emerald-100",
           className,
         )}
       >

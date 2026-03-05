@@ -4,7 +4,7 @@ import Link from "next/link";
 import { CloseVoteButton } from "@/components/sessions/CloseVoteButton";
 import { DeleteVoteButton } from "@/components/sessions/DeleteVoteButton";
 import { ReopenVoteButton } from "@/components/sessions/ReopenVoteButton";
-import { buttonVariants } from "@/components/ui/Button";
+import { buttonSizes, buttonVariants } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { SectionHeader } from "@/components/ui/SectionHeader";
@@ -275,14 +275,18 @@ function VoteRow({ vote, viewer }: { vote: VoteListItem; viewer: VoteViewer }) {
       </Link>
       <div className="flex flex-wrap items-center gap-2 sm:shrink-0">
         {showStatusBadge && <StatusBadge status={vote.status} />}
-        <Link href={action.href} className={`${buttonVariants.secondary} sm:px-6`}>
+        <Link
+          href={action.href}
+          className={`${buttonVariants.secondary} ${buttonSizes.equalAction}`}
+        >
           {action.label}
         </Link>
         <CloseVoteButton
           sessionId={vote.id}
           creatorId={vote.creatorId}
           status={vote.status}
-          label="Close"
+          label="End vote"
+          className={buttonSizes.equalAction}
         />
         <ReopenVoteButton
           sessionId={vote.id}

@@ -24,7 +24,7 @@ export function CloseVoteButton({
   status,
   canManageOverride = false,
   className,
-  label = "Close vote",
+  label = "End vote",
   redirectHref,
   onClosed,
 }: CloseVoteButtonProps) {
@@ -53,7 +53,7 @@ export function CloseVoteButton({
       }
       router.refresh();
     } catch (err) {
-      setError(getErrorMessage(err, "Could not close this vote"));
+      setError(getErrorMessage(err, "Could not end this vote"));
       setClosing(false);
     }
   };
@@ -66,7 +66,7 @@ export function CloseVoteButton({
         aria-label={label}
         title={label}
         className={cn(
-          "inline-flex cursor-pointer items-center justify-center rounded-full border border-amber-500/50 bg-amber-500/10 px-3 py-1.5 text-sm font-medium text-amber-200 transition-colors hover:border-amber-400 hover:bg-amber-500/15 hover:text-amber-100",
+          "inline-flex h-10 cursor-pointer items-center justify-center rounded-lg border border-amber-500/60 bg-amber-500/10 px-4 text-sm font-medium text-amber-200 transition-colors hover:border-amber-400 hover:bg-amber-500/15 hover:text-amber-100",
           className,
         )}
       >
@@ -74,13 +74,13 @@ export function CloseVoteButton({
       </button>
       <ConfirmDialog
         open={open}
-        title="Close Vote"
+        title="End vote"
         description={
           error ??
           "This ends voting for everyone. No one can join or change rankings after this. Results will stay available."
         }
-        confirmLabel="Close vote"
-        loadingLabel="Closing..."
+        confirmLabel="End vote"
+        loadingLabel="Ending..."
         preserveLabelWhileLoading
         confirmVariant="primary"
         onConfirm={handleClose}

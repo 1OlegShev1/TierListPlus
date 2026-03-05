@@ -53,7 +53,7 @@ export function DeleteVoteButton({
         title={label ?? "Delete vote"}
         className={cn(
           label
-            ? "inline-flex cursor-pointer items-center justify-center gap-1.5 rounded-full border border-red-500/40 bg-red-500/10 px-3 py-1.5 text-sm font-medium text-red-200 transition-colors hover:border-red-400 hover:bg-red-500/15 hover:text-red-100"
+            ? "inline-flex h-10 cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-red-500/50 bg-red-500/10 px-4 text-sm font-medium text-red-200 transition-colors hover:border-red-400 hover:bg-red-500/15 hover:text-red-100"
             : "inline-flex cursor-pointer items-center justify-center rounded-lg p-1 text-red-400 transition-colors hover:bg-red-500/5 hover:text-red-300",
           className,
         )}

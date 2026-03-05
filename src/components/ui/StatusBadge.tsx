@@ -5,7 +5,7 @@ const statusStyles: Record<string, string> = {
 };
 
 const statusLabels: Record<string, string> = {
-  OPEN: "Open",
+  OPEN: "Live",
   CLOSED: "Closed",
   ARCHIVED: "Archived",
 };

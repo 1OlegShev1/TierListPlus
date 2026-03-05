@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { CloseVoteButton } from "@/components/sessions/CloseVoteButton";
 import { ReopenVoteButton } from "@/components/sessions/ReopenVoteButton";
-import { buttonVariants } from "@/components/ui/Button";
+import { buttonSizes, buttonVariants } from "@/components/ui/Button";
 import { ErrorMessage } from "@/components/ui/ErrorMessage";
 import { ItemArtwork } from "@/components/ui/ItemArtwork";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -90,43 +90,38 @@ export function ResultsPageClient({
   const voteHref = currentParticipantId
     ? `/sessions/${sessionId}/vote`
     : `/sessions/join?code=${encodeURIComponent(session.joinCode)}`;
+  const primaryVoteActionLabel = currentParticipantId ? "Resume" : "Join vote";
   const backToVotesHref = session.spaceId ? `/spaces/${session.spaceId}` : "/sessions";
+  const backToVotesLabel = session.spaceId ? "Back to Space Votes" : "Back to Votes";
 
   return (
     <div>
+      <Link
+        href={backToVotesHref}
+        className={`${buttonVariants.ghost} mb-2 inline-flex items-center sm:mb-3`}
+      >
+        {`← ${backToVotesLabel}`}
+      </Link>
       <PageHeader
         title={`${session.name} Rankings`}
         subtitle={subtitle}
         actions={
           <div className="flex w-full flex-wrap items-center justify-end gap-2 sm:w-auto sm:shrink-0">
-            {(session.spaceId || session.status !== "OPEN") && (
-              <Link
-                href={backToVotesHref}
-                className={`${buttonVariants.secondary} !px-4 !py-1.5 !text-sm whitespace-nowrap`}
-              >
-                <span className="sm:hidden">Back</span>
-                <span className="hidden sm:inline">
-                  {session.spaceId ? "Back to Space Votes" : "Back to Votes"}
-                </span>
-              </Link>
-            )}
             {session.status === "OPEN" && (
               <>
                 <Link
                   href={voteHref}
-                  className={`${buttonVariants.primary} !px-4 !py-1.5 !text-sm whitespace-nowrap`}
+                  className={`${buttonVariants.primary} ${buttonSizes.equalAction} !min-w-0 whitespace-nowrap`}
                 >
-                  <span className="sm:hidden">{currentParticipantId ? "Resume" : "Join"}</span>
-                  <span className="hidden sm:inline">
-                    {currentParticipantId ? "Jump Back In" : "Join This Vote"}
-                  </span>
+                  {primaryVoteActionLabel}
                 </Link>
                 <CloseVoteButton
                   sessionId={sessionId}
                   creatorId={session.creatorId}
                   status={session.status}
                   canManageOverride={session.canManageSession}
-                  label="Close"
+                  label="End"
+                  className={`${buttonSizes.equalAction} min-w-0`}
                   onClosed={() =>
                     setSession((current) => (current ? { ...current, status: "CLOSED" } : current))
                   }

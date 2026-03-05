@@ -4,7 +4,7 @@ export type ListViewer = "owner" | "browser";
 
 export interface ListDisplayChip {
   label: string;
-  tone: "neutral" | "accent";
+  tone: "neutral" | "accent" | "public" | "private";
 }
 
 export function buildListDisplay({
@@ -20,9 +20,12 @@ export function buildListDisplay({
   itemCount: number;
   accessLabel?: "Public" | "Private" | "Space";
 }) {
+  const visibilityLabel = accessLabel ?? (isPublic ? "Public" : "Private");
+  const visibilityTone =
+    visibilityLabel === "Public" ? "public" : visibilityLabel === "Private" ? "private" : "neutral";
   const chips: ListDisplayChip[] = [
     { label: viewer === "owner" ? "Your list" : "Shared list", tone: "accent" },
-    { label: accessLabel ?? (isPublic ? "Public" : "Private"), tone: "neutral" },
+    { label: visibilityLabel, tone: visibilityTone },
   ];
 
   return {

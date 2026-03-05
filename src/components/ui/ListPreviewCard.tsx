@@ -46,6 +46,8 @@ export function ListPreviewCard({
                   className={cn(
                     "rounded-full border px-2 py-0.5 text-[0.68rem] font-medium uppercase tracking-[0.08em]",
                     chip.tone === "accent" && "border-amber-500/30 text-amber-300",
+                    chip.tone === "public" && "border-cyan-500/35 text-cyan-300",
+                    chip.tone === "private" && "border-rose-500/35 text-rose-300",
                     chip.tone === "neutral" && "border-neutral-700 text-neutral-400",
                   )}
                 >

@@ -60,6 +60,8 @@ export function NewVoteForm({
   const [error, setError] = useState("");
   const createInFlightRef = useRef(false);
   const listById = useMemo(() => new Map(lists.map((list) => [list.id, list])), [lists]);
+  const backHref = spaceId ? `/spaces/${spaceId}#votes` : "/sessions";
+  const backLabel = spaceId ? "Back to Space Votes" : "Back to Votes";
 
   useEffect(() => {
     if (!selectedListId) {
@@ -169,18 +171,17 @@ export function NewVoteForm({
         onQueryChange={setListQuery}
         onPick={pickList}
         spaceMode={!!spaceId}
-        backHref={spaceId ? `/spaces/${spaceId}` : null}
+        backHref={backHref}
+        backLabel={backLabel}
       />
     );
   }
 
   return (
     <div className="mx-auto max-w-2xl">
-      {spaceId ? (
-        <Link href={`/spaces/${spaceId}`} className={`${buttonVariants.ghost} mb-3 inline-flex`}>
-          &larr; Back to Space
-        </Link>
-      ) : null}
+      <Link href={backHref} className={`${buttonVariants.ghost} mb-3 inline-flex items-center`}>
+        {`← ${backLabel}`}
+      </Link>
       <h1 className="mb-6 text-2xl font-bold">Start a Vote</h1>
       {spaceId && (
         <p className="-mt-4 mb-5 text-sm text-neutral-500">
@@ -335,7 +336,7 @@ export function NewVoteForm({
           </Button>
           <Button
             variant="secondary"
-            onClick={() => (spaceId ? router.push(`/spaces/${spaceId}`) : router.back())}
+            onClick={() => router.push(backHref)}
             className="w-full sm:w-auto"
           >
             Cancel
@@ -353,13 +354,15 @@ function ListPicker({
   onPick,
   spaceMode,
   backHref,
+  backLabel,
 }: {
   lists: ListSummary[];
   query: string;
   onQueryChange: (q: string) => void;
   onPick: (id: string | null) => void;
   spaceMode: boolean;
-  backHref: string | null;
+  backHref: string;
+  backLabel: string;
 }) {
   const [showAll, setShowAll] = useState(false);
   const isSearching = query.trim().length > 0;
@@ -375,11 +378,9 @@ function ListPicker({
 
   return (
     <div className="mx-auto max-w-2xl">
-      {backHref ? (
-        <Link href={backHref} className={`${buttonVariants.ghost} mb-3 inline-flex`}>
-          &larr; Back to Space
-        </Link>
-      ) : null}
+      <Link href={backHref} className={`${buttonVariants.ghost} mb-3 inline-flex items-center`}>
+        {`← ${backLabel}`}
+      </Link>
       <h1 className="mb-6 text-2xl font-bold">Pick a list to start from</h1>
 
       <button
@@ -398,6 +399,15 @@ function ListPicker({
 
       {lists.length > 0 && (
         <>
+          <Input
+            type="text"
+            placeholder="Search all lists..."
+            value={query}
+            onChange={(e) => onQueryChange(e.target.value)}
+            autoFocus
+            className="mb-5 w-full"
+          />
+
           {!isSearching && featured.length > 0 ? (
             <>
               <p className="mb-3 text-sm font-medium text-neutral-400">
@@ -410,15 +420,6 @@ function ListPicker({
               </div>
             </>
           ) : null}
-
-          <Input
-            type="text"
-            placeholder="Search all lists..."
-            value={query}
-            onChange={(e) => onQueryChange(e.target.value)}
-            autoFocus
-            className="w-full"
-          />
 
           {!isSearching && canBrowseMore && (
             <button
