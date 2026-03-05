@@ -18,7 +18,7 @@ import { updateSessionSchema } from "@/lib/validators";
 
 export const GET = withHandler(async (request, { params }) => {
   const { sessionId } = await params;
-  const { requestUserId } = await requireSessionAccess(request, sessionId);
+  const { requestUserId, isSpaceOwner, isOwner } = await requireSessionAccess(request, sessionId);
   const session = await prisma.session.findUnique({
     where: { id: sessionId },
     include: {
@@ -50,10 +50,12 @@ export const GET = withHandler(async (request, { params }) => {
 
   return NextResponse.json({
     ...session,
+    canManageSession: isOwner || isSpaceOwner,
     canManageItems: canManageSessionItems(
       session.template.isHidden,
       session.creatorId,
       requestUserId,
+      isSpaceOwner,
     ),
     participants,
     templateIsHidden: session.template.isHidden,
@@ -65,11 +67,12 @@ export const GET = withHandler(async (request, { params }) => {
 export const PATCH = withHandler(async (request, { params }) => {
   const { sessionId } = await params;
   const data = await validateBody(request, updateSessionSchema);
-  await requireSessionOwner(request, sessionId);
+  const ownedSessionResult = await requireSessionOwner(request, sessionId);
+  const ownedSessionSpaceId = ownedSessionResult?.session?.spaceId ?? null;
 
   const updateData: Record<string, unknown> = {};
   if (data.status) updateData.status = data.status;
-  if (data.isPrivate !== undefined) updateData.isPrivate = data.isPrivate;
+  if (data.isPrivate !== undefined && !ownedSessionSpaceId) updateData.isPrivate = data.isPrivate;
   if (data.isLocked !== undefined) updateData.isLocked = data.isLocked;
   if (data.tierConfig) updateData.tierConfig = JSON.parse(JSON.stringify(data.tierConfig));
 

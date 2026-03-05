@@ -1,6 +1,6 @@
 import { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
-import { badRequest, notFound, validateBody, withHandler } from "@/lib/api-helpers";
+import { badRequest, forbidden, notFound, validateBody, withHandler } from "@/lib/api-helpers";
 import { requireRequestAuth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { joinSessionSchema } from "@/lib/validators";
@@ -13,10 +13,32 @@ export const POST = withHandler(async (request) => {
 
   const session = await prisma.session.findUnique({
     where: { joinCode: joinCode.toUpperCase() },
+    select: {
+      id: true,
+      status: true,
+      isLocked: true,
+      bracketEnabled: true,
+      space: {
+        select: {
+          visibility: true,
+          members: {
+            where: { userId },
+            select: { id: true },
+            take: 1,
+          },
+        },
+      },
+    },
   });
 
   if (!session) notFound("Session not found");
   if (session.status !== "OPEN") badRequest("Session is no longer accepting votes");
+  if (
+    session.space?.visibility === "PRIVATE" &&
+    (!Array.isArray(session.space.members) || session.space.members.length === 0)
+  ) {
+    forbidden("Only members of this private space can join this vote");
+  }
 
   const existingForUser = await prisma.participant.findFirst({
     where: {

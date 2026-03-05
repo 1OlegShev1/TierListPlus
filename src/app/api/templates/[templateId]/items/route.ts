@@ -1,5 +1,12 @@
 import { NextResponse } from "next/server";
-import { notFound, requireOwner, validateBody, withHandler } from "@/lib/api-helpers";
+import {
+  canMutateSpaceResource,
+  forbidden,
+  notFound,
+  requireOwner,
+  validateBody,
+  withHandler,
+} from "@/lib/api-helpers";
 import { getRequestAuth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { addTemplateItemSchema } from "@/lib/validators";
@@ -14,10 +21,35 @@ export const POST = withHandler(async (request, { params }) => {
   const item = await prisma.$transaction(async (tx) => {
     const template = await tx.template.findUnique({
       where: { id: templateId },
-      select: { id: true, creatorId: true },
+      select: {
+        id: true,
+        creatorId: true,
+        spaceId: true,
+        space: {
+          select: {
+            creatorId: true,
+            members: userId
+              ? {
+                  where: { userId },
+                  select: { role: true },
+                  take: 1,
+                }
+              : false,
+          },
+        },
+      },
     });
     if (!template) notFound("Template not found");
-    requireOwner(template.creatorId, userId);
+    if (template.spaceId) {
+      const spaceMember = template.space?.members[0] ?? null;
+      const isSpaceOwner =
+        !!userId && (template.space?.creatorId === userId || spaceMember?.role === "OWNER");
+      if (!canMutateSpaceResource(template.creatorId, userId, isSpaceOwner)) {
+        forbidden("You are not allowed to edit this list");
+      }
+    } else {
+      requireOwner(template.creatorId, userId);
+    }
 
     let sortOrder = data.sortOrder;
     if (sortOrder === undefined) {

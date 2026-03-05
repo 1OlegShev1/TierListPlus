@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server";
-import { notFound, requireSessionAccess, withHandler } from "@/lib/api-helpers";
+import {
+  canMutateSpaceResource,
+  notFound,
+  requireSessionAccess,
+  withHandler,
+} from "@/lib/api-helpers";
 import { requireRequestAuth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
@@ -15,6 +20,17 @@ export const POST = withHandler(async (request, { params }) => {
       name: true,
       creatorId: true,
       isPrivate: true,
+      spaceId: true,
+      space: {
+        select: {
+          creatorId: true,
+          members: {
+            where: { userId: requestUserId },
+            select: { role: true },
+            take: 1,
+          },
+        },
+      },
       items: {
         orderBy: { sortOrder: "asc" },
         select: {
@@ -35,14 +51,24 @@ export const POST = withHandler(async (request, { params }) => {
   if (!session) notFound("Session not found");
 
   const isOwner = session.creatorId === requestUserId;
+  const spaceMember = session.space?.members[0] ?? null;
+  const isSpaceOwner =
+    session.space != null &&
+    (session.space.creatorId === requestUserId || spaceMember?.role === "OWNER");
+  const canPublishSessionTemplate = canMutateSpaceResource(
+    session.creatorId,
+    requestUserId,
+    isSpaceOwner,
+  );
 
-  if (isOwner && session.template.isHidden) {
+  if (canPublishSessionTemplate && session.template.isHidden) {
     const template = await prisma.template.create({
       data: {
         name: session.name,
         description: session.template.description,
         creatorId: requestUserId,
-        isPublic: !session.isPrivate,
+        isPublic: session.spaceId ? false : !session.isPrivate,
+        spaceId: session.spaceId,
         items: {
           create: session.items.map((item, index) => ({
             label: item.label,
