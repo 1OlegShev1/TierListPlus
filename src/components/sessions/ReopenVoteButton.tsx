@@ -11,6 +11,7 @@ interface ReopenVoteButtonProps {
   sessionId: string;
   creatorId: string | null;
   status: string;
+  canManageOverride?: boolean;
   className?: string;
   label?: string;
   onReopened?: () => void;
@@ -20,6 +21,7 @@ export function ReopenVoteButton({
   sessionId,
   creatorId,
   status,
+  canManageOverride = false,
   className,
   label = "Reopen vote",
   onReopened,
@@ -31,7 +33,8 @@ export function ReopenVoteButton({
   const [isOpen, setIsOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  if (!creatorId || creatorId !== userId || status !== "CLOSED" || isOpen) return null;
+  const canManage = canManageOverride || (!!creatorId && creatorId === userId);
+  if (!canManage || status !== "CLOSED" || isOpen) return null;
 
   const handleReopen = async () => {
     if (reopening) return;

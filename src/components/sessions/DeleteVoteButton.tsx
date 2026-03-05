@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 interface DeleteVoteButtonProps {
   sessionId: string;
   creatorId: string | null;
+  canDeleteOverride?: boolean;
   className?: string;
   label?: string;
 }
@@ -18,6 +19,7 @@ interface DeleteVoteButtonProps {
 export function DeleteVoteButton({
   sessionId,
   creatorId,
+  canDeleteOverride = false,
   className,
   label,
 }: DeleteVoteButtonProps) {
@@ -27,7 +29,7 @@ export function DeleteVoteButton({
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  if (!creatorId || creatorId !== userId) return null;
+  if (!canDeleteOverride && (!creatorId || creatorId !== userId)) return null;
 
   const handleDelete = async () => {
     setDeleting(true);

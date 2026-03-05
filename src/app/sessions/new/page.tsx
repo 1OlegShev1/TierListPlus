@@ -1,7 +1,9 @@
 import { cookies } from "next/headers";
+import { notFound } from "next/navigation";
 import { NewVoteForm } from "@/components/sessions/NewVoteForm";
 import { getCookieAuth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { canReadSpace, getSpaceAccessForUser } from "@/lib/space";
 import { getTemplateVisibilityWhere } from "@/lib/template-access";
 import type { Item, ListSummary } from "@/types";
 
@@ -26,13 +28,28 @@ export default async function NewVotePage({
   const resolvedSearchParams = (await searchParams) ?? {};
   const preselectedListId =
     typeof resolvedSearchParams.templateId === "string" ? resolvedSearchParams.templateId : null;
+  const spaceId =
+    typeof resolvedSearchParams.spaceId === "string" ? resolvedSearchParams.spaceId : null;
 
   const cookieStore = await cookies();
   const auth = await getCookieAuth(cookieStore);
   const userId = auth?.userId ?? null;
 
+  let accessSpaceId: string | null = null;
+  if (spaceId) {
+    const spaceAccess = await getSpaceAccessForUser(spaceId, userId);
+    if (!spaceAccess) notFound();
+    if (!canReadSpace(spaceAccess.visibility, spaceAccess.isMember)) notFound();
+    accessSpaceId = spaceAccess.id;
+  }
+
   const templates = await prisma.template.findMany({
-    where: getTemplateVisibilityWhere(userId),
+    where: accessSpaceId
+      ? {
+          spaceId: accessSpaceId,
+          isHidden: false,
+        }
+      : getTemplateVisibilityWhere(userId),
     include: { _count: { select: { items: true } } },
     orderBy: { updatedAt: "desc" },
   });
@@ -82,7 +99,9 @@ export default async function NewVotePage({
     if (
       selected &&
       !selected.isHidden &&
-      (selected.isPublic || (userId && selected.creatorId === userId))
+      (selected.spaceId
+        ? selected.spaceId === accessSpaceId
+        : selected.isPublic || (userId && selected.creatorId === userId))
     ) {
       initialSelectedListDetails = {
         id: selected.id,
@@ -96,6 +115,7 @@ export default async function NewVotePage({
 
   return (
     <NewVoteForm
+      spaceId={accessSpaceId}
       initialLists={initialLists}
       initialSelectedListId={preselectedListId}
       initialSelectedListDetails={initialSelectedListDetails}

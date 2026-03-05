@@ -47,6 +47,19 @@ export default async function VotePage({ params }: { params: Promise<{ sessionId
     where: { id: sessionId },
     include: {
       template: { select: { isHidden: true } },
+      space: {
+        select: {
+          creatorId: true,
+          visibility: true,
+          members: requestUserId
+            ? {
+                where: { userId: requestUserId },
+                select: { role: true },
+                take: 1,
+              }
+            : false,
+        },
+      },
       items: {
         orderBy: { sortOrder: "asc" },
         select: { id: true, label: true, imageUrl: true },
@@ -66,8 +79,19 @@ export default async function VotePage({ params }: { params: Promise<{ sessionId
 
   const isOwner = !!requestUserId && session.creatorId === requestUserId;
   const isParticipant = !!currentParticipant;
+  const spaceMember = Array.isArray(session.space?.members) ? session.space.members[0] : null;
+  const isSpaceMember = !!spaceMember;
+  const isSpaceOwner =
+    !!requestUserId &&
+    !!session.space &&
+    (session.space.creatorId === requestUserId || spaceMember?.role === "OWNER");
+  const canManageSession = isOwner || isSpaceOwner;
 
-  if (session.isPrivate && !isOwner && !isParticipant) {
+  if (session.space) {
+    if (session.space.visibility === "PRIVATE" && !isSpaceMember) {
+      notFound();
+    }
+  } else if (session.isPrivate && !isOwner && !isParticipant) {
     notFound();
   }
 
@@ -108,10 +132,12 @@ export default async function VotePage({ params }: { params: Promise<{ sessionId
     isLocked: session.isLocked,
     bracketEnabled: session.bracketEnabled,
     templateIsHidden: session.template.isHidden,
+    canManageSession,
     canManageItems: canManageSessionItems(
       session.template.isHidden,
       session.creatorId,
       requestUserId,
+      isSpaceOwner,
     ),
     tierConfig: tierConfigSchema.parse(session.tierConfig),
     items: session.items,

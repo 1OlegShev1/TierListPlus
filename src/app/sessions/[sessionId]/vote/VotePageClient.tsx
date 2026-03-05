@@ -35,8 +35,8 @@ export function VotePageClient({
   const [isLocked, setIsLocked] = useState(session.isLocked);
   const [lockUpdating, setLockUpdating] = useState(false);
   const [lockError, setLockError] = useState<string | null>(null);
-  const canEditTierConfig = session.creatorId === currentUserId;
-  const isOwner = !!currentUserId && session.creatorId === currentUserId;
+  const canEditTierConfig = session.canManageSession;
+  const isOwner = session.canManageSession;
 
   useEffect(() => {
     if (session.currentParticipantId && session.currentParticipantNickname) {
@@ -117,6 +117,7 @@ export function VotePageClient({
               sessionId={session.id}
               creatorId={session.creatorId}
               status={session.status}
+              canManageOverride={session.canManageSession}
               className="shrink-0"
               redirectHref={`/sessions/${sessionId}/results`}
             />
@@ -124,6 +125,7 @@ export function VotePageClient({
               <DeleteVoteButton
                 sessionId={session.id}
                 creatorId={session.creatorId}
+                canDeleteOverride={session.canManageSession}
                 label="Delete"
                 className="shrink-0"
               />

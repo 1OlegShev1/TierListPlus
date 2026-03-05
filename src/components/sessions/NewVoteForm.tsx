@@ -21,11 +21,13 @@ interface SelectedListDetails {
 }
 
 export function NewVoteForm({
+  spaceId = null,
   initialLists = [],
   initialSelectedListId = null,
   initialSelectedListDetails = null,
   initialSelectedListUnavailable = false,
 }: {
+  spaceId?: string | null;
   initialLists?: ListSummary[];
   initialSelectedListId?: string | null;
   initialSelectedListDetails?: SelectedListDetails | null;
@@ -75,7 +77,11 @@ export function NewVoteForm({
     setSelectedListDetails(null);
     setSelectedListFetchStatus("loading");
 
-    apiFetch<SelectedListDetails>(`/api/templates/${selectedListId}`)
+    apiFetch<SelectedListDetails>(
+      spaceId
+        ? `/api/spaces/${spaceId}/templates/${selectedListId}`
+        : `/api/templates/${selectedListId}`,
+    )
       .then((data) => {
         if (!isCurrent) return;
         setSelectedListDetails(data);
@@ -93,6 +99,7 @@ export function NewVoteForm({
     initialSelectedListDetails,
     initialSelectedListId,
     initialSelectedListUnavailable,
+    spaceId,
     selectedListId,
   ]);
 
@@ -133,11 +140,11 @@ export function NewVoteForm({
         id: string;
         participantId: string;
         participantNickname: string;
-      }>("/api/sessions", {
+      }>(spaceId ? `/api/spaces/${spaceId}/sessions` : "/api/sessions", {
         ...(selectedListId ? { templateId: selectedListId } : {}),
         name: trimmedName,
         nickname: trimmedNickname,
-        isPrivate,
+        ...(spaceId ? {} : { isPrivate }),
       });
 
       saveParticipant(data.id, data.participantId, data.participantNickname);
@@ -263,20 +270,22 @@ export function NewVoteForm({
           </div>
         </div>
 
-        <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-neutral-800 bg-neutral-900 p-4 transition-colors hover:border-neutral-700 hover:bg-neutral-800">
-          <input
-            type="checkbox"
-            checked={!isPrivate}
-            onChange={(e) => setIsPrivate(!e.target.checked)}
-            className="h-4 w-4 accent-amber-500"
-          />
-          <div>
-            <p className="font-medium">Show in public Votes list</p>
-            <p className="text-sm text-neutral-500">
-              Off by default. People can still join private votes with the code.
-            </p>
-          </div>
-        </label>
+        {!spaceId && (
+          <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-neutral-800 bg-neutral-900 p-4 transition-colors hover:border-neutral-700 hover:bg-neutral-800">
+            <input
+              type="checkbox"
+              checked={!isPrivate}
+              onChange={(e) => setIsPrivate(!e.target.checked)}
+              className="h-4 w-4 accent-amber-500"
+            />
+            <div>
+              <p className="font-medium">Show in public Votes list</p>
+              <p className="text-sm text-neutral-500">
+                Off by default. People can still join private votes with the code.
+              </p>
+            </div>
+          </label>
+        )}
 
         {(userError || error) && (
           <div className="space-y-2">
@@ -294,7 +303,11 @@ export function NewVoteForm({
           <Button type="submit" disabled={!canCreate} className="w-full sm:w-auto">
             {creating ? "Starting..." : "Start Vote"}
           </Button>
-          <Button variant="secondary" onClick={() => router.back()} className="w-full sm:w-auto">
+          <Button
+            variant="secondary"
+            onClick={() => (spaceId ? router.push(`/spaces/${spaceId}?tab=votes`) : router.back())}
+            className="w-full sm:w-auto"
+          >
             Cancel
           </Button>
         </div>

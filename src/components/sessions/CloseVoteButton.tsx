@@ -11,6 +11,7 @@ interface CloseVoteButtonProps {
   sessionId: string;
   creatorId: string | null;
   status: string;
+  canManageOverride?: boolean;
   className?: string;
   label?: string;
   redirectHref?: string;
@@ -21,6 +22,7 @@ export function CloseVoteButton({
   sessionId,
   creatorId,
   status,
+  canManageOverride = false,
   className,
   label = "Close vote",
   redirectHref,
@@ -33,7 +35,8 @@ export function CloseVoteButton({
   const [isClosed, setIsClosed] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  if (!creatorId || creatorId !== userId || status !== "OPEN" || isClosed) return null;
+  const canManage = canManageOverride || (!!creatorId && creatorId === userId);
+  if (!canManage || status !== "OPEN" || isClosed) return null;
 
   const handleClose = async () => {
     if (closing) return;

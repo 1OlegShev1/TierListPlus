@@ -55,6 +55,7 @@ export default async function ListsPage({
           where: {
             creatorId: userId,
             isHidden: false,
+            spaceId: null,
           },
         })
       : Promise.resolve(emptySection(ownPage)),
@@ -65,11 +66,13 @@ export default async function ListsPage({
         ? {
             isPublic: true,
             isHidden: false,
+            spaceId: null,
             NOT: { creatorId: userId },
           }
         : {
             isPublic: true,
             isHidden: false,
+            spaceId: null,
           },
     }),
   ]);

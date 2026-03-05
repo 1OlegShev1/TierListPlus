@@ -12,11 +12,13 @@ import { apiPost, getErrorMessage } from "@/lib/api-client";
 interface StartVoteFromTemplateButtonProps {
   templateId: string;
   templateName: string;
+  spaceId?: string | null;
 }
 
 export function StartVoteFromTemplateButton({
   templateId,
   templateName,
+  spaceId = null,
 }: StartVoteFromTemplateButtonProps) {
   const router = useRouter();
   const dialogRef = useRef<HTMLDialogElement>(null);
@@ -56,11 +58,11 @@ export function StartVoteFromTemplateButton({
         id: string;
         participantId: string;
         participantNickname: string;
-      }>("/api/sessions", {
+      }>(spaceId ? `/api/spaces/${spaceId}/sessions` : "/api/sessions", {
         templateId,
         name: name.trim(),
         nickname: nickname.trim(),
-        isPrivate,
+        ...(spaceId ? {} : { isPrivate }),
       });
 
       saveParticipant(data.id, data.participantId, data.participantNickname);
@@ -130,20 +132,22 @@ export function StartVoteFromTemplateButton({
             />
           </label>
 
-          <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-neutral-800 bg-neutral-950/60 p-4 transition-colors hover:border-neutral-700 hover:bg-neutral-800">
-            <input
-              type="checkbox"
-              checked={!isPrivate}
-              onChange={(e) => setIsPrivate(!e.target.checked)}
-              className="h-4 w-4 accent-amber-500"
-            />
-            <div>
-              <p className="font-medium">Show in public Votes list</p>
-              <p className="text-sm text-neutral-500">
-                Off by default. People can still join private votes with the code.
-              </p>
-            </div>
-          </label>
+          {!spaceId && (
+            <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-neutral-800 bg-neutral-950/60 p-4 transition-colors hover:border-neutral-700 hover:bg-neutral-800">
+              <input
+                type="checkbox"
+                checked={!isPrivate}
+                onChange={(e) => setIsPrivate(!e.target.checked)}
+                className="h-4 w-4 accent-amber-500"
+              />
+              <div>
+                <p className="font-medium">Show in public Votes list</p>
+                <p className="text-sm text-neutral-500">
+                  Off by default. People can still join private votes with the code.
+                </p>
+              </div>
+            </label>
+          )}
 
           {(userError || error) && (
             <div className="space-y-2">

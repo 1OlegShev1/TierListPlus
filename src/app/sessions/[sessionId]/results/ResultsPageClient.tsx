@@ -113,6 +113,7 @@ export function ResultsPageClient({
                   sessionId={sessionId}
                   creatorId={session.creatorId}
                   status={session.status}
+                  canManageOverride={session.canManageSession}
                   label="Close"
                   onClosed={() =>
                     setSession((current) => (current ? { ...current, status: "CLOSED" } : current))
@@ -133,6 +134,7 @@ export function ResultsPageClient({
                   sessionId={sessionId}
                   creatorId={session.creatorId}
                   status={session.status}
+                  canManageOverride={session.canManageSession}
                   label="Reopen"
                   onReopened={() =>
                     setSession((current) => (current ? { ...current, status: "OPEN" } : current))

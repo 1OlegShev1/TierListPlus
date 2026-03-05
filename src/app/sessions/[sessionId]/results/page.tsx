@@ -63,6 +63,18 @@ export default async function ResultsPage({
   const session = await prisma.session.findUnique({
     where: { id: sessionId },
     include: {
+      space: {
+        select: {
+          visibility: true,
+          members: requestUserId
+            ? {
+                where: { userId: requestUserId },
+                select: { role: true },
+                take: 1,
+              }
+            : false,
+        },
+      },
       items: {
         orderBy: { sortOrder: "asc" },
         select: { id: true, label: true, imageUrl: true },
@@ -81,8 +93,18 @@ export default async function ResultsPage({
     : null;
   const isOwner = !!requestUserId && session.creatorId === requestUserId;
   const isParticipant = !!currentParticipant;
+  const isSpaceOwner =
+    !!requestUserId &&
+    !!session.space &&
+    (session.creatorId === requestUserId ||
+      (Array.isArray(session.space.members) && session.space.members[0]?.role === "OWNER"));
 
-  if (session.isPrivate && !isOwner && !isParticipant) {
+  if (session.space) {
+    const isSpaceMember = Array.isArray(session.space.members) && session.space.members.length > 0;
+    if (session.space.visibility === "PRIVATE" && !isSpaceMember) {
+      notFound();
+    }
+  } else if (session.isPrivate && !isOwner && !isParticipant) {
     notFound();
   }
 
@@ -152,6 +174,7 @@ export default async function ResultsPage({
     status: session.status,
     name: session.name,
     joinCode: session.joinCode,
+    canManageSession: isOwner || isSpaceOwner,
     currentParticipantId: currentParticipant?.id ?? null,
     currentParticipantNickname: currentParticipant?.nickname ?? null,
     tierConfig,

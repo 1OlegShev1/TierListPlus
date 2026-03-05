@@ -20,6 +20,18 @@ export default async function VoteEntryPage({
       status: true,
       creatorId: true,
       isPrivate: true,
+      space: {
+        select: {
+          visibility: true,
+          members: requestUserId
+            ? {
+                where: { userId: requestUserId },
+                select: { id: true },
+                take: 1,
+              }
+            : false,
+        },
+      },
     },
   });
 
@@ -30,7 +42,12 @@ export default async function VoteEntryPage({
         where: { sessionId, userId: requestUserId },
       })) > 0
     : false;
-  if (vote.isPrivate && !isOwner && !isParticipant) notFound();
+  if (vote.space) {
+    const isSpaceMember = Array.isArray(vote.space.members) && vote.space.members.length > 0;
+    if (vote.space.visibility === "PRIVATE" && !isSpaceMember) notFound();
+  } else if (vote.isPrivate && !isOwner && !isParticipant) {
+    notFound();
+  }
 
   if (vote.status !== "OPEN") {
     redirect(`/sessions/${sessionId}/results`);

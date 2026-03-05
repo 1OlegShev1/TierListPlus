@@ -6,6 +6,7 @@ import { GearIcon } from "@/components/ui/GearIcon";
 
 const links = [
   { href: "/", label: "Home" },
+  { href: "/spaces", label: "Spaces" },
   { href: "/templates", label: "Lists" },
   { href: "/sessions", label: "Votes" },
 ];

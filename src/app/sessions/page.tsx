@@ -64,6 +64,7 @@ export default async function VotesPage({
           page: activePage,
           pageSize: ACTIVE_VOTES_PAGE_SIZE,
           where: {
+            spaceId: null,
             status: "OPEN",
             OR: [{ creatorId: userId }, { participants: { some: { userId } } }],
           },
@@ -74,6 +75,7 @@ export default async function VotesPage({
           page: historyPage,
           pageSize: HISTORY_VOTES_PAGE_SIZE,
           where: {
+            spaceId: null,
             status: { not: "OPEN" },
             OR: [{ creatorId: userId }, { participants: { some: { userId } } }],
           },
@@ -84,13 +86,14 @@ export default async function VotesPage({
       pageSize: PUBLIC_VOTES_PAGE_SIZE,
       where: userId
         ? {
+            spaceId: null,
             status: "OPEN",
             isPrivate: false,
             NOT: {
               OR: [{ creatorId: userId }, { participants: { some: { userId } } }],
             },
           }
-        : { status: "OPEN", isPrivate: false },
+        : { spaceId: null, status: "OPEN", isPrivate: false },
     }),
   ]);
   const showLiveSection =

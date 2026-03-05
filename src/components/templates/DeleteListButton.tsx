@@ -11,16 +11,21 @@ import { apiDelete, getErrorMessage } from "@/lib/api-client";
 interface DeleteListButtonProps {
   listId: string;
   creatorId: string | null;
+  canDeleteOverride?: boolean;
 }
 
-export function DeleteListButton({ listId, creatorId }: DeleteListButtonProps) {
+export function DeleteListButton({
+  listId,
+  creatorId,
+  canDeleteOverride = false,
+}: DeleteListButtonProps) {
   const { userId } = useUser();
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  if (!creatorId || creatorId !== userId) return null;
+  if (!canDeleteOverride && (!creatorId || creatorId !== userId)) return null;
 
   const handleDelete = async () => {
     setDeleting(true);

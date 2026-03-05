@@ -15,6 +15,7 @@ import type { TemplateItemData } from "@/types";
 
 interface ListEditorProps {
   listId?: string;
+  spaceId?: string | null;
   initialName?: string;
   initialDescription?: string;
   initialIsPublic?: boolean;
@@ -23,6 +24,7 @@ interface ListEditorProps {
 
 export function ListEditor({
   listId,
+  spaceId = null,
   initialName = "",
   initialDescription = "",
   initialIsPublic = false,
@@ -101,14 +103,21 @@ export function ListEditor({
       let id = listId;
 
       if (!id) {
-        const template = await apiPost<{ id: string }>("/api/templates", {
-          name,
-          description,
-          isPublic,
-        });
+        const template = await apiPost<{ id: string }>(
+          spaceId ? `/api/spaces/${spaceId}/templates` : "/api/templates",
+          {
+            name,
+            description,
+            ...(spaceId ? {} : { isPublic }),
+          },
+        );
         id = template.id;
       } else {
-        await apiPatch(`/api/templates/${id}`, { name, description, isPublic });
+        await apiPatch(`/api/templates/${id}`, {
+          name,
+          description,
+          ...(spaceId ? {} : { isPublic }),
+        });
       }
 
       const existingIds = new Set(initialItems.filter((i) => i.id).map((i) => i.id));
@@ -171,20 +180,22 @@ export function ListEditor({
       </div>
 
       <div>
-        <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-neutral-800 bg-neutral-900 p-4 transition-colors hover:border-neutral-700 hover:bg-neutral-800">
-          <input
-            type="checkbox"
-            checked={isPublic}
-            onChange={(e) => setIsPublic(e.target.checked)}
-            className="h-4 w-4 accent-amber-500"
-          />
-          <div>
-            <p className="font-medium">Show in public Lists</p>
-            <p className="text-sm text-neutral-500">
-              Off by default. Private lists are only visible to you.
-            </p>
-          </div>
-        </label>
+        {!spaceId && (
+          <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-neutral-800 bg-neutral-900 p-4 transition-colors hover:border-neutral-700 hover:bg-neutral-800">
+            <input
+              type="checkbox"
+              checked={isPublic}
+              onChange={(e) => setIsPublic(e.target.checked)}
+              className="h-4 w-4 accent-amber-500"
+            />
+            <div>
+              <p className="font-medium">Show in public Lists</p>
+              <p className="text-sm text-neutral-500">
+                Off by default. Private lists are only visible to you.
+              </p>
+            </div>
+          </label>
+        )}
       </div>
 
       <div className="space-y-2">
