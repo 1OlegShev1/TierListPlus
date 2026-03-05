@@ -10,6 +10,7 @@ import { useDelayedBusy } from "@/hooks/useDelayedBusy";
 import { useTierListStore } from "@/hooks/useTierList";
 import { useUser } from "@/hooks/useUser";
 import { apiPost, getErrorMessage } from "@/lib/api-client";
+import { seedTiersFromRanking } from "@/lib/bracket-seeding";
 import { clearDraft, getDraft, saveDraft } from "@/lib/vote-draft";
 import type { Item, TierConfig } from "@/types";
 import { DraggableItem } from "./DraggableItem";
@@ -36,29 +37,6 @@ interface TierListBoardProps {
   canManageItems?: boolean;
   templateIsHidden?: boolean;
   onSubmitted: () => void;
-}
-
-/** Evenly distribute a ranked list across tiers from top to bottom. */
-function seedTiersFromRanking(
-  rankedIds: string[],
-  tierConfig: TierConfig[],
-): Record<string, string[]> {
-  const sortedTiers = [...tierConfig].sort((a, b) => a.sortOrder - b.sortOrder);
-  const tierCount = sortedTiers.length;
-  const itemCount = rankedIds.length;
-  const baseSize = Math.floor(itemCount / tierCount);
-  const remainder = itemCount % tierCount;
-
-  const seededTiers: Record<string, string[]> = {};
-  let cursor = 0;
-
-  for (let i = 0; i < tierCount; i++) {
-    const size = baseSize + (i < remainder ? 1 : 0);
-    seededTiers[sortedTiers[i].key] = rankedIds.slice(cursor, cursor + size);
-    cursor += size;
-  }
-
-  return seededTiers;
 }
 
 function useAutoDismissFlag(isVisible: boolean, dismiss: () => void, delayMs: number) {
@@ -501,9 +479,9 @@ export function TierListBoard({
                 onInsertAbove={() => handleInsertTier(index)}
                 onInsertBelow={() => handleInsertTier(index + 1)}
                 onDelete={() => handleDeleteTier(tier.key)}
-                expandedItemId={canManageItems ? null : expandedItemId}
-                onExpandItem={canManageItems ? () => {} : handleExpandItem}
-                onCollapseExpanded={canManageItems ? () => {} : handleCollapseExpanded}
+                expandedItemId={expandedItemId}
+                onExpandItem={handleExpandItem}
+                onCollapseExpanded={handleCollapseExpanded}
               />
             </div>
           ))}

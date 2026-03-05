@@ -230,4 +230,33 @@ describe("TierListBoard", () => {
     });
     expect(onSubmitted).toHaveBeenCalled();
   });
+
+  it("keeps tier spotlight interaction available when item management is enabled", () => {
+    render(
+      <TierListBoard
+        sessionId="session_1"
+        participantId="participant_1"
+        tierConfig={[
+          { key: "S", label: "S", color: "#ff7f7f", sortOrder: 0 },
+          { key: "A", label: "A", color: "#ffbf7f", sortOrder: 1 },
+        ]}
+        sessionItems={[
+          { id: "item_1", label: "Rust", imageUrl: "/img/rust.webp" },
+          { id: "item_2", label: "Go", imageUrl: "/img/go.webp" },
+        ]}
+        seededTiers={{ S: ["item_1"], A: ["item_2"] }}
+        canManageItems
+        onSubmitted={vi.fn()}
+      />,
+    );
+
+    const itemLabel = screen.getByText("Rust");
+    const spotlightButton = itemLabel.closest("button");
+    if (!spotlightButton) {
+      throw new Error("Expected spotlight button for tier item");
+    }
+
+    fireEvent.click(spotlightButton);
+    expect(spotlightButton.className.includes("border-amber-300")).toBe(true);
+  });
 });
