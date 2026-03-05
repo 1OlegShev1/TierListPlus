@@ -44,7 +44,7 @@ export async function loadHomeData(userId: string): Promise<HomeData> {
     fromMyTemplates,
   ] = await Promise.all([
     prisma.template.findMany({
-      where: { creatorId: userId, isHidden: false },
+      where: { creatorId: userId, isHidden: false, spaceId: null },
       include: {
         _count: { select: { items: true } },
         items: previewItems,
@@ -53,16 +53,18 @@ export async function loadHomeData(userId: string): Promise<HomeData> {
       take: HOME_SECTION_LIMIT,
     }),
     prisma.session.count({
-      where: { creatorId: userId },
+      where: { creatorId: userId, spaceId: null },
     }),
     prisma.session.count({
       where: {
+        spaceId: null,
         participants: { some: { userId } },
         NOT: { creatorId: userId },
       },
     }),
     prisma.session.findMany({
       where: {
+        spaceId: null,
         creatorId: userId,
         status: "OPEN",
       },
@@ -72,6 +74,7 @@ export async function loadHomeData(userId: string): Promise<HomeData> {
     }),
     prisma.session.findMany({
       where: {
+        spaceId: null,
         status: "OPEN",
         participants: { some: { userId } },
         NOT: { creatorId: userId },
@@ -82,6 +85,7 @@ export async function loadHomeData(userId: string): Promise<HomeData> {
     }),
     prisma.session.findMany({
       where: {
+        spaceId: null,
         status: "OPEN",
         sourceTemplate: {
           creatorId: userId,

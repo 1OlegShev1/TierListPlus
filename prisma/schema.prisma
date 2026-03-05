@@ -19,6 +19,9 @@ model User {
   participants Participant[]
   devices      Device[]
   linkCodes    LinkCode[]
+  spaces       Space[]       @relation("SpaceCreator")
+  memberships  SpaceMember[]
+  spaceInvites SpaceInvite[] @relation("SpaceInviteCreator")
 }
 
 model Device {
@@ -57,17 +60,20 @@ model Template {
   name        String
   description String?
   creatorId   String?
+  spaceId     String?
   isPublic    Boolean  @default(false)
   isHidden    Boolean  @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   creator        User?      @relation(fields: [creatorId], references: [id])
+  space          Space?     @relation(fields: [spaceId], references: [id], onDelete: Cascade)
   items          TemplateItem[]
   sessions       Session[]  @relation("SessionTemplate")
   sourceSessions Session[] @relation("SessionSourceTemplate")
 
   @@index([creatorId])
+  @@index([spaceId, updatedAt])
 }
 
 model TemplateItem {
@@ -89,6 +95,7 @@ model Session {
   id               String        @id @default(cuid())
   templateId       String
   sourceTemplateId String?
+  spaceId          String?
   name             String
   joinCode         String        @unique
   status           SessionStatus @default(OPEN)
@@ -106,6 +113,7 @@ model Session {
 
   template       Template      @relation("SessionTemplate", fields: [templateId], references: [id])
   sourceTemplate Template?     @relation("SessionSourceTemplate", fields: [sourceTemplateId], references: [id], onDelete: SetNull)
+  space          Space?        @relation(fields: [spaceId], references: [id], onDelete: Cascade)
   creator        User?         @relation(fields: [creatorId], references: [id])
   items          SessionItem[]
   participants   Participant[]
@@ -114,12 +122,72 @@ model Session {
   @@index([templateId])
   @@index([sourceTemplateId])
   @@index([creatorId])
+  @@index([spaceId, status, updatedAt])
 }
 
 enum SessionStatus {
   OPEN
   CLOSED
   ARCHIVED
+}
+
+enum SpaceVisibility {
+  PRIVATE
+  OPEN
+}
+
+enum SpaceRole {
+  OWNER
+  MEMBER
+}
+
+model Space {
+  id         String          @id @default(cuid())
+  name       String
+  visibility SpaceVisibility @default(PRIVATE)
+  creatorId  String
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+
+  creator  User          @relation("SpaceCreator", fields: [creatorId], references: [id], onDelete: Cascade)
+  members  SpaceMember[]
+  invites  SpaceInvite[]
+  templates Template[]
+  sessions Session[]
+
+  @@index([creatorId])
+  @@index([visibility])
+}
+
+model SpaceMember {
+  id        String    @id @default(cuid())
+  spaceId   String
+  userId    String
+  role      SpaceRole @default(MEMBER)
+  createdAt DateTime  @default(now())
+
+  space Space @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([spaceId, userId])
+  @@index([spaceId])
+  @@index([userId])
+}
+
+model SpaceInvite {
+  id              String   @id @default(cuid())
+  spaceId         String
+  code            String   @unique
+  expiresAt       DateTime
+  revokedAt       DateTime?
+  createdByUserId String
+  createdAt       DateTime @default(now())
+
+  space         Space @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  createdByUser User  @relation("SpaceInviteCreator", fields: [createdByUserId], references: [id], onDelete: Cascade)
+
+  @@index([spaceId])
+  @@index([spaceId, expiresAt, revokedAt])
 }
 
 model SessionItem {

@@ -74,6 +74,54 @@ export async function mergeAccountIntoTarget(options: {
       data: { creatorId: targetUserId },
     });
 
+    await tx.space.updateMany({
+      where: { creatorId: currentUserId },
+      data: { creatorId: targetUserId },
+    });
+
+    await tx.spaceInvite.updateMany({
+      where: { createdByUserId: currentUserId },
+      data: { createdByUserId: targetUserId },
+    });
+
+    const spaceMemberships = await tx.spaceMember.findMany({
+      where: { userId: { in: [currentUserId, targetUserId] } },
+      orderBy: [{ spaceId: "asc" }, { createdAt: "asc" }],
+    });
+    const membershipsBySpace = new Map<string, typeof spaceMemberships>();
+    for (const membership of spaceMemberships) {
+      const bucket = membershipsBySpace.get(membership.spaceId) ?? [];
+      bucket.push(membership);
+      membershipsBySpace.set(membership.spaceId, bucket);
+    }
+    for (const memberships of membershipsBySpace.values()) {
+      const targetMembership = memberships.find((membership) => membership.userId === targetUserId);
+      const survivor = targetMembership ?? memberships[0];
+      const hasOwner = memberships.some((membership) => membership.role === "OWNER");
+
+      if (survivor.userId !== targetUserId) {
+        await tx.spaceMember.update({
+          where: { id: survivor.id },
+          data: { userId: targetUserId },
+        });
+      }
+      if (hasOwner && survivor.role !== "OWNER") {
+        await tx.spaceMember.update({
+          where: { id: survivor.id },
+          data: { role: "OWNER" },
+        });
+      }
+
+      const duplicateIds = memberships
+        .filter((membership) => membership.id !== survivor.id)
+        .map((membership) => membership.id);
+      if (duplicateIds.length > 0) {
+        await tx.spaceMember.deleteMany({
+          where: { id: { in: duplicateIds } },
+        });
+      }
+    }
+
     const participants = await tx.participant.findMany({
       where: { userId: { in: [currentUserId, targetUserId] } },
       orderBy: [{ sessionId: "asc" }, { createdAt: "asc" }],

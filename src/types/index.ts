@@ -48,6 +48,7 @@ export interface SessionData {
   bracketEnabled: boolean;
   templateIsHidden: boolean;
   canManageItems: boolean;
+  canManageSession: boolean;
   tierConfig: TierConfig[];
   items: Item[];
   currentParticipantId: string | null;
@@ -84,6 +85,7 @@ export interface SessionResult {
   status: string;
   name: string;
   joinCode: string;
+  canManageSession: boolean;
   currentParticipantId: string | null;
   currentParticipantNickname: string | null;
   tierConfig: TierConfig[];

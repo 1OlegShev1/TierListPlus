@@ -77,3 +77,17 @@ export const updateSessionSchema = z.object({
   isLocked: z.boolean().optional(),
   tierConfig: tierConfigSchema.optional(),
 });
+
+export const createSpaceSchema = z.object({
+  name: z.string().trim().min(1).max(100),
+  visibility: z.enum(["PRIVATE", "OPEN"]).optional(),
+});
+
+export const updateSpaceSchema = z.object({
+  name: z.string().trim().min(1).max(100).optional(),
+  visibility: z.enum(["PRIVATE", "OPEN"]).optional(),
+});
+
+export const joinSpaceSchema = z.object({
+  code: z.string().trim().min(1).max(30),
+});
