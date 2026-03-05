@@ -16,6 +16,7 @@ import type { TemplateItemData } from "@/types";
 interface ListEditorProps {
   listId?: string;
   spaceId?: string | null;
+  spaceName?: string | null;
   initialName?: string;
   initialDescription?: string;
   initialIsPublic?: boolean;
@@ -25,6 +26,7 @@ interface ListEditorProps {
 export function ListEditor({
   listId,
   spaceId = null,
+  spaceName = null,
   initialName = "",
   initialDescription = "",
   initialIsPublic = false,
@@ -161,6 +163,9 @@ export function ListEditor({
 
   return (
     <form className="space-y-6" onSubmit={handleSubmit}>
+      {spaceId && (
+        <p className="text-sm text-neutral-500">{`Publishing inside ${spaceName ?? "this space"} only.`}</p>
+      )}
       <div className="space-y-4">
         <Input
           type="text"
@@ -200,7 +205,10 @@ export function ListEditor({
 
       <div className="space-y-2">
         <div className="flex w-full flex-wrap items-center justify-end gap-3">
-          <Button variant="secondary" onClick={() => router.back()}>
+          <Button
+            variant="secondary"
+            onClick={() => (spaceId ? router.push(`/spaces/${spaceId}?tab=lists`) : router.back())}
+          >
             Cancel
           </Button>
           <Button ref={saveButtonRef} type="submit" disabled={!canSave}>

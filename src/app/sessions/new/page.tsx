@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { NewVoteForm } from "@/components/sessions/NewVoteForm";
 import { getCookieAuth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -36,11 +36,16 @@ export default async function NewVotePage({
   const userId = auth?.userId ?? null;
 
   let accessSpaceId: string | null = null;
+  let accessSpaceName: string | null = null;
   if (spaceId) {
     const spaceAccess = await getSpaceAccessForUser(spaceId, userId);
     if (!spaceAccess) notFound();
     if (!canReadSpace(spaceAccess.visibility, spaceAccess.isMember)) notFound();
+    if (!spaceAccess.isMember) {
+      redirect(`/spaces/${spaceAccess.id}?tab=members`);
+    }
     accessSpaceId = spaceAccess.id;
+    accessSpaceName = spaceAccess.name;
   }
 
   const templates = await prisma.template.findMany({
@@ -116,6 +121,7 @@ export default async function NewVotePage({
   return (
     <NewVoteForm
       spaceId={accessSpaceId}
+      spaceName={accessSpaceName}
       initialLists={initialLists}
       initialSelectedListId={preselectedListId}
       initialSelectedListDetails={initialSelectedListDetails}

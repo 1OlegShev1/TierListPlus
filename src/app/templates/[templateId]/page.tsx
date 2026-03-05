@@ -67,13 +67,21 @@ export default async function ListDetailPage({
           {list.description && <p className="mt-1 text-sm text-neutral-400">{list.description}</p>}
           <p className="mt-1 text-xs text-neutral-500">
             {list.space
-              ? `${list.space.visibility === "OPEN" ? "Open" : "Private"} space list · ${list.space.name}`
+              ? `${list.space.visibility === "OPEN" ? "Open" : "Private"} space list`
               : list.isPublic
                 ? "Public list"
                 : owner
                   ? "Private to you"
                   : "Private list"}
           </p>
+          {list.space && (
+            <Link
+              href={`/spaces/${list.space.id}?tab=lists`}
+              className="mt-1 inline-flex text-xs text-amber-400 transition-colors hover:text-amber-300"
+            >
+              {`View ${list.space.name} lists`}
+            </Link>
+          )}
         </div>
         <div className="flex w-full flex-wrap items-center justify-end gap-3 sm:w-auto sm:shrink-0">
           {!canManage && (list.isPublic || !!list.spaceId) && (

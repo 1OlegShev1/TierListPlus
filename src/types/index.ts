@@ -40,6 +40,8 @@ export interface MatchupRow {
 export interface SessionData {
   id: string;
   name: string;
+  spaceId: string | null;
+  spaceName: string | null;
   joinCode: string;
   status: string;
   creatorId: string | null;
@@ -84,6 +86,8 @@ export interface SessionResult {
   creatorId: string | null;
   status: string;
   name: string;
+  spaceId: string | null;
+  spaceName: string | null;
   joinCode: string;
   canManageSession: boolean;
   currentParticipantId: string | null;

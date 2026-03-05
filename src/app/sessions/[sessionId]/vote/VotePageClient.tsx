@@ -79,6 +79,14 @@ export function VotePageClient({
       <div className="mb-1.5 flex flex-shrink-0 flex-col gap-2 md:flex-row md:items-start md:justify-between sm:mb-2 sm:gap-3">
         <div className="min-w-0">
           <h1 className="truncate text-lg font-bold sm:text-2xl">{session.name}</h1>
+          {session.spaceId && (
+            <Link
+              href={`/spaces/${session.spaceId}?tab=votes`}
+              className="mt-1 inline-flex text-xs text-amber-400 transition-colors hover:text-amber-300"
+            >
+              {`In ${session.spaceName ?? "space"} · back to space votes`}
+            </Link>
+          )}
           <div className="mt-0.5 flex flex-wrap items-center gap-2 sm:mt-1 sm:gap-2.5">
             <JoinCodeBanner joinCode={session.joinCode} />
           </div>

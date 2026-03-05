@@ -22,12 +22,14 @@ interface SelectedListDetails {
 
 export function NewVoteForm({
   spaceId = null,
+  spaceName = null,
   initialLists = [],
   initialSelectedListId = null,
   initialSelectedListDetails = null,
   initialSelectedListUnavailable = false,
 }: {
   spaceId?: string | null;
+  spaceName?: string | null;
   initialLists?: ListSummary[];
   initialSelectedListId?: string | null;
   initialSelectedListDetails?: SelectedListDetails | null;
@@ -166,6 +168,11 @@ export function NewVoteForm({
   return (
     <div className="mx-auto max-w-2xl">
       <h1 className="mb-6 text-2xl font-bold">Start a Vote</h1>
+      {spaceId && (
+        <p className="-mt-4 mb-5 text-sm text-neutral-500">
+          {`Publishing inside ${spaceName ?? "this space"} only.`}
+        </p>
+      )}
 
       <form className="space-y-6" onSubmit={handleSubmit}>
         <label className="block">

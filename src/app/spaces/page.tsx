@@ -41,7 +41,7 @@ export default async function SpacesPage() {
     <div className="space-y-8">
       <PageHeader
         title="Spaces"
-        subtitle="Private group hubs and open communities for collaborative ranking."
+        subtitle="Build private group hubs or open communities for shared ranking chaos."
       />
 
       <div className="grid gap-4 lg:grid-cols-2">
@@ -50,7 +50,7 @@ export default async function SpacesPage() {
       </div>
 
       <section>
-        <SectionHeader title="Your Spaces" subtitle="Spaces where you are a member or owner." />
+        <SectionHeader title="Your Spaces" subtitle="Spaces you own or have joined." />
         {mySpaces.length === 0 ? (
           <EmptyState title="No spaces yet" description="Create one or join with an invite code." />
         ) : (
@@ -73,7 +73,7 @@ export default async function SpacesPage() {
       <section>
         <SectionHeader
           title="Discover Open Spaces"
-          subtitle="Public communities you can browse and join."
+          subtitle="Open communities you can browse, join, and vote in."
         />
         {discoverOpenSpaces.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-neutral-800 bg-neutral-950/40 px-5 py-4 text-sm text-neutral-500">

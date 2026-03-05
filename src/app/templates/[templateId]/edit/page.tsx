@@ -21,6 +21,7 @@ export default async function EditListPage({
       space: {
         select: {
           id: true,
+          name: true,
           visibility: true,
           creatorId: true,
           members: userId
@@ -54,6 +55,7 @@ export default async function EditListPage({
       <ListEditor
         listId={templateId}
         spaceId={list.spaceId}
+        spaceName={list.space?.name ?? null}
         initialName={list.name}
         initialDescription={list.description ?? ""}
         initialIsPublic={list.isPublic}

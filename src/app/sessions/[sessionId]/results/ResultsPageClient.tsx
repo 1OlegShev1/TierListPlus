@@ -90,6 +90,7 @@ export function ResultsPageClient({
   const voteHref = currentParticipantId
     ? `/sessions/${sessionId}/vote`
     : `/sessions/join?code=${encodeURIComponent(session.joinCode)}`;
+  const backToVotesHref = session.spaceId ? `/spaces/${session.spaceId}?tab=votes` : "/sessions";
 
   return (
     <div>
@@ -124,11 +125,13 @@ export function ResultsPageClient({
             {session.status !== "OPEN" && (
               <>
                 <Link
-                  href="/sessions"
+                  href={backToVotesHref}
                   className={`${buttonVariants.secondary} !px-4 !py-1.5 !text-sm whitespace-nowrap`}
                 >
                   <span className="sm:hidden">Back</span>
-                  <span className="hidden sm:inline">Back to Votes</span>
+                  <span className="hidden sm:inline">
+                    {session.spaceId ? "Back to Space Votes" : "Back to Votes"}
+                  </span>
                 </Link>
                 <ReopenVoteButton
                   sessionId={sessionId}

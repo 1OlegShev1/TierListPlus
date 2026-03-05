@@ -49,6 +49,8 @@ export default async function VotePage({ params }: { params: Promise<{ sessionId
       template: { select: { isHidden: true } },
       space: {
         select: {
+          id: true,
+          name: true,
           creatorId: true,
           visibility: true,
           members: requestUserId
@@ -125,6 +127,8 @@ export default async function VotePage({ params }: { params: Promise<{ sessionId
   const sessionData: SessionData = {
     id: session.id,
     name: session.name,
+    spaceId: session.space?.id ?? null,
+    spaceName: session.space?.name ?? null,
     joinCode: session.joinCode,
     status: session.status,
     creatorId: session.creatorId,

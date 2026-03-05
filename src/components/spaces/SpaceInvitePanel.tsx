@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { ErrorMessage } from "@/components/ui/ErrorMessage";
 import { apiFetch, apiPost, getErrorMessage } from "@/lib/api-client";
@@ -15,6 +15,8 @@ export function SpaceInvitePanel({ spaceId }: { spaceId: string }) {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+  const copyResetTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -39,6 +41,9 @@ export function SpaceInvitePanel({ spaceId }: { spaceId: string }) {
     void loadInvite();
     return () => {
       mounted = false;
+      if (copyResetTimerRef.current) {
+        window.clearTimeout(copyResetTimerRef.current);
+      }
     };
   }, [spaceId]);
 
@@ -46,6 +51,7 @@ export function SpaceInvitePanel({ spaceId }: { spaceId: string }) {
     if (busy) return;
     setBusy(true);
     setError(null);
+    setCopied(false);
     try {
       const payload = await apiPost<InvitePayload>(`/api/spaces/${spaceId}/invite`, {});
       setInvite(payload);
@@ -58,13 +64,28 @@ export function SpaceInvitePanel({ spaceId }: { spaceId: string }) {
 
   const copy = async () => {
     if (!invite) return;
-    await navigator.clipboard.writeText(invite.code);
+    try {
+      await navigator.clipboard.writeText(invite.code);
+      setCopied(true);
+      if (copyResetTimerRef.current) {
+        window.clearTimeout(copyResetTimerRef.current);
+      }
+      copyResetTimerRef.current = window.setTimeout(() => setCopied(false), 1200);
+    } catch (err) {
+      setError(getErrorMessage(err, "Could not copy invite code"));
+      setCopied(false);
+    }
   };
 
   return (
     <div className="rounded-xl border border-neutral-800 bg-neutral-900 p-4">
       <h3 className="text-sm font-semibold text-neutral-100">Private Invite</h3>
       <p className="mt-1 text-xs text-neutral-500">Single reusable code with 7-day expiry.</p>
+      {invite && (
+        <p className="mt-1 text-xs text-neutral-500">
+          Expires {new Date(invite.expiresAt).toLocaleDateString()}
+        </p>
+      )}
       <div className="mt-3 flex flex-wrap items-center gap-2">
         <Button variant="secondary" onClick={rotateInvite} disabled={busy || loading}>
           {busy ? "Generating..." : invite ? "Rotate code" : "Generate code"}
@@ -75,7 +96,7 @@ export function SpaceInvitePanel({ spaceId }: { spaceId: string }) {
             onClick={copy}
             className="rounded-md border border-neutral-700 px-3 py-1.5 font-mono text-sm tracking-wider text-amber-300 hover:border-amber-500/70"
           >
-            {invite.code}
+            {copied ? "Copied" : invite.code}
           </button>
         )}
       </div>

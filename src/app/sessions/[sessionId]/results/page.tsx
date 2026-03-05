@@ -65,6 +65,8 @@ export default async function ResultsPage({
     include: {
       space: {
         select: {
+          id: true,
+          name: true,
           visibility: true,
           members: requestUserId
             ? {
@@ -173,6 +175,8 @@ export default async function ResultsPage({
     creatorId: session.creatorId,
     status: session.status,
     name: session.name,
+    spaceId: session.space?.id ?? null,
+    spaceName: session.space?.name ?? null,
     joinCode: session.joinCode,
     canManageSession: isOwner || isSpaceOwner,
     currentParticipantId: currentParticipant?.id ?? null,
