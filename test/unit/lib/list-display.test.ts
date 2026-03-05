@@ -33,4 +33,21 @@ describe("buildListDisplay", () => {
     expect(display.detailsLabel).toBe("10 picks");
     expect(display.secondaryLabel).toContain("Updated");
   });
+
+  it("supports a space access label override", () => {
+    const display = buildListDisplay({
+      viewer: "browser",
+      isPublic: false,
+      updatedAt: "2026-03-04T12:00:00.000Z",
+      itemCount: 7,
+      accessLabel: "Space",
+    });
+
+    expect(display.chips).toEqual([
+      { label: "Shared list", tone: "accent" },
+      { label: "Space", tone: "neutral" },
+    ]);
+    expect(display.detailsLabel).toBe("7 picks");
+    expect(display.secondaryLabel).toContain("Updated");
+  });
 });

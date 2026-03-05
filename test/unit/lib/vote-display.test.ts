@@ -67,4 +67,23 @@ describe("buildVoteDisplay", () => {
     expect(openSpaceDisplay.chips.some((chip) => chip.label === "Open space")).toBe(true);
     expect(privateSpaceDisplay.chips.some((chip) => chip.label === "Private space")).toBe(true);
   });
+
+  it("supports access label override for space pages", () => {
+    const display = buildVoteDisplay({
+      viewer: "browser",
+      isPrivate: true,
+      isLocked: false,
+      status: "OPEN",
+      updatedAt: "2026-03-03T12:00:00.000Z",
+      itemCount: 8,
+      participantCount: 3,
+      listName: "Anime",
+      listHidden: false,
+      spaceVisibility: "OPEN",
+      accessLabel: "Space",
+    });
+
+    expect(display.chips.some((chip) => chip.label === "Space")).toBe(true);
+    expect(display.chips.some((chip) => chip.label === "Open space")).toBe(false);
+  });
 });

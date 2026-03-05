@@ -12,15 +12,17 @@ export function buildListDisplay({
   isPublic,
   updatedAt,
   itemCount,
+  accessLabel,
 }: {
   viewer: ListViewer;
   isPublic: boolean;
   updatedAt: Date | string;
   itemCount: number;
+  accessLabel?: "Public" | "Private" | "Space";
 }) {
   const chips: ListDisplayChip[] = [
     { label: viewer === "owner" ? "Your list" : "Shared list", tone: "accent" },
-    { label: isPublic ? "Public" : "Private", tone: "neutral" },
+    { label: accessLabel ?? (isPublic ? "Public" : "Private"), tone: "neutral" },
   ];
 
   return {

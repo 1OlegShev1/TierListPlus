@@ -1,7 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { buildSessionCardInclude, buildSessionPreviewItemsInclude } from "@/lib/session-query";
 
-export const HOME_SECTION_LIMIT = 4;
+export const HOME_VOTE_SECTION_LIMIT = 4;
+export const HOME_LIST_SECTION_LIMIT = 6;
 
 export interface HomeListSummary {
   id: string;
@@ -32,8 +33,8 @@ export interface HomeData {
 }
 
 export async function loadHomeData(userId: string): Promise<HomeData> {
-  const previewItems = buildSessionPreviewItemsInclude(HOME_SECTION_LIMIT);
-  const sessionCardInclude = buildSessionCardInclude(HOME_SECTION_LIMIT);
+  const previewItems = buildSessionPreviewItemsInclude(HOME_VOTE_SECTION_LIMIT);
+  const sessionCardInclude = buildSessionCardInclude(HOME_VOTE_SECTION_LIMIT);
 
   const [
     myTemplates,
@@ -50,7 +51,7 @@ export async function loadHomeData(userId: string): Promise<HomeData> {
         items: previewItems,
       },
       orderBy: { createdAt: "desc" },
-      take: HOME_SECTION_LIMIT,
+      take: HOME_LIST_SECTION_LIMIT,
     }),
     prisma.session.count({
       where: { creatorId: userId, spaceId: null },
@@ -70,7 +71,7 @@ export async function loadHomeData(userId: string): Promise<HomeData> {
       },
       include: sessionCardInclude,
       orderBy: { updatedAt: "desc" },
-      take: HOME_SECTION_LIMIT,
+      take: HOME_VOTE_SECTION_LIMIT,
     }),
     prisma.session.findMany({
       where: {
@@ -81,7 +82,7 @@ export async function loadHomeData(userId: string): Promise<HomeData> {
       },
       include: sessionCardInclude,
       orderBy: { updatedAt: "desc" },
-      take: HOME_SECTION_LIMIT,
+      take: HOME_VOTE_SECTION_LIMIT,
     }),
     prisma.session.findMany({
       where: {
@@ -96,7 +97,7 @@ export async function loadHomeData(userId: string): Promise<HomeData> {
       },
       include: sessionCardInclude,
       orderBy: { updatedAt: "desc" },
-      take: HOME_SECTION_LIMIT,
+      take: HOME_VOTE_SECTION_LIMIT,
     }),
   ]);
 

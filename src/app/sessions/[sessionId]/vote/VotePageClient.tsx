@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { CloseVoteButton } from "@/components/sessions/CloseVoteButton";
 import { DeleteVoteButton } from "@/components/sessions/DeleteVoteButton";
 import { TierListBoard } from "@/components/tierlist/TierListBoard";
+import { buttonVariants } from "@/components/ui/Button";
 import { LockClosedIcon, LockOpenIcon } from "@/components/ui/icons";
 import { JoinCodeBanner } from "@/components/ui/JoinCodeBanner";
 import { useParticipant } from "@/hooks/useParticipant";
@@ -73,20 +74,21 @@ export function VotePageClient({
     ? "hover:border-orange-400/70 hover:bg-orange-500/15"
     : "hover:border-emerald-400/70 hover:bg-emerald-500/15";
   const JoinStatusIcon = isLocked ? LockClosedIcon : LockOpenIcon;
+  const backHref = session.spaceId ? `/spaces/${session.spaceId}#votes` : "/sessions";
+  const backLabel = session.spaceId ? "Back to Space Votes" : "Back to Votes";
 
   return (
     <div className="-mt-2 flex flex-col pb-3 sm:-mt-4 sm:pb-4">
+      <Link
+        href={backHref}
+        className={`${buttonVariants.ghost} mb-2 inline-flex items-center sm:mb-3`}
+      >
+        {`← ${backLabel}`}
+      </Link>
+
       <div className="mb-1.5 flex flex-shrink-0 flex-col gap-2 md:flex-row md:items-start md:justify-between sm:mb-2 sm:gap-3">
         <div className="min-w-0">
           <h1 className="truncate text-lg font-bold sm:text-2xl">{session.name}</h1>
-          {session.spaceId && (
-            <Link
-              href={`/spaces/${session.spaceId}`}
-              className="mt-1 inline-flex text-xs text-amber-400 transition-colors hover:text-amber-300"
-            >
-              {`In ${session.spaceName ?? "space"} · back to space votes`}
-            </Link>
-          )}
           <div className="mt-0.5 flex flex-wrap items-center gap-2 sm:mt-1 sm:gap-2.5">
             <JoinCodeBanner joinCode={session.joinCode} />
           </div>

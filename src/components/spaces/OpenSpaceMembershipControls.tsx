@@ -60,7 +60,7 @@ export function OpenSpaceMembershipControls({
         </Button>
       ) : !isOwner ? (
         <Button variant="secondary" onClick={leave} disabled={busy}>
-          {busy ? "Leaving..." : "Leave Space"}
+          {busy ? "Leaving...?" : "Leave Space"}
         </Button>
       ) : null}
       {error && <ErrorMessage message={error} />}
