@@ -56,6 +56,53 @@ describe("sessions join route", () => {
     expect(response.status).toBe(400);
   });
 
+  it("enforces private-space membership and allows open-space non-members", async () => {
+    mocks.prisma.session.findUnique.mockResolvedValueOnce(
+      makeSession({
+        space: {
+          visibility: "PRIVATE",
+          members: [],
+        },
+      }),
+    );
+
+    let response = await POST(
+      jsonRequest("POST", "https://example.test", { joinCode: "join1", nickname: "Nick" }),
+      { params: Promise.resolve({}) },
+    );
+    expect(response.status).toBe(403);
+    await expect(response.json()).resolves.toEqual({
+      error: "Only members of this private space can join this vote",
+    });
+
+    mocks.prisma.session.findUnique.mockResolvedValueOnce(
+      makeSession({
+        id: "session_open_space",
+        space: {
+          visibility: "OPEN",
+          members: [],
+        },
+      }),
+    );
+    mocks.prisma.participant.findFirst.mockResolvedValueOnce(null);
+    mocks.prisma.participant.findUnique.mockResolvedValueOnce(null);
+    mocks.prisma.participant.create.mockResolvedValueOnce(
+      makeParticipant({ id: "participant_open_space", nickname: "Nick" }),
+    );
+
+    response = await POST(
+      jsonRequest("POST", "https://example.test", { joinCode: "join1", nickname: "Nick" }),
+      { params: Promise.resolve({}) },
+    );
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual(
+      expect.objectContaining({
+        sessionId: "session_open_space",
+        participantId: "participant_open_space",
+      }),
+    );
+  });
+
   it("reuses an existing participant or creates a new one", async () => {
     mocks.prisma.session.findUnique.mockResolvedValue(makeSession());
     mocks.prisma.participant.findFirst.mockResolvedValueOnce(
