@@ -134,7 +134,6 @@ export default async function VotePage({ params }: { params: Promise<{ sessionId
     creatorId: session.creatorId,
     isPrivate: session.isPrivate,
     isLocked: session.isLocked,
-    bracketEnabled: session.bracketEnabled,
     templateIsHidden: session.template.isHidden,
     canManageSession,
     canManageItems: canManageSessionItems(

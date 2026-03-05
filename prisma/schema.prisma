@@ -109,15 +109,12 @@ model Session {
   // Shape: [{ key: string, label: string, color: string, sortOrder: number }]
   tierConfig Json
 
-  bracketEnabled   Boolean       @default(false)
-
   template       Template      @relation("SessionTemplate", fields: [templateId], references: [id])
   sourceTemplate Template?     @relation("SessionSourceTemplate", fields: [sourceTemplateId], references: [id], onDelete: SetNull)
   space          Space?        @relation(fields: [spaceId], references: [id], onDelete: Cascade)
   creator        User?         @relation(fields: [creatorId], references: [id])
   items          SessionItem[]
   participants   Participant[]
-  brackets       Bracket[]
 
   @@index([templateId])
   @@index([sourceTemplateId])
@@ -212,11 +209,7 @@ model SessionItem {
   session      Session      @relation(fields: [sessionId], references: [id], onDelete: Cascade)
   templateItem TemplateItem @relation(fields: [templateItemId], references: [id])
 
-  tierVotes           TierVote[]
-  bracketVotesAsItemA BracketMatchup[] @relation("MatchupItemA")
-  bracketVotesAsItemB BracketMatchup[] @relation("MatchupItemB")
-  bracketWins         BracketMatchup[] @relation("MatchupWinner")
-  bracketVoteChoices  BracketVote[]    @relation("BracketVoteChoice")
+  tierVotes TierVote[]
 
   @@unique([sessionId, templateItemId])
   @@index([sessionId])
@@ -236,7 +229,6 @@ model Participant {
   session      Session       @relation(fields: [sessionId], references: [id], onDelete: Cascade)
   user         User?         @relation(fields: [userId], references: [id])
   tierVotes    TierVote[]
-  bracketVotes BracketVote[]
 
   @@unique([sessionId, nickname])
   @@unique([sessionId, userId])
@@ -259,55 +251,4 @@ model TierVote {
   @@unique([participantId, sessionItemId])
   @@index([participantId])
   @@index([sessionItemId])
-}
-
-// ─── BRACKET VOTING ──────────────────────────────────────────
-
-model Bracket {
-  id        String   @id @default(cuid())
-  sessionId String
-  rounds    Int
-  createdAt DateTime @default(now())
-
-  session  Session          @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  matchups BracketMatchup[]
-
-  @@index([sessionId])
-}
-
-model BracketMatchup {
-  id        String  @id @default(cuid())
-  bracketId String
-  round     Int
-  position  Int
-  itemAId   String?
-  itemBId   String?
-  winnerId  String?
-
-  bracket Bracket      @relation(fields: [bracketId], references: [id], onDelete: Cascade)
-  itemA   SessionItem? @relation("MatchupItemA", fields: [itemAId], references: [id])
-  itemB   SessionItem? @relation("MatchupItemB", fields: [itemBId], references: [id])
-  winner  SessionItem? @relation("MatchupWinner", fields: [winnerId], references: [id])
-
-  votes BracketVote[]
-
-  @@index([bracketId, round])
-  @@index([itemAId])
-  @@index([itemBId])
-  @@index([winnerId])
-}
-
-model BracketVote {
-  id            String @id @default(cuid())
-  matchupId     String
-  participantId String
-  chosenItemId  String
-
-  matchup     BracketMatchup @relation(fields: [matchupId], references: [id], onDelete: Cascade)
-  participant Participant    @relation(fields: [participantId], references: [id], onDelete: Cascade)
-  chosenItem  SessionItem    @relation("BracketVoteChoice", fields: [chosenItemId], references: [id])
-
-  @@unique([matchupId, participantId])
-  @@index([matchupId])
-  @@index([chosenItemId])
 }

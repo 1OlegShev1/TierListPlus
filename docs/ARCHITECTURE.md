@@ -163,7 +163,7 @@ Primary product flow:
 - It seeds tier placement/order but users can continue editing before submit
 - Session creation no longer asks to enable/disable bracket assist in UI
 
-Routes under `/api/sessions/[sessionId]/bracket/*` still exist, but UI voting no longer depends on `/sessions/[sessionId]/bracket` page flow.
+No bracket trees or bracket votes are persisted server-side; bracket assist is local-only.
 
 ## API Surface
 
@@ -186,7 +186,6 @@ Routes under `/api/sessions/[sessionId]/bracket/*` still exist, but UI voting no
   - Authenticated `GET` returns public + owned + participated sessions
   - `POST` always creates a private hidden working template, optionally seeded from `templateId`
   - `POST` stores `sourceTemplateId` when a visible template was used as the starting point
-  - `POST` currently persists `bracketEnabled: true` for new sessions
 - `POST /api/sessions/join`
   - Enforces `OPEN` and lock rules (`isLocked`)
 - `GET/PATCH/DELETE /api/sessions/[sessionId]`
@@ -206,12 +205,6 @@ Routes under `/api/sessions/[sessionId]/bracket/*` still exist, but UI voting no
 - `GET /api/sessions/[sessionId]/votes/consensus`
 - `GET /api/sessions/[sessionId]/votes/[participantId]`
   - Returns 404 when participant has no submitted votes
-
-### Bracket (secondary/legacy server flow)
-- `GET/POST /api/sessions/[sessionId]/bracket`
-- `POST /api/sessions/[sessionId]/bracket/vote`
-- `POST /api/sessions/[sessionId]/bracket/advance`
-- `GET /api/sessions/[sessionId]/bracket/rankings`
 
 ### Users and Dashboard
 - `POST /api/users`

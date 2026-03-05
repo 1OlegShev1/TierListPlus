@@ -9,24 +9,6 @@ export interface Item {
   imageUrl: string;
 }
 
-/** A bracket matchup as returned by the API (with nested item objects) */
-export interface Matchup {
-  id: string;
-  round: number;
-  position: number;
-  itemA: Item | null;
-  itemB: Item | null;
-  winner: Item | null;
-  votes: { participantId: string; chosenItemId: string }[];
-}
-
-/** Bracket data as returned from GET /api/sessions/[sessionId]/bracket */
-export interface BracketData {
-  id: string;
-  rounds: number;
-  matchups: Matchup[];
-}
-
 /** A flat matchup row (IDs only, no nested objects). Used in local bracket state and ranking algorithms. */
 export interface MatchupRow {
   round: number;
@@ -47,7 +29,6 @@ export interface SessionData {
   creatorId: string | null;
   isPrivate: boolean;
   isLocked: boolean;
-  bracketEnabled: boolean;
   templateIsHidden: boolean;
   canManageItems: boolean;
   canManageSession: boolean;
@@ -62,6 +43,7 @@ export interface ListSummary {
   id: string;
   name: string;
   isPublic: boolean;
+  origin?: "SPACE" | "PERSONAL" | "PUBLIC";
   _count: { items: number };
   items: { id: string; imageUrl: string; label?: string | null }[];
 }

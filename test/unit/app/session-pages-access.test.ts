@@ -65,7 +65,6 @@ describe("session page access guards", () => {
       creatorId: "owner_1",
       isPrivate: true,
       isLocked: false,
-      bracketEnabled: true,
       tierConfig: [{ key: "S", label: "S", color: "#111111", sortOrder: 0 }],
       template: { isHidden: true },
       space: {
@@ -92,7 +91,6 @@ describe("session page access guards", () => {
       creatorId: "owner_1",
       isPrivate: true,
       isLocked: false,
-      bracketEnabled: true,
       tierConfig: [{ key: "S", label: "S", color: "#111111", sortOrder: 0 }],
       template: { isHidden: true },
       space: {

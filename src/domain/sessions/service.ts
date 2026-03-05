@@ -114,7 +114,10 @@ export async function createSession(input: CreateSessionInput) {
     }
 
     if (spaceId) {
-      if (sourceTemplate.spaceId !== spaceId || sourceTemplate.isHidden) {
+      const isSpaceTemplate = sourceTemplate.spaceId === spaceId && !sourceTemplate.isHidden;
+      const isAccessibleGlobalTemplate =
+        sourceTemplate.spaceId == null && canAccessTemplate(sourceTemplate, creatorId);
+      if (!isSpaceTemplate && !isAccessibleGlobalTemplate) {
         notFound("Template not found");
       }
     } else if (!canAccessTemplate(sourceTemplate, creatorId)) {
@@ -158,7 +161,6 @@ export async function createSession(input: CreateSessionInput) {
             joinCode: generateJoinCode(),
             creatorId,
             tierConfig: JSON.parse(JSON.stringify(tierConfig ?? DEFAULT_TIER_CONFIG)),
-            bracketEnabled: true,
             isPrivate: spaceId ? true : (isPrivate ?? true),
             ...(spaceId ? { spaceId } : {}),
             items: {

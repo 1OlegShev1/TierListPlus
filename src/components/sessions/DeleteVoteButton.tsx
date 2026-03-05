@@ -64,9 +64,7 @@ export function DeleteVoteButton({
       <ConfirmDialog
         open={open}
         title="Delete Vote"
-        description={
-          error ?? "This deletes the whole vote, every ballot, and the bracket. You can't undo it."
-        }
+        description={error ?? "This deletes the whole vote and every ballot. You can't undo it."}
         onConfirm={handleDelete}
         onCancel={() => {
           setOpen(false);

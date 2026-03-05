@@ -59,10 +59,6 @@ export const DELETE = withHandler(async (request, { params }) => {
       _count: {
         select: {
           tierVotes: true,
-          bracketVotesAsItemA: true,
-          bracketVotesAsItemB: true,
-          bracketWins: true,
-          bracketVoteChoices: true,
         },
       },
     },
@@ -70,12 +66,7 @@ export const DELETE = withHandler(async (request, { params }) => {
 
   if (!sessionItem) notFound("Session item not found");
 
-  const hasReferences =
-    sessionItem._count.tierVotes > 0 ||
-    sessionItem._count.bracketVotesAsItemA > 0 ||
-    sessionItem._count.bracketVotesAsItemB > 0 ||
-    sessionItem._count.bracketWins > 0 ||
-    sessionItem._count.bracketVoteChoices > 0;
+  const hasReferences = sessionItem._count.tierVotes > 0;
 
   if (hasReferences) {
     badRequest("This item already has saved votes and cannot be removed");

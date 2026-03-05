@@ -108,10 +108,6 @@ describe("session item delete route", () => {
       templateItemId: "template_item_1",
       _count: {
         tierVotes: 0,
-        bracketVotesAsItemA: 0,
-        bracketVotesAsItemB: 0,
-        bracketWins: 0,
-        bracketVoteChoices: 0,
       },
     });
     const tx = {
@@ -142,10 +138,6 @@ describe("session item delete route", () => {
       templateItemId: "template_item_1",
       _count: {
         tierVotes: 0,
-        bracketVotesAsItemA: 0,
-        bracketVotesAsItemB: 0,
-        bracketWins: 0,
-        bracketVoteChoices: 0,
       },
     });
     const tx = {
@@ -210,10 +202,6 @@ describe("session item delete route", () => {
       templateItemId: "template_item_1",
       _count: {
         tierVotes: 1,
-        bracketVotesAsItemA: 0,
-        bracketVotesAsItemB: 0,
-        bracketWins: 0,
-        bracketVoteChoices: 0,
       },
     });
 

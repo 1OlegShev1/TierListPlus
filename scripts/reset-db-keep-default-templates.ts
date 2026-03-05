@@ -38,9 +38,6 @@ async function main() {
   const keepIds = [programming.id, burgers9.id];
 
   await prisma.$transaction(async (tx) => {
-    await tx.bracketVote.deleteMany({});
-    await tx.bracketMatchup.deleteMany({});
-    await tx.bracket.deleteMany({});
     await tx.tierVote.deleteMany({});
     await tx.participant.deleteMany({});
     await tx.sessionItem.deleteMany({});
@@ -54,8 +51,6 @@ async function main() {
     sessions: await prisma.session.count(),
     participants: await prisma.participant.count(),
     tierVotes: await prisma.tierVote.count(),
-    brackets: await prisma.bracket.count(),
-    bracketVotes: await prisma.bracketVote.count(),
   };
   const remainingTemplates = await prisma.template.findMany({
     select: {

@@ -99,7 +99,6 @@ export function makeSession(overrides: Record<string, unknown> = {}) {
     joinCode: "JOIN1",
     status: "OPEN",
     creatorId: "user_1",
-    bracketEnabled: true,
     isPrivate: true,
     isLocked: false,
     createdAt: FIXED_DATE,

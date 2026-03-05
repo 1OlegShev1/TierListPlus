@@ -12,7 +12,19 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("next/dynamic", () => ({
-  default: () => () => null,
+  default: () =>
+    ({
+      items,
+      onComplete,
+    }: {
+      items?: Array<{ id: string }>;
+      onComplete?: (rankedIds: string[]) => void;
+    }) =>
+      items && onComplete ? (
+        <button type="button" onClick={() => onComplete(items.map((item) => item.id).reverse())}>
+          Complete bracket
+        </button>
+      ) : null,
 }));
 
 vi.mock("@/hooks/useUser", () => ({
@@ -181,5 +193,41 @@ describe("TierListBoard", () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ imageUrl: "/img/new.webp" }),
     });
+  });
+
+  it("submits tier votes after quick bracket seeding is completed", async () => {
+    const onSubmitted = vi.fn();
+    mocks.apiPost.mockResolvedValue({ createdCount: 2 });
+
+    render(
+      <TierListBoard
+        sessionId="session_1"
+        participantId="participant_1"
+        tierConfig={[
+          { key: "S", label: "S", color: "#ff7f7f", sortOrder: 0 },
+          { key: "A", label: "A", color: "#ffbf7f", sortOrder: 1 },
+        ]}
+        sessionItems={[
+          { id: "item_1", label: "Rust", imageUrl: "/img/rust.webp" },
+          { id: "item_2", label: "Go", imageUrl: "/img/go.webp" },
+        ]}
+        onSubmitted={onSubmitted}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /quick bracket/i }));
+    fireEvent.click(screen.getByRole("button", { name: /complete bracket/i }));
+    fireEvent.click(screen.getByRole("button", { name: /lock in ranking/i }));
+
+    await waitFor(() => {
+      expect(mocks.apiPost).toHaveBeenCalledWith("/api/sessions/session_1/votes", {
+        participantId: "participant_1",
+        votes: [
+          { sessionItemId: "item_2", tierKey: "S", rankInTier: 0 },
+          { sessionItemId: "item_1", tierKey: "A", rankInTier: 0 },
+        ],
+      });
+    });
+    expect(onSubmitted).toHaveBeenCalled();
   });
 });

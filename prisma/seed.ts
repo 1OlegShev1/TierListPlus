@@ -29,9 +29,6 @@ async function main() {
   console.log("Seeding database...");
 
   // Clean existing data
-  await prisma.bracketVote.deleteMany();
-  await prisma.bracketMatchup.deleteMany();
-  await prisma.bracket.deleteMany();
   await prisma.tierVote.deleteMany();
   await prisma.participant.deleteMany();
   await prisma.sessionItem.deleteMany();

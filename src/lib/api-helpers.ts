@@ -348,11 +348,3 @@ export async function requireSessionItemManager(
 
   return { session, requestUserId };
 }
-
-/** Shared Prisma include for bracket matchups with full item details + votes */
-export const bracketMatchupInclude = {
-  itemA: { select: { id: true, label: true, imageUrl: true } },
-  itemB: { select: { id: true, label: true, imageUrl: true } },
-  winner: { select: { id: true, label: true, imageUrl: true } },
-  votes: { select: { participantId: true, chosenItemId: true } },
-} as const;

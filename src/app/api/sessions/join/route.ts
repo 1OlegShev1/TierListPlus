@@ -17,7 +17,6 @@ export const POST = withHandler(async (request) => {
       id: true,
       status: true,
       isLocked: true,
-      bracketEnabled: true,
       space: {
         select: {
           visibility: true,
@@ -53,7 +52,6 @@ export const POST = withHandler(async (request) => {
       sessionId: session.id,
       participantId: existingForUser.id,
       nickname: existingForUser.nickname,
-      bracketEnabled: session.bracketEnabled,
     });
   }
 
@@ -115,6 +113,5 @@ export const POST = withHandler(async (request) => {
     sessionId: session.id,
     participantId: participant.id,
     nickname: participant.nickname,
-    bracketEnabled: session.bracketEnabled,
   });
 });
