@@ -1,8 +1,12 @@
 const mocks = vi.hoisted(() => ({
   resolveSpaceAccessContext: vi.fn(),
   prisma: {
+    $transaction: vi.fn(),
     spaceMember: {
       findMany: vi.fn(),
+    },
+    spaceInvite: {
+      findFirst: vi.fn(),
     },
     template: {
       findMany: vi.fn(),
@@ -21,10 +25,12 @@ vi.mock("@/lib/prisma", () => ({
 
 import { listSpaceMembers } from "@/domain/spaces/service";
 
-describe("spaces service listSpaceMembers", () => {
+describe("spaces service", () => {
   beforeEach(() => {
     mocks.resolveSpaceAccessContext.mockReset();
+    mocks.prisma.$transaction.mockReset();
     mocks.prisma.spaceMember.findMany.mockReset();
+    mocks.prisma.spaceInvite.findFirst.mockReset();
     mocks.prisma.template.findMany.mockReset();
     mocks.prisma.template.create.mockReset();
   });
@@ -189,5 +195,90 @@ describe("spaces service listSpaceMembers", () => {
         spaceId: "space_1",
       },
     });
+  });
+
+  it("blocks invite access for non-owners", async () => {
+    mocks.resolveSpaceAccessContext.mockResolvedValue({
+      id: "space_1",
+      name: "Private Space",
+      visibility: "PRIVATE",
+      creatorId: "owner_1",
+      memberRole: "MEMBER",
+      isMember: true,
+      isOwner: false,
+    });
+
+    const { getPrivateSpaceInvite } = await import("@/domain/spaces/service");
+    await expect(getPrivateSpaceInvite("space_1", "member_1")).rejects.toEqual(
+      expect.objectContaining({
+        status: 403,
+        details: "Only the space owner can view space invites",
+      }),
+    );
+    expect(mocks.prisma.spaceInvite.findFirst).not.toHaveBeenCalled();
+  });
+
+  it("blocks invite flow for open spaces", async () => {
+    mocks.resolveSpaceAccessContext.mockResolvedValue({
+      id: "space_1",
+      name: "Open Space",
+      visibility: "OPEN",
+      creatorId: "owner_1",
+      memberRole: "OWNER",
+      isMember: true,
+      isOwner: true,
+    });
+
+    const { getPrivateSpaceInvite } = await import("@/domain/spaces/service");
+    await expect(getPrivateSpaceInvite("space_1", "owner_1")).rejects.toEqual(
+      expect.objectContaining({
+        status: 400,
+        details: "Invite codes are only used for private spaces",
+      }),
+    );
+  });
+
+  it("rotates private invite by revoking previous active codes", async () => {
+    mocks.resolveSpaceAccessContext.mockResolvedValue({
+      id: "space_1",
+      name: "Private Space",
+      visibility: "PRIVATE",
+      creatorId: "owner_1",
+      memberRole: "OWNER",
+      isMember: true,
+      isOwner: true,
+    });
+
+    const updateMany = vi.fn().mockResolvedValue({ count: 1 });
+    const findUnique = vi.fn().mockResolvedValue(null);
+    const create = vi.fn().mockResolvedValue({
+      code: "INVITE12345",
+      expiresAt: new Date("2026-03-12T10:00:00.000Z"),
+      createdAt: new Date("2026-03-05T10:00:00.000Z"),
+    });
+    mocks.prisma.$transaction.mockImplementation(async (fn: (tx: unknown) => unknown) =>
+      fn({
+        spaceInvite: {
+          updateMany,
+          findUnique,
+          create,
+        },
+      }),
+    );
+
+    const { rotatePrivateSpaceInvite } = await import("@/domain/spaces/service");
+    const result = await rotatePrivateSpaceInvite("space_1", "owner_1");
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        code: "INVITE12345",
+      }),
+    );
+    expect(updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { spaceId: "space_1", revokedAt: null },
+      }),
+    );
+    expect(create).toHaveBeenCalledTimes(1);
   });
 });

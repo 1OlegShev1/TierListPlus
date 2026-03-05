@@ -6,6 +6,8 @@ const mocks = vi.hoisted(() => ({
     createSpace: vi.fn(),
     getSpaceDetails: vi.fn(),
     updateSpace: vi.fn(),
+    getPrivateSpaceInvite: vi.fn(),
+    rotatePrivateSpaceInvite: vi.fn(),
     joinPrivateSpaceByInviteCode: vi.fn(),
     listSpaceMembers: vi.fn(),
     joinOpenSpace: vi.fn(),
@@ -26,6 +28,10 @@ import {
   GET as getMembers,
   POST as postMembers,
 } from "@/app/api/spaces/[spaceId]/members/route";
+import {
+  GET as getInvite,
+  POST as postInvite,
+} from "@/app/api/spaces/[spaceId]/invite/route";
 import { POST as joinByCode } from "@/app/api/spaces/join/route";
 import { GET, POST } from "@/app/api/spaces/route";
 
@@ -150,5 +156,52 @@ describe("spaces api routes", () => {
     );
     expect(response.status).toBe(200);
     expect(mocks.spacesService.joinOpenSpace).toHaveBeenNthCalledWith(1, "space_1", "user_1");
+  });
+
+  it("reads and rotates private-space invites via service", async () => {
+    mocks.getRequestAuth.mockResolvedValue({ userId: "owner_1" });
+    mocks.spacesService.getPrivateSpaceInvite.mockResolvedValue({
+      invite: { code: "ABCD1234", expiresAt: new Date("2026-03-12T10:00:00.000Z") },
+    });
+    mocks.spacesService.rotatePrivateSpaceInvite.mockResolvedValue({
+      code: "NEWCODE1234",
+      expiresAt: new Date("2026-03-12T10:00:00.000Z"),
+      createdAt: new Date("2026-03-05T10:00:00.000Z"),
+    });
+
+    let response = await getInvite(
+      new Request("https://example.test"),
+      routeCtx({ spaceId: "space_1" }),
+    );
+    expect(response.status).toBe(200);
+    expect(mocks.spacesService.getPrivateSpaceInvite).toHaveBeenCalledWith("space_1", "owner_1");
+
+    response = await postInvite(
+      jsonRequest("POST", "https://example.test"),
+      routeCtx({ spaceId: "space_1" }),
+    );
+    expect(response.status).toBe(201);
+    expect(mocks.spacesService.rotatePrivateSpaceInvite).toHaveBeenCalledWith("space_1", "owner_1");
+    await expect(response.json()).resolves.toEqual(
+      expect.objectContaining({
+        code: "NEWCODE1234",
+      }),
+    );
+  });
+
+  it("maps invite service authorization errors", async () => {
+    mocks.getRequestAuth.mockResolvedValue({ userId: "user_2" });
+    mocks.spacesService.getPrivateSpaceInvite.mockRejectedValue(
+      new ApiError(403, "Only the space owner can view space invites"),
+    );
+
+    const response = await getInvite(
+      new Request("https://example.test"),
+      routeCtx({ spaceId: "space_1" }),
+    );
+    expect(response.status).toBe(403);
+    await expect(response.json()).resolves.toEqual({
+      error: "Only the space owner can view space invites",
+    });
   });
 });
