@@ -72,15 +72,17 @@ export default async function SpaceDetailPage({
         })
       : Promise.resolve([]),
     tab === "members"
-      ? prisma.spaceMember.findMany({
-          where: { spaceId },
-          orderBy: [{ role: "asc" }, { createdAt: "asc" }],
-          select: {
-            userId: true,
-            role: true,
-            createdAt: true,
-          },
-        })
+      ? space.isMember
+        ? prisma.spaceMember.findMany({
+            where: { spaceId },
+            orderBy: [{ role: "asc" }, { createdAt: "asc" }],
+            select: {
+              userId: true,
+              role: true,
+              createdAt: true,
+            },
+          })
+        : Promise.resolve([])
       : Promise.resolve([]),
   ]);
 
@@ -198,35 +200,45 @@ export default async function SpaceDetailPage({
             <SpaceInvitePanel spaceId={space.id} />
           )}
 
-          <div className="rounded-xl border border-neutral-800 bg-neutral-900">
-            {members.length === 0 ? (
-              <div className="px-4 py-5 text-sm text-neutral-500">No members found.</div>
-            ) : (
-              <div className="divide-y divide-neutral-800">
-                {members.map((member) => {
-                  const canRemove =
-                    space.isOwner && member.userId !== space.creatorId && member.userId !== userId;
+          {!space.isMember ? (
+            <div className="rounded-xl border border-dashed border-neutral-800 bg-neutral-950/40 px-4 py-5 text-sm text-neutral-400">
+              Join this space to view the member list.
+            </div>
+          ) : null}
 
-                  return (
-                    <div
-                      key={member.userId}
-                      className="flex items-center justify-between px-4 py-3"
-                    >
-                      <div>
-                        <p className="font-mono text-sm text-neutral-200">{member.userId}</p>
-                        <p className="text-xs uppercase tracking-[0.12em] text-neutral-500">
-                          {member.role}
-                        </p>
+          {space.isMember ? (
+            <div className="rounded-xl border border-neutral-800 bg-neutral-900">
+              {members.length === 0 ? (
+                <div className="px-4 py-5 text-sm text-neutral-500">No members found.</div>
+              ) : (
+                <div className="divide-y divide-neutral-800">
+                  {members.map((member) => {
+                    const canRemove =
+                      space.isOwner &&
+                      member.userId !== space.creatorId &&
+                      member.userId !== userId;
+
+                    return (
+                      <div
+                        key={member.userId}
+                        className="flex items-center justify-between px-4 py-3"
+                      >
+                        <div>
+                          <p className="font-mono text-sm text-neutral-200">{member.userId}</p>
+                          <p className="text-xs uppercase tracking-[0.12em] text-neutral-500">
+                            {member.role}
+                          </p>
+                        </div>
+                        {canRemove ? (
+                          <RemoveSpaceMemberButton spaceId={space.id} userId={member.userId} />
+                        ) : null}
                       </div>
-                      {canRemove ? (
-                        <RemoveSpaceMemberButton spaceId={space.id} userId={member.userId} />
-                      ) : null}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          ) : null}
         </section>
       )}
     </div>

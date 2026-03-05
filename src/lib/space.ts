@@ -1,5 +1,6 @@
 import type { SpaceRole, SpaceVisibility } from "@prisma/client";
-import { prisma } from "@/lib/prisma";
+import { canReadSpace as canReadSpacePolicy } from "@/domain/policy/access";
+import { resolveSpaceAccessContext } from "@/domain/policy/resolvers";
 
 export interface SpaceAccess {
   id: string;
@@ -12,43 +13,23 @@ export interface SpaceAccess {
 }
 
 export function canReadSpace(visibility: SpaceVisibility, isMember: boolean) {
-  return visibility === "OPEN" || isMember;
+  return canReadSpacePolicy({ visibility, isMember });
 }
 
 export async function getSpaceAccessForUser(
   spaceId: string,
   userId: string | null,
 ): Promise<SpaceAccess | null> {
-  const space = await prisma.space.findUnique({
-    where: { id: spaceId },
-    select: {
-      id: true,
-      name: true,
-      visibility: true,
-      creatorId: true,
-      members: userId
-        ? {
-            where: { userId },
-            select: { role: true },
-            take: 1,
-          }
-        : false,
-    },
-  });
-  if (!space) return null;
-
-  const member = Array.isArray(space.members) && space.members.length > 0 ? space.members[0] : null;
-  const role = member?.role ?? null;
-  const isMember = !!member;
-  const isOwner = (userId != null && space.creatorId === userId) || role === "OWNER";
+  const access = await resolveSpaceAccessContext(spaceId, userId);
+  if (!access) return null;
 
   return {
-    id: space.id,
-    name: space.name,
-    visibility: space.visibility,
-    creatorId: space.creatorId,
-    isMember,
-    isOwner,
-    role,
+    id: access.id,
+    name: access.name,
+    visibility: access.visibility,
+    creatorId: access.creatorId,
+    isMember: access.isMember,
+    isOwner: access.isOwner,
+    role: access.memberRole,
   };
 }

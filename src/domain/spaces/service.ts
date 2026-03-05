@@ -186,8 +186,11 @@ export async function listSpaceMembers(spaceId: string, requestUserId: string | 
   if (!access) {
     notFound("Space not found");
   }
-  if (!canReadSpace({ visibility: access.visibility, isMember: access.isMember })) {
-    forbidden("This space is private");
+  if (!access.isMember) {
+    if (access.visibility === "PRIVATE") {
+      forbidden("This space is private");
+    }
+    forbidden("You must join this space first");
   }
 
   const members = await prisma.spaceMember.findMany({
