@@ -17,7 +17,7 @@ export function NavBar() {
 
   return (
     <nav className="border-b border-neutral-800 bg-neutral-950">
-      <div className="mx-auto flex h-16 max-w-6xl items-center gap-3 px-4 sm:gap-8 sm:px-5">
+      <div className="mx-auto flex h-16 max-w-6xl items-center gap-1 px-3 sm:gap-8 sm:px-5">
         <Link
           href="/"
           aria-label="TierList home"
@@ -30,7 +30,7 @@ export function NavBar() {
             TierList<span className="text-amber-400">+</span>
           </span>
         </Link>
-        <div className="flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto sm:gap-4 sm:overflow-visible">
+        <div className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto sm:gap-4 sm:overflow-visible">
           {links.map((link) => {
             const isActive = link.href === "/" ? pathname === "/" : pathname.startsWith(link.href);
 
@@ -38,7 +38,7 @@ export function NavBar() {
               <Link
                 key={link.href}
                 href={link.href}
-                className={`inline-flex h-10 shrink-0 items-center rounded-lg px-3.5 text-[0.95rem] font-medium transition-colors sm:px-4.5 sm:text-[1.05rem] ${
+                className={`inline-flex h-11 shrink-0 items-center rounded-lg px-3 text-[0.95rem] font-medium transition-colors sm:px-4.5 sm:text-[1.05rem] ${
                   isActive
                     ? "bg-neutral-800 text-white"
                     : "text-neutral-400 hover:bg-neutral-800/80 hover:text-white"
@@ -52,13 +52,13 @@ export function NavBar() {
         <Link
           href="/devices"
           aria-label="Devices"
-          className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-colors sm:h-11 sm:w-auto sm:gap-2.5 sm:rounded-lg sm:px-4.5 sm:py-2.5 ${
+          className={`inline-flex h-11 w-9 shrink-0 items-center justify-center p-0 text-neutral-400 transition-colors sm:h-11 sm:w-auto sm:gap-2.5 sm:rounded-lg sm:px-4.5 sm:py-2.5 ${
             devicesActive
-              ? "bg-neutral-800 text-white"
-              : "text-neutral-400 hover:bg-neutral-800 hover:text-white"
+              ? "text-white sm:bg-neutral-800"
+              : "hover:text-white sm:hover:bg-neutral-800"
           }`}
         >
-          <GearIcon className="h-5 w-5" />
+          <GearIcon className="h-[1.375rem] w-[1.375rem]" />
           <span className="hidden text-[0.95rem] font-medium sm:inline">Devices</span>
         </Link>
       </div>
