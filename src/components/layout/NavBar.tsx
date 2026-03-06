@@ -52,13 +52,13 @@ export function NavBar() {
         <Link
           href="/devices"
           aria-label="Devices"
-          className={`inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-colors sm:w-auto sm:gap-2.5 sm:rounded-lg sm:px-4.5 sm:py-2.5 ${
+          className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-colors sm:h-11 sm:w-auto sm:gap-2.5 sm:rounded-lg sm:px-4.5 sm:py-2.5 ${
             devicesActive
               ? "bg-neutral-800 text-white"
               : "text-neutral-400 hover:bg-neutral-800 hover:text-white"
           }`}
         >
-          <GearIcon className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
+          <GearIcon className="h-5 w-5" />
           <span className="hidden text-[0.95rem] font-medium sm:inline">Devices</span>
         </Link>
       </div>

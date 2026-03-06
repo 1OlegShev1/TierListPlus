@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { ErrorMessage } from "@/components/ui/ErrorMessage";
 import { Input } from "@/components/ui/Input";
+import { ChevronDownIcon } from "@/components/ui/icons";
 import { clearAllParticipants } from "@/hooks/useParticipant";
 import { useUser } from "@/hooks/useUser";
 import { apiDelete, apiFetch, apiPost, getErrorMessage } from "@/lib/api-client";
@@ -25,6 +26,11 @@ interface DevicesResponse {
   activeLinkCode: { linkCode: string; expiresAt: string } | null;
 }
 
+interface LinkCodePayload {
+  linkCode: string;
+  expiresAt: string;
+}
+
 export function RecoverySection() {
   const { userId, isLoading: userLoading } = useUser();
   const [devices, setDevices] = useState<DeviceSummary[]>([]);
@@ -36,12 +42,22 @@ export function RecoverySection() {
   const [generateError, setGenerateError] = useState("");
   const [copied, setCopied] = useState(false);
   const [copyError, setCopyError] = useState("");
+  const [showQrModal, setShowQrModal] = useState(false);
+  const [qrCodeDataUrl, setQrCodeDataUrl] = useState("");
+  const [qrLinkUrl, setQrLinkUrl] = useState("");
+  const [qrLoading, setQrLoading] = useState(false);
+  const [qrRefreshing, setQrRefreshing] = useState(false);
+  const [qrLinkCopied, setQrLinkCopied] = useState(false);
+  const [qrError, setQrError] = useState("");
+  const qrDialogRef = useRef<HTMLDialogElement>(null);
 
   const [linkCode, setLinkCode] = useState("");
+  const [codePrefilledFromLink, setCodePrefilledFromLink] = useState(false);
   const [deviceName, setDeviceName] = useState("");
   const [linking, setLinking] = useState(false);
   const [linkError, setLinkError] = useState("");
   const [linked, setLinked] = useState(false);
+  const [showLinkedBrowsers, setShowLinkedBrowsers] = useState(false);
 
   const [revokingDeviceId, setRevokingDeviceId] = useState<string | null>(null);
   const [revokeError, setRevokeError] = useState("");
@@ -76,20 +92,126 @@ export function RecoverySection() {
     };
   }, [userId, userLoading]);
 
+  useEffect(() => {
+    const rawLinkCode = new URLSearchParams(window.location.search).get("linkCode");
+    if (!rawLinkCode) return;
+    setLinkCode(rawLinkCode.trim().toUpperCase());
+    setCodePrefilledFromLink(true);
+  }, []);
+
+  useEffect(() => {
+    const dialog = qrDialogRef.current;
+    if (!dialog) return;
+    if (showQrModal && !dialog.open) dialog.showModal();
+    if (!showQrModal && dialog.open) dialog.close();
+  }, [showQrModal]);
+
+  const requestNewLinkCode = async (): Promise<LinkCodePayload> => {
+    if (!userId) {
+      throw new Error("Sign in on this browser before linking another one.");
+    }
+
+    const data = await apiPost<LinkCodePayload>(`/api/users/${userId}/recovery`, {});
+    setActiveLinkCode({ linkCode: data.linkCode, expiresAt: data.expiresAt });
+    return data;
+  };
+
+  const copyText = async (value: string) => {
+    if (!value) return false;
+
+    if (navigator.clipboard?.writeText) {
+      try {
+        await navigator.clipboard.writeText(value);
+        return true;
+      } catch {
+        return false;
+      }
+    }
+
+    const textarea = document.createElement("textarea");
+    textarea.value = value;
+    textarea.setAttribute("readonly", "");
+    textarea.style.position = "fixed";
+    textarea.style.opacity = "0";
+    textarea.style.pointerEvents = "none";
+    document.body.appendChild(textarea);
+    textarea.focus();
+    textarea.select();
+    const copied = document.execCommand("copy");
+    document.body.removeChild(textarea);
+    return copied;
+  };
+
   const generateCode = async () => {
     if (!userId) return;
     setGenerating(true);
     setGenerateError("");
     try {
-      const data = await apiPost<{ linkCode: string; expiresAt: string }>(
-        `/api/users/${userId}/recovery`,
-        {},
-      );
-      setActiveLinkCode({ linkCode: data.linkCode, expiresAt: data.expiresAt });
+      await requestNewLinkCode();
     } catch (err) {
       setGenerateError(getErrorMessage(err, "Failed to generate link code"));
     } finally {
       setGenerating(false);
+    }
+  };
+
+  const createQrCodeData = async (code: string) => {
+    const linkUrl = new URL("/devices", window.location.origin);
+    linkUrl.searchParams.set("linkCode", code);
+    const qrCodeModule = await import("qrcode");
+    const toDataUrl = qrCodeModule.toDataURL ?? qrCodeModule.default?.toDataURL;
+
+    if (!toDataUrl) {
+      throw new Error("QR generation is not available.");
+    }
+
+    const dataUrl = await toDataUrl(linkUrl.toString(), {
+      width: 320,
+      margin: 1,
+      color: {
+        dark: "#111111",
+        light: "#ffffff",
+      },
+    });
+
+    return { dataUrl, linkUrl: linkUrl.toString() };
+  };
+
+  const openQrModal = async () => {
+    if (qrLoading) return;
+
+    setQrLoading(true);
+    setQrError("");
+
+    try {
+      const currentCode = activeLinkCode ?? (await requestNewLinkCode());
+      const { dataUrl, linkUrl } = await createQrCodeData(currentCode.linkCode);
+      setQrCodeDataUrl(dataUrl);
+      setQrLinkUrl(linkUrl);
+      setQrLinkCopied(false);
+      setShowQrModal(true);
+    } catch (err) {
+      setQrError(getErrorMessage(err, "Failed to prepare QR code"));
+    } finally {
+      setQrLoading(false);
+    }
+  };
+
+  const refreshQrCode = async () => {
+    if (qrRefreshing) return;
+    setQrRefreshing(true);
+    setQrError("");
+    try {
+      const nextCode = await requestNewLinkCode();
+      const { dataUrl, linkUrl } = await createQrCodeData(nextCode.linkCode);
+      setQrCodeDataUrl(dataUrl);
+      setQrLinkUrl(linkUrl);
+      setQrLinkCopied(false);
+      setCopied(false);
+    } catch (err) {
+      setQrError(getErrorMessage(err, "Failed to refresh link code"));
+    } finally {
+      setQrRefreshing(false);
     }
   };
 
@@ -98,33 +220,9 @@ export function RecoverySection() {
     setCopyError("");
 
     try {
-      let copiedWithClipboard = false;
-      if (navigator.clipboard?.writeText) {
-        try {
-          await navigator.clipboard.writeText(activeLinkCode.linkCode);
-          copiedWithClipboard = true;
-        } catch {
-          copiedWithClipboard = false;
-        }
-      }
-
-      if (!copiedWithClipboard) {
-        const textarea = document.createElement("textarea");
-        textarea.value = activeLinkCode.linkCode;
-        textarea.setAttribute("readonly", "");
-        textarea.style.position = "fixed";
-        textarea.style.opacity = "0";
-        textarea.style.pointerEvents = "none";
-        document.body.appendChild(textarea);
-        textarea.focus();
-        textarea.select();
-
-        const copiedWithFallback = document.execCommand("copy");
-        document.body.removeChild(textarea);
-
-        if (!copiedWithFallback) {
-          throw new Error("Copy failed");
-        }
+      const didCopy = await copyText(activeLinkCode.linkCode);
+      if (!didCopy) {
+        throw new Error("Copy failed");
       }
 
       setCopied(true);
@@ -132,6 +230,18 @@ export function RecoverySection() {
     } catch {
       setCopyError("Copy failed on this device. Please select the code manually.");
     }
+  };
+
+  const copyQrLink = async () => {
+    if (!qrLinkUrl) return;
+    const didCopy = await copyText(qrLinkUrl);
+    if (!didCopy) {
+      setCopyError("Copy failed on this device. Please select the code manually.");
+      return;
+    }
+
+    setQrLinkCopied(true);
+    setTimeout(() => setQrLinkCopied(false), 2000);
   };
 
   const linkDevice = async () => {
@@ -173,134 +283,270 @@ export function RecoverySection() {
   return (
     <div className="rounded-xl border border-neutral-800 bg-neutral-900 p-4 sm:p-6">
       <h2 className="mb-3 text-base font-semibold text-neutral-300 sm:mb-4 sm:text-lg">
-        Move Between Devices
+        Link Another Browser
       </h2>
 
-      <div className="mb-6">
-        <p className="mb-3 text-sm text-neutral-400">
-          Grab a one-time code and use it on another device within 15 minutes.
+      <section className="rounded-xl border border-neutral-800 bg-black/20 p-4 sm:p-5">
+        <h3 className="text-sm font-semibold text-neutral-200">
+          1. Generate Code (Current Browser)
+        </h3>
+        <p className="mt-1 text-sm text-neutral-400">
+          Create a one-time code here, then use it in another browser within 15 minutes.
         </p>
-        {activeLinkCode ? (
-          <div className="space-y-3">
-            <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:gap-3">
-              <code className="rounded-lg bg-neutral-800 px-3 py-1.5 font-mono text-sm tracking-wide text-amber-400 sm:px-4 sm:py-2 sm:text-lg sm:tracking-wider">
+        <div className="mt-3">
+          {activeLinkCode ? (
+            <div className="space-y-3 rounded-xl border border-neutral-800 bg-black/25 p-4">
+              <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-xs uppercase tracking-wider text-neutral-500">One-time code</p>
+                <p className="text-xs text-neutral-500">
+                  Expires{" "}
+                  {new Date(activeLinkCode.expiresAt).toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </p>
+              </div>
+              <code className="block rounded-lg bg-neutral-800 px-3 py-2 text-center font-mono text-sm tracking-wide text-amber-400 sm:px-4 sm:py-2.5 sm:text-lg sm:tracking-wider sm:text-left">
                 {activeLinkCode.linkCode}
               </code>
-              <Button variant="secondary" onClick={copyCode} className="!px-4 !py-2 !text-sm">
-                {copied ? "Copied!" : "Copy"}
-              </Button>
+              <div className="flex flex-wrap gap-2">
+                <Button variant="secondary" onClick={copyCode} className="!px-4 !py-2 !text-sm">
+                  {copied ? "Copied!" : "Copy Code"}
+                </Button>
+                <Button
+                  variant="secondary"
+                  onClick={generateCode}
+                  disabled={generating || !userId}
+                  className="!px-4 !py-2 !text-sm"
+                >
+                  {generating ? "Refreshing..." : "Generate New Code"}
+                </Button>
+                <Button
+                  variant="secondary"
+                  onClick={openQrModal}
+                  disabled={qrLoading || !userId}
+                  className="!px-4 !py-2 !text-sm"
+                >
+                  {qrLoading ? "Preparing QR..." : "Show QR for Phone"}
+                </Button>
+              </div>
+              <p className="text-xs text-neutral-500">
+                Phone shortcut: scan QR with your camera. It opens TierList+ in your phone&apos;s
+                default browser and links that browser profile only.
+              </p>
+            </div>
+          ) : (
+            <div className="flex flex-wrap gap-2">
               <Button
                 variant="secondary"
                 onClick={generateCode}
                 disabled={generating || !userId}
                 className="!px-4 !py-2 !text-sm"
               >
-                {generating ? "Refreshing..." : "Generate New Code"}
+                {generating ? "Generating..." : "Generate Link Code"}
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={openQrModal}
+                disabled={qrLoading || !userId}
+                className="!px-4 !py-2 !text-sm"
+              >
+                {qrLoading ? "Preparing QR..." : "Show QR for Phone"}
               </Button>
             </div>
-            <p className="text-xs text-neutral-500">
-              Expires{" "}
-              {new Date(activeLinkCode.expiresAt).toLocaleTimeString([], {
-                hour: "2-digit",
-                minute: "2-digit",
-              })}
-            </p>
-          </div>
-        ) : (
-          <Button
-            variant="secondary"
-            onClick={generateCode}
-            disabled={generating || !userId}
-            className="!px-4 !py-2 !text-sm"
-          >
-            {generating ? "Generating..." : "Generate Link Code"}
-          </Button>
-        )}
+          )}
+        </div>
         {generateError && <ErrorMessage message={generateError} />}
         {copyError && <ErrorMessage message={copyError} />}
-      </div>
+        {qrError && <ErrorMessage message={qrError} />}
+      </section>
 
-      <div className="border-t border-neutral-800 pt-4 sm:pt-6">
-        <p className="mb-3 text-sm text-neutral-400">
-          Paste a one-time code on this device and choose how it should show up in your list.
+      <section className="mt-4 rounded-xl border border-neutral-800 bg-black/20 p-4 sm:p-5">
+        <h3 className="text-sm font-semibold text-neutral-200">2. Link This Browser</h3>
+        <p className="mt-1 text-sm text-neutral-400">
+          Enter a one-time code manually, or open this page from a QR link to pre-fill it.
         </p>
-        {linked ? (
-          <p className="text-sm text-green-400">Device linked successfully! Reloading...</p>
-        ) : (
-          <div className="space-y-3">
-            <Input
-              type="text"
-              placeholder="e.g., TIGER-MAPLE-RIVER-42"
-              value={linkCode}
-              onChange={(e) => setLinkCode(e.target.value.toUpperCase())}
-              className="w-full font-mono tracking-wide sm:tracking-wider"
-            />
-            <Input
-              type="text"
-              placeholder="This device name (e.g., iPhone, Work Laptop)"
-              value={deviceName}
-              onChange={(e) => setDeviceName(e.target.value)}
-              maxLength={50}
-              className="w-full"
-            />
-            <Button
-              variant="secondary"
-              onClick={linkDevice}
-              disabled={linking || !linkCode.trim() || !deviceName.trim()}
-              className="w-full !px-4 !py-2 !text-sm sm:w-auto"
-            >
-              {linking ? "Linking..." : "Link This Device"}
-            </Button>
-          </div>
-        )}
-        {linkError && <ErrorMessage message={linkError} />}
-      </div>
-
-      <div className="mt-6 border-t border-neutral-800 pt-4 sm:pt-6">
-        <div className="mb-3 flex items-center justify-between">
-          <p className="text-sm text-neutral-400">Your devices</p>
-          {loading && <span className="text-xs text-neutral-500">Loading...</span>}
-        </div>
-        {loadError && <ErrorMessage message={loadError} />}
-        {revokeError && <ErrorMessage message={revokeError} />}
-        {!loading && devices.length === 0 ? (
-          <p className="text-sm text-neutral-500">No extra devices linked yet.</p>
-        ) : (
-          <div className="space-y-3">
-            {devices.map((device) => (
-              <div
-                key={device.id}
-                className="flex flex-col gap-3 rounded-lg border border-neutral-800 bg-black/20 p-3 sm:flex-row sm:items-center sm:justify-between"
+        {codePrefilledFromLink && linkCode.trim() ? (
+          <p className="mt-3 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-200">
+            Code pre-filled from QR link. Add a browser label and finish linking.
+          </p>
+        ) : null}
+        <div className="mt-3">
+          {linked ? (
+            <p className="text-sm text-green-400">Browser linked successfully! Reloading...</p>
+          ) : (
+            <div className="space-y-3">
+              <Input
+                type="text"
+                placeholder="e.g., TIGER-MAPLE-RIVER-42"
+                value={linkCode}
+                onChange={(e) => setLinkCode(e.target.value.toUpperCase())}
+                className="w-full font-mono tracking-wide sm:tracking-wider"
+              />
+              <Input
+                type="text"
+                placeholder="Browser label (e.g., iPhone Safari, Work Chrome)"
+                value={deviceName}
+                onChange={(e) => setDeviceName(e.target.value)}
+                maxLength={50}
+                className="w-full"
+              />
+              <Button
+                variant="secondary"
+                onClick={linkDevice}
+                disabled={linking || !linkCode.trim() || !deviceName.trim()}
+                className="w-full !px-4 !py-2 !text-sm sm:w-auto"
               >
-                <div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <p className="font-medium text-neutral-200">{device.displayName}</p>
-                    {device.isCurrent && (
-                      <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-xs font-medium text-amber-300">
-                        Current
-                      </span>
+                {linking ? "Linking..." : "Link This Browser"}
+              </Button>
+            </div>
+          )}
+        </div>
+        {linkError && <ErrorMessage message={linkError} />}
+      </section>
+
+      <section className="group mt-4 rounded-xl border border-neutral-800 bg-black/20 p-4 transition-colors hover:border-neutral-700 sm:p-5">
+        <button
+          type="button"
+          onClick={() => setShowLinkedBrowsers((prev) => !prev)}
+          className="flex w-full items-center justify-between rounded-lg text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/60"
+          aria-expanded={showLinkedBrowsers}
+          aria-controls="linked-browsers-content"
+        >
+          <div>
+            <h3 className="text-sm font-semibold text-neutral-200">3. Linked Browsers & Access</h3>
+            <p className="mt-1 text-sm text-neutral-400">
+              Review linked browsers, check last activity, and revoke access when needed.
+            </p>
+          </div>
+          <ChevronDownIcon
+            className={`h-6 w-6 text-neutral-500 transition-all group-hover:text-neutral-300 ${showLinkedBrowsers ? "rotate-180" : ""}`}
+          />
+        </button>
+
+        {showLinkedBrowsers ? (
+          <div id="linked-browsers-content" className="mt-4">
+            <div className="mb-3 flex items-center justify-between">
+              <p className="text-sm text-neutral-400">Linked browsers</p>
+              {loading && <span className="text-xs text-neutral-500">Loading...</span>}
+            </div>
+            {loadError && <ErrorMessage message={loadError} />}
+            {revokeError && <ErrorMessage message={revokeError} />}
+            {!loading && devices.length === 0 ? (
+              <p className="text-sm text-neutral-500">No other browsers linked yet.</p>
+            ) : (
+              <div className="space-y-3">
+                {devices.map((device) => (
+                  <div
+                    key={device.id}
+                    className="flex flex-col gap-3 rounded-lg border border-neutral-800 bg-black/20 p-3 sm:flex-row sm:items-center sm:justify-between"
+                  >
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="font-medium text-neutral-200">{device.displayName}</p>
+                        {device.isCurrent && (
+                          <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-xs font-medium text-amber-300">
+                            Current
+                          </span>
+                        )}
+                      </div>
+                      <p className="mt-1 text-xs text-neutral-500">
+                        Created {formatDate(device.createdAt)} &middot; Last activity{" "}
+                        {formatDate(device.lastSeenAt)}
+                      </p>
+                    </div>
+                    {!device.isCurrent && (
+                      <Button
+                        variant="ghost"
+                        onClick={() => revokeDevice(device.id)}
+                        disabled={revokingDeviceId === device.id}
+                        className="self-start text-red-400 hover:text-red-300 sm:self-auto"
+                      >
+                        {revokingDeviceId === device.id ? "Revoking..." : "Revoke"}
+                      </Button>
                     )}
                   </div>
-                  <p className="mt-1 text-xs text-neutral-500">
-                    Created {formatDate(device.createdAt)} &middot; Last seen{" "}
-                    {formatDate(device.lastSeenAt)}
+                ))}
+              </div>
+            )}
+          </div>
+        ) : null}
+      </section>
+
+      <dialog
+        ref={qrDialogRef}
+        onClose={() => setShowQrModal(false)}
+        className="fixed inset-0 m-auto w-[min(calc(100vw-2rem),42rem)] rounded-xl border border-neutral-700 bg-neutral-900 p-5 text-left text-white shadow-2xl shadow-black/60 backdrop:bg-black/70 focus:outline-none"
+      >
+        <div className="space-y-5">
+          <div className="rounded-xl border border-amber-500/20 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent p-4">
+            <p className="text-xs uppercase tracking-wider text-amber-200">Phone Shortcut</p>
+            <h3 className="mt-1 text-xl font-semibold text-neutral-100">Open on phone browser</h3>
+            <p className="mt-1 text-sm text-neutral-400">
+              Scan with your phone camera. This opens TierList+ in your phone&apos;s default browser
+              with the one-time code pre-filled. It links that browser profile only.
+            </p>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-[minmax(0,16rem)_minmax(0,1fr)] sm:items-start">
+            <div className="rounded-lg border border-neutral-700 bg-white p-3 shadow-lg shadow-black/30">
+              {qrCodeDataUrl ? (
+                <img
+                  src={qrCodeDataUrl}
+                  alt="QR code for linking a second device"
+                  className="w-full rounded"
+                />
+              ) : (
+                <p className="text-sm text-neutral-700">QR code unavailable.</p>
+              )}
+            </div>
+            <div className="space-y-3">
+              {activeLinkCode && (
+                <div className="rounded-lg border border-neutral-700 bg-black/30 p-3">
+                  <p className="text-xs uppercase tracking-wider text-neutral-500">One-time code</p>
+                  <p className="mt-1 font-mono text-sm tracking-widest text-amber-300">
+                    {activeLinkCode.linkCode}
+                  </p>
+                  <p className="mt-2 text-xs text-neutral-500">
+                    Expires{" "}
+                    {new Date(activeLinkCode.expiresAt).toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
                   </p>
                 </div>
-                {!device.isCurrent && (
-                  <Button
-                    variant="ghost"
-                    onClick={() => revokeDevice(device.id)}
-                    disabled={revokingDeviceId === device.id}
-                    className="self-start text-red-400 hover:text-red-300 sm:self-auto"
-                  >
-                    {revokingDeviceId === device.id ? "Revoking..." : "Revoke"}
-                  </Button>
-                )}
+              )}
+              <div className="flex flex-wrap gap-2">
+                <Button variant="secondary" onClick={copyCode} className="!px-4 !py-2 !text-sm">
+                  {copied ? "Code Copied" : "Copy Code"}
+                </Button>
+                <Button
+                  variant="secondary"
+                  onClick={copyQrLink}
+                  disabled={!qrLinkUrl}
+                  className="!px-4 !py-2 !text-sm"
+                >
+                  {qrLinkCopied ? "Link Copied" : "Copy Link"}
+                </Button>
               </div>
-            ))}
+              {copyError && <ErrorMessage message={copyError} />}
+            </div>
           </div>
-        )}
-      </div>
+          {qrError && <ErrorMessage message={qrError} />}
+          <div className="flex flex-wrap justify-end gap-2">
+            <Button
+              variant="secondary"
+              onClick={refreshQrCode}
+              disabled={qrRefreshing || !userId}
+              className="!px-4 !py-2 !text-sm"
+            >
+              {qrRefreshing ? "Refreshing..." : "Refresh Code"}
+            </Button>
+            <Button onClick={() => setShowQrModal(false)} className="!px-5 !py-2 !text-sm">
+              Done
+            </Button>
+          </div>
+        </div>
+      </dialog>
     </div>
   );
 }

@@ -6,7 +6,7 @@ export default function DevicesPage() {
     <div className="mx-auto max-w-3xl">
       <PageHeader
         title="Devices"
-        subtitle="Keep your votes with you when you switch phones, laptops, or browsers."
+        subtitle="Link browser profiles across phones, tablets, and computers to keep your votes with you."
       />
       <RecoverySection />
     </div>
