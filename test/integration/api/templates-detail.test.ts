@@ -192,4 +192,41 @@ describe("template detail route", () => {
     expect(response.status).toBe(403);
     await expect(response.json()).resolves.toEqual({ error: "You are not allowed to edit this list" });
   });
+
+  it("returns forbidden (not 500) for anonymous space-template mutations", async () => {
+    mocks.getRequestAuth.mockResolvedValue(null);
+    mocks.prisma.template.findUnique
+      .mockResolvedValueOnce({
+        id: "t_space",
+        creatorId: "member_creator",
+        isHidden: false,
+        spaceId: "space_1",
+        space: { creatorId: "space_owner" },
+      })
+      .mockResolvedValueOnce({
+        id: "t_space",
+        creatorId: "member_creator",
+        isHidden: false,
+        spaceId: "space_1",
+        items: [],
+        _count: { sessions: 0 },
+        space: { creatorId: "space_owner" },
+      });
+
+    let response = await PATCH(
+      jsonRequest("PATCH", "https://example.test", { name: "Anonymous edit" }),
+      routeCtx({ templateId: "t_space" }),
+    );
+    expect(response.status).toBe(403);
+    await expect(response.json()).resolves.toEqual({ error: "You are not allowed to edit this list" });
+
+    response = await DELETE(
+      new Request("https://example.test", { method: "DELETE" }),
+      routeCtx({ templateId: "t_space" }),
+    );
+    expect(response.status).toBe(403);
+    await expect(response.json()).resolves.toEqual({
+      error: "You are not allowed to delete this list",
+    });
+  });
 });

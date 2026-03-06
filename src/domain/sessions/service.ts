@@ -99,6 +99,11 @@ export async function createSession(input: CreateSessionInput) {
       id: string;
       label: string;
       imageUrl: string;
+      sourceUrl: string | null;
+      sourceProvider: "SPOTIFY" | "YOUTUBE" | null;
+      sourceNote: string | null;
+      sourceStartSec: number | null;
+      sourceEndSec: number | null;
       sortOrder: number;
     }[];
   } | null = null;
@@ -139,6 +144,11 @@ export async function createSession(input: CreateSessionInput) {
               create: sourceTemplate.items.map((item) => ({
                 label: item.label,
                 imageUrl: item.imageUrl,
+                sourceUrl: item.sourceUrl,
+                sourceProvider: item.sourceProvider,
+                sourceNote: item.sourceNote,
+                sourceStartSec: item.sourceStartSec,
+                sourceEndSec: item.sourceEndSec,
                 sortOrder: item.sortOrder,
               })),
             },
@@ -168,6 +178,11 @@ export async function createSession(input: CreateSessionInput) {
                 templateItemId: item.id,
                 label: item.label,
                 imageUrl: item.imageUrl,
+                sourceUrl: item.sourceUrl,
+                sourceProvider: item.sourceProvider,
+                sourceNote: item.sourceNote,
+                sourceStartSec: item.sourceStartSec,
+                sourceEndSec: item.sourceEndSec,
                 sortOrder: item.sortOrder,
               })),
             },

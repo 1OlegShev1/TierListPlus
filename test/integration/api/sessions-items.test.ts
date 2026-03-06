@@ -59,6 +59,9 @@ describe("session item delete route", () => {
           id: "item_3",
           label: "New item",
           imageUrl: "/img/3.webp",
+          sourceUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+          sourceProvider: "YOUTUBE",
+          sourceNote: "Official audio",
           sortOrder: 3,
         }),
       },
@@ -71,7 +74,12 @@ describe("session item delete route", () => {
     );
 
     let response = await POST(
-      jsonRequest("POST", "https://example.test", { label: "New item", imageUrl: "/img/3.webp" }),
+      jsonRequest("POST", "https://example.test", {
+        label: "New item",
+        imageUrl: "/img/3.webp",
+        sourceUrl: "https://youtu.be/dQw4w9WgXcQ",
+        sourceNote: "Official audio",
+      }),
       routeCtx({ sessionId: "session_1" }),
     );
 
@@ -81,6 +89,9 @@ describe("session item delete route", () => {
         templateId: "template_1",
         label: "New item",
         imageUrl: "/img/3.webp",
+        sourceUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+        sourceProvider: "YOUTUBE",
+        sourceNote: "Official audio",
         sortOrder: 3,
       },
     });
@@ -98,6 +109,39 @@ describe("session item delete route", () => {
     expect(response.status).toBe(400);
     await expect(response.json()).resolves.toEqual({
       error: "This session must be recreated before live item editing is available",
+    });
+  });
+
+  it("rejects unsupported source providers when creating live items", async () => {
+    const response = await POST(
+      jsonRequest("POST", "https://example.test", {
+        label: "New item",
+        imageUrl: "/img/3.webp",
+        sourceUrl: "https://example.com/song",
+      }),
+      routeCtx({ sessionId: "session_1" }),
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({
+      error: "Only Spotify and YouTube links are supported right now.",
+    });
+  });
+
+  it("rejects non-YouTube interval payloads when creating live items", async () => {
+    const response = await POST(
+      jsonRequest("POST", "https://example.test", {
+        label: "New item",
+        imageUrl: "/img/3.webp",
+        sourceUrl: "https://open.spotify.com/track/4uLU6hMCjMI75M1A2tKUQC",
+        sourceStartSec: 15,
+      }),
+      routeCtx({ sessionId: "session_1" }),
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({
+      error: "Source intervals are only supported for YouTube links.",
     });
   });
 
@@ -136,9 +180,7 @@ describe("session item delete route", () => {
     mocks.prisma.sessionItem.findFirst.mockResolvedValue({
       id: "item_1",
       templateItemId: "template_item_1",
-      _count: {
-        tierVotes: 0,
-      },
+      sourceUrl: null,
     });
     const tx = {
       sessionItem: {
@@ -176,6 +218,27 @@ describe("session item delete route", () => {
     expect(tx.sessionItem.update).toHaveBeenCalledWith({
       where: { id: "item_1" },
       data: { label: "Renamed item" },
+    });
+  });
+
+  it("rejects session item updates with no changes", async () => {
+    mocks.prisma.sessionItem.findFirst.mockResolvedValue({
+      id: "item_1",
+      templateItemId: "template_item_1",
+      sourceUrl: null,
+      sourceProvider: null,
+      sourceStartSec: null,
+      sourceEndSec: null,
+    });
+
+    const response = await PATCH(
+      jsonRequest("PATCH", "https://example.test", {}),
+      routeCtx({ sessionId: "session_1", itemId: "item_1" }),
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({
+      error: "No item changes provided",
     });
   });
 
@@ -220,6 +283,7 @@ describe("session item delete route", () => {
     mocks.prisma.sessionItem.findFirst.mockResolvedValue({
       id: "item_1",
       templateItemId: "template_item_1",
+      sourceUrl: null,
     });
     const tx = {
       sessionItem: {
@@ -249,6 +313,90 @@ describe("session item delete route", () => {
       label: "Renamed after votes",
       imageUrl: "/img/1.webp",
       sortOrder: 0,
+    });
+  });
+
+  it("clears source note when session item has no source URL", async () => {
+    mocks.prisma.sessionItem.findFirst.mockResolvedValue({
+      id: "item_1",
+      templateItemId: "template_item_1",
+      sourceUrl: null,
+    });
+    const tx = {
+      sessionItem: {
+        update: vi.fn().mockResolvedValue({
+          id: "item_1",
+          label: "Item with no source",
+          imageUrl: "/img/1.webp",
+          sourceUrl: null,
+          sourceProvider: null,
+          sourceNote: null,
+          sortOrder: 0,
+        }),
+      },
+      templateItem: {
+        update: vi.fn().mockResolvedValue(undefined),
+      },
+    };
+    mocks.prisma.$transaction.mockImplementation(
+      async (fn: (client: typeof tx) => Promise<unknown>) => fn(tx),
+    );
+
+    const response = await PATCH(
+      jsonRequest("PATCH", "https://example.test", { sourceNote: "orphan note" }),
+      routeCtx({ sessionId: "session_1", itemId: "item_1" }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(tx.templateItem.update).toHaveBeenCalledWith({
+      where: { id: "template_item_1" },
+      data: { sourceNote: null, sourceStartSec: null, sourceEndSec: null },
+    });
+    expect(tx.sessionItem.update).toHaveBeenCalledWith({
+      where: { id: "item_1" },
+      data: { sourceNote: null, sourceStartSec: null, sourceEndSec: null },
+    });
+  });
+
+  it("rejects invalid partial YouTube interval updates", async () => {
+    mocks.prisma.sessionItem.findFirst.mockResolvedValue({
+      id: "item_1",
+      templateItemId: "template_item_1",
+      sourceUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+      sourceProvider: "YOUTUBE",
+      sourceStartSec: 120,
+      sourceEndSec: 180,
+    });
+
+    const response = await PATCH(
+      jsonRequest("PATCH", "https://example.test", { sourceEndSec: 30 }),
+      routeCtx({ sessionId: "session_1", itemId: "item_1" }),
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({
+      error: "End time must be greater than start time.",
+    });
+  });
+
+  it("rejects non-YouTube interval payloads on patch", async () => {
+    mocks.prisma.sessionItem.findFirst.mockResolvedValue({
+      id: "item_1",
+      templateItemId: "template_item_1",
+      sourceUrl: "https://open.spotify.com/track/4uLU6hMCjMI75M1A2tKUQC",
+      sourceProvider: "SPOTIFY",
+      sourceStartSec: null,
+      sourceEndSec: null,
+    });
+
+    const response = await PATCH(
+      jsonRequest("PATCH", "https://example.test", { sourceStartSec: 25 }),
+      routeCtx({ sessionId: "session_1", itemId: "item_1" }),
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({
+      error: "Source intervals are only supported for YouTube links.",
     });
   });
 });

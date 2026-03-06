@@ -153,6 +153,11 @@ export async function duplicateTemplateForUser(templateId: string, requestUserId
         create: source.items.map((item) => ({
           label: item.label,
           imageUrl: item.imageUrl,
+          sourceUrl: item.sourceUrl,
+          sourceProvider: item.sourceProvider,
+          sourceNote: item.sourceNote,
+          sourceStartSec: item.sourceStartSec,
+          sourceEndSec: item.sourceEndSec,
           sortOrder: item.sortOrder,
         })),
       },

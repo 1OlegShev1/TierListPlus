@@ -79,7 +79,16 @@ export default async function ResultsPage({
       },
       items: {
         orderBy: { sortOrder: "asc" },
-        select: { id: true, label: true, imageUrl: true },
+        select: {
+          id: true,
+          label: true,
+          imageUrl: true,
+          sourceUrl: true,
+          sourceProvider: true,
+          sourceNote: true,
+          sourceStartSec: true,
+          sourceEndSec: true,
+        },
       },
       participants: {
         orderBy: { createdAt: "asc" },
@@ -161,7 +170,18 @@ export default async function ResultsPage({
       const participantVotes = await prisma.tierVote.findMany({
         where: { participantId, sessionItem: { sessionId } },
         include: {
-          sessionItem: { select: { id: true, label: true, imageUrl: true } },
+          sessionItem: {
+            select: {
+              id: true,
+              label: true,
+              imageUrl: true,
+              sourceUrl: true,
+              sourceProvider: true,
+              sourceNote: true,
+              sourceStartSec: true,
+              sourceEndSec: true,
+            },
+          },
         },
         orderBy: { rankInTier: "asc" },
       });

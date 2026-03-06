@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { ItemSourceModal } from "@/components/items/ItemSourceModal";
 import { CloseVoteButton } from "@/components/sessions/CloseVoteButton";
 import { ReopenVoteButton } from "@/components/sessions/ReopenVoteButton";
 import { buttonSizes, buttonVariants } from "@/components/ui/Button";
@@ -9,7 +10,7 @@ import { ErrorMessage } from "@/components/ui/ErrorMessage";
 import { ItemArtwork } from "@/components/ui/ItemArtwork";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { useParticipant } from "@/hooks/useParticipant";
-import type { ConsensusTier } from "@/lib/consensus";
+import type { ConsensusItem, ConsensusTier } from "@/lib/consensus";
 import type { SessionResult } from "@/types";
 import { useResultsDetailsPanel } from "./useResultsDetailsPanel";
 
@@ -43,6 +44,7 @@ export function ResultsPageClient({
 }) {
   const { save: saveParticipant, clear: clearParticipant } = useParticipant(sessionId);
   const [session, setSession] = useState(initialSession);
+  const [sourceModalItem, setSourceModalItem] = useState<ConsensusItem | null>(null);
   const {
     selectedItem,
     detailsItem,
@@ -199,7 +201,13 @@ export function ResultsPageClient({
                   <button
                     key={item.id}
                     type="button"
-                    onClick={() => handleItemClick(item)}
+                    onClick={() => {
+                      if (isIndividualView && item.sourceUrl) {
+                        setSourceModalItem(item);
+                        return;
+                      }
+                      handleItemClick(item);
+                    }}
                     onTouchStart={(event) => handleItemTouchStart(item.id, event)}
                     onTouchEnd={(event) => handleItemTouchEnd(item, event)}
                     onTouchCancel={handleItemTouchCancel}
@@ -207,8 +215,22 @@ export function ResultsPageClient({
                       !isIndividualView && selectedItem?.id === item.id
                         ? "border-amber-400 ring-2 ring-amber-400"
                         : "border-neutral-700 hover:border-neutral-500"
-                    } ${isIndividualView ? "cursor-default" : "cursor-pointer touch-manipulation"}`}
+                    } ${
+                      isIndividualView
+                        ? item.sourceUrl
+                          ? "cursor-pointer touch-manipulation"
+                          : "cursor-default"
+                        : "cursor-pointer touch-manipulation"
+                    }`}
                   >
+                    {item.sourceUrl && (
+                      <span
+                        aria-hidden="true"
+                        className="absolute left-1 top-1 z-10 flex h-5 w-5 items-center justify-center rounded-full border border-sky-400/80 bg-black/70 text-[11px] leading-none text-sky-200"
+                      >
+                        ↗
+                      </span>
+                    )}
                     <ItemArtwork
                       src={item.imageUrl}
                       alt={item.label}
@@ -242,7 +264,7 @@ export function ResultsPageClient({
         >
           <div className="border-b border-neutral-800 px-4 py-3">
             <div className="flex items-center gap-3">
-              <div className="h-14 w-14 flex-shrink-0 overflow-hidden rounded-lg border border-neutral-800">
+              <div className="h-16 w-16 flex-shrink-0 overflow-hidden rounded-lg border border-neutral-800 sm:h-20 sm:w-20">
                 <ItemArtwork
                   src={detailsItem.imageUrl}
                   alt={detailsItem.label}
@@ -260,6 +282,15 @@ export function ResultsPageClient({
                   vote{detailsItem.totalVotes !== 1 ? "s" : ""}
                 </p>
               </div>
+              {detailsItem.sourceUrl && (
+                <button
+                  type="button"
+                  onClick={() => setSourceModalItem(detailsItem)}
+                  className="ml-auto rounded-md border border-neutral-700 px-2 py-1 text-xs font-medium text-neutral-200 transition-colors hover:border-amber-400 hover:text-amber-300"
+                >
+                  Source
+                </button>
+              )}
             </div>
           </div>
 
@@ -333,6 +364,21 @@ export function ResultsPageClient({
             </div>
           </div>
         </div>
+      )}
+
+      {sourceModalItem && (
+        <ItemSourceModal
+          open
+          itemLabel={sourceModalItem.label || "Untitled item"}
+          itemImageUrl={sourceModalItem.imageUrl}
+          sourceUrl={sourceModalItem.sourceUrl}
+          sourceProvider={sourceModalItem.sourceProvider}
+          sourceNote={sourceModalItem.sourceNote}
+          sourceStartSec={sourceModalItem.sourceStartSec}
+          sourceEndSec={sourceModalItem.sourceEndSec}
+          editable={false}
+          onClose={() => setSourceModalItem(null)}
+        />
       )}
     </div>
   );

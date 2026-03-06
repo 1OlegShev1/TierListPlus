@@ -51,7 +51,9 @@ export const PATCH = withHandler(async (request, { params }) => {
   if (!existing) notFound("Template not found");
   if (existing.isHidden) notFound("Template not found");
   if (existing.spaceId) {
-    const spaceMember = existing.space?.members[0] ?? null;
+    const spaceMember = Array.isArray(existing.space?.members)
+      ? (existing.space.members[0] ?? null)
+      : null;
     const isSpaceOwner =
       !!userId && (existing.space?.creatorId === userId || spaceMember?.role === "OWNER");
     if (!canMutateSpaceResource(existing.creatorId, userId, isSpaceOwner)) {
@@ -102,7 +104,9 @@ export const DELETE = withHandler(async (request, { params }) => {
   if (!existing) notFound("Template not found");
   if (existing.isHidden) notFound("Template not found");
   if (existing.spaceId) {
-    const spaceMember = existing.space?.members[0] ?? null;
+    const spaceMember = Array.isArray(existing.space?.members)
+      ? (existing.space.members[0] ?? null)
+      : null;
     const isSpaceOwner =
       !!userId && (existing.space?.creatorId === userId || spaceMember?.role === "OWNER");
     if (!canMutateSpaceResource(existing.creatorId, userId, isSpaceOwner)) {

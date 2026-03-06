@@ -28,6 +28,8 @@ interface UnrankedDropZoneProps {
   afterItems?: React.ReactNode;
   onRemoveItem?: (itemId: string) => void;
   removingItemId?: string | null;
+  onOpenItemSource?: (itemId: string) => void;
+  canEditItemSource?: boolean;
   renderItem?: (item: Item) => React.ReactNode;
 }
 
@@ -39,6 +41,8 @@ export function UnrankedDropZone({
   afterItems,
   onRemoveItem,
   removingItemId,
+  onOpenItemSource,
+  canEditItemSource = false,
   renderItem,
 }: UnrankedDropZoneProps = {}) {
   const unranked = useTierListStore((s) => s.unranked);
@@ -74,6 +78,10 @@ export function UnrankedDropZone({
               id={id}
               label={item.label}
               imageUrl={item.imageUrl}
+              sourceUrl={item.sourceUrl}
+              sourceProvider={item.sourceProvider}
+              onOpenSource={onOpenItemSource}
+              canEditSource={canEditItemSource}
               onRemove={onRemoveItem ? () => onRemoveItem(id) : undefined}
               removing={removingItemId === id}
             />

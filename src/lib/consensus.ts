@@ -12,6 +12,11 @@ export interface ConsensusItem {
   id: string;
   label: string;
   imageUrl: string;
+  sourceUrl?: string | null;
+  sourceProvider?: "SPOTIFY" | "YOUTUBE" | null;
+  sourceNote?: string | null;
+  sourceStartSec?: number | null;
+  sourceEndSec?: number | null;
   averageScore: number;
   voteDistribution: Record<string, number>;
   voterNicknamesByTier: Record<string, string[]>;

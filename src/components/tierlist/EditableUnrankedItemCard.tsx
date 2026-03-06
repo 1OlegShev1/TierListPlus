@@ -3,31 +3,56 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useEffect, useRef, useState } from "react";
+import { ItemSourceModal } from "@/components/items/ItemSourceModal";
 import { ItemArtwork } from "@/components/ui/ItemArtwork";
 import { CloseIcon } from "@/components/ui/icons";
+import type { ItemSourceProvider } from "@/types";
 import { EDITABLE_UNRANKED_ITEM_METRICS_CLASS } from "./sizing";
 
 interface EditableUnrankedItemCardProps {
   id: string;
   label: string;
   imageUrl: string;
+  sourceUrl?: string | null;
+  sourceProvider?: ItemSourceProvider | null;
+  sourceNote?: string | null;
+  sourceStartSec?: number | null;
+  sourceEndSec?: number | null;
   onSaveLabel: (itemId: string, nextLabel: string) => Promise<boolean>;
+  onSaveSource: (
+    itemId: string,
+    next: {
+      sourceUrl: string | null;
+      sourceNote: string | null;
+      sourceStartSec: number | null;
+      sourceEndSec: number | null;
+    },
+  ) => Promise<boolean>;
   onRemove: () => void;
   saving?: boolean;
   removing?: boolean;
+  sourceError?: string | null;
 }
 
 export function EditableUnrankedItemCard({
   id,
   label,
   imageUrl,
+  sourceUrl = null,
+  sourceProvider = null,
+  sourceNote = null,
+  sourceStartSec = null,
+  sourceEndSec = null,
   onSaveLabel,
+  onSaveSource,
   onRemove,
   saving = false,
   removing = false,
+  sourceError = null,
 }: EditableUnrankedItemCardProps) {
   const [editing, setEditing] = useState(false);
   const [previewing, setPreviewing] = useState(false);
+  const [sourceOpen, setSourceOpen] = useState(false);
   const [draftLabel, setDraftLabel] = useState(label);
   const inputRef = useRef<HTMLInputElement>(null);
   const committingRef = useRef(false);
@@ -120,6 +145,31 @@ export function EditableUnrankedItemCard({
       style={style}
       className={`group relative flex h-[var(--editable-item-height)] w-[var(--editable-item-width)] flex-shrink-0 flex-col rounded-lg border border-neutral-700 bg-neutral-950 p-[var(--editable-item-padding)] ${EDITABLE_UNRANKED_ITEM_METRICS_CLASS}`}
     >
+      <button
+        type="button"
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setSourceOpen(true);
+        }}
+        onPointerDown={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+        }}
+        disabled={saving || removing}
+        className={`absolute left-1.5 top-1.5 z-10 flex h-6 min-w-6 items-center justify-center gap-1 rounded-full border bg-black/70 px-1.5 text-[10px] font-medium transition-all focus-visible:outline-none focus-visible:ring-2 disabled:cursor-default disabled:opacity-70 ${
+          sourceUrl
+            ? "border-sky-400/80 text-sky-200 hover:border-sky-300 hover:text-sky-100 focus-visible:ring-sky-400/70"
+            : "border-neutral-700 text-neutral-200 hover:border-amber-500 hover:text-amber-300 focus-visible:ring-neutral-500/60"
+        }`}
+        aria-label={
+          sourceUrl ? `Edit source for ${label || "item"}` : `Add source for ${label || "item"}`
+        }
+      >
+        <span className="text-[11px] leading-none">↗</span>
+        {sourceUrl ? "Set" : "Add"}
+      </button>
+
       <button
         type="button"
         onClick={(e) => {
@@ -219,6 +269,24 @@ export function EditableUnrankedItemCard({
         >
           {labelText}
         </button>
+      )}
+
+      {sourceOpen && (
+        <ItemSourceModal
+          open
+          itemLabel={label || "Untitled item"}
+          itemImageUrl={imageUrl}
+          sourceUrl={sourceUrl}
+          sourceProvider={sourceProvider}
+          sourceNote={sourceNote}
+          sourceStartSec={sourceStartSec}
+          sourceEndSec={sourceEndSec}
+          editable
+          saving={saving}
+          error={sourceError}
+          onClose={() => setSourceOpen(false)}
+          onSave={(next) => onSaveSource(id, next)}
+        />
       )}
     </div>
   );

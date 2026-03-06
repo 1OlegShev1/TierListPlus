@@ -1,10 +1,16 @@
 import { NextResponse } from "next/server";
 import {
+  badRequest,
   requireOpenSession,
   requireSessionItemManager,
   validateBody,
   withHandler,
 } from "@/lib/api-helpers";
+import {
+  normalizeItemSourceNote,
+  resolveItemSourceForWrite,
+  resolveSourceIntervalForWrite,
+} from "@/lib/item-source";
 import { prisma } from "@/lib/prisma";
 import { addSessionItemSchema } from "@/lib/validators";
 
@@ -16,6 +22,31 @@ export const POST = withHandler(async (request, { params }) => {
   await requireOpenSession(sessionId);
 
   const data = await validateBody(request, addSessionItemSchema);
+  const {
+    sourceUrl: rawSourceUrl,
+    sourceNote: rawSourceNote,
+    sourceStartSec: rawSourceStartSec,
+    sourceEndSec: rawSourceEndSec,
+    ...restData
+  } = data;
+  let sourceData: ReturnType<typeof resolveItemSourceForWrite>;
+  try {
+    sourceData = resolveItemSourceForWrite(rawSourceUrl);
+  } catch (error) {
+    badRequest(error instanceof Error ? error.message : "Invalid source URL");
+  }
+  const sourceNote = normalizeItemSourceNote(rawSourceNote);
+  const hasSourceLink = typeof sourceData.sourceUrl === "string";
+  let intervalData: ReturnType<typeof resolveSourceIntervalForWrite>;
+  try {
+    intervalData = resolveSourceIntervalForWrite(
+      sourceData.sourceProvider ?? null,
+      rawSourceStartSec,
+      rawSourceEndSec,
+    );
+  } catch (error) {
+    badRequest(error instanceof Error ? error.message : "Invalid source interval");
+  }
 
   const sessionItem = await prisma.$transaction(async (tx) => {
     // Serialize sort-order allocation per session across all clients/tabs.
@@ -31,8 +62,11 @@ export const POST = withHandler(async (request, { params }) => {
     const templateItem = await tx.templateItem.create({
       data: {
         templateId: session.templateId,
-        label: data.label,
-        imageUrl: data.imageUrl,
+        label: restData.label,
+        imageUrl: restData.imageUrl,
+        ...sourceData,
+        ...(hasSourceLink && sourceNote !== undefined ? { sourceNote } : {}),
+        ...intervalData,
         sortOrder,
       },
     });
@@ -41,8 +75,11 @@ export const POST = withHandler(async (request, { params }) => {
       data: {
         sessionId,
         templateItemId: templateItem.id,
-        label: data.label,
-        imageUrl: data.imageUrl,
+        label: restData.label,
+        imageUrl: restData.imageUrl,
+        ...sourceData,
+        ...(hasSourceLink && sourceNote !== undefined ? { sourceNote } : {}),
+        ...intervalData,
         sortOrder,
       },
     });

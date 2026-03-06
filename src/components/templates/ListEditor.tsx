@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { ItemSourceModal } from "@/components/items/ItemSourceModal";
 import { ImageUploader, type UploadedImage } from "@/components/shared/ImageUploader";
 import { Button } from "@/components/ui/Button";
 import { ErrorMessage } from "@/components/ui/ErrorMessage";
@@ -11,6 +12,7 @@ import { CloseIcon } from "@/components/ui/icons";
 import { Textarea } from "@/components/ui/Textarea";
 import { useUser } from "@/hooks/useUser";
 import { apiFetch, apiPatch, apiPost, getErrorMessage } from "@/lib/api-client";
+import { parseSupportedItemSource } from "@/lib/item-source";
 import type { TemplateItemData } from "@/types";
 
 interface ListEditorProps {
@@ -39,6 +41,7 @@ export function ListEditor({
   const [isPublic, setIsPublic] = useState(initialIsPublic);
   const [items, setItems] = useState<TemplateItemData[]>(initialItems);
   const [previewingItemIndex, setPreviewingItemIndex] = useState<number | null>(null);
+  const [editingSourceIndex, setEditingSourceIndex] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const itemLabelRefs = useRef<Array<HTMLInputElement | null>>([]);
@@ -64,6 +67,30 @@ export function ListEditor({
       if (current === index) return null;
       return current > index ? current - 1 : current;
     });
+    setEditingSourceIndex((current) => {
+      if (current == null) return null;
+      if (current === index) return null;
+      return current > index ? current - 1 : current;
+    });
+  };
+
+  const updateItemSource = (
+    index: number,
+    sourceUrl: string | null,
+    sourceNote: string | null,
+    sourceStartSec: number | null,
+    sourceEndSec: number | null,
+  ) => {
+    const sourceProvider = sourceUrl
+      ? (parseSupportedItemSource(sourceUrl)?.provider ?? null)
+      : null;
+    setItems((prev) =>
+      prev.map((item, i) =>
+        i === index
+          ? { ...item, sourceUrl, sourceNote, sourceProvider, sourceStartSec, sourceEndSec }
+          : item,
+      ),
+    );
   };
 
   useEffect(() => {
@@ -169,12 +196,20 @@ export function ListEditor({
         if (item.id && existingIds.has(item.id)) {
           await apiPatch(`/api/templates/${id}/items/${item.id}`, {
             label: item.label,
+            sourceUrl: item.sourceUrl ?? null,
+            sourceNote: item.sourceNote ?? null,
+            sourceStartSec: item.sourceStartSec ?? null,
+            sourceEndSec: item.sourceEndSec ?? null,
             sortOrder: i,
           });
         } else {
           await apiPost(`/api/templates/${id}/items`, {
             label: item.label,
             imageUrl: item.imageUrl,
+            sourceUrl: item.sourceUrl ?? undefined,
+            sourceNote: item.sourceNote ?? undefined,
+            sourceStartSec: item.sourceStartSec ?? undefined,
+            sourceEndSec: item.sourceEndSec ?? undefined,
             sortOrder: i,
           });
         }
@@ -276,10 +311,28 @@ export function ListEditor({
               <button
                 type="button"
                 onClick={() => removeItem(index)}
-                className="absolute right-1 top-1 z-10 flex h-6 w-6 items-center justify-center rounded-full border border-neutral-700 bg-black/70 text-neutral-200 opacity-0 transition-all hover:border-red-500 hover:bg-red-600 hover:text-white focus-visible:opacity-100 group-hover:opacity-100 group-focus-within:opacity-100"
+                className="absolute right-1 top-1 z-10 flex h-7 w-7 items-center justify-center rounded-full border border-neutral-700 bg-black/70 text-neutral-200 opacity-0 transition-all hover:border-red-500 hover:bg-red-600 hover:text-white focus-visible:opacity-100 group-hover:opacity-100 group-focus-within:opacity-100"
                 aria-label={`Remove ${item.label || "pick"}`}
               >
-                <CloseIcon className="h-3.5 w-3.5" />
+                <CloseIcon className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setEditingSourceIndex(index)}
+                className={`absolute left-1 top-1 z-10 flex h-7 min-w-7 items-center justify-center gap-1 rounded-full border bg-black/70 px-2 text-xs font-medium opacity-0 transition-all focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 group-hover:opacity-100 group-focus-within:opacity-100 ${
+                  item.sourceUrl
+                    ? "border-sky-400/80 text-sky-200 hover:border-sky-300 hover:text-sky-100 focus-visible:ring-sky-400/70"
+                    : "border-neutral-700 text-neutral-100 hover:border-amber-400 hover:text-amber-300 focus-visible:ring-neutral-500/60"
+                }`}
+                aria-label={
+                  item.sourceUrl
+                    ? `Edit source for ${item.label || "pick"}`
+                    : `Add source for ${item.label || "pick"}`
+                }
+                title={item.sourceUrl ? "Edit source link" : "Add source link"}
+              >
+                <span className="text-sm leading-none">↗</span>
+                {item.sourceUrl ? "Set" : "Add"}
               </button>
               <button
                 type="button"
@@ -340,6 +393,31 @@ export function ListEditor({
           />
         </div>
       </div>
+
+      {editingSourceIndex != null && items[editingSourceIndex] && (
+        <ItemSourceModal
+          open
+          itemLabel={items[editingSourceIndex].label || "Untitled item"}
+          itemImageUrl={items[editingSourceIndex].imageUrl}
+          sourceUrl={items[editingSourceIndex].sourceUrl}
+          sourceProvider={items[editingSourceIndex].sourceProvider}
+          sourceNote={items[editingSourceIndex].sourceNote}
+          sourceStartSec={items[editingSourceIndex].sourceStartSec}
+          sourceEndSec={items[editingSourceIndex].sourceEndSec}
+          editable
+          onClose={() => setEditingSourceIndex(null)}
+          onSave={async ({ sourceUrl, sourceNote, sourceStartSec, sourceEndSec }) => {
+            updateItemSource(
+              editingSourceIndex,
+              sourceUrl,
+              sourceNote,
+              sourceStartSec,
+              sourceEndSec,
+            );
+            return true;
+          }}
+        />
+      )}
     </form>
   );
 }

@@ -4,16 +4,21 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { ItemArtwork } from "@/components/ui/ItemArtwork";
 import { CloseIcon } from "@/components/ui/icons";
+import type { ItemSourceProvider } from "@/types";
 import { COMPACT_DRAGGABLE_ITEM_METRICS_CLASS } from "./sizing";
 
 interface DraggableItemProps {
   id: string;
   label: string;
   imageUrl: string;
+  sourceUrl?: string | null;
+  sourceProvider?: ItemSourceProvider | null;
   overlay?: boolean;
   isExpanded?: boolean;
   onExpand?: (id: string) => void;
   onCollapse?: () => void;
+  onOpenSource?: (id: string) => void;
+  canEditSource?: boolean;
   onRemove?: () => void;
   removing?: boolean;
 }
@@ -22,10 +27,14 @@ export function DraggableItem({
   id,
   label,
   imageUrl,
+  sourceUrl = null,
+  sourceProvider = null,
   overlay,
   isExpanded = false,
   onExpand,
   onCollapse,
+  onOpenSource,
+  canEditSource = false,
   onRemove,
   removing = false,
 }: DraggableItemProps) {
@@ -50,6 +59,8 @@ export function DraggableItem({
 
   return (
     <div
+      ref={overlay ? undefined : setNodeRef}
+      style={style}
       data-peek-item={overlay ? undefined : "true"}
       className={`group relative h-[var(--compact-item-size)] w-[var(--compact-item-size)] flex-shrink-0 overflow-visible ${COMPACT_DRAGGABLE_ITEM_METRICS_CLASS} ${
         expanded ? "z-20" : "z-0"
@@ -77,10 +88,47 @@ export function DraggableItem({
           {removing ? "..." : <CloseIcon className="h-3.5 w-3.5" />}
         </button>
       )}
+      {!overlay && onOpenSource && (canEditSource || !!sourceUrl) && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onOpenSource(id);
+          }}
+          onPointerDown={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+          }}
+          className={`absolute left-1 top-1 z-10 flex h-6 w-6 items-center justify-center rounded-full border bg-black/70 transition-all focus-visible:outline-none focus-visible:ring-2 ${
+            sourceUrl
+              ? "border-sky-400/80 text-sky-200 hover:border-sky-300 hover:text-sky-100 focus-visible:ring-sky-400/70"
+              : "border-amber-500/70 text-amber-300 hover:border-amber-400 hover:text-amber-200 focus-visible:ring-amber-500/60"
+          } ${
+            expanded
+              ? "opacity-100"
+              : "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100"
+          }`}
+          aria-label={
+            sourceUrl
+              ? `Open source for ${label || "item"}`
+              : canEditSource
+                ? `Add source for ${label || "item"}`
+                : `No source for ${label || "item"}`
+          }
+          title={
+            sourceUrl
+              ? `${sourceProvider === "SPOTIFY" ? "Spotify" : sourceProvider === "YOUTUBE" ? "YouTube" : "Source"} link`
+              : canEditSource
+                ? "Add source link"
+                : "No source link"
+          }
+        >
+          <span className="text-sm leading-none">↗</span>
+        </button>
+      )}
       <button
         type="button"
-        ref={overlay ? undefined : setNodeRef}
-        style={style}
         {...(overlay ? {} : attributes)}
         {...(overlay ? {} : listeners)}
         onClick={

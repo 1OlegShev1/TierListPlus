@@ -66,22 +66,27 @@ model Template {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  creator        User?      @relation(fields: [creatorId], references: [id])
-  space          Space?     @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  creator        User?          @relation(fields: [creatorId], references: [id])
+  space          Space?         @relation(fields: [spaceId], references: [id], onDelete: Cascade)
   items          TemplateItem[]
-  sessions       Session[]  @relation("SessionTemplate")
-  sourceSessions Session[] @relation("SessionSourceTemplate")
+  sessions       Session[]      @relation("SessionTemplate")
+  sourceSessions Session[]      @relation("SessionSourceTemplate")
 
   @@index([creatorId])
   @@index([spaceId, updatedAt])
 }
 
 model TemplateItem {
-  id         String @id @default(cuid())
-  templateId String
-  label      String
-  imageUrl   String
-  sortOrder  Int    @default(0)
+  id             String          @id @default(cuid())
+  templateId     String
+  label          String
+  imageUrl       String
+  sourceUrl      String?
+  sourceProvider SourceProvider?
+  sourceNote     String?
+  sourceStartSec Int?
+  sourceEndSec   Int?
+  sortOrder      Int             @default(0)
 
   template     Template      @relation(fields: [templateId], references: [id], onDelete: Cascade)
   sessionItems SessionItem[]
@@ -128,6 +133,11 @@ enum SessionStatus {
   ARCHIVED
 }
 
+enum SourceProvider {
+  SPOTIFY
+  YOUTUBE
+}
+
 enum SpaceVisibility {
   PRIVATE
   OPEN
@@ -152,21 +162,21 @@ enum SpaceRole {
 }
 
 model Space {
-  id         String          @id @default(cuid())
-  name       String
+  id          String           @id @default(cuid())
+  name        String
   description String?
-  logoUrl    String?
+  logoUrl     String?
   accentColor SpaceAccentColor @default(SLATE)
-  visibility SpaceVisibility @default(PRIVATE)
-  creatorId  String
-  createdAt  DateTime        @default(now())
-  updatedAt  DateTime        @updatedAt
+  visibility  SpaceVisibility  @default(PRIVATE)
+  creatorId   String
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
 
-  creator  User          @relation("SpaceCreator", fields: [creatorId], references: [id], onDelete: Cascade)
-  members  SpaceMember[]
-  invites  SpaceInvite[]
+  creator   User          @relation("SpaceCreator", fields: [creatorId], references: [id], onDelete: Cascade)
+  members   SpaceMember[]
+  invites   SpaceInvite[]
   templates Template[]
-  sessions Session[]
+  sessions  Session[]
 
   @@index([creatorId])
   @@index([visibility])
@@ -188,13 +198,13 @@ model SpaceMember {
 }
 
 model SpaceInvite {
-  id              String   @id @default(cuid())
+  id              String    @id @default(cuid())
   spaceId         String
-  code            String   @unique
+  code            String    @unique
   expiresAt       DateTime
   revokedAt       DateTime?
   createdByUserId String
-  createdAt       DateTime @default(now())
+  createdAt       DateTime  @default(now())
 
   space         Space @relation(fields: [spaceId], references: [id], onDelete: Cascade)
   createdByUser User  @relation("SpaceInviteCreator", fields: [createdByUserId], references: [id], onDelete: Cascade)
@@ -204,12 +214,17 @@ model SpaceInvite {
 }
 
 model SessionItem {
-  id             String @id @default(cuid())
+  id             String          @id @default(cuid())
   sessionId      String
   templateItemId String
   label          String
   imageUrl       String
-  sortOrder      Int    @default(0)
+  sourceUrl      String?
+  sourceProvider SourceProvider?
+  sourceNote     String?
+  sourceStartSec Int?
+  sourceEndSec   Int?
+  sortOrder      Int             @default(0)
 
   session      Session      @relation(fields: [sessionId], references: [id], onDelete: Cascade)
   templateItem TemplateItem @relation(fields: [templateItemId], references: [id])
@@ -224,16 +239,16 @@ model SessionItem {
 // ─── PARTICIPANTS ────────────────────────────────────────────
 
 model Participant {
-  id        String   @id @default(cuid())
-  sessionId String
-  nickname  String
-  userId    String?
+  id          String    @id @default(cuid())
+  sessionId   String
+  nickname    String
+  userId      String?
   submittedAt DateTime?
-  createdAt DateTime @default(now())
+  createdAt   DateTime  @default(now())
 
-  session      Session       @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  user         User?         @relation(fields: [userId], references: [id])
-  tierVotes    TierVote[]
+  session   Session    @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  user      User?      @relation(fields: [userId], references: [id])
+  tierVotes TierVote[]
 
   @@unique([sessionId, nickname])
   @@unique([sessionId, userId])

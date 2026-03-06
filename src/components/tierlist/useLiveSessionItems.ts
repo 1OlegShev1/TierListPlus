@@ -159,6 +159,42 @@ export function useLiveSessionItems({
     [canMutateLiveItems, isCurrentSession, sessionId, updateItem],
   );
 
+  const handleSaveLiveItemSource = useCallback(
+    async (
+      itemId: string,
+      sourceUrl: string | null,
+      sourceNote: string | null,
+      sourceStartSec: number | null,
+      sourceEndSec: number | null,
+    ) => {
+      const requestSessionId = sessionId;
+      if (!canMutateLiveItems(requestSessionId)) return false;
+
+      setSavingItemId(itemId);
+      setItemMutationError(null);
+      try {
+        const item = await apiPatch<Item>(`/api/sessions/${sessionId}/items/${itemId}`, {
+          sourceUrl,
+          sourceNote,
+          sourceStartSec,
+          sourceEndSec,
+        });
+        if (!isCurrentSession(requestSessionId)) return false;
+        updateItem(item);
+        return true;
+      } catch (err) {
+        if (!isCurrentSession(requestSessionId)) return false;
+        setItemMutationError(getErrorMessage(err, "Failed to update item source"));
+        return false;
+      } finally {
+        if (isCurrentSession(requestSessionId)) {
+          setSavingItemId(null);
+        }
+      }
+    },
+    [canMutateLiveItems, isCurrentSession, sessionId, updateItem],
+  );
+
   const handleRemoveLiveItem = useCallback(
     async (itemId: string) => {
       const requestSessionId = sessionId;
@@ -196,6 +232,7 @@ export function useLiveSessionItems({
     handleUploadStateChange,
     handleUploadedImage,
     handleSaveLiveItemLabel,
+    handleSaveLiveItemSource,
     handleRemoveLiveItem,
   };
 }

@@ -30,6 +30,8 @@ interface TierRowProps {
   expandedItemId: string | null;
   onExpandItem: (itemId: string) => void;
   onCollapseExpanded: () => void;
+  onOpenItemSource: (itemId: string, readOnly?: boolean) => void;
+  canEditItemSource?: boolean;
 }
 
 export function TierRow({
@@ -50,6 +52,8 @@ export function TierRow({
   expandedItemId,
   onExpandItem,
   onCollapseExpanded,
+  onOpenItemSource,
+  canEditItemSource = false,
 }: TierRowProps) {
   const items = useTierListStore((s) => s.tiers[tierKey] ?? EMPTY_TIER_ITEMS);
   const itemMap = useTierListStore((s) => s.items);
@@ -158,9 +162,13 @@ export function TierRow({
                   id={id}
                   label={item.label}
                   imageUrl={item.imageUrl}
+                  sourceUrl={item.sourceUrl}
+                  sourceProvider={item.sourceProvider}
                   isExpanded={expandedItemId === id}
                   onExpand={onExpandItem}
                   onCollapse={onCollapseExpanded}
+                  onOpenSource={(itemId) => onOpenItemSource(itemId, !canEditItemSource)}
+                  canEditSource={canEditItemSource}
                 />
               );
             })}

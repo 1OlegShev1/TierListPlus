@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import {
+  badRequest,
   canMutateSpaceResource,
   forbidden,
   notFound,
@@ -8,6 +9,11 @@ import {
   withHandler,
 } from "@/lib/api-helpers";
 import { getRequestAuth } from "@/lib/auth";
+import {
+  normalizeItemSourceNote,
+  resolveItemSourceForWrite,
+  resolveSourceIntervalForWrite,
+} from "@/lib/item-source";
 import { prisma } from "@/lib/prisma";
 import { addTemplateItemSchema } from "@/lib/validators";
 
@@ -41,7 +47,9 @@ export const POST = withHandler(async (request, { params }) => {
     });
     if (!template) notFound("Template not found");
     if (template.spaceId) {
-      const spaceMember = template.space?.members[0] ?? null;
+      const spaceMember = Array.isArray(template.space?.members)
+        ? (template.space.members[0] ?? null)
+        : null;
       const isSpaceOwner =
         !!userId && (template.space?.creatorId === userId || spaceMember?.role === "OWNER");
       if (!canMutateSpaceResource(template.creatorId, userId, isSpaceOwner)) {
@@ -49,6 +57,32 @@ export const POST = withHandler(async (request, { params }) => {
       }
     } else {
       requireOwner(template.creatorId, userId);
+    }
+
+    const {
+      sourceUrl: rawSourceUrl,
+      sourceNote: rawSourceNote,
+      sourceStartSec: rawSourceStartSec,
+      sourceEndSec: rawSourceEndSec,
+      ...restData
+    } = data;
+    let sourceData: ReturnType<typeof resolveItemSourceForWrite>;
+    try {
+      sourceData = resolveItemSourceForWrite(rawSourceUrl);
+    } catch (error) {
+      badRequest(error instanceof Error ? error.message : "Invalid source URL");
+    }
+    const sourceNote = normalizeItemSourceNote(rawSourceNote);
+    const hasSourceLink = typeof sourceData.sourceUrl === "string";
+    let intervalData: ReturnType<typeof resolveSourceIntervalForWrite>;
+    try {
+      intervalData = resolveSourceIntervalForWrite(
+        sourceData.sourceProvider ?? null,
+        rawSourceStartSec,
+        rawSourceEndSec,
+      );
+    } catch (error) {
+      badRequest(error instanceof Error ? error.message : "Invalid source interval");
     }
 
     let sortOrder = data.sortOrder;
@@ -62,7 +96,10 @@ export const POST = withHandler(async (request, { params }) => {
 
     return tx.templateItem.create({
       data: {
-        ...data,
+        ...restData,
+        ...sourceData,
+        ...(hasSourceLink && sourceNote !== undefined ? { sourceNote } : {}),
+        ...intervalData,
         sortOrder,
         templateId,
       },

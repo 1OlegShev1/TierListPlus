@@ -82,3 +82,16 @@ export function PlusIcon({ className = "h-4 w-4" }: IconProps) {
     </svg>
   );
 }
+
+export function LinkIcon({ className = "h-4 w-4" }: IconProps) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M13.828 10.172a4 4 0 015.657 5.656l-2.829 2.829a4 4 0 01-5.656-5.657m3.172-3.172a4 4 0 00-5.657-5.656L5.686 6.999a4 4 0 105.657 5.657"
+      />
+    </svg>
+  );
+}

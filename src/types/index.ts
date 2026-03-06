@@ -2,11 +2,18 @@ import type { TierConfig } from "@/lib/constants";
 
 export type { TierConfig };
 
+export type ItemSourceProvider = "SPOTIFY" | "YOUTUBE";
+
 /** A displayable item with id, label, and image. Used throughout the app for session items, bracket items, template items. */
 export interface Item {
   id: string;
   label: string;
   imageUrl: string;
+  sourceUrl?: string | null;
+  sourceProvider?: ItemSourceProvider | null;
+  sourceNote?: string | null;
+  sourceStartSec?: number | null;
+  sourceEndSec?: number | null;
 }
 
 /** A flat matchup row (IDs only, no nested objects). Used in local bracket state and ranking algorithms. */
@@ -60,6 +67,11 @@ export interface TemplateItemData {
   id?: string;
   label: string;
   imageUrl: string;
+  sourceUrl?: string | null;
+  sourceProvider?: ItemSourceProvider | null;
+  sourceNote?: string | null;
+  sourceStartSec?: number | null;
+  sourceEndSec?: number | null;
   sortOrder: number;
 }
 

@@ -1,6 +1,8 @@
 import { z } from "zod/v4";
 import { MANAGED_WEBP_UPLOAD_URL_RE } from "@/lib/uploads";
 
+const MAX_INT_32 = 2_147_483_647;
+
 const spaceAccentColorSchema = z.enum([
   "SLATE",
   "AMBER",
@@ -29,6 +31,10 @@ export const updateTemplateSchema = z.object({
 export const addTemplateItemSchema = z.object({
   label: z.string().max(100),
   imageUrl: z.string().min(1),
+  sourceUrl: z.string().trim().url().max(500).optional(),
+  sourceNote: z.string().trim().max(120).optional(),
+  sourceStartSec: z.number().int().min(0).max(MAX_INT_32).optional(),
+  sourceEndSec: z.number().int().min(0).max(MAX_INT_32).optional(),
   sortOrder: z.number().int().min(0).optional(),
 });
 
@@ -41,6 +47,10 @@ export const cleanupUploadSchema = z.object({
 export const updateTemplateItemSchema = z.object({
   label: z.string().max(100).optional(),
   imageUrl: z.string().min(1).optional(),
+  sourceUrl: z.string().trim().url().max(500).nullable().optional(),
+  sourceNote: z.string().trim().max(120).nullable().optional(),
+  sourceStartSec: z.number().int().min(0).max(MAX_INT_32).nullable().optional(),
+  sourceEndSec: z.number().int().min(0).max(MAX_INT_32).nullable().optional(),
   sortOrder: z.number().int().min(0).optional(),
 });
 

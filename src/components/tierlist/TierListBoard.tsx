@@ -4,6 +4,7 @@ import { DndContext, DragOverlay } from "@dnd-kit/core";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { type ReactNode, useEffect, useRef, useState } from "react";
+import { ItemSourceModal } from "@/components/items/ItemSourceModal";
 import { ImageUploader } from "@/components/shared/ImageUploader";
 import { CloseIcon } from "@/components/ui/icons";
 import { useDelayedBusy } from "@/hooks/useDelayedBusy";
@@ -120,6 +121,8 @@ export function TierListBoard({
   const [saveTemplateError, setSaveTemplateError] = useState<string | null>(null);
   const [savedTemplateId, setSavedTemplateId] = useState<string | null>(null);
   const [showSavedTemplateNotice, setShowSavedTemplateNotice] = useState(false);
+  const [sourceModalItemId, setSourceModalItemId] = useState<string | null>(null);
+  const [sourceModalReadOnly, setSourceModalReadOnly] = useState(false);
   const showSubmitBusyState = useDelayedBusy(submitting, {
     showDelayMs: 180,
     minVisibleMs: 320,
@@ -159,6 +162,7 @@ export function TierListBoard({
     handleUploadStateChange,
     handleUploadedImage,
     handleSaveLiveItemLabel,
+    handleSaveLiveItemSource,
     handleRemoveLiveItem,
   } = useLiveSessionItems({
     sessionId,
@@ -307,6 +311,7 @@ export function TierListBoard({
   };
 
   const activeItem = activeId ? items.get(activeId) : null;
+  const sourceModalItem = sourceModalItemId ? (items.get(sourceModalItemId) ?? null) : null;
   const liveItems = initializedRef.current ? Array.from(items.values()) : sessionItems;
   const totalItems = liveItems.length;
   const savesWorkingTemplate = canEditTierConfig && templateIsHidden;
@@ -348,6 +353,14 @@ export function TierListBoard({
   useAutoDismissFlag(draftRestored, () => setDraftRestored(false), 3000);
   useAutoDismissFlag(bracketSeeded, () => setBracketSeeded(false), 3000);
   useAutoDismissFlag(showSavedTemplateNotice, () => setShowSavedTemplateNotice(false), 5000);
+
+  useEffect(() => {
+    if (!sourceModalItemId) return;
+    if (!items.has(sourceModalItemId)) {
+      setSourceModalItemId(null);
+      setSourceModalReadOnly(false);
+    }
+  }, [items, sourceModalItemId]);
 
   return (
     <div className="relative flex flex-col">
@@ -482,6 +495,12 @@ export function TierListBoard({
                 expandedItemId={expandedItemId}
                 onExpandItem={handleExpandItem}
                 onCollapseExpanded={handleCollapseExpanded}
+                onOpenItemSource={(itemId, readOnly = false) => {
+                  setItemMutationError(null);
+                  setSourceModalItemId(itemId);
+                  setSourceModalReadOnly(readOnly);
+                }}
+                canEditItemSource={canManageItems}
               />
             </div>
           ))}
@@ -509,16 +528,37 @@ export function TierListBoard({
                       id={item.id}
                       label={item.label}
                       imageUrl={item.imageUrl}
+                      sourceUrl={item.sourceUrl}
+                      sourceProvider={item.sourceProvider}
+                      sourceNote={item.sourceNote}
+                      sourceStartSec={item.sourceStartSec}
+                      sourceEndSec={item.sourceEndSec}
                       onSaveLabel={handleSaveLiveItemLabel}
+                      onSaveSource={(itemId, next) =>
+                        handleSaveLiveItemSource(
+                          itemId,
+                          next.sourceUrl,
+                          next.sourceNote,
+                          next.sourceStartSec,
+                          next.sourceEndSec,
+                        )
+                      }
                       onRemove={() => {
                         void handleRemoveLiveItem(item.id);
                       }}
                       saving={savingItemId === item.id}
                       removing={removingItemId === item.id}
+                      sourceError={savingItemId === item.id ? itemMutationError : null}
                     />
                   )
                 : undefined
             }
+            onOpenItemSource={(itemId) => {
+              setItemMutationError(null);
+              setSourceModalItemId(itemId);
+              setSourceModalReadOnly(false);
+            }}
+            canEditItemSource={canManageItems}
             afterItems={uploadCard ?? undefined}
           />
         </div>
@@ -530,11 +570,45 @@ export function TierListBoard({
               id={activeItem.id}
               label={activeItem.label}
               imageUrl={activeItem.imageUrl}
+              sourceUrl={activeItem.sourceUrl}
+              sourceProvider={activeItem.sourceProvider}
               overlay
             />
           ) : null}
         </DragOverlay>
       </DndContext>
+
+      {sourceModalItem && (
+        <ItemSourceModal
+          open
+          itemLabel={sourceModalItem.label || "Untitled item"}
+          itemImageUrl={sourceModalItem.imageUrl}
+          sourceUrl={sourceModalItem.sourceUrl}
+          sourceProvider={sourceModalItem.sourceProvider}
+          sourceNote={sourceModalItem.sourceNote}
+          sourceStartSec={sourceModalItem.sourceStartSec}
+          sourceEndSec={sourceModalItem.sourceEndSec}
+          editable={canManageItems && !submitting && !submitted && !sourceModalReadOnly}
+          saving={savingItemId === sourceModalItem.id}
+          error={savingItemId === sourceModalItem.id ? itemMutationError : null}
+          onClose={() => {
+            setSourceModalItemId(null);
+            setSourceModalReadOnly(false);
+          }}
+          onSave={
+            canManageItems && !submitting && !submitted && !sourceModalReadOnly
+              ? (next) =>
+                  handleSaveLiveItemSource(
+                    sourceModalItem.id,
+                    next.sourceUrl,
+                    next.sourceNote,
+                    next.sourceStartSec,
+                    next.sourceEndSec,
+                  )
+              : undefined
+          }
+        />
+      )}
 
       {showSessionBracket && (
         <BracketModal

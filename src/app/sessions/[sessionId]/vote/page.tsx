@@ -64,7 +64,16 @@ export default async function VotePage({ params }: { params: Promise<{ sessionId
       },
       items: {
         orderBy: { sortOrder: "asc" },
-        select: { id: true, label: true, imageUrl: true },
+        select: {
+          id: true,
+          label: true,
+          imageUrl: true,
+          sourceUrl: true,
+          sourceProvider: true,
+          sourceNote: true,
+          sourceStartSec: true,
+          sourceEndSec: true,
+        },
       },
     },
   });
