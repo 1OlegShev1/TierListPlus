@@ -22,6 +22,8 @@ interface DraggableItemProps {
   canEditSource?: boolean;
   onRemove?: () => void;
   removing?: boolean;
+  enableSorting?: boolean;
+  expandedTransformOrigin?: "center center" | "top center" | "bottom center";
 }
 
 export function DraggableItem({
@@ -38,10 +40,12 @@ export function DraggableItem({
   canEditSource = false,
   onRemove,
   removing = false,
+  enableSorting = true,
+  expandedTransformOrigin = "center center",
 }: DraggableItemProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id,
-    disabled: overlay,
+    disabled: overlay || !enableSorting,
   });
 
   const expanded = !overlay && !isDragging && isExpanded;
@@ -53,9 +57,9 @@ export function DraggableItem({
     ? undefined
     : {
         transform: composedTransform || undefined,
-        transition,
+        transition: enableSorting ? transition : "transform 200ms ease",
         opacity: isDragging ? 0.3 : 1,
-        transformOrigin: "center center",
+        transformOrigin: expanded ? expandedTransformOrigin : "center center",
       };
   const sourceControlVisibilityClass = sourceUrl
     ? "opacity-100"
@@ -65,7 +69,7 @@ export function DraggableItem({
 
   return (
     <div
-      ref={overlay ? undefined : setNodeRef}
+      ref={overlay || !enableSorting ? undefined : setNodeRef}
       style={style}
       data-peek-item={overlay ? undefined : "true"}
       className={`group relative h-[var(--compact-item-size)] w-[var(--compact-item-size)] flex-shrink-0 overflow-visible ${COMPACT_DRAGGABLE_ITEM_METRICS_CLASS} ${
@@ -131,8 +135,8 @@ export function DraggableItem({
       )}
       <button
         type="button"
-        {...(overlay ? {} : attributes)}
-        {...(overlay ? {} : listeners)}
+        {...(overlay || !enableSorting ? {} : attributes)}
+        {...(overlay || !enableSorting ? {} : listeners)}
         onClick={
           overlay
             ? undefined
@@ -146,7 +150,9 @@ export function DraggableItem({
               }
         }
         onContextMenu={overlay ? undefined : (e) => e.preventDefault()}
-        className={`relative h-full w-full select-none cursor-grab overflow-hidden rounded-md border bg-transparent p-0 touch-manipulation [-webkit-touch-callout:none] active:cursor-grabbing ${
+        className={`relative h-full w-full select-none overflow-hidden rounded-md border bg-transparent p-0 touch-manipulation [-webkit-touch-callout:none] ${
+          enableSorting ? "cursor-grab active:cursor-grabbing" : "cursor-pointer"
+        } ${
           overlay
             ? "shadow-xl shadow-black/50 ring-2 ring-amber-400"
             : expanded

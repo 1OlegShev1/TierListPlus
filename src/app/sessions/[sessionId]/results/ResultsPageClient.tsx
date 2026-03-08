@@ -1,11 +1,12 @@
 "use client";
 
-import Link from "next/link";
 import { Link2 } from "lucide-react";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ItemSourceModal } from "@/components/items/ItemSourceModal";
 import { CloseVoteButton } from "@/components/sessions/CloseVoteButton";
 import { ReopenVoteButton } from "@/components/sessions/ReopenVoteButton";
+import { DraggableItem } from "@/components/tierlist/DraggableItem";
 import { buttonSizes, buttonVariants } from "@/components/ui/Button";
 import { ErrorMessage } from "@/components/ui/ErrorMessage";
 import { ItemArtwork } from "@/components/ui/ItemArtwork";
@@ -52,6 +53,7 @@ export function ResultsPageClient({
     detailsOpen,
     detailsPanelRef,
     isTouchInput,
+    handleItemToggle,
     handleItemClick,
     handleItemTouchStart,
     handleItemTouchEnd,
@@ -96,7 +98,6 @@ export function ResultsPageClient({
   const primaryVoteActionLabel = currentParticipantId ? "Resume" : "Join vote";
   const backToVotesHref = session.spaceId ? `/spaces/${session.spaceId}` : "/sessions";
   const backToVotesLabel = session.spaceId ? "Back to Space Votes" : "Back to Votes";
-
   return (
     <div>
       <Link
@@ -183,74 +184,109 @@ export function ResultsPageClient({
 
       {!initialParticipantError && (
         <div className="overflow-hidden rounded-lg border border-neutral-800 touch-pan-y">
-          {displayTiers.map((tier) => (
-            <div
-              key={tier.key}
-              className="flex min-h-[72px] border-b border-neutral-800 last:border-b-0 sm:min-h-[80px] md:min-h-[90px] lg:min-h-[104px]"
-            >
+          {displayTiers.map((tier, tierIndex) => {
+            const isFirstTier = tierIndex === 0;
+            const isLastTier = tierIndex === displayTiers.length - 1;
+            const expandedTransformOrigin =
+              isFirstTier && isLastTier
+                ? "center center"
+                : isFirstTier
+                  ? "top center"
+                  : isLastTier
+                    ? "bottom center"
+                    : "center center";
+
+            return (
               <div
-                className="flex w-20 flex-shrink-0 items-center justify-center px-2 py-2 text-center text-sm font-bold sm:w-24 sm:px-3 sm:text-base md:w-28 md:text-lg lg:w-32 lg:text-xl"
-                style={{ backgroundColor: tier.color, color: "#000" }}
-                title={tier.label}
+                key={tier.key}
+                className="flex min-h-[72px] border-b border-neutral-800 last:border-b-0 sm:min-h-[80px] md:min-h-[90px] lg:min-h-[104px]"
               >
-                <span className="block max-w-full text-[11px] leading-tight line-clamp-2 break-words sm:text-base sm:line-clamp-none md:text-lg lg:text-xl">
-                  {tier.label}
-                </span>
-              </div>
-              <div className="flex flex-1 touch-pan-y flex-wrap items-start gap-1 p-1 sm:gap-1.5 sm:p-1.5 md:gap-2 md:p-2">
-                {tier.items.map((item) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => {
-                      if (isIndividualView && item.sourceUrl) {
-                        setSourceModalItem(item);
-                        return;
-                      }
-                      handleItemClick(item);
-                    }}
-                    onTouchStart={(event) => handleItemTouchStart(item.id, event)}
-                    onTouchEnd={(event) => handleItemTouchEnd(item, event)}
-                    onTouchCancel={handleItemTouchCancel}
-                    className={`group relative h-[62px] w-[62px] flex-shrink-0 overflow-hidden rounded-md border transition-colors sm:h-[70px] sm:w-[70px] md:h-[78px] md:w-[78px] lg:h-[96px] lg:w-[96px] ${
-                      !isIndividualView && selectedItem?.id === item.id
-                        ? "border-amber-400 ring-2 ring-amber-400"
-                        : "border-neutral-700 hover:border-neutral-500"
-                    } ${
-                      isIndividualView
-                        ? item.sourceUrl
-                          ? "cursor-pointer touch-manipulation"
-                          : "cursor-default"
-                        : "cursor-pointer touch-manipulation"
-                    }`}
-                  >
-                    {item.sourceUrl && (
-                      <span
-                        aria-hidden="true"
-                        className="absolute left-1 top-1 z-10 flex h-5 w-5 items-center justify-center rounded-full border border-sky-400/80 bg-black/70 text-sky-200"
-                      >
-                        <Link2 className="h-3 w-3" />
-                      </span>
-                    )}
-                    <ItemArtwork
-                      src={item.imageUrl}
-                      alt={item.label}
-                      className="h-full w-full"
-                      presentation="ambient"
-                    />
-                    <span className="absolute inset-x-0 bottom-0 truncate bg-black/70 px-1 py-0.5 text-center text-[11px] leading-tight text-neutral-200 opacity-0 transition-opacity group-hover:opacity-100">
-                      {item.label}
-                    </span>
-                  </button>
-                ))}
-                {tier.items.length === 0 && (
-                  <span className="flex h-[60px] items-center px-2 text-xs text-neutral-600 sm:h-[70px] sm:px-2.5 md:h-[84px] md:px-3 lg:h-[96px] lg:px-4 lg:text-sm">
-                    No picks
+                <div
+                  className="flex w-20 flex-shrink-0 items-center justify-center px-2 py-2 text-center text-sm font-bold sm:w-24 sm:px-3 sm:text-base md:w-28 md:text-lg lg:w-32 lg:text-xl"
+                  style={{ backgroundColor: tier.color, color: "#000" }}
+                  title={tier.label}
+                >
+                  <span className="block max-w-full text-[11px] leading-tight line-clamp-2 break-words sm:text-base sm:line-clamp-none md:text-lg lg:text-xl">
+                    {tier.label}
                   </span>
-                )}
+                </div>
+                <div className="flex flex-1 touch-pan-y flex-wrap items-start gap-1 p-1 sm:gap-1.5 sm:p-1.5 md:gap-2 md:p-2">
+                  {tier.items.map((item) =>
+                    isIndividualView ? (
+                      <DraggableItem
+                        key={item.id}
+                        id={item.id}
+                        label={item.label}
+                        imageUrl={item.imageUrl}
+                        sourceUrl={item.sourceUrl}
+                        sourceProvider={item.sourceProvider}
+                        isExpanded={selectedItem?.id === item.id}
+                        onExpand={() => handleItemToggle(item)}
+                        onCollapse={() => handleItemToggle(item)}
+                        onOpenSource={item.sourceUrl ? () => setSourceModalItem(item) : undefined}
+                        enableSorting={false}
+                        expandedTransformOrigin={expandedTransformOrigin}
+                      />
+                    ) : (
+                      <div
+                        key={item.id}
+                        className="relative h-[62px] w-[62px] flex-shrink-0 sm:h-[70px] sm:w-[70px] md:h-[78px] md:w-[78px] lg:h-[96px] lg:w-[96px]"
+                      >
+                        <button
+                          type="button"
+                          onClick={() => handleItemClick(item)}
+                          onTouchStart={(event) => handleItemTouchStart(item.id, event)}
+                          onTouchEnd={(event) => handleItemTouchEnd(item, event)}
+                          onTouchCancel={handleItemTouchCancel}
+                          className={`group relative h-full w-full cursor-pointer touch-manipulation overflow-hidden rounded-md border transition-colors ${
+                            selectedItem?.id === item.id
+                              ? "border-amber-400 ring-2 ring-amber-400"
+                              : "border-neutral-700 hover:border-neutral-500"
+                          }`}
+                        >
+                          <ItemArtwork
+                            src={item.imageUrl}
+                            alt={item.label}
+                            className="h-full w-full"
+                            presentation="ambient"
+                          />
+                          <span className="absolute inset-x-0 bottom-0 truncate bg-black/70 px-1 py-0.5 text-center text-[11px] leading-tight text-neutral-200 opacity-0 transition-opacity group-hover:opacity-100">
+                            {item.label}
+                          </span>
+                        </button>
+                        {item.sourceUrl && (
+                          <button
+                            type="button"
+                            onClick={(event) => {
+                              event.preventDefault();
+                              event.stopPropagation();
+                              setSourceModalItem(item);
+                            }}
+                            onTouchStart={(event) => {
+                              event.stopPropagation();
+                            }}
+                            onTouchEnd={(event) => {
+                              event.stopPropagation();
+                            }}
+                            aria-label={`Open source for ${item.label || "item"}`}
+                            title="Open source link"
+                            className="absolute left-1 top-1 z-10 flex h-6 w-6 items-center justify-center rounded-full border border-sky-400/80 bg-black/70 text-sky-200 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/70 hover:border-sky-300 hover:text-sky-100"
+                          >
+                            <Link2 className="h-3.5 w-3.5" aria-hidden="true" />
+                          </button>
+                        )}
+                      </div>
+                    ),
+                  )}
+                  {tier.items.length === 0 && (
+                    <span className="flex h-[60px] items-center px-2 text-xs text-neutral-600 sm:h-[70px] sm:px-2.5 md:h-[84px] md:px-3 lg:h-[96px] lg:px-4 lg:text-sm">
+                      No picks
+                    </span>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
@@ -271,7 +307,7 @@ export function ResultsPageClient({
                   alt={detailsItem.label}
                   className="h-full w-full"
                   presentation="ambient"
-                  animate={detailsOpen && !isIndividualView}
+                  animate={detailsOpen}
                 />
               </div>
               <div className="min-w-0">
@@ -287,7 +323,7 @@ export function ResultsPageClient({
                 <button
                   type="button"
                   onClick={() => setSourceModalItem(detailsItem)}
-                  className="ml-auto inline-flex items-center gap-1.5 rounded-md border border-neutral-700 px-2 py-1 text-xs font-medium text-neutral-200 transition-colors hover:border-amber-400 hover:text-amber-300"
+                  className="ml-2 inline-flex items-center gap-1.5 rounded-md border border-sky-500/70 bg-sky-500/10 px-2 py-1 text-xs font-medium text-sky-200 transition-colors hover:border-sky-400 hover:bg-sky-500/15 hover:text-sky-100 sm:ml-auto"
                 >
                   <Link2 className="h-3.5 w-3.5" aria-hidden="true" />
                   Source
@@ -295,7 +331,6 @@ export function ResultsPageClient({
               )}
             </div>
           </div>
-
           <div className="grid gap-6 px-4 py-4 lg:grid-cols-[minmax(0,1fr)_19rem]">
             <div>
               <h4 className="mb-3 text-sm font-medium text-neutral-300">Placement breakdown</h4>

@@ -1,7 +1,7 @@
 "use client";
 
+import { ExternalLink, Maximize2 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { ErrorMessage } from "@/components/ui/ErrorMessage";
 import { Input } from "@/components/ui/Input";
@@ -10,6 +10,8 @@ import {
   buildExternalSourceEmbedUrl,
   buildYouTubeEmbedUrl,
   detectExternalSourceKind,
+  type ExternalSourceKind,
+  getExternalSourceCapability,
   getExternalSourceKindLabel,
   getItemSourceProviderLabel,
   INVALID_ITEM_SOURCE_MESSAGE,
@@ -50,6 +52,27 @@ function parseOptionalPositiveInt(value: string): number | null | "invalid" {
   return parsed;
 }
 
+function isTwitchClipSourceUrl(sourceUrl: string | null | undefined): boolean {
+  if (!sourceUrl) return false;
+  try {
+    const parsed = new URL(sourceUrl);
+    const host = parsed.hostname.toLowerCase();
+    if (host === "clips.twitch.tv") return true;
+    const segments = parsed.pathname.split("/").filter(Boolean);
+    return (segments[0] === "clip" && !!segments[1]) || (segments[1] === "clip" && !!segments[2]);
+  } catch {
+    return false;
+  }
+}
+
+type ResolvedExternalPreview = {
+  kind: ExternalSourceKind | null;
+  label: string;
+  embedUrl: string | null;
+  embedType: "iframe" | "image" | "video" | "audio" | null;
+  note: string | null;
+};
+
 export function ItemSourceModal({
   open,
   itemLabel,
@@ -67,6 +90,7 @@ export function ItemSourceModal({
 }: ItemSourceModalProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const sourceInputRef = useRef<HTMLInputElement>(null);
+  const resolveRequestIdRef = useRef(0);
   const [draftUrl, setDraftUrl] = useState(sourceUrl ?? "");
   const [draftNote, setDraftNote] = useState(sourceNote ?? "");
   const [draftStartSec, setDraftStartSec] = useState(
@@ -76,9 +100,9 @@ export function ItemSourceModal({
     typeof sourceEndSec === "number" ? String(sourceEndSec) : "",
   );
   const [embedParentHostname, setEmbedParentHostname] = useState("");
-  const [resolvedSoundCloudEmbedUrl, setResolvedSoundCloudEmbedUrl] = useState<string | null>(
-    null,
-  );
+  const [resolvedExternalPreview, setResolvedExternalPreview] =
+    useState<ResolvedExternalPreview | null>(null);
+  const [showExpandedPreview, setShowExpandedPreview] = useState(false);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -91,6 +115,7 @@ export function ItemSourceModal({
     setDraftNote(sourceNote ?? "");
     setDraftStartSec(typeof sourceStartSec === "number" ? String(sourceStartSec) : "");
     setDraftEndSec(typeof sourceEndSec === "number" ? String(sourceEndSec) : "");
+    setShowExpandedPreview(false);
   }, [open, sourceEndSec, sourceNote, sourceStartSec, sourceUrl]);
 
   useEffect(() => {
@@ -126,7 +151,9 @@ export function ItemSourceModal({
   const hasInvalidDraftSource = trimmedDraftUrl.length > 0 && !parsedDraftSource;
   const activeParsedSource = trimmedDraftUrl.length > 0 ? parsedDraftSource : parsedSavedSource;
   const activeSourceUrl = activeParsedSource?.normalizedUrl ?? null;
-  const activeProvider = activeParsedSource ? activeParsedSource.provider : (sourceProvider ?? null);
+  const activeProvider = activeParsedSource
+    ? activeParsedSource.provider
+    : (sourceProvider ?? null);
   const hasSource = !!activeParsedSource;
   const shouldValidateIntervals =
     trimmedDraftUrl.length > 0 && parsedDraftSource?.provider === "YOUTUBE";
@@ -161,73 +188,118 @@ export function ItemSourceModal({
           activeParsedSource.youtubeVideoId,
           resolvedStartSec ?? null,
           resolvedEndSec ?? null,
+          activeParsedSource.youtubeContentKind,
         )
       : null;
+  const isPortraitYouTubeEmbed =
+    activeParsedSource?.provider === "YOUTUBE" &&
+    activeParsedSource.youtubeContentKind === "SHORTS";
   const spotifyEmbedUrl =
     activeParsedSource?.provider === "SPOTIFY" ? activeParsedSource.embedUrl : null;
   const spotifyEmbedHeight =
     spotifyEmbedUrl && /\/embed\/(track|episode)\//.test(spotifyEmbedUrl) ? 152 : 352;
-  const externalSourceKind =
+  const fallbackExternalKind =
     activeProvider === null ? detectExternalSourceKind(activeSourceUrl) : null;
+  const fallbackExternalCapability = getExternalSourceCapability(fallbackExternalKind);
+  const fallbackExternalEmbedUrl =
+    activeProvider === null
+      ? buildExternalSourceEmbedUrl(activeSourceUrl, embedParentHostname)
+      : null;
+  const externalSourceKind =
+    activeProvider === null ? (resolvedExternalPreview?.kind ?? fallbackExternalKind) : null;
   const externalSourceLabel = activeProvider
     ? getItemSourceProviderLabel(activeProvider)
-    : (getExternalSourceKindLabel(externalSourceKind) ?? "External link");
-  const baseExternalEmbedUrl =
-    activeProvider === null ? buildExternalSourceEmbedUrl(activeSourceUrl, embedParentHostname) : null;
-  const externalEmbedUrl = baseExternalEmbedUrl ?? resolvedSoundCloudEmbedUrl;
+    : (resolvedExternalPreview?.label ??
+      getExternalSourceKindLabel(fallbackExternalKind) ??
+      "External link");
+  const externalEmbedUrl =
+    activeProvider === null
+      ? (resolvedExternalPreview?.embedUrl ?? fallbackExternalEmbedUrl ?? null)
+      : null;
+  const externalEmbedType =
+    activeProvider === null
+      ? (resolvedExternalPreview?.embedType ??
+        (fallbackExternalEmbedUrl
+          ? fallbackExternalKind === "IMAGE"
+            ? "image"
+            : fallbackExternalKind === "VIDEO"
+              ? "video"
+              : fallbackExternalKind === "AUDIO"
+                ? "audio"
+                : "iframe"
+          : null))
+      : null;
   const soundCloudEmbedHeight =
     externalSourceKind === "SOUNDCLOUD" && (activeSourceUrl ?? "").toLowerCase().includes("/sets/")
       ? 352
       : 166;
+  const isPortraitExternalEmbed =
+    externalEmbedType === "iframe" &&
+    (externalSourceKind === "INSTAGRAM" ||
+      externalSourceKind === "TIKTOK" ||
+      (externalSourceKind === "TWITCH" && isTwitchClipSourceUrl(activeSourceUrl)));
+  const canShowLargePreview =
+    (isPortraitExternalEmbed && !!externalEmbedUrl) ||
+    (isPortraitYouTubeEmbed && !!youtubeEmbedUrl);
+  const expandedPreviewUrl = isPortraitExternalEmbed
+    ? externalEmbedUrl
+    : isPortraitYouTubeEmbed
+      ? youtubeEmbedUrl
+      : null;
+  const compactExternalIframeHeight = externalSourceKind === "X" ? 280 : null;
+  const externalIframeClassName = isPortraitExternalEmbed
+    ? "w-full"
+    : compactExternalIframeHeight
+      ? "w-full"
+      : "aspect-video w-full";
+  const externalIframeStyle = isPortraitExternalEmbed
+    ? { height: "min(52dvh, 30rem)" }
+    : compactExternalIframeHeight
+      ? { height: compactExternalIframeHeight }
+      : undefined;
   const externalPreviewNote =
-    externalSourceKind === "SOUNDCLOUD" && !externalEmbedUrl
-      ? "Loading SoundCloud preview... If it does not appear, use Open source."
-      : externalSourceKind === "X"
-      ? "X links usually require widget scripts, so inline preview is disabled."
-      : externalSourceKind === "FACEBOOK"
-        ? "Facebook commonly blocks iframe preview here. Use Open source."
-      : externalSourceKind === "INSTAGRAM"
-          ? "Instagram links usually need platform widgets, so inline preview is disabled."
-          : externalSourceKind === "TIKTOK"
-            ? "TikTok links usually need platform widgets, so inline preview is disabled."
-            : externalSourceKind === "PDF"
-              ? "PDF preview is often blocked by browser or site policy. Use Open source."
-            : externalSourceKind === "TWITCH" && !externalEmbedUrl
-              ? "Twitch preview needs a valid app hostname; use Open source if it does not render."
-              : externalSourceKind === "GENERIC"
-                ? "No inline preview for this link type yet."
-                : null;
+    resolvedExternalPreview?.note ??
+    (!externalEmbedUrl ? (fallbackExternalCapability?.fallbackNote ?? null) : null);
   const previewImageUrl = itemImageUrl ?? activeParsedSource?.thumbnailUrl ?? null;
 
   useEffect(() => {
-    let cancelled = false;
-    setResolvedSoundCloudEmbedUrl(null);
+    const requestId = ++resolveRequestIdRef.current;
+    setResolvedExternalPreview(null);
+    if (activeProvider !== null || !activeSourceUrl) return;
+    if (fallbackExternalCapability?.previewMode !== "RESOLVER") return;
+    if (fallbackExternalEmbedUrl) return;
 
-    if (externalSourceKind !== "SOUNDCLOUD") return () => {
-      cancelled = true;
-    };
-    if (baseExternalEmbedUrl || !activeSourceUrl) return () => {
-      cancelled = true;
-    };
-
-    const oEmbedUrl = `https://soundcloud.com/oembed?format=json&url=${encodeURIComponent(activeSourceUrl)}`;
-    void fetch(oEmbedUrl)
-      .then(async (response) => {
-        if (!response.ok) return;
-        const payload = (await response.json()) as { html?: unknown };
-        if (typeof payload.html !== "string") return;
-        const match = payload.html.match(/src=\"([^\"]+)\"/i);
-        if (!match?.[1] || cancelled) return;
-        setResolvedSoundCloudEmbedUrl(match[1]);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => {
+      const params = new URLSearchParams({ url: activeSourceUrl });
+      if (embedParentHostname) {
+        params.set("parent", embedParentHostname);
+      }
+      void fetch(`/api/sources/resolve?${params.toString()}`, {
+        signal: controller.signal,
       })
-      .catch(() => {
-        // Keep fallback text + open-source link if oEmbed resolution fails.
-      });
+        .then(async (response) => {
+          if (!response.ok || resolveRequestIdRef.current !== requestId) return;
+          const payload = (await response.json()) as ResolvedExternalPreview;
+          if (resolveRequestIdRef.current !== requestId) return;
+          setResolvedExternalPreview(payload);
+        })
+        .catch(() => {
+          // Keep client fallback metadata and open-source behavior.
+        });
+    }, 200);
 
     return () => {
-      cancelled = true;
+      clearTimeout(timeout);
+      controller.abort();
     };
-  }, [activeSourceUrl, baseExternalEmbedUrl, externalSourceKind]);
+  }, [
+    activeProvider,
+    activeSourceUrl,
+    embedParentHostname,
+    fallbackExternalCapability?.previewMode,
+    fallbackExternalEmbedUrl,
+  ]);
 
   const normalizedCurrentUrl = (sourceUrl ?? "").trim();
   const normalizedCurrentNote = (sourceNote ?? "").trim();
@@ -289,8 +361,7 @@ export function ItemSourceModal({
     >
       <h2 className="text-lg font-bold">Item Source</h2>
       <p className="mt-1 text-sm text-neutral-400">
-        Add a source link for{" "}
-        <span className="font-medium text-neutral-200">{itemLabel}</span>.
+        Add a source link for <span className="font-medium text-neutral-200">{itemLabel}</span>.
       </p>
 
       <div className="mt-5 space-y-4">
@@ -353,9 +424,7 @@ export function ItemSourceModal({
               </div>
             )}
 
-            {hasInvalidDraftSource && (
-              <ErrorMessage message={INVALID_ITEM_SOURCE_MESSAGE} />
-            )}
+            {hasInvalidDraftSource && <ErrorMessage message={INVALID_ITEM_SOURCE_MESSAGE} />}
             {!hasInvalidDraftSource && intervalInvalidReason && (
               <ErrorMessage message={intervalInvalidReason} />
             )}
@@ -388,24 +457,49 @@ export function ItemSourceModal({
                 </div>
               </div>
 
-              <a
-                href={activeSourceUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 rounded-md border border-neutral-700 px-2.5 py-1.5 text-xs font-medium text-neutral-200 transition-colors hover:border-amber-400 hover:text-amber-300"
-              >
-                <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
-                Open source
-              </a>
+              <div className="flex flex-wrap items-center gap-2">
+                <a
+                  href={activeSourceUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 rounded-md border border-neutral-700 px-2.5 py-1.5 text-xs font-medium text-neutral-200 transition-colors hover:border-amber-400 hover:text-amber-300"
+                >
+                  <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+                  Open source
+                </a>
+                {canShowLargePreview && (
+                  <button
+                    type="button"
+                    onClick={() => setShowExpandedPreview(true)}
+                    className="inline-flex items-center gap-1.5 rounded-md border border-neutral-700 px-2.5 py-1.5 text-xs font-medium text-neutral-200 transition-colors hover:border-amber-400 hover:text-amber-300"
+                  >
+                    <Maximize2 className="h-3.5 w-3.5" aria-hidden="true" />
+                    Large preview
+                  </button>
+                )}
+              </div>
               {youtubeEmbedUrl && (
                 <div className="overflow-hidden rounded-lg border border-neutral-800 bg-black">
-                  <iframe
-                    src={youtubeEmbedUrl}
-                    title={`${itemLabel} YouTube preview`}
-                    className="aspect-video w-full"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                    allowFullScreen
-                  />
+                  {isPortraitYouTubeEmbed ? (
+                    <div className="bg-black p-2">
+                      <iframe
+                        src={youtubeEmbedUrl}
+                        title={`${itemLabel} YouTube Shorts preview`}
+                        className="w-full"
+                        style={{ height: "min(52dvh, 30rem)" }}
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                        allowFullScreen
+                      />
+                    </div>
+                  ) : (
+                    <iframe
+                      src={youtubeEmbedUrl}
+                      title={`${itemLabel} YouTube preview`}
+                      className="aspect-video w-full"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                      allowFullScreen
+                    />
+                  )}
                 </div>
               )}
               {spotifyEmbedUrl && (
@@ -422,16 +516,18 @@ export function ItemSourceModal({
               )}
               {activeProvider === null && externalEmbedUrl && (
                 <div className="overflow-hidden rounded-lg border border-neutral-800 bg-black">
-                  {externalSourceKind === "IMAGE" ? (
+                  {externalEmbedType === "image" ? (
                     <img
                       src={externalEmbedUrl}
                       alt={`${itemLabel} source preview`}
                       className="max-h-[28rem] w-full object-contain"
                     />
-                  ) : externalSourceKind === "VIDEO" ? (
+                  ) : externalEmbedType === "video" ? (
+                    // biome-ignore lint/a11y/useMediaCaption: External direct-media URLs usually do not ship caption tracks.
                     <video src={externalEmbedUrl} className="max-h-[28rem] w-full" controls />
-                  ) : externalSourceKind === "AUDIO" ? (
+                  ) : externalEmbedType === "audio" ? (
                     <div className="p-3">
+                      {/* biome-ignore lint/a11y/useMediaCaption: External direct-media URLs usually do not ship caption tracks. */}
                       <audio src={externalEmbedUrl} className="w-full" controls />
                     </div>
                   ) : externalSourceKind === "SOUNDCLOUD" ? (
@@ -446,28 +542,27 @@ export function ItemSourceModal({
                       referrerPolicy="no-referrer"
                     />
                   ) : (
-                    <iframe
-                      src={externalEmbedUrl}
-                      title={`${itemLabel} source preview`}
-                      className="aspect-video w-full"
-                      allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; fullscreen"
-                      loading="lazy"
-                      sandbox="allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-scripts allow-presentation"
-                      referrerPolicy="no-referrer"
-                    />
+                    <div className="bg-black p-2">
+                      <iframe
+                        src={externalEmbedUrl}
+                        title={`${itemLabel} source preview`}
+                        className={externalIframeClassName}
+                        style={externalIframeStyle}
+                        allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; fullscreen"
+                        loading="lazy"
+                        sandbox="allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-scripts allow-presentation"
+                        referrerPolicy="no-referrer"
+                      />
+                    </div>
                   )}
                 </div>
               )}
               {activeProvider === null && externalPreviewNote && (
-                <p className="text-xs text-neutral-500">
-                  {externalPreviewNote}
-                </p>
+                <p className="text-xs text-neutral-500">{externalPreviewNote}</p>
               )}
             </div>
           ) : hasInvalidDraftSource ? (
-            <p className="text-sm text-neutral-500">
-              Invalid URL. Use a full http(s) link.
-            </p>
+            <p className="text-sm text-neutral-500">Invalid URL. Use a full http(s) link.</p>
           ) : (
             <p className="text-sm text-neutral-500">No source link added yet.</p>
           )}
@@ -486,6 +581,35 @@ export function ItemSourceModal({
           </Button>
         )}
       </div>
+
+      {showExpandedPreview && expandedPreviewUrl && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-3">
+          <div className="w-[min(calc(100vw-1.5rem),32rem)] rounded-xl border border-neutral-700 bg-neutral-900 p-3 shadow-2xl">
+            <div className="mb-2 flex items-center justify-between gap-2">
+              <p className="text-sm font-semibold text-neutral-100">Large Preview</p>
+              <Button
+                variant="secondary"
+                onClick={() => setShowExpandedPreview(false)}
+                className="h-8 px-3 text-xs"
+              >
+                Close preview
+              </Button>
+            </div>
+            <div className="overflow-hidden rounded-lg border border-neutral-800 bg-black p-1">
+              <iframe
+                src={expandedPreviewUrl}
+                title={`${itemLabel} large source preview`}
+                className="w-full"
+                style={{ height: "min(82dvh, 56rem)" }}
+                allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; fullscreen"
+                loading="lazy"
+                sandbox="allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-scripts allow-presentation"
+                referrerPolicy="no-referrer"
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </dialog>
   );
 }

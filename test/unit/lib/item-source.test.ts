@@ -8,8 +8,8 @@ import {
   normalizeItemSourceNote,
   parseAnyItemSource,
   parseSupportedItemSource,
-  resolveSourceIntervalForWrite,
   resolveItemSourceForWrite,
+  resolveSourceIntervalForWrite,
 } from "@/lib/item-source";
 
 describe("item source utils", () => {
@@ -22,6 +22,19 @@ describe("item source utils", () => {
       embedUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ",
       thumbnailUrl: "https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg",
       youtubeVideoId: "dQw4w9WgXcQ",
+      youtubeContentKind: "VIDEO",
+    });
+  });
+
+  it("preserves YouTube Shorts links as shorts and tags content kind", () => {
+    const parsed = parseSupportedItemSource("https://www.youtube.com/shorts/dQw4w9WgXcQ");
+    expect(parsed).toEqual({
+      provider: "YOUTUBE",
+      normalizedUrl: "https://www.youtube.com/shorts/dQw4w9WgXcQ",
+      embedUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ",
+      thumbnailUrl: "https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg",
+      youtubeVideoId: "dQw4w9WgXcQ",
+      youtubeContentKind: "SHORTS",
     });
   });
 
@@ -36,6 +49,7 @@ describe("item source utils", () => {
       embedUrl: "https://open.spotify.com/embed/track/4uLU6hMCjMI75M1A2tKUQC",
       thumbnailUrl: null,
       youtubeVideoId: null,
+      youtubeContentKind: null,
     });
   });
 
@@ -60,6 +74,7 @@ describe("item source utils", () => {
       embedUrl: null,
       thumbnailUrl: null,
       youtubeVideoId: null,
+      youtubeContentKind: null,
     });
   });
 
@@ -72,9 +87,7 @@ describe("item source utils", () => {
   });
 
   it("detects and builds SoundCloud embeds", () => {
-    expect(detectExternalSourceKind("https://soundcloud.com/artist/track-name")).toBe(
-      "SOUNDCLOUD",
-    );
+    expect(detectExternalSourceKind("https://soundcloud.com/artist/track-name")).toBe("SOUNDCLOUD");
     expect(detectExternalSourceKind("https://on.soundcloud.com/fLgl2lu5Ji84fMZUIr")).toBe(
       "SOUNDCLOUD",
     );
@@ -91,7 +104,10 @@ describe("item source utils", () => {
       buildExternalSourceEmbedUrl("https://www.twitch.tv/videos/2211037881", "localhost"),
     ).toContain("player.twitch.tv");
     expect(
-      buildExternalSourceEmbedUrl("https://www.twitch.tv/somechannel/clip/FancyClipSlug", "localhost"),
+      buildExternalSourceEmbedUrl(
+        "https://www.twitch.tv/somechannel/clip/FancyClipSlug",
+        "localhost",
+      ),
     ).toContain("clips.twitch.tv/embed?clip=FancyClipSlug");
   });
 
@@ -104,11 +120,25 @@ describe("item source utils", () => {
 
   it("detects problematic social hosts as external kinds", () => {
     expect(detectExternalSourceKind("https://x.com/user/status/1")).toBe("X");
+    expect(buildExternalSourceEmbedUrl("https://x.com/user/status/1895463212345678901")).toBe(
+      "https://platform.twitter.com/embed/Tweet.html?id=1895463212345678901&dnt=true",
+    );
     expect(detectExternalSourceKind("https://www.facebook.com/story.php?story_fbid=1&id=2")).toBe(
       "FACEBOOK",
     );
     expect(detectExternalSourceKind("https://www.instagram.com/p/abc123")).toBe("INSTAGRAM");
+    expect(buildExternalSourceEmbedUrl("https://www.instagram.com/p/C6K7Xx1Sabc/")).toBe(
+      "https://www.instagram.com/p/C6K7Xx1Sabc/embed",
+    );
+    expect(buildExternalSourceEmbedUrl("https://www.instagram.com/reel/DUGPTUUjFx0/")).toBe(
+      "https://www.instagram.com/reel/DUGPTUUjFx0/embed?autoplay=1",
+    );
     expect(detectExternalSourceKind("https://www.tiktok.com/@user/video/1")).toBe("TIKTOK");
+    expect(
+      buildExternalSourceEmbedUrl("https://www.tiktok.com/@artist/video/7481928374655643001"),
+    ).toBe(
+      "https://www.tiktok.com/player/v1/7481928374655643001?autoplay=1&loop=1&description=0&music_info=0&rel=0",
+    );
   });
 
   it("clears source fields when URL is null/blank", () => {
@@ -161,6 +191,9 @@ describe("item source utils", () => {
     );
     expect(buildYouTubeEmbedUrl("dQw4w9WgXcQ", null, null)).toBe(
       "https://www.youtube.com/embed/dQw4w9WgXcQ",
+    );
+    expect(buildYouTubeEmbedUrl("dQw4w9WgXcQ", null, null, "SHORTS")).toBe(
+      "https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1&mute=1&loop=1&playlist=dQw4w9WgXcQ&playsinline=1",
     );
   });
 });

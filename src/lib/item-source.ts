@@ -12,6 +12,19 @@ export type ExternalSourceKind =
   | "INSTAGRAM"
   | "TIKTOK"
   | "GENERIC";
+export type ExternalSourceResolver =
+  | "SOUNDCLOUD_OEMBED"
+  | "TIKTOK_OEMBED"
+  | "X_OEMBED"
+  | "INSTAGRAM_OEMBED";
+export type ExternalSourcePreviewMode = "INLINE_EMBED" | "DIRECT_MEDIA" | "RESOLVER" | "NONE";
+
+export interface ExternalSourceCapability {
+  label: string;
+  previewMode: ExternalSourcePreviewMode;
+  resolver: ExternalSourceResolver | null;
+  fallbackNote: string | null;
+}
 
 export interface ParsedItemSource {
   provider: ItemSourceProvider | null;
@@ -19,6 +32,7 @@ export interface ParsedItemSource {
   embedUrl: string | null;
   thumbnailUrl: string | null;
   youtubeVideoId: string | null;
+  youtubeContentKind: "VIDEO" | "SHORTS" | null;
 }
 
 const SUPPORTED_YOUTUBE_HOSTS = new Set([
@@ -65,11 +79,90 @@ const SUPPORTED_SPOTIFY_RESOURCE_TYPES = new Set([
 
 const YOUTUBE_VIDEO_ID_RE = /^[A-Za-z0-9_-]{11}$/;
 const SPOTIFY_RESOURCE_ID_RE = /^[A-Za-z0-9]{22}$/;
+const X_STATUS_ID_RE = /^\d{5,}$/;
+const INSTAGRAM_MEDIA_CODE_RE = /^[A-Za-z0-9_-]{5,}$/;
+const TIKTOK_VIDEO_ID_RE = /^\d{6,}$/;
 const IMAGE_FILE_EXT_RE = /\.(avif|gif|jpe?g|png|svg|webp)$/i;
 const VIDEO_FILE_EXT_RE = /\.(m3u8|mp4|mov|ogv|webm)$/i;
 const AUDIO_FILE_EXT_RE = /\.(aac|flac|m4a|mp3|ogg|wav)$/i;
 const PDF_FILE_EXT_RE = /\.pdf$/i;
 export const MAX_SOURCE_INTERVAL_SECONDS = 2_147_483_647;
+
+const EXTERNAL_SOURCE_CAPABILITIES: Record<ExternalSourceKind, ExternalSourceCapability> = {
+  VIMEO: {
+    label: "Vimeo",
+    previewMode: "INLINE_EMBED",
+    resolver: null,
+    fallbackNote: null,
+  },
+  SOUNDCLOUD: {
+    label: "SoundCloud",
+    previewMode: "RESOLVER",
+    resolver: "SOUNDCLOUD_OEMBED",
+    fallbackNote: "Loading SoundCloud preview... If it does not appear, use Open source.",
+  },
+  TWITCH: {
+    label: "Twitch",
+    previewMode: "INLINE_EMBED",
+    resolver: null,
+    fallbackNote:
+      "Twitch preview needs a valid app hostname; use Open source if it does not render.",
+  },
+  IMAGE: {
+    label: "Image",
+    previewMode: "DIRECT_MEDIA",
+    resolver: null,
+    fallbackNote: null,
+  },
+  VIDEO: {
+    label: "Video",
+    previewMode: "DIRECT_MEDIA",
+    resolver: null,
+    fallbackNote: null,
+  },
+  AUDIO: {
+    label: "Audio",
+    previewMode: "DIRECT_MEDIA",
+    resolver: null,
+    fallbackNote: null,
+  },
+  PDF: {
+    label: "PDF",
+    previewMode: "NONE",
+    resolver: null,
+    fallbackNote: "PDF preview is often blocked by browser or site policy. Use Open source.",
+  },
+  X: {
+    label: "X",
+    previewMode: "INLINE_EMBED",
+    resolver: null,
+    fallbackNote: "X preview may be blocked by browser or site policy. Use Open source.",
+  },
+  FACEBOOK: {
+    label: "Facebook",
+    previewMode: "NONE",
+    resolver: null,
+    fallbackNote: "Facebook commonly blocks iframe preview here. Use Open source.",
+  },
+  INSTAGRAM: {
+    label: "Instagram",
+    previewMode: "INLINE_EMBED",
+    resolver: null,
+    fallbackNote: "Instagram preview may be blocked by browser or site policy. Use Open source.",
+  },
+  TIKTOK: {
+    label: "TikTok",
+    previewMode: "RESOLVER",
+    resolver: "TIKTOK_OEMBED",
+    fallbackNote: "TikTok preview may be blocked by browser or site policy. Use Open source.",
+  },
+  GENERIC: {
+    label: "External link",
+    previewMode: "NONE",
+    resolver: null,
+    fallbackNote: "No inline preview for this link type yet.",
+  },
+};
 
 function parseHttpSourceUrl(inputUrl: string): URL | null {
   let parsedUrl: URL;
@@ -115,13 +208,18 @@ function getYouTubeVideoId(url: URL): string | null {
 function parseYouTubeSource(url: URL): ParsedItemSource | null {
   const videoId = getYouTubeVideoId(url);
   if (!videoId) return null;
+  const segments = url.pathname.split("/").filter(Boolean);
+  const isShortsSource = segments[0] === "shorts";
 
   return {
     provider: "YOUTUBE",
-    normalizedUrl: `https://www.youtube.com/watch?v=${videoId}`,
+    normalizedUrl: isShortsSource
+      ? `https://www.youtube.com/shorts/${videoId}`
+      : `https://www.youtube.com/watch?v=${videoId}`,
     embedUrl: `https://www.youtube.com/embed/${videoId}`,
     thumbnailUrl: `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
     youtubeVideoId: videoId,
+    youtubeContentKind: isShortsSource ? "SHORTS" : "VIDEO",
   };
 }
 
@@ -142,6 +240,7 @@ function parseSpotifySource(url: URL): ParsedItemSource | null {
     embedUrl: `https://open.spotify.com/embed/${resourceType}/${resourceId}`,
     thumbnailUrl: null,
     youtubeVideoId: null,
+    youtubeContentKind: null,
   };
 }
 
@@ -212,6 +311,49 @@ function buildTwitchEmbedUrl(url: URL, parentHostname: string): string | null {
   return `https://player.twitch.tv/?channel=${encodeURIComponent(channelName)}&parent=${encodedParent}`;
 }
 
+function getXStatusId(url: URL): string | null {
+  const host = url.hostname.toLowerCase();
+  if (!SUPPORTED_X_HOSTS.has(host)) return null;
+
+  const segments = url.pathname.split("/").filter(Boolean);
+  const statusIndex = segments.indexOf("status");
+  if (statusIndex < 0) return null;
+  const candidate = segments[statusIndex + 1];
+  return candidate && X_STATUS_ID_RE.test(candidate) ? candidate : null;
+}
+
+function getInstagramMedia(url: URL): { type: "p" | "reel" | "tv"; code: string } | null {
+  const host = url.hostname.toLowerCase();
+  if (!SUPPORTED_INSTAGRAM_HOSTS.has(host)) return null;
+
+  const segments = url.pathname.split("/").filter(Boolean);
+  if (segments.length < 2) return null;
+  const [rawType, code] = segments;
+  const type =
+    rawType === "p"
+      ? "p"
+      : rawType === "reel" || rawType === "reels"
+        ? "reel"
+        : rawType === "tv"
+          ? "tv"
+          : null;
+  if (!type || !INSTAGRAM_MEDIA_CODE_RE.test(code ?? "")) return null;
+
+  return { type, code };
+}
+
+function getTikTokVideoId(url: URL): string | null {
+  const host = url.hostname.toLowerCase();
+  if (!SUPPORTED_TIKTOK_HOSTS.has(host) || host === "vm.tiktok.com") return null;
+
+  const segments = url.pathname.split("/").filter(Boolean);
+  if (segments.length < 3 || !segments[0]?.startsWith("@")) return null;
+  if (segments[1] !== "video") return null;
+
+  const videoId = segments[2];
+  return videoId && TIKTOK_VIDEO_ID_RE.test(videoId) ? videoId : null;
+}
+
 export function parseAnyItemSource(inputUrl: string): ParsedItemSource | null {
   const trimmed = inputUrl.trim();
   if (!trimmed) return null;
@@ -228,10 +370,13 @@ export function parseAnyItemSource(inputUrl: string): ParsedItemSource | null {
     embedUrl: null,
     thumbnailUrl: null,
     youtubeVideoId: null,
+    youtubeContentKind: null,
   };
 }
 
-export function detectExternalSourceKind(sourceUrl: string | null | undefined): ExternalSourceKind | null {
+export function detectExternalSourceKind(
+  sourceUrl: string | null | undefined,
+): ExternalSourceKind | null {
   if (!sourceUrl) return null;
 
   const parsedUrl = parseHttpSourceUrl(sourceUrl.trim());
@@ -273,41 +418,39 @@ export function buildExternalSourceEmbedUrl(
   if (kind === "TWITCH") {
     return buildTwitchEmbedUrl(parsedUrl, parentHostname?.trim() ?? "");
   }
+  if (kind === "X") {
+    const statusId = getXStatusId(parsedUrl);
+    return statusId
+      ? `https://platform.twitter.com/embed/Tweet.html?id=${encodeURIComponent(statusId)}&dnt=true`
+      : null;
+  }
+  if (kind === "INSTAGRAM") {
+    const media = getInstagramMedia(parsedUrl);
+    if (!media) return null;
+    const base = `https://www.instagram.com/${media.type}/${media.code}/embed`;
+    return media.type === "reel" ? `${base}?autoplay=1` : base;
+  }
+  if (kind === "TIKTOK") {
+    const videoId = getTikTokVideoId(parsedUrl);
+    return videoId
+      ? `https://www.tiktok.com/player/v1/${encodeURIComponent(videoId)}?autoplay=1&loop=1&description=0&music_info=0&rel=0`
+      : null;
+  }
   if (kind === "IMAGE" || kind === "VIDEO" || kind === "AUDIO") {
     return parsedUrl.toString();
   }
   return null;
 }
 
+export function getExternalSourceCapability(
+  kind: ExternalSourceKind | null | undefined,
+): ExternalSourceCapability | null {
+  if (!kind) return null;
+  return EXTERNAL_SOURCE_CAPABILITIES[kind];
+}
+
 export function getExternalSourceKindLabel(kind: ExternalSourceKind | null): string | null {
-  switch (kind) {
-    case "VIMEO":
-      return "Vimeo";
-    case "SOUNDCLOUD":
-      return "SoundCloud";
-    case "TWITCH":
-      return "Twitch";
-    case "IMAGE":
-      return "Image";
-    case "VIDEO":
-      return "Video";
-    case "AUDIO":
-      return "Audio";
-    case "PDF":
-      return "PDF";
-    case "X":
-      return "X";
-    case "FACEBOOK":
-      return "Facebook";
-    case "INSTAGRAM":
-      return "Instagram";
-    case "TIKTOK":
-      return "TikTok";
-    case "GENERIC":
-      return "External link";
-    default:
-      return null;
-  }
+  return getExternalSourceCapability(kind)?.label ?? null;
 }
 
 export const INVALID_ITEM_SOURCE_MESSAGE = "Enter a valid http(s) URL.";
@@ -395,8 +538,16 @@ export function buildYouTubeEmbedUrl(
   videoId: string,
   sourceStartSec: number | null | undefined,
   sourceEndSec: number | null | undefined,
+  youtubeContentKind: "VIDEO" | "SHORTS" | null = null,
 ) {
   const params = new URLSearchParams();
+  if (youtubeContentKind === "SHORTS") {
+    params.set("autoplay", "1");
+    params.set("mute", "1");
+    params.set("loop", "1");
+    params.set("playlist", videoId);
+    params.set("playsinline", "1");
+  }
   if (typeof sourceStartSec === "number" && sourceStartSec >= 0) {
     params.set("start", String(Math.floor(sourceStartSec)));
   }

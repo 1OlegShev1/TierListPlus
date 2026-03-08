@@ -22,7 +22,6 @@ export function useResultsDetailsPanel({
   const detailsPanelRef = useRef<HTMLDivElement | null>(null);
   const wasDetailsOpenRef = useRef(false);
   const touchStartRef = useRef<{ id: string; x: number; y: number } | null>(null);
-
   const isIndividualView = !!participantId;
 
   useEffect(() => {
@@ -40,7 +39,7 @@ export function useResultsDetailsPanel({
     const justOpened = detailsOpen && !wasDetailsOpenRef.current;
     wasDetailsOpenRef.current = detailsOpen;
 
-    if (!justOpened || !detailsItem || participantId || initialParticipantError) {
+    if (!justOpened || !detailsItem || isIndividualView || initialParticipantError) {
       return;
     }
 
@@ -73,10 +72,10 @@ export function useResultsDetailsPanel({
       window.cancelAnimationFrame(raf1);
       window.cancelAnimationFrame(raf2);
     };
-  }, [detailsItem, detailsOpen, initialParticipantError, isTouchInput, participantId]);
+  }, [detailsItem, detailsOpen, initialParticipantError, isIndividualView, isTouchInput]);
 
   useEffect(() => {
-    if (participantId) {
+    if (isIndividualView) {
       setDetailsOpen(false);
       setDetailsItem(null);
       return;
@@ -95,14 +94,30 @@ export function useResultsDetailsPanel({
       setDetailsItem(null);
     }, DETAILS_PANEL_ANIMATION_MS);
     return () => window.clearTimeout(timeout);
-  }, [participantId, selectedItem]);
+  }, [isIndividualView, selectedItem]);
 
-  const handleItemSelect = useCallback(
+  useEffect(() => {
+    if (!isIndividualView || !selectedItem) return;
+
+    const collapseSelected = (event: PointerEvent) => {
+      if (!(event.target instanceof Element)) return;
+      if (event.target.closest('[data-peek-item="true"]')) return;
+      setSelectedItem(null);
+    };
+
+    document.addEventListener("pointerdown", collapseSelected, true);
+    return () => document.removeEventListener("pointerdown", collapseSelected, true);
+  }, [isIndividualView, selectedItem]);
+
+  const handleItemSelect = useCallback((item: ConsensusItem) => {
+    setSelectedItem((current) => (current?.id === item.id ? null : item));
+  }, []);
+
+  const handleItemToggle = useCallback(
     (item: ConsensusItem) => {
-      if (isIndividualView) return;
-      setSelectedItem((current) => (current?.id === item.id ? null : item));
+      handleItemSelect(item);
     },
-    [isIndividualView],
+    [handleItemSelect],
   );
 
   const handleItemClick = useCallback(
@@ -115,17 +130,17 @@ export function useResultsDetailsPanel({
 
   const handleItemTouchStart = useCallback(
     (itemId: string, event: TouchEvent<HTMLButtonElement>) => {
-      if (isIndividualView || !isTouchInput) return;
+      if (!isTouchInput) return;
       const touch = event.touches[0];
       if (!touch) return;
       touchStartRef.current = { id: itemId, x: touch.clientX, y: touch.clientY };
     },
-    [isIndividualView, isTouchInput],
+    [isTouchInput],
   );
 
   const handleItemTouchEnd = useCallback(
     (item: ConsensusItem, event: TouchEvent<HTMLButtonElement>) => {
-      if (isIndividualView || !isTouchInput) return;
+      if (!isTouchInput) return;
       const touch = event.changedTouches[0];
       const start = touchStartRef.current;
       touchStartRef.current = null;
@@ -136,7 +151,7 @@ export function useResultsDetailsPanel({
       event.preventDefault();
       handleItemSelect(item);
     },
-    [handleItemSelect, isIndividualView, isTouchInput],
+    [handleItemSelect, isTouchInput],
   );
 
   const handleItemTouchCancel = useCallback(() => {
@@ -149,6 +164,7 @@ export function useResultsDetailsPanel({
     detailsOpen,
     detailsPanelRef,
     isTouchInput,
+    handleItemToggle,
     handleItemClick,
     handleItemTouchStart,
     handleItemTouchEnd,
