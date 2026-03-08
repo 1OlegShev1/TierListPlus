@@ -17,7 +17,6 @@ require_command() {
 }
 
 require_command ssh
-require_command rsync
 
 if ! ssh -o BatchMode=yes -o ConnectTimeout=8 -o StrictHostKeyChecking=accept-new "${REMOTE_HOST}" "exit 0" >/dev/null 2>&1; then
   echo "Cannot reach ${REMOTE_HOST} over SSH." >&2
@@ -29,22 +28,61 @@ echo "Deploying ${REPO_ROOT} -> ${REMOTE_HOST}:${REMOTE_DIR}"
 
 ssh "${REMOTE_HOST}" "sudo mkdir -p '${REMOTE_DIR}'"
 
-rsync -rlptDz --delete \
-  --rsync-path="sudo rsync" \
-  --exclude '.git' \
-  --exclude '.claude' \
-  --exclude '.env' \
-  --exclude '.env.production.example' \
-  --exclude '.env.production' \
-  --exclude 'node_modules' \
-  --exclude '.next' \
-  --exclude 'output' \
-  --exclude 'docs' \
-  --exclude 'CLAUDE.md' \
-  --exclude 'docker-compose.yml' \
-  --exclude '*.tsbuildinfo' \
-  --exclude 'public/uploads/*' \
-  "${REPO_ROOT}/" "${REMOTE_HOST}:${REMOTE_DIR}/"
+if command -v rsync >/dev/null 2>&1; then
+  rsync -rlptDz --delete \
+    --rsync-path="sudo rsync" \
+    --exclude '.git' \
+    --exclude '.claude' \
+    --exclude '.env' \
+    --exclude '.env.production.example' \
+    --exclude '.env.production' \
+    --exclude 'node_modules' \
+    --exclude '.next' \
+    --exclude 'output' \
+    --exclude 'docs' \
+    --exclude 'CLAUDE.md' \
+    --exclude 'docker-compose.yml' \
+    --exclude '*.tsbuildinfo' \
+    --exclude 'public/uploads/*' \
+    "${REPO_ROOT}/" "${REMOTE_HOST}:${REMOTE_DIR}/"
+else
+  require_command tar
+  STAGE_DIR="/tmp/tierlistplus-sync-$(date +%s)-$$"
+  echo "rsync not found; falling back to tar-over-ssh sync."
+
+  ssh "${REMOTE_HOST}" "sudo rm -rf '${STAGE_DIR}' && sudo mkdir -p '${STAGE_DIR}'"
+
+  tar -C "${REPO_ROOT}" -cf - \
+    --exclude '.git' \
+    --exclude '.claude' \
+    --exclude '.env' \
+    --exclude '.env.production.example' \
+    --exclude '.env.production' \
+    --exclude 'node_modules' \
+    --exclude '.next' \
+    --exclude 'output' \
+    --exclude 'docs' \
+    --exclude 'CLAUDE.md' \
+    --exclude 'docker-compose.yml' \
+    --exclude '*.tsbuildinfo' \
+    --exclude 'public/uploads/*' \
+    . | ssh "${REMOTE_HOST}" "sudo tar -xf - -C '${STAGE_DIR}'"
+
+  ssh "${REMOTE_HOST}" "
+    sudo bash -lc '
+      set -euo pipefail
+      stage=\"${STAGE_DIR}\"
+      dest=\"${REMOTE_DIR}\"
+      mkdir -p \"\$dest\"
+      if [ -f \"\$dest/.env.production\" ]; then
+        cp \"\$dest/.env.production\" \"\$stage/.env.production\"
+      fi
+      find \"\$dest\" -mindepth 1 -maxdepth 1 -exec rm -rf {} +
+      cp -a \"\$stage\"/. \"\$dest\"/
+      rm -rf \"\$stage\"
+    '
+  "
+fi
 
 ssh "${REMOTE_HOST}" "
   sudo bash -lc '
