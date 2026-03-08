@@ -1,11 +1,29 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-REMOTE_HOST="${1:-tieradmin@46.62.140.254}"
+REMOTE_HOST="${1:-tieradmin@100.120.76.1}"
 REMOTE_DIR="${2:-/opt/tierlistplus}"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+
+require_command() {
+  local cmd="$1"
+  if ! command -v "${cmd}" >/dev/null 2>&1; then
+    echo "Missing required command: ${cmd}" >&2
+    echo "Install it in the shell you use for deploy (recommended: WSL Debian)." >&2
+    exit 1
+  fi
+}
+
+require_command ssh
+require_command rsync
+
+if ! ssh -o BatchMode=yes -o ConnectTimeout=8 -o StrictHostKeyChecking=accept-new "${REMOTE_HOST}" "exit 0" >/dev/null 2>&1; then
+  echo "Cannot reach ${REMOTE_HOST} over SSH." >&2
+  echo "Check: Tailscale running, host reachable on tailnet, and SSH auth configured." >&2
+  exit 1
+fi
 
 echo "Deploying ${REPO_ROOT} -> ${REMOTE_HOST}:${REMOTE_DIR}"
 
