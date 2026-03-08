@@ -1,5 +1,6 @@
 import type { SpaceAccentColor } from "@prisma/client";
 import { canReadSpace } from "@/domain/policy/access";
+import { getTemplateForRead } from "@/domain/templates/service";
 import { resolveSpaceAccessContext } from "@/domain/policy/resolvers";
 import { badRequest, forbidden, notFound } from "@/lib/api-helpers";
 import { generateSpaceInviteCode } from "@/lib/nanoid";
@@ -517,6 +518,47 @@ export async function createSpaceTemplate(
       creatorId: requestUserId,
       isPublic: false,
       spaceId,
+    },
+  });
+}
+
+export async function importTemplateIntoSpace(
+  spaceId: string,
+  requestUserId: string | null,
+  sourceTemplateId: string,
+) {
+  const access = await resolveSpaceAccessContext(spaceId, requestUserId);
+  if (!access) {
+    notFound("Space not found");
+  }
+  if (!access.isMember || !requestUserId) {
+    forbidden("You must join this space first");
+  }
+
+  const source = await getTemplateForRead(sourceTemplateId, requestUserId);
+  if (source.spaceId) {
+    badRequest("Only personal or public lists can be copied into a space");
+  }
+
+  return prisma.template.create({
+    data: {
+      name: source.name,
+      description: source.description,
+      creatorId: requestUserId,
+      isPublic: false,
+      spaceId,
+      items: {
+        create: source.items.map((item) => ({
+          label: item.label,
+          imageUrl: item.imageUrl,
+          sourceUrl: item.sourceUrl,
+          sourceProvider: item.sourceProvider,
+          sourceNote: item.sourceNote,
+          sourceStartSec: item.sourceStartSec,
+          sourceEndSec: item.sourceEndSec,
+          sortOrder: item.sortOrder,
+        })),
+      },
     },
   });
 }

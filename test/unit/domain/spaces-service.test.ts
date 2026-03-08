@@ -1,5 +1,6 @@
 const mocks = vi.hoisted(() => ({
   resolveSpaceAccessContext: vi.fn(),
+  getTemplateForRead: vi.fn(),
   tryDeleteManagedUploadIfUnreferenced: vi.fn(),
   prisma: {
     $transaction: vi.fn(),
@@ -25,6 +26,10 @@ vi.mock("@/domain/policy/resolvers", () => ({
   resolveSpaceAccessContext: mocks.resolveSpaceAccessContext,
 }));
 
+vi.mock("@/domain/templates/service", () => ({
+  getTemplateForRead: mocks.getTemplateForRead,
+}));
+
 vi.mock("@/lib/prisma", () => ({
   prisma: mocks.prisma,
 }));
@@ -38,6 +43,7 @@ import { listSpaceMembers } from "@/domain/spaces/service";
 describe("spaces service", () => {
   beforeEach(() => {
     mocks.resolveSpaceAccessContext.mockReset();
+    mocks.getTemplateForRead.mockReset();
     mocks.tryDeleteManagedUploadIfUnreferenced.mockReset().mockResolvedValue(true);
     mocks.prisma.$transaction.mockReset();
     mocks.prisma.space.update.mockReset();
@@ -209,6 +215,102 @@ describe("spaces service", () => {
         spaceId: "space_1",
       },
     });
+  });
+
+  it("copies an accessible personal/public list into the space for members", async () => {
+    mocks.resolveSpaceAccessContext.mockResolvedValue({
+      id: "space_1",
+      name: "Open Space",
+      visibility: "OPEN",
+      creatorId: "owner_1",
+      memberRole: "MEMBER",
+      isMember: true,
+      isOwner: false,
+    });
+    mocks.getTemplateForRead.mockResolvedValue({
+      id: "template_source",
+      name: "Starter pack",
+      description: "Top picks",
+      isPublic: true,
+      spaceId: null,
+      items: [
+        {
+          label: "A",
+          imageUrl: "/a.webp",
+          sourceUrl: null,
+          sourceProvider: null,
+          sourceNote: null,
+          sourceStartSec: null,
+          sourceEndSec: null,
+          sortOrder: 0,
+        },
+      ],
+    });
+    mocks.prisma.template.create.mockResolvedValue({
+      id: "template_copy",
+      spaceId: "space_1",
+      creatorId: "user_2",
+      name: "Starter pack",
+      isPublic: false,
+    });
+
+    const { importTemplateIntoSpace } = await import("@/domain/spaces/service");
+    const result = await importTemplateIntoSpace("space_1", "user_2", "template_source");
+
+    expect(result).toEqual(expect.objectContaining({ id: "template_copy", spaceId: "space_1" }));
+    expect(mocks.getTemplateForRead).toHaveBeenCalledWith("template_source", "user_2");
+    expect(mocks.prisma.template.create).toHaveBeenCalledWith({
+      data: {
+        name: "Starter pack",
+        description: "Top picks",
+        creatorId: "user_2",
+        isPublic: false,
+        spaceId: "space_1",
+        items: {
+          create: [
+            {
+              label: "A",
+              imageUrl: "/a.webp",
+              sourceUrl: null,
+              sourceProvider: null,
+              sourceNote: null,
+              sourceStartSec: null,
+              sourceEndSec: null,
+              sortOrder: 0,
+            },
+          ],
+        },
+      },
+    });
+  });
+
+  it("rejects importing space-scoped lists into another space", async () => {
+    mocks.resolveSpaceAccessContext.mockResolvedValue({
+      id: "space_1",
+      name: "Open Space",
+      visibility: "OPEN",
+      creatorId: "owner_1",
+      memberRole: "MEMBER",
+      isMember: true,
+      isOwner: false,
+    });
+    mocks.getTemplateForRead.mockResolvedValue({
+      id: "template_source",
+      name: "Space source",
+      description: null,
+      isPublic: false,
+      spaceId: "space_other",
+      items: [],
+    });
+
+    const { importTemplateIntoSpace } = await import("@/domain/spaces/service");
+    await expect(importTemplateIntoSpace("space_1", "user_2", "template_source")).rejects.toEqual(
+      expect.objectContaining({
+        status: 400,
+        details: "Only personal or public lists can be copied into a space",
+      }),
+    );
+    expect(mocks.prisma.template.create).not.toHaveBeenCalled();
   });
 
   it("updates space customization and cleans up replaced logo", async () => {

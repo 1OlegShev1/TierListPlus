@@ -12,9 +12,34 @@ describe("source preview resolver", () => {
   it("returns native provider previews for YouTube", async () => {
     const result = await resolveSourcePreview("https://youtu.be/dQw4w9WgXcQ");
     expect(result.provider).toBe("YOUTUBE");
+    expect(result.youtubeContentKind).toBe("VIDEO");
     expect(result.embedUrl).toBe("https://www.youtube.com/embed/dQw4w9WgXcQ");
     expect(result.embedType).toBe("iframe");
     expect(result.resolvedBy).toBe("native");
+  });
+
+  it("promotes watch URLs to Shorts when oEmbed reports portrait dimensions", async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ width: 113, height: 200, thumbnail_url: "https://i.ytimg.com/hq2.jpg" }),
+    } as Response);
+
+    try {
+      const result = await resolveSourcePreview(
+        "https://www.youtube.com/watch?v=Jp46t341ijE",
+        null,
+        {
+          detectYouTubeContentKind: true,
+        },
+      );
+      expect(result.provider).toBe("YOUTUBE");
+      expect(result.youtubeContentKind).toBe("SHORTS");
+      expect(result.embedUrl).toBe("https://www.youtube.com/embed/Jp46t341ijE");
+      expect(result.resolvedBy).toBe("native");
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
   });
 
   it("returns native external embed for Vimeo", async () => {

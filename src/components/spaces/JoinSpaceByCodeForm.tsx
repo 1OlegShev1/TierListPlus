@@ -1,19 +1,23 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { ErrorMessage } from "@/components/ui/ErrorMessage";
 import { Input } from "@/components/ui/Input";
 import { useUser } from "@/hooks/useUser";
 import { apiPost, getErrorMessage } from "@/lib/api-client";
 
-export function JoinSpaceByCodeForm() {
+export function JoinSpaceByCodeForm({ initialCode = "" }: { initialCode?: string }) {
   const router = useRouter();
   const { userId, isLoading: userLoading } = useUser();
-  const [code, setCode] = useState("");
+  const [code, setCode] = useState(initialCode.toUpperCase());
   const [joining, setJoining] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setCode(initialCode.toUpperCase());
+  }, [initialCode]);
 
   const canJoin = !!userId && !userLoading && !joining && code.trim().length > 0;
 

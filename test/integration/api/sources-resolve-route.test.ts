@@ -77,7 +77,9 @@ describe("sources resolve route", () => {
     expect(response.status).toBe(200);
     expect(response.headers.get("cache-control")).toBe("private, max-age=60");
     await expect(response.json()).resolves.toEqual(resolvedPayload);
-    expect(mocks.resolveSourcePreview).toHaveBeenCalledWith(sourceUrl, "app.example.com");
+    expect(mocks.resolveSourcePreview).toHaveBeenCalledWith(sourceUrl, "app.example.com", {
+      detectYouTubeContentKind: true,
+    });
   });
 
   it("returns 400 when resolver throws", async () => {

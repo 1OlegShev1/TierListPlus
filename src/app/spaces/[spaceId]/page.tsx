@@ -154,10 +154,8 @@ export default async function SpaceDetailPage({
   const totalLists = counts?._count.templates ?? 0;
   const showVotesSeeAll = !votesExpanded && totalVotes > SPACE_LANDING_SECTION_LIMIT;
   const showListsSeeAll = !listsExpanded && totalLists > SPACE_LANDING_SECTION_LIMIT;
-  const sectionActionBaseClassName =
-    "inline-flex h-9 min-w-[7rem] shrink-0 self-start items-center justify-center rounded-md border px-3 text-sm font-medium transition-colors";
-  const sectionSecondaryActionClassName = `${sectionActionBaseClassName} border-neutral-700 bg-black text-neutral-100 hover:border-neutral-500 hover:bg-neutral-900`;
-  const sectionPrimaryActionClassName = `${sectionActionBaseClassName} border-amber-400 bg-amber-500 text-neutral-950 hover:border-amber-300 hover:bg-amber-400`;
+  const sectionSecondaryActionClassName = `${buttonVariants.secondary} !h-9 !min-w-[7rem] !self-start !px-3 !py-0 !text-sm !font-medium`;
+  const sectionPrimaryActionClassName = `${buttonVariants.primary} !h-9 !min-w-[7rem] !self-start !px-3 !py-0 !text-sm !font-medium`;
 
   return (
     <>
@@ -354,6 +352,14 @@ export default async function SpaceDetailPage({
               <div className="flex items-center gap-2">
                 {canCreateInSpace ? (
                   <Link
+                    href={`/spaces/${spaceId}/templates/import`}
+                    className={sectionSecondaryActionClassName}
+                  >
+                    Copy list
+                  </Link>
+                ) : null}
+                {canCreateInSpace ? (
+                  <Link
                     href={`/templates/new?spaceId=${spaceId}`}
                     className={sectionPrimaryActionClassName}
                   >
@@ -387,7 +393,10 @@ export default async function SpaceDetailPage({
             }
           />
           {visibleLists.length === 0 ? (
-            <EmptyState title="No lists yet" description="Create the first list for this space." />
+            <EmptyState
+              title="No lists yet"
+              description="Create the first list for this space, or copy a public list into it."
+            />
           ) : (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {visibleLists.map((list) => {

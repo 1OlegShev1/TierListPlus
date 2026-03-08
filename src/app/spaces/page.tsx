@@ -11,7 +11,17 @@ import { getSpaceAccentClasses } from "@/lib/space-theme";
 
 export const dynamic = "force-dynamic";
 
-export default async function SpacesPage() {
+type SearchParams = Record<string, string | string[] | undefined>;
+
+export default async function SpacesPage({
+  searchParams,
+}: {
+  searchParams?: Promise<SearchParams> | SearchParams;
+}) {
+  const resolvedSearchParams = (await searchParams) ?? {};
+  const joinCodeParam =
+    typeof resolvedSearchParams.joinCode === "string" ? resolvedSearchParams.joinCode : "";
+  const joinCode = joinCodeParam.trim().toUpperCase();
   const cookieStore = await cookies();
   const auth = await getCookieAuth(cookieStore);
   const userId = auth?.userId ?? null;
@@ -101,7 +111,10 @@ export default async function SpacesPage() {
         )}
       </section>
 
-      <SpaceActionPanel defaultOpen={mySpaces.length === 0} />
+      <SpaceActionPanel
+        defaultOpen={mySpaces.length === 0 || joinCode.length > 0}
+        defaultJoinCode={joinCode}
+      />
     </div>
   );
 }

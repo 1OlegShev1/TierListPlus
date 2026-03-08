@@ -13,6 +13,7 @@ export type SourcePreviewEmbedType = "iframe" | "image" | "video" | "audio" | nu
 export interface SourcePreviewResolution {
   sourceUrl: string;
   provider: ItemSourceProvider | null;
+  youtubeContentKind: "VIDEO" | "SHORTS" | null;
   kind: ExternalSourceKind | null;
   label: string;
   embedUrl: string | null;
@@ -24,6 +25,10 @@ export interface SourcePreviewResolution {
 interface CacheEntry {
   expiresAt: number;
   value: SourcePreviewResolution;
+}
+
+interface ResolveSourcePreviewOptions {
+  detectYouTubeContentKind?: boolean;
 }
 
 const PREVIEW_CACHE_TTL_MS = 5 * 60 * 1000;
@@ -51,8 +56,12 @@ const RESOLVER_EMBED_HOST_ALLOWLIST: Record<ExternalSourceResolver, Set<string>>
   INSTAGRAM_OEMBED: new Set(),
 };
 
-function getCacheKey(sourceUrl: string, parentHostname: string | null): string {
-  return `${sourceUrl}::${parentHostname ?? ""}`;
+function getCacheKey(
+  sourceUrl: string,
+  parentHostname: string | null,
+  detectYouTubeContentKind: boolean,
+): string {
+  return `${sourceUrl}::${parentHostname ?? ""}::ytkind:${detectYouTubeContentKind ? "1" : "0"}`;
 }
 
 function pruneCache(now: number) {
@@ -244,9 +253,46 @@ async function resolveEmbedUrlViaOEmbed(
   return null;
 }
 
+async function detectYouTubeContentKindViaOEmbed(
+  videoId: string,
+): Promise<"VIDEO" | "SHORTS" | null> {
+  const shortsUrl = `https://www.youtube.com/shorts/${videoId}`;
+  const oEmbedUrl = `https://www.youtube.com/oembed?format=json&url=${encodeURIComponent(shortsUrl)}`;
+  const response = await fetchWithTimeout(oEmbedUrl, {}, OEMBED_FETCH_TIMEOUT_MS);
+  if (!response?.ok) return null;
+
+  const payload = (await response.json()) as {
+    width?: unknown;
+    height?: unknown;
+    thumbnail_url?: unknown;
+  };
+  const width =
+    typeof payload.width === "number"
+      ? payload.width
+      : typeof payload.width === "string"
+        ? Number(payload.width)
+        : NaN;
+  const height =
+    typeof payload.height === "number"
+      ? payload.height
+      : typeof payload.height === "string"
+        ? Number(payload.height)
+        : NaN;
+  if (Number.isFinite(width) && Number.isFinite(height) && width > 0 && height > 0) {
+    return height > width ? "SHORTS" : "VIDEO";
+  }
+
+  if (typeof payload.thumbnail_url === "string" && payload.thumbnail_url.includes("/hq2")) {
+    return "SHORTS";
+  }
+
+  return null;
+}
+
 export async function resolveSourcePreview(
   inputUrl: string,
   parentHostname?: string | null,
+  options?: ResolveSourcePreviewOptions,
 ): Promise<SourcePreviewResolution> {
   const parsed = parseAnyItemSource(inputUrl);
   if (!parsed) {
@@ -255,14 +301,31 @@ export async function resolveSourcePreview(
 
   const now = Date.now();
   const normalizedParent = normalizeParentHostname(parentHostname ?? null);
-  const cacheKey = getCacheKey(parsed.normalizedUrl, normalizedParent);
+  const detectYouTubeContentKind = !!options?.detectYouTubeContentKind;
+  const cacheKey = getCacheKey(parsed.normalizedUrl, normalizedParent, detectYouTubeContentKind);
   const cached = getCachedValue(cacheKey, now);
   if (cached) return cached;
 
   if (parsed.provider === "YOUTUBE" || parsed.provider === "SPOTIFY") {
+    let youtubeContentKind: "VIDEO" | "SHORTS" | null = null;
+    if (parsed.provider === "YOUTUBE") {
+      youtubeContentKind = parsed.youtubeContentKind;
+      if (
+        detectYouTubeContentKind &&
+        parsed.youtubeVideoId &&
+        parsed.youtubeContentKind !== "SHORTS"
+      ) {
+        const detectedKind = await detectYouTubeContentKindViaOEmbed(parsed.youtubeVideoId);
+        if (detectedKind === "SHORTS") {
+          youtubeContentKind = "SHORTS";
+        }
+      }
+    }
+
     const directProviderResult: SourcePreviewResolution = {
       sourceUrl: parsed.normalizedUrl,
       provider: parsed.provider,
+      youtubeContentKind,
       kind: null,
       label: parsed.provider === "YOUTUBE" ? "YouTube" : "Spotify",
       embedUrl: parsed.embedUrl,
@@ -301,6 +364,7 @@ export async function resolveSourcePreview(
   const result: SourcePreviewResolution = {
     sourceUrl: parsed.normalizedUrl,
     provider: null,
+    youtubeContentKind: null,
     kind,
     label,
     embedUrl: embedUrl ?? null,

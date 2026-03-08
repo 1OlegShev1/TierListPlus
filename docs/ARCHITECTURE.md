@@ -209,6 +209,25 @@ No bracket trees or bracket votes are persisted server-side; bracket assist is l
 - `GET /api/sessions/[sessionId]/votes/[participantId]`
   - Returns 404 when participant has no submitted votes
 
+### Spaces
+- `GET/POST /api/spaces`
+  - Lists "my spaces" and discoverable open spaces
+  - Creates a new space (owner also gets owner membership row)
+- `GET/PATCH /api/spaces/[spaceId]`
+  - Read follows open/private space rules
+  - Patch is owner-only
+- `POST /api/spaces/join`
+  - Joins private space by invite code
+  - Invite code must be active, non-revoked, and unexpired
+- `GET/POST /api/spaces/[spaceId]/invite`
+  - Owner-only private-space invite retrieval/rotation
+- `GET/POST /api/spaces/[spaceId]/templates`
+  - Lists space templates by space readability
+  - Create requires space membership
+- `POST /api/spaces/[spaceId]/templates/import`
+  - Requires space membership
+  - Copies an accessible personal/public template (`source.spaceId = null`) into the space as editable space template
+
 ### Users and Dashboard
 - `POST /api/users`
 - `GET /api/users/session`
@@ -223,12 +242,20 @@ No bracket trees or bracket votes are persisted server-side; bracket assist is l
 Key paths:
 - `src/app/sessions/*`
   - `join`, `new`, `[sessionId]` (redirect), `[sessionId]/vote`, `[sessionId]/results`
+- `src/app/spaces/*`
+  - `page` (discover + join/create panel)
+  - `[spaceId]/page` (space hub)
+  - `[spaceId]/templates/import/page` (copy public/personal lists into space)
 - `src/components/tierlist/TierListBoard.tsx`
   - main vote UX, draft save, live session item editing for hidden working templates, session/per-tier bracket assist, submit
 - `src/components/bracket/BracketModal.tsx`
   - local bracket assist modal
 - `src/app/api/sessions/*`
   - privacy, lock, live item editing, template publish/copy, vote, and session controls
+- `src/components/spaces/SpaceInvitePanel.tsx`
+  - private invite share modal (copy code/link + QR)
+- `src/components/spaces/SpaceActionPanel.tsx`
+  - supports `joinCode` query prefill flow from `/spaces?joinCode=...`
 
 ## Run and Verify
 

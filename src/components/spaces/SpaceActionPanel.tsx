@@ -1,12 +1,24 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { CreateSpaceForm } from "@/components/spaces/CreateSpaceForm";
 import { JoinSpaceByCodeForm } from "@/components/spaces/JoinSpaceByCodeForm";
 import { ChevronDownIcon } from "@/components/ui/icons";
 
-export function SpaceActionPanel({ defaultOpen = false }: { defaultOpen?: boolean }) {
+export function SpaceActionPanel({
+  defaultOpen = false,
+  defaultJoinCode = "",
+}: {
+  defaultOpen?: boolean;
+  defaultJoinCode?: string;
+}) {
   const [open, setOpen] = useState(defaultOpen);
+
+  useEffect(() => {
+    if (defaultOpen) {
+      setOpen(true);
+    }
+  }, [defaultOpen]);
 
   return (
     <section
@@ -36,7 +48,7 @@ export function SpaceActionPanel({ defaultOpen = false }: { defaultOpen?: boolea
       {open ? (
         <div id="space-actions-content" className="mt-4 grid gap-4 lg:grid-cols-2">
           <CreateSpaceForm />
-          <JoinSpaceByCodeForm />
+          <JoinSpaceByCodeForm initialCode={defaultJoinCode} />
         </div>
       ) : null}
     </section>

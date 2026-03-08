@@ -74,7 +74,9 @@ export async function GET(request: Request) {
   }
 
   try {
-    const resolution = await resolveSourcePreview(sourceUrl, parent);
+    const resolution = await resolveSourcePreview(sourceUrl, parent, {
+      detectYouTubeContentKind: true,
+    });
     return NextResponse.json(resolution, {
       status: 200,
       headers: {

@@ -11,6 +11,7 @@ This covers:
 - Session state transitions (`OPEN`, `CLOSED`, `ARCHIVED`) and join lock (`isLocked`)
 - How permissions are enforced across layers (policy, resolver, API, page guards, UI)
 - Share-link behavior for open and closed votes
+- Share-link behavior for private space invites
 
 This does not cover:
 - Infrastructure/network security controls
@@ -82,6 +83,10 @@ Space templates (`spaceId != null`):
 - Visibility follows space readability
 - Mutate/delete:
   - `creator OR space owner` (service/API dependent by route)
+- Import/copy into space:
+  - Requires space membership
+  - Source template must be readable by requester
+  - Source must be personal/public (`source.spaceId = null`)
 
 Related files:
 - `src/domain/policy/access.ts`
@@ -89,6 +94,7 @@ Related files:
 - `src/lib/template-access.ts`
 - `src/app/api/templates/*`
 - `src/app/api/spaces/[spaceId]/templates/*`
+- `src/app/api/spaces/[spaceId]/templates/import/route.ts`
 
 ## Session (Vote) Permissions
 
@@ -181,6 +187,29 @@ Related files:
 - `src/components/sessions/ShareVoteButton.tsx`
 - `src/app/sessions/join/page.tsx`
 - `src/app/sessions/[sessionId]/results/page.tsx`
+
+## Space Invite Share-Link Behavior
+
+Share UI:
+- Space owner can generate/rotate private invite code
+- Owner can open share modal, copy code, copy full link, and share QR
+- Full link format: `/spaces?joinCode=<INVITE_CODE>`
+
+Landing behavior:
+- `/spaces` reads `joinCode` query param
+- "Create or Join" panel auto-expands and pre-fills Join Private Space code input
+- Joining still requires authenticated identity (`POST /api/spaces/join`)
+
+Security model:
+- Link only transports invite code
+- Access is still decided server-side by invite validity and space visibility rules
+
+Related files:
+- `src/components/spaces/SpaceInvitePanel.tsx`
+- `src/app/spaces/page.tsx`
+- `src/components/spaces/SpaceActionPanel.tsx`
+- `src/components/spaces/JoinSpaceByCodeForm.tsx`
+- `src/app/api/spaces/join/route.ts`
 
 ## Quick Matrix
 

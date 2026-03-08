@@ -73,6 +73,11 @@ type ResolvedExternalPreview = {
   note: string | null;
 };
 
+type SourcePreviewResolutionPayload = ResolvedExternalPreview & {
+  provider: ItemSourceProvider | null;
+  youtubeContentKind: "VIDEO" | "SHORTS" | null;
+};
+
 export function ItemSourceModal({
   open,
   itemLabel,
@@ -102,6 +107,9 @@ export function ItemSourceModal({
   const [embedParentHostname, setEmbedParentHostname] = useState("");
   const [resolvedExternalPreview, setResolvedExternalPreview] =
     useState<ResolvedExternalPreview | null>(null);
+  const [resolvedYouTubeContentKind, setResolvedYouTubeContentKind] = useState<
+    "VIDEO" | "SHORTS" | null
+  >(null);
   const [showExpandedPreview, setShowExpandedPreview] = useState(false);
 
   useEffect(() => {
@@ -188,12 +196,14 @@ export function ItemSourceModal({
           activeParsedSource.youtubeVideoId,
           resolvedStartSec ?? null,
           resolvedEndSec ?? null,
-          activeParsedSource.youtubeContentKind,
+          activeParsedSource.youtubeContentKind === "SHORTS"
+            ? "SHORTS"
+            : (resolvedYouTubeContentKind ?? activeParsedSource.youtubeContentKind),
         )
       : null;
   const isPortraitYouTubeEmbed =
     activeParsedSource?.provider === "YOUTUBE" &&
-    activeParsedSource.youtubeContentKind === "SHORTS";
+    (activeParsedSource.youtubeContentKind === "SHORTS" || resolvedYouTubeContentKind === "SHORTS");
   const spotifyEmbedUrl =
     activeParsedSource?.provider === "SPOTIFY" ? activeParsedSource.embedUrl : null;
   const spotifyEmbedHeight =
@@ -265,9 +275,17 @@ export function ItemSourceModal({
   useEffect(() => {
     const requestId = ++resolveRequestIdRef.current;
     setResolvedExternalPreview(null);
-    if (activeProvider !== null || !activeSourceUrl) return;
-    if (fallbackExternalCapability?.previewMode !== "RESOLVER") return;
-    if (fallbackExternalEmbedUrl) return;
+    setResolvedYouTubeContentKind(null);
+    if (!activeSourceUrl) return;
+    const shouldResolveExternal =
+      activeProvider === null &&
+      fallbackExternalCapability?.previewMode === "RESOLVER" &&
+      !fallbackExternalEmbedUrl;
+    const shouldResolveYouTubeKind =
+      activeProvider === "YOUTUBE" &&
+      activeParsedSource?.provider === "YOUTUBE" &&
+      activeParsedSource.youtubeContentKind !== "SHORTS";
+    if (!shouldResolveExternal && !shouldResolveYouTubeKind) return;
 
     const controller = new AbortController();
     const timeout = setTimeout(() => {
@@ -280,8 +298,12 @@ export function ItemSourceModal({
       })
         .then(async (response) => {
           if (!response.ok || resolveRequestIdRef.current !== requestId) return;
-          const payload = (await response.json()) as ResolvedExternalPreview;
+          const payload = (await response.json()) as SourcePreviewResolutionPayload;
           if (resolveRequestIdRef.current !== requestId) return;
+          if (payload.provider === "YOUTUBE") {
+            setResolvedYouTubeContentKind(payload.youtubeContentKind ?? null);
+            return;
+          }
           setResolvedExternalPreview(payload);
         })
         .catch(() => {
@@ -295,6 +317,7 @@ export function ItemSourceModal({
     };
   }, [
     activeProvider,
+    activeParsedSource,
     activeSourceUrl,
     embedParentHostname,
     fallbackExternalCapability?.previewMode,
