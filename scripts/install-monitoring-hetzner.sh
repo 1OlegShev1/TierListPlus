@@ -9,6 +9,9 @@ REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 HEALTHCHECK="${REPO_ROOT}/deploy/systemd/tierlistplus-healthcheck.sh"
 SERVICE_FILE="${REPO_ROOT}/deploy/systemd/tierlistplus-healthcheck.service"
 TIMER_FILE="${REPO_ROOT}/deploy/systemd/tierlistplus-healthcheck.timer"
+UPLOAD_GC="${REPO_ROOT}/deploy/systemd/tierlistplus-upload-gc.sh"
+UPLOAD_GC_SERVICE="${REPO_ROOT}/deploy/systemd/tierlistplus-upload-gc.service"
+UPLOAD_GC_TIMER="${REPO_ROOT}/deploy/systemd/tierlistplus-upload-gc.timer"
 
 require_command() {
   local cmd="$1"
@@ -33,17 +36,28 @@ echo "Installing monitoring on ${REMOTE_HOST}"
 scp "${HEALTHCHECK}" "${REMOTE_HOST}:/tmp/tierlistplus-healthcheck"
 scp "${SERVICE_FILE}" "${REMOTE_HOST}:/tmp/tierlistplus-healthcheck.service"
 scp "${TIMER_FILE}" "${REMOTE_HOST}:/tmp/tierlistplus-healthcheck.timer"
+scp "${UPLOAD_GC}" "${REMOTE_HOST}:/tmp/tierlistplus-upload-gc"
+scp "${UPLOAD_GC_SERVICE}" "${REMOTE_HOST}:/tmp/tierlistplus-upload-gc.service"
+scp "${UPLOAD_GC_TIMER}" "${REMOTE_HOST}:/tmp/tierlistplus-upload-gc.timer"
 
 ssh "${REMOTE_HOST}" "
   sudo install -m 755 /tmp/tierlistplus-healthcheck /usr/local/bin/tierlistplus-healthcheck
   sudo install -m 644 /tmp/tierlistplus-healthcheck.service /etc/systemd/system/tierlistplus-healthcheck.service
   sudo install -m 644 /tmp/tierlistplus-healthcheck.timer /etc/systemd/system/tierlistplus-healthcheck.timer
+  sudo install -m 755 /tmp/tierlistplus-upload-gc /usr/local/bin/tierlistplus-upload-gc
+  sudo install -m 644 /tmp/tierlistplus-upload-gc.service /etc/systemd/system/tierlistplus-upload-gc.service
+  sudo install -m 644 /tmp/tierlistplus-upload-gc.timer /etc/systemd/system/tierlistplus-upload-gc.timer
   rm -f /tmp/tierlistplus-healthcheck /tmp/tierlistplus-healthcheck.service /tmp/tierlistplus-healthcheck.timer
+  rm -f /tmp/tierlistplus-upload-gc /tmp/tierlistplus-upload-gc.service /tmp/tierlistplus-upload-gc.timer
   sudo systemctl daemon-reload
   sudo systemctl enable --now tierlistplus-healthcheck.timer
+  sudo systemctl enable --now tierlistplus-upload-gc.timer
   sudo systemctl start tierlistplus-healthcheck.service
+  sudo systemctl start tierlistplus-upload-gc.service
   sudo systemctl --no-pager --full status tierlistplus-healthcheck.timer
   sudo systemctl --no-pager --full status tierlistplus-healthcheck.service || true
+  sudo systemctl --no-pager --full status tierlistplus-upload-gc.timer
+  sudo systemctl --no-pager --full status tierlistplus-upload-gc.service || true
 "
 
 echo "Monitoring install complete."

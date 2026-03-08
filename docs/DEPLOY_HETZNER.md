@@ -167,7 +167,11 @@ Install the built-in healthcheck timer from your local machine:
 ./scripts/install-monitoring-hetzner.sh
 ```
 
-What it checks every 5 minutes:
+What it configures:
+- healthcheck timer every 5 minutes
+- upload garbage-collection timer daily
+
+Healthcheck verifies:
 - public HTTPS response from `https://tierlistplus.com`
 - `app`, `db`, and `caddy` container state
 - root filesystem usage stays below `85%`
@@ -189,15 +193,32 @@ Run the upload cleanup manually:
 ssh tieradmin@46.62.140.254 "sudo docker compose --profile with-domain --env-file /opt/tierlistplus/.env.production -f /opt/tierlistplus/docker-compose.prod.yml exec -T app node scripts/cleanup-orphan-uploads.mjs"
 ```
 
-Recommended schedule: once per day. Example root cron entry on the server:
+The monitoring installer also sets up a daily systemd timer (`tierlistplus-upload-gc.timer`).
+Inspect it:
 
 ```bash
-0 3 * * * cd /opt/tierlistplus && docker compose --profile with-domain --env-file .env.production -f docker-compose.prod.yml exec -T app node scripts/cleanup-orphan-uploads.mjs >> /var/log/tierlistplus-upload-gc.log 2>&1
+ssh tieradmin@46.62.140.254 "sudo systemctl --no-pager --full status tierlistplus-upload-gc.timer"
+ssh tieradmin@46.62.140.254 "sudo journalctl -u tierlistplus-upload-gc.service -n 50 --no-pager"
 ```
 
 This cleanup operates on the same `uploads_data` volume mounted into the app container.
 
 ## Backup database
+
+Automated off-box backup is installed as `tierlistplus-db-backup.timer` and `tierlistplus-db-backup.service`.
+The backup job:
+- streams PostgreSQL dump and uploads archive directly to UM890 over Tailscale
+- verifies checksums remotely
+- prunes backups older than `KEEP_DAYS` (default `21`)
+
+Inspect latest runs:
+
+```bash
+ssh tieradmin@46.62.140.254 "sudo systemctl --no-pager --full status tierlistplus-db-backup.timer"
+ssh tieradmin@46.62.140.254 "sudo journalctl -u tierlistplus-db-backup.service -n 50 --no-pager"
+```
+
+Manual one-off DB dump command (optional):
 
 ```bash
 ssh tieradmin@46.62.140.254 "sudo sh -lc 'cd /opt/tierlistplus && docker compose --env-file .env.production -f docker-compose.prod.yml exec -T db sh -lc '\\''pg_dump -U \"\$POSTGRES_USER\" \"\$POSTGRES_DB\"'\\'' > /root/tierlistplus-\$(date +%F).sql'"
@@ -206,7 +227,6 @@ ssh tieradmin@46.62.140.254 "sudo sh -lc 'cd /opt/tierlistplus && docker compose
 ## Future Roadmap
 
 Planned follow-up work for the production environment:
-- add automated off-box backups to the future Ubuntu mini PC for PostgreSQL dumps and uploaded files
 - add scheduled restore drills so backups are verified instead of assumed
 - connect the VPS, admin laptop, and mini PC over a private network such as Tailscale or WireGuard
 - restrict Hetzner Cloud SSH access to trusted sources after the private admin path is in place

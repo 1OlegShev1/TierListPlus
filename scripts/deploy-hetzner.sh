@@ -3,6 +3,9 @@ set -euo pipefail
 
 REMOTE_HOST="${1:-tieradmin@100.120.76.1}"
 REMOTE_DIR="${2:-/opt/tierlistplus}"
+# Keep BuildKit cache bounded on small VPS disks.
+BUILDKIT_MAX_USED_SPACE="${BUILDKIT_MAX_USED_SPACE:-6gb}"
+BUILDKIT_MIN_FREE_SPACE="${BUILDKIT_MIN_FREE_SPACE:-10gb}"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
@@ -107,7 +110,13 @@ ssh "${REMOTE_HOST}" "
     \$COMPOSE --profile ops run --rm migrate
     \$COMPOSE up -d app caddy
     docker image prune -f >/dev/null
-    docker builder prune -af --filter \"until=168h\" >/dev/null
+    if docker buildx version >/dev/null 2>&1; then
+      docker buildx prune --force \
+        --max-used-space \"${BUILDKIT_MAX_USED_SPACE}\" \
+        --min-free-space \"${BUILDKIT_MIN_FREE_SPACE}\" >/dev/null || true
+    else
+      docker builder prune -af --filter \"until=168h\" >/dev/null || true
+    fi
     \$COMPOSE ps
   '
 "
