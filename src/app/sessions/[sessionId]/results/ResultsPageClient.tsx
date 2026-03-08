@@ -32,6 +32,8 @@ export function ResultsPageClient({
   initialSession,
   initialConsensusTiers,
   participantId,
+  canViewIndividualBallots,
+  consensusParticipantCount,
   initialParticipantName,
   initialParticipantTiers,
   initialParticipantError,
@@ -40,6 +42,8 @@ export function ResultsPageClient({
   initialSession: SessionResult;
   initialConsensusTiers: ConsensusTier[];
   participantId: string | null;
+  canViewIndividualBallots: boolean;
+  consensusParticipantCount: number;
   initialParticipantName: string | null;
   initialParticipantTiers: ConsensusTier[] | null;
   initialParticipantError: string | null;
@@ -77,11 +81,15 @@ export function ResultsPageClient({
   ]);
 
   const participantsWithSavedVotes = session.participants.filter((p) => p.hasSavedVotes);
-  const totalParticipants = participantsWithSavedVotes.length;
+  const totalParticipants = canViewIndividualBallots
+    ? participantsWithSavedVotes.length
+    : consensusParticipantCount;
   const selectedParticipant =
-    participantsWithSavedVotes.find((p) => p.id === participantId) ?? null;
+    canViewIndividualBallots
+      ? (participantsWithSavedVotes.find((p) => p.id === participantId) ?? null)
+      : null;
   const currentParticipantId = session.currentParticipantId;
-  const isIndividualView = !!participantId;
+  const isIndividualView = canViewIndividualBallots && !!participantId;
   const displayTiers = initialParticipantTiers ?? initialConsensusTiers;
   const consensusLabel = `Everyone (${totalParticipants})`;
   const baseSubtitle = isIndividualView
@@ -148,37 +156,43 @@ export function ResultsPageClient({
         }
       />
 
-      <div className="mb-6">
-        <h2 className="mb-3 text-sm font-medium text-neutral-400">See</h2>
-        <div className="flex flex-wrap gap-2">
-          <Link
-            href={`/sessions/${sessionId}/results`}
-            className={`rounded-full border px-3 py-1 text-sm transition-colors ${
-              !isIndividualView
-                ? "border-amber-500 bg-amber-500/10 text-amber-400"
-                : "border-neutral-700 text-neutral-300 hover:border-amber-500 hover:text-amber-400"
-            }`}
-          >
-            {consensusLabel}
-          </Link>
-          {participantsWithSavedVotes.map((participant) => (
+      {canViewIndividualBallots ? (
+        <div className="mb-6">
+          <h2 className="mb-3 text-sm font-medium text-neutral-400">See</h2>
+          <div className="flex flex-wrap gap-2">
             <Link
-              key={participant.id}
-              href={`/sessions/${sessionId}/results?participant=${participant.id}`}
+              href={`/sessions/${sessionId}/results`}
               className={`rounded-full border px-3 py-1 text-sm transition-colors ${
-                participantId === participant.id
+                !isIndividualView
                   ? "border-amber-500 bg-amber-500/10 text-amber-400"
                   : "border-neutral-700 text-neutral-300 hover:border-amber-500 hover:text-amber-400"
               }`}
             >
-              {participant.nickname}
-              {!participant.isComplete && participant.missingItemCount > 0
-                ? ` (${participant.missingItemCount} left)`
-                : ""}
+              {consensusLabel}
             </Link>
-          ))}
+            {participantsWithSavedVotes.map((participant) => (
+              <Link
+                key={participant.id}
+                href={`/sessions/${sessionId}/results?participant=${participant.id}`}
+                className={`rounded-full border px-3 py-1 text-sm transition-colors ${
+                  participantId === participant.id
+                    ? "border-amber-500 bg-amber-500/10 text-amber-400"
+                    : "border-neutral-700 text-neutral-300 hover:border-amber-500 hover:text-amber-400"
+                }`}
+              >
+                {participant.nickname}
+                {!participant.isComplete && participant.missingItemCount > 0
+                  ? ` (${participant.missingItemCount} left)`
+                  : ""}
+              </Link>
+            ))}
+          </div>
         </div>
-      </div>
+      ) : (
+        <div className="mb-6 rounded-lg border border-neutral-800 bg-neutral-900/40 px-3 py-2 text-xs text-neutral-400">
+          Shared results view. Individual ballots are hidden.
+        </div>
+      )}
 
       {initialParticipantError && <ErrorMessage message={initialParticipantError} />}
 

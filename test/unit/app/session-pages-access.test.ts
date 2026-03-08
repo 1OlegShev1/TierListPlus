@@ -163,4 +163,65 @@ describe("session page access guards", () => {
       }),
     );
   });
+
+  it("allows private closed-session results via matching join code for outsiders", async () => {
+    mocks.getCookieAuth.mockResolvedValue(null);
+    mocks.prisma.session.findUnique.mockResolvedValue({
+      id: "session_1",
+      name: "Private Vote",
+      joinCode: "JOIN1",
+      status: "CLOSED",
+      creatorId: "owner_1",
+      isPrivate: true,
+      tierConfig: [{ key: "S", label: "S", color: "#111111", sortOrder: 0 }],
+      space: null,
+      items: [],
+      participants: [
+        {
+          id: "participant_1",
+          userId: "user_9",
+          nickname: "TopSecretNick",
+          submittedAt: null,
+          _count: { tierVotes: 1 },
+        },
+      ],
+    });
+
+    const result = (await ResultsPage({
+      params: Promise.resolve({ sessionId: "session_1" }),
+      searchParams: { code: "JOIN1" },
+    })) as unknown as { props: Record<string, unknown> };
+
+    expect(result).toBeTruthy();
+    expect(mocks.prisma.tierVote.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { sessionItem: { sessionId: "session_1" } },
+      }),
+    );
+    expect(result.props.canViewIndividualBallots).toBe(false);
+    expect(result.props.initialSession).toEqual(expect.objectContaining({ participants: [] }));
+  });
+
+  it("keeps private closed-session results hidden from outsiders without code", async () => {
+    mocks.getCookieAuth.mockResolvedValue(null);
+    mocks.prisma.session.findUnique.mockResolvedValue({
+      id: "session_1",
+      name: "Private Vote",
+      joinCode: "JOIN1",
+      status: "CLOSED",
+      creatorId: "owner_1",
+      isPrivate: true,
+      tierConfig: [{ key: "S", label: "S", color: "#111111", sortOrder: 0 }],
+      space: null,
+      items: [],
+      participants: [],
+    });
+
+    await expect(
+      ResultsPage({
+        params: Promise.resolve({ sessionId: "session_1" }),
+        searchParams: {},
+      }),
+    ).rejects.toThrow("NOT_FOUND");
+  });
 });

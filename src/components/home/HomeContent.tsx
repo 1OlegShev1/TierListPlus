@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { ShareVoteButton } from "@/components/sessions/ShareVoteButton";
 import { buttonVariants } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ListPreviewCard } from "@/components/ui/ListPreviewCard";
@@ -189,21 +190,30 @@ function VoteRow({ vote, contextLabel }: { vote: HomeVoteSummary; contextLabel?:
       : detailsLabel;
 
   return (
-    <Link
-      href={`/sessions/${vote.id}`}
-      className="flex items-start justify-between gap-3 rounded-xl border border-neutral-800 bg-neutral-900 p-4 transition-colors hover:border-neutral-600"
-    >
-      <VotePreviewSummary
-        title={vote.name}
-        detailsLabel={displayDetailsLabel}
-        secondaryLabel={secondaryLabel}
-        items={vote.items}
-        chips={chips}
-        sourceLabel={sourceLabel}
-      />
-      <div className="shrink-0 pt-0.5">
+    <div className="flex items-start justify-between gap-3 rounded-xl border border-neutral-800 bg-neutral-900 p-4 transition-colors hover:border-neutral-600">
+      <Link href={`/sessions/${vote.id}`} className="min-w-0 flex-1">
+        <VotePreviewSummary
+          title={vote.name}
+          detailsLabel={displayDetailsLabel}
+          secondaryLabel={secondaryLabel}
+          items={vote.items}
+          chips={chips}
+          sourceLabel={sourceLabel}
+        />
+      </Link>
+      <div className="flex shrink-0 items-center gap-2 pt-0.5">
+        {viewer === "owner" && (
+          <ShareVoteButton
+            joinCode={vote.joinCode}
+            creatorId={null}
+            status={vote.status}
+            isLocked={vote.isLocked}
+            canShareOverride
+            iconOnly
+          />
+        )}
         <StatusBadge status={vote.status} />
       </div>
-    </Link>
+    </div>
   );
 }

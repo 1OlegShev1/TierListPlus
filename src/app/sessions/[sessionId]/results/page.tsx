@@ -17,6 +17,13 @@ interface ParticipantVote {
   sessionItem: Item;
 }
 
+function normalizeJoinCode(value: string | null): string | null {
+  if (!value) return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  return trimmed.toUpperCase();
+}
+
 function buildParticipantTiers(
   votes: ParticipantVote[],
   tierConfig: TierConfig[],
@@ -53,8 +60,11 @@ export default async function ResultsPage({
 }) {
   const { sessionId } = await params;
   const resolvedSearchParams = (await searchParams) ?? {};
-  const participantId =
+  const requestedParticipantId =
     typeof resolvedSearchParams.participant === "string" ? resolvedSearchParams.participant : null;
+  const providedCode = normalizeJoinCode(
+    typeof resolvedSearchParams.code === "string" ? resolvedSearchParams.code : null,
+  );
 
   const cookieStore = await cookies();
   const auth = await getCookieAuth(cookieStore);
@@ -104,6 +114,14 @@ export default async function ResultsPage({
     : null;
   const isOwner = !!requestUserId && session.creatorId === requestUserId;
   const isParticipant = !!currentParticipant;
+  const hasCodeResultsAccess =
+    !session.space &&
+    session.isPrivate &&
+    session.status !== "OPEN" &&
+    !!providedCode &&
+    providedCode === session.joinCode;
+  const isCodeOnlyViewer = hasCodeResultsAccess && !isOwner && !isParticipant;
+  const canViewIndividualBallots = !isCodeOnlyViewer;
   const isSpaceOwner =
     !!requestUserId &&
     !!session.space &&
@@ -115,7 +133,7 @@ export default async function ResultsPage({
     if (session.space.visibility === "PRIVATE" && !isSpaceMember) {
       notFound();
     }
-  } else if (session.isPrivate && !isOwner && !isParticipant) {
+  } else if (session.isPrivate && !isOwner && !isParticipant && !hasCodeResultsAccess) {
     notFound();
   }
 
@@ -134,7 +152,7 @@ export default async function ResultsPage({
   const consensusTiers = computeConsensus(
     votes.map((vote) => ({
       participantId: vote.participantId,
-      participantNickname: vote.participant.nickname,
+      participantNickname: canViewIndividualBallots ? vote.participant.nickname : undefined,
       sessionItemId: vote.sessionItemId,
       tierKey: vote.tierKey,
       rankInTier: vote.rankInTier,
@@ -155,7 +173,9 @@ export default async function ResultsPage({
     missingItemCount: Math.max(0, totalItemCount - _count.tierVotes),
     isComplete: totalItemCount > 0 && _count.tierVotes >= totalItemCount,
   }));
+  const consensusParticipantCount = participants.filter((participant) => participant.hasSavedVotes).length;
 
+  const participantId = canViewIndividualBallots ? requestedParticipantId : null;
   let initialParticipantName: string | null = null;
   let initialParticipantTiers: ConsensusTier[] | null = null;
   let initialParticipantError: string | null = null;
@@ -202,7 +222,7 @@ export default async function ResultsPage({
     currentParticipantId: currentParticipant?.id ?? null,
     currentParticipantNickname: currentParticipant?.nickname ?? null,
     tierConfig,
-    participants,
+    participants: canViewIndividualBallots ? participants : [],
   };
 
   return (
@@ -212,6 +232,8 @@ export default async function ResultsPage({
       initialSession={sessionResult}
       initialConsensusTiers={consensusTiers}
       participantId={participantId}
+      canViewIndividualBallots={canViewIndividualBallots}
+      consensusParticipantCount={consensusParticipantCount}
       initialParticipantName={initialParticipantName}
       initialParticipantTiers={initialParticipantTiers}
       initialParticipantError={initialParticipantError}

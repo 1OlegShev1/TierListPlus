@@ -15,6 +15,7 @@ export interface HomeListSummary {
 export interface HomeVoteSummary {
   id: string;
   name: string;
+  joinCode: string;
   status: string;
   updatedAt: string;
   isPrivate: boolean;

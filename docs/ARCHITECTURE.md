@@ -83,6 +83,9 @@ Space model (v1.1):
 
 ## Authorization Model
 
+Detailed matrix (actors, resources, states, and layer mapping):
+- `docs/PERMISSIONS.md`
+
 Identity:
 1. Client ensures a device-backed identity (`/api/users`)
 2. Server stores a signed `HttpOnly` session cookie for `userId + deviceId`

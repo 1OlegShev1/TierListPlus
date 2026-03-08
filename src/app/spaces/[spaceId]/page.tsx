@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ShareVoteButton } from "@/components/sessions/ShareVoteButton";
 import { OpenSpaceMembershipControls } from "@/components/spaces/OpenSpaceMembershipControls";
 import { RemoveSpaceMemberButton } from "@/components/spaces/RemoveSpaceMemberButton";
 import { SpaceInvitePanel } from "@/components/spaces/SpaceInvitePanel";
@@ -300,6 +301,13 @@ export default async function SpaceDetailPage({
                     </Link>
                     <div className="flex items-center gap-2 sm:shrink-0">
                       {vote.status !== "OPEN" && <StatusBadge status={vote.status} />}
+                      <ShareVoteButton
+                        joinCode={vote.joinCode}
+                        creatorId={vote.creatorId}
+                        status={vote.status}
+                        isLocked={vote.isLocked}
+                        iconOnly
+                      />
                       <Link href={`/sessions/${vote.id}`} className={buttonVariants.secondary}>
                         {vote.status === "OPEN" ? "Open" : "Results"}
                       </Link>

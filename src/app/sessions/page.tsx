@@ -4,6 +4,7 @@ import Link from "next/link";
 import { CloseVoteButton } from "@/components/sessions/CloseVoteButton";
 import { DeleteVoteButton } from "@/components/sessions/DeleteVoteButton";
 import { ReopenVoteButton } from "@/components/sessions/ReopenVoteButton";
+import { ShareVoteButton } from "@/components/sessions/ShareVoteButton";
 import { buttonSizes, buttonVariants } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -26,6 +27,7 @@ type SearchParams = Record<string, string | string[] | undefined>;
 interface VoteListItem {
   id: string;
   name: string;
+  joinCode: string;
   status: string;
   updatedAt: Date;
   creatorId: string | null;
@@ -275,6 +277,13 @@ function VoteRow({ vote, viewer }: { vote: VoteListItem; viewer: VoteViewer }) {
       </Link>
       <div className="flex flex-wrap items-center gap-2 sm:shrink-0">
         {showStatusBadge && <StatusBadge status={vote.status} />}
+        <ShareVoteButton
+          joinCode={vote.joinCode}
+          creatorId={vote.creatorId}
+          status={vote.status}
+          isLocked={vote.isLocked}
+          className={buttonSizes.equalAction}
+        />
         <Link
           href={action.href}
           className={`${buttonVariants.secondary} ${buttonSizes.equalAction}`}

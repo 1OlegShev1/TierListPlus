@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { Loading } from "@/components/ui/Loading";
 import { prisma } from "@/lib/prisma";
@@ -110,7 +111,24 @@ export async function generateMetadata({
   return buildJoinMetadata(title, description, ogImageUrl, `${vote.name} invite card`);
 }
 
-export default function JoinVotePage() {
+export default async function JoinVotePage({
+  searchParams,
+}: {
+  searchParams?: Promise<SearchParams> | SearchParams;
+}) {
+  const resolvedSearchParams = (await searchParams) ?? {};
+  const joinCode = normalizeJoinCode(firstParamValue(resolvedSearchParams.code));
+
+  if (joinCode) {
+    const vote = await prisma.session.findUnique({
+      where: { joinCode },
+      select: { id: true, status: true },
+    });
+    if (vote && vote.status !== "OPEN") {
+      redirect(`/sessions/${vote.id}/results?code=${encodeURIComponent(joinCode)}`);
+    }
+  }
+
   return (
     <Suspense fallback={<Loading />}>
       <JoinVotePageClient />
