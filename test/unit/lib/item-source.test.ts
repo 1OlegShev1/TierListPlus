@@ -1,11 +1,15 @@
 import {
+  buildExternalSourceEmbedUrl,
   buildYouTubeEmbedUrl,
+  detectExternalSourceKind,
+  getExternalSourceKindLabel,
+  INVALID_ITEM_SOURCE_MESSAGE,
   MAX_SOURCE_INTERVAL_SECONDS,
   normalizeItemSourceNote,
+  parseAnyItemSource,
   parseSupportedItemSource,
   resolveSourceIntervalForWrite,
   resolveItemSourceForWrite,
-  UNSUPPORTED_ITEM_SOURCE_MESSAGE,
 } from "@/lib/item-source";
 
 describe("item source utils", () => {
@@ -35,10 +39,76 @@ describe("item source utils", () => {
     });
   });
 
-  it("rejects unsupported providers", () => {
-    expect(() => resolveItemSourceForWrite("https://example.com/video")).toThrow(
-      UNSUPPORTED_ITEM_SOURCE_MESSAGE,
+  it("accepts generic external providers", () => {
+    expect(resolveItemSourceForWrite("https://example.com/video")).toEqual({
+      sourceUrl: "https://example.com/video",
+      sourceProvider: null,
+    });
+  });
+
+  it("rejects invalid source URLs", () => {
+    expect(() => resolveItemSourceForWrite("javascript:alert(1)")).toThrow(
+      INVALID_ITEM_SOURCE_MESSAGE,
     );
+  });
+
+  it("parses generic links with null provider metadata", () => {
+    const parsed = parseAnyItemSource("https://example.com/video");
+    expect(parsed).toEqual({
+      provider: null,
+      normalizedUrl: "https://example.com/video",
+      embedUrl: null,
+      thumbnailUrl: null,
+      youtubeVideoId: null,
+    });
+  });
+
+  it("detects and builds Vimeo embeds", () => {
+    expect(detectExternalSourceKind("https://vimeo.com/123456789")).toBe("VIMEO");
+    expect(buildExternalSourceEmbedUrl("https://vimeo.com/123456789")).toBe(
+      "https://player.vimeo.com/video/123456789",
+    );
+    expect(getExternalSourceKindLabel("VIMEO")).toBe("Vimeo");
+  });
+
+  it("detects and builds SoundCloud embeds", () => {
+    expect(detectExternalSourceKind("https://soundcloud.com/artist/track-name")).toBe(
+      "SOUNDCLOUD",
+    );
+    expect(detectExternalSourceKind("https://on.soundcloud.com/fLgl2lu5Ji84fMZUIr")).toBe(
+      "SOUNDCLOUD",
+    );
+    expect(buildExternalSourceEmbedUrl("https://soundcloud.com/artist/track-name")).toContain(
+      "w.soundcloud.com/player/",
+    );
+    expect(buildExternalSourceEmbedUrl("https://on.soundcloud.com/fLgl2lu5Ji84fMZUIr")).toBeNull();
+  });
+
+  it("detects Twitch and requires parent hostname for embeds", () => {
+    expect(detectExternalSourceKind("https://www.twitch.tv/videos/2211037881")).toBe("TWITCH");
+    expect(buildExternalSourceEmbedUrl("https://www.twitch.tv/videos/2211037881")).toBeNull();
+    expect(
+      buildExternalSourceEmbedUrl("https://www.twitch.tv/videos/2211037881", "localhost"),
+    ).toContain("player.twitch.tv");
+    expect(
+      buildExternalSourceEmbedUrl("https://www.twitch.tv/somechannel/clip/FancyClipSlug", "localhost"),
+    ).toContain("clips.twitch.tv/embed?clip=FancyClipSlug");
+  });
+
+  it("detects direct media types", () => {
+    expect(detectExternalSourceKind("https://cdn.example.com/clip.mp4")).toBe("VIDEO");
+    expect(detectExternalSourceKind("https://cdn.example.com/audio.mp3")).toBe("AUDIO");
+    expect(detectExternalSourceKind("https://cdn.example.com/image.webp")).toBe("IMAGE");
+    expect(detectExternalSourceKind("https://cdn.example.com/file.pdf")).toBe("PDF");
+  });
+
+  it("detects problematic social hosts as external kinds", () => {
+    expect(detectExternalSourceKind("https://x.com/user/status/1")).toBe("X");
+    expect(detectExternalSourceKind("https://www.facebook.com/story.php?story_fbid=1&id=2")).toBe(
+      "FACEBOOK",
+    );
+    expect(detectExternalSourceKind("https://www.instagram.com/p/abc123")).toBe("INSTAGRAM");
+    expect(detectExternalSourceKind("https://www.tiktok.com/@user/video/1")).toBe("TIKTOK");
   });
 
   it("clears source fields when URL is null/blank", () => {

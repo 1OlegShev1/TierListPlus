@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { Link2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { ItemSourceModal } from "@/components/items/ItemSourceModal";
 import { ImageUploader, type UploadedImage } from "@/components/shared/ImageUploader";
@@ -319,20 +320,24 @@ export function ListEditor({
               <button
                 type="button"
                 onClick={() => setEditingSourceIndex(index)}
-                className={`absolute left-1 top-1 z-10 flex h-7 min-w-7 items-center justify-center gap-1 rounded-full border bg-black/70 px-2 text-xs font-medium opacity-0 transition-all focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 group-hover:opacity-100 group-focus-within:opacity-100 ${
+                className={`absolute left-1 top-1 z-10 flex h-7 min-w-7 items-center justify-center gap-1 rounded-full border bg-black/70 px-2 text-xs font-medium transition-all focus-visible:outline-none focus-visible:ring-2 ${
                   item.sourceUrl
                     ? "border-sky-400/80 text-sky-200 hover:border-sky-300 hover:text-sky-100 focus-visible:ring-sky-400/70"
                     : "border-neutral-700 text-neutral-100 hover:border-amber-400 hover:text-amber-300 focus-visible:ring-neutral-500/60"
+                } ${
+                  item.sourceUrl
+                    ? "opacity-100"
+                    : "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100"
                 }`}
                 aria-label={
                   item.sourceUrl
-                    ? `Edit source for ${item.label || "pick"}`
+                    ? `Open source for ${item.label || "pick"}`
                     : `Add source for ${item.label || "pick"}`
                 }
-                title={item.sourceUrl ? "Edit source link" : "Add source link"}
+                title={item.sourceUrl ? "Open source link" : "Add source link"}
               >
-                <span className="text-sm leading-none">↗</span>
-                {item.sourceUrl ? "Set" : "Add"}
+                <Link2 className="h-3.5 w-3.5" aria-hidden="true" />
+                {item.sourceUrl ? "See" : "Add"}
               </button>
               <button
                 type="button"

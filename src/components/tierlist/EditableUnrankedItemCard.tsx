@@ -2,6 +2,7 @@
 
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { Link2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { ItemSourceModal } from "@/components/items/ItemSourceModal";
 import { ItemArtwork } from "@/components/ui/ItemArtwork";
@@ -163,11 +164,12 @@ export function EditableUnrankedItemCard({
             : "border-neutral-700 text-neutral-200 hover:border-amber-500 hover:text-amber-300 focus-visible:ring-neutral-500/60"
         }`}
         aria-label={
-          sourceUrl ? `Edit source for ${label || "item"}` : `Add source for ${label || "item"}`
+          sourceUrl ? `Open source for ${label || "item"}` : `Add source for ${label || "item"}`
         }
+        title={sourceUrl ? "Open source link" : "Add source link"}
       >
-        <span className="text-[11px] leading-none">↗</span>
-        {sourceUrl ? "Set" : "Add"}
+        <Link2 className="h-3 w-3" aria-hidden="true" />
+        {sourceUrl ? "See" : "Add"}
       </button>
 
       <button

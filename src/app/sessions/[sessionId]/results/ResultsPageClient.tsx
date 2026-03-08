@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Link2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { ItemSourceModal } from "@/components/items/ItemSourceModal";
 import { CloseVoteButton } from "@/components/sessions/CloseVoteButton";
@@ -226,9 +227,9 @@ export function ResultsPageClient({
                     {item.sourceUrl && (
                       <span
                         aria-hidden="true"
-                        className="absolute left-1 top-1 z-10 flex h-5 w-5 items-center justify-center rounded-full border border-sky-400/80 bg-black/70 text-[11px] leading-none text-sky-200"
+                        className="absolute left-1 top-1 z-10 flex h-5 w-5 items-center justify-center rounded-full border border-sky-400/80 bg-black/70 text-sky-200"
                       >
-                        ↗
+                        <Link2 className="h-3 w-3" />
                       </span>
                     )}
                     <ItemArtwork
@@ -286,8 +287,9 @@ export function ResultsPageClient({
                 <button
                   type="button"
                   onClick={() => setSourceModalItem(detailsItem)}
-                  className="ml-auto rounded-md border border-neutral-700 px-2 py-1 text-xs font-medium text-neutral-200 transition-colors hover:border-amber-400 hover:text-amber-300"
+                  className="ml-auto inline-flex items-center gap-1.5 rounded-md border border-neutral-700 px-2 py-1 text-xs font-medium text-neutral-200 transition-colors hover:border-amber-400 hover:text-amber-300"
                 >
+                  <Link2 className="h-3.5 w-3.5" aria-hidden="true" />
                   Source
                 </button>
               )}

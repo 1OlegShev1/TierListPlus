@@ -1,126 +1,119 @@
-"use client";
-
-import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useState } from "react";
-import { Button, buttonVariants } from "@/components/ui/Button";
-import { ErrorMessage } from "@/components/ui/ErrorMessage";
-import { Input } from "@/components/ui/Input";
+import type { Metadata } from "next";
+import { headers } from "next/headers";
+import { Suspense } from "react";
 import { Loading } from "@/components/ui/Loading";
-import { saveParticipant } from "@/hooks/useParticipant";
-import { useUser } from "@/hooks/useUser";
+import { prisma } from "@/lib/prisma";
+import { JoinVotePageClient } from "./JoinVotePageClient";
 
-function JoinVoteForm() {
-  const router = useRouter();
-  const { userId, isLoading: userLoading, error: userError, retry: retryUser } = useUser();
-  const searchParams = useSearchParams();
-  const codeFromUrl = searchParams.get("code") ?? "";
+type SearchParams = Record<string, string | string[] | undefined>;
 
-  const [joinCode, setJoinCode] = useState(codeFromUrl.toUpperCase());
-  const [nickname, setNickname] = useState("");
-  const [error, setError] = useState("");
-  const [joining, setJoining] = useState(false);
+const DEFAULT_TITLE = "Join a Vote | TierList+";
+const DEFAULT_DESCRIPTION = "Join a collaborative tier list vote.";
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    void join();
+function firstParamValue(value: string | string[] | undefined): string | null {
+  if (Array.isArray(value)) {
+    return typeof value[0] === "string" ? value[0] : null;
+  }
+  return typeof value === "string" ? value : null;
+}
+
+function normalizeJoinCode(value: string | null): string | null {
+  if (!value) return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  return trimmed.toUpperCase();
+}
+
+function buildJoinMetadata(
+  title: string,
+  description: string,
+  ogImageUrl: string,
+  imageAlt: string,
+): Metadata {
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      type: "website",
+      images: [
+        {
+          url: ogImageUrl,
+          width: 1200,
+          height: 630,
+          alt: imageAlt,
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: [ogImageUrl],
+    },
   };
+}
 
-  const join = async () => {
-    if (joining) return;
-    if (!joinCode.trim() || !nickname.trim()) return;
-    if (userLoading || !userId) {
-      setError("Getting your device ready. Try again in a second.");
-      return;
-    }
-    setJoining(true);
-    setError("");
+function normalizeOrigin(value: string): string {
+  return value.endsWith("/") ? value.slice(0, -1) : value;
+}
 
-    try {
-      const res = await fetch("/api/sessions/join", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          joinCode: joinCode.trim().toUpperCase(),
-          nickname: nickname.trim(),
-        }),
-      });
+async function resolveMetadataOrigin(): Promise<string> {
+  const envOrigin = process.env.NEXT_PUBLIC_APP_URL ?? process.env.APP_URL;
+  if (envOrigin) {
+    return normalizeOrigin(envOrigin);
+  }
 
-      if (!res.ok) {
-        const data = await res.json();
-        setError(typeof data.error === "string" ? data.error : "Could not join this vote");
-        return;
-      }
+  const requestHeaders = await headers();
+  const host = requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host");
+  const proto = requestHeaders.get("x-forwarded-proto") ?? "https";
+  if (host) {
+    return `${proto}://${host}`;
+  }
 
-      const { sessionId, participantId, nickname: savedNickname } = await res.json();
+  return "http://localhost:3000";
+}
 
-      saveParticipant(sessionId, participantId, savedNickname);
-      router.push(`/sessions/${sessionId}/vote`);
-    } finally {
-      setJoining(false);
-    }
-  };
+export async function generateMetadata({
+  searchParams,
+}: {
+  searchParams?: Promise<SearchParams> | SearchParams;
+}): Promise<Metadata> {
+  const resolvedSearchParams = (await searchParams) ?? {};
+  const joinCode = normalizeJoinCode(firstParamValue(resolvedSearchParams.code));
+  const origin = await resolveMetadataOrigin();
+  if (!joinCode) {
+    const ogImageUrl = new URL("/api/og/vote", origin).toString();
+    return buildJoinMetadata(DEFAULT_TITLE, DEFAULT_DESCRIPTION, ogImageUrl, "TierList+");
+  }
 
-  return (
-    <div className="mx-auto max-w-md pt-10">
-      <Link href="/sessions" className={`${buttonVariants.ghost} mb-4 inline-flex items-center`}>
-        &larr; Back to Votes
-      </Link>
-      <h1 className="mb-6 text-center text-2xl font-bold">Join a Vote</h1>
+  const vote = await prisma.session.findUnique({
+    where: { joinCode },
+    select: { name: true, status: true },
+  });
 
-      <form className="space-y-4" onSubmit={handleSubmit}>
-        <label className="block">
-          <span className="mb-2 block text-sm font-medium text-neutral-400">Join Code</span>
-          <Input
-            type="text"
-            placeholder="e.g., ABCD1234"
-            value={joinCode}
-            onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
-            maxLength={20}
-            className="w-full py-3 text-center text-xl font-mono tracking-widest"
-          />
-        </label>
+  if (!vote) {
+    const title = "Join this vote | TierList+";
+    const description = "Open invite link for a collaborative tier list vote.";
+    const ogImageUrl = new URL("/api/og/vote", origin).toString();
+    return buildJoinMetadata(title, description, ogImageUrl, "TierList+ vote invite");
+  }
 
-        <label className="block">
-          <span className="mb-2 block text-sm font-medium text-neutral-400">Your Nickname</span>
-          <Input
-            type="text"
-            placeholder="e.g., Alex"
-            value={nickname}
-            onChange={(e) => setNickname(e.target.value)}
-            maxLength={30}
-            className="w-full"
-          />
-        </label>
-
-        {(userError || error) && (
-          <div className="space-y-2">
-            {userError && <ErrorMessage message={userError} />}
-            {error && <ErrorMessage message={error} />}
-            {userError && (
-              <Button variant="secondary" onClick={retryUser} className="w-full">
-                Retry Device Setup
-              </Button>
-            )}
-          </div>
-        )}
-
-        <Button
-          type="submit"
-          disabled={joining || userLoading || !joinCode.trim() || !nickname.trim() || !userId}
-          className="w-full py-3"
-        >
-          {joining ? "Joining..." : "Join Vote"}
-        </Button>
-      </form>
-    </div>
-  );
+  const statusLabel = vote.status === "OPEN" ? "Now Open" : "View Results";
+  const title = `Join "${vote.name}" | TierList+`;
+  const description = `${statusLabel} on TierList+.`;
+  const ogImageUrl = new URL(
+    `/api/og/vote?title=${encodeURIComponent(vote.name)}&status=${encodeURIComponent(statusLabel)}`,
+    origin,
+  ).toString();
+  return buildJoinMetadata(title, description, ogImageUrl, `${vote.name} invite card`);
 }
 
 export default function JoinVotePage() {
   return (
     <Suspense fallback={<Loading />}>
-      <JoinVoteForm />
+      <JoinVotePageClient />
     </Suspense>
   );
 }

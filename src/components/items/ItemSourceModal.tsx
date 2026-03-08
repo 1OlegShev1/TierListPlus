@@ -1,16 +1,20 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { ErrorMessage } from "@/components/ui/ErrorMessage";
 import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Textarea";
 import {
+  buildExternalSourceEmbedUrl,
   buildYouTubeEmbedUrl,
+  detectExternalSourceKind,
+  getExternalSourceKindLabel,
   getItemSourceProviderLabel,
+  INVALID_ITEM_SOURCE_MESSAGE,
   MAX_SOURCE_INTERVAL_SECONDS,
-  parseSupportedItemSource,
-  UNSUPPORTED_ITEM_SOURCE_MESSAGE,
+  parseAnyItemSource,
 } from "@/lib/item-source";
 import type { ItemSourceProvider } from "@/types";
 
@@ -71,6 +75,15 @@ export function ItemSourceModal({
   const [draftEndSec, setDraftEndSec] = useState(
     typeof sourceEndSec === "number" ? String(sourceEndSec) : "",
   );
+  const [embedParentHostname, setEmbedParentHostname] = useState("");
+  const [resolvedSoundCloudEmbedUrl, setResolvedSoundCloudEmbedUrl] = useState<string | null>(
+    null,
+  );
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    setEmbedParentHostname(window.location.hostname);
+  }, []);
 
   useEffect(() => {
     if (!open) return;
@@ -102,18 +115,18 @@ export function ItemSourceModal({
 
   const parsedSavedSource = useMemo(() => {
     if (!sourceUrl) return null;
-    return parseSupportedItemSource(sourceUrl);
+    return parseAnyItemSource(sourceUrl);
   }, [sourceUrl]);
 
   const parsedDraftSource = useMemo(() => {
     if (!trimmedDraftUrl) return null;
-    return parseSupportedItemSource(trimmedDraftUrl);
+    return parseAnyItemSource(trimmedDraftUrl);
   }, [trimmedDraftUrl]);
 
-  const hasUnsupportedDraftSource = trimmedDraftUrl.length > 0 && !parsedDraftSource;
+  const hasInvalidDraftSource = trimmedDraftUrl.length > 0 && !parsedDraftSource;
   const activeParsedSource = trimmedDraftUrl.length > 0 ? parsedDraftSource : parsedSavedSource;
   const activeSourceUrl = activeParsedSource?.normalizedUrl ?? null;
-  const activeProvider = activeParsedSource?.provider ?? sourceProvider ?? null;
+  const activeProvider = activeParsedSource ? activeParsedSource.provider : (sourceProvider ?? null);
   const hasSource = !!activeParsedSource;
   const shouldValidateIntervals =
     trimmedDraftUrl.length > 0 && parsedDraftSource?.provider === "YOUTUBE";
@@ -154,7 +167,67 @@ export function ItemSourceModal({
     activeParsedSource?.provider === "SPOTIFY" ? activeParsedSource.embedUrl : null;
   const spotifyEmbedHeight =
     spotifyEmbedUrl && /\/embed\/(track|episode)\//.test(spotifyEmbedUrl) ? 152 : 352;
+  const externalSourceKind =
+    activeProvider === null ? detectExternalSourceKind(activeSourceUrl) : null;
+  const externalSourceLabel = activeProvider
+    ? getItemSourceProviderLabel(activeProvider)
+    : (getExternalSourceKindLabel(externalSourceKind) ?? "External link");
+  const baseExternalEmbedUrl =
+    activeProvider === null ? buildExternalSourceEmbedUrl(activeSourceUrl, embedParentHostname) : null;
+  const externalEmbedUrl = baseExternalEmbedUrl ?? resolvedSoundCloudEmbedUrl;
+  const soundCloudEmbedHeight =
+    externalSourceKind === "SOUNDCLOUD" && (activeSourceUrl ?? "").toLowerCase().includes("/sets/")
+      ? 352
+      : 166;
+  const externalPreviewNote =
+    externalSourceKind === "SOUNDCLOUD" && !externalEmbedUrl
+      ? "Loading SoundCloud preview... If it does not appear, use Open source."
+      : externalSourceKind === "X"
+      ? "X links usually require widget scripts, so inline preview is disabled."
+      : externalSourceKind === "FACEBOOK"
+        ? "Facebook commonly blocks iframe preview here. Use Open source."
+      : externalSourceKind === "INSTAGRAM"
+          ? "Instagram links usually need platform widgets, so inline preview is disabled."
+          : externalSourceKind === "TIKTOK"
+            ? "TikTok links usually need platform widgets, so inline preview is disabled."
+            : externalSourceKind === "PDF"
+              ? "PDF preview is often blocked by browser or site policy. Use Open source."
+            : externalSourceKind === "TWITCH" && !externalEmbedUrl
+              ? "Twitch preview needs a valid app hostname; use Open source if it does not render."
+              : externalSourceKind === "GENERIC"
+                ? "No inline preview for this link type yet."
+                : null;
   const previewImageUrl = itemImageUrl ?? activeParsedSource?.thumbnailUrl ?? null;
+
+  useEffect(() => {
+    let cancelled = false;
+    setResolvedSoundCloudEmbedUrl(null);
+
+    if (externalSourceKind !== "SOUNDCLOUD") return () => {
+      cancelled = true;
+    };
+    if (baseExternalEmbedUrl || !activeSourceUrl) return () => {
+      cancelled = true;
+    };
+
+    const oEmbedUrl = `https://soundcloud.com/oembed?format=json&url=${encodeURIComponent(activeSourceUrl)}`;
+    void fetch(oEmbedUrl)
+      .then(async (response) => {
+        if (!response.ok) return;
+        const payload = (await response.json()) as { html?: unknown };
+        if (typeof payload.html !== "string") return;
+        const match = payload.html.match(/src=\"([^\"]+)\"/i);
+        if (!match?.[1] || cancelled) return;
+        setResolvedSoundCloudEmbedUrl(match[1]);
+      })
+      .catch(() => {
+        // Keep fallback text + open-source link if oEmbed resolution fails.
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeSourceUrl, baseExternalEmbedUrl, externalSourceKind]);
 
   const normalizedCurrentUrl = (sourceUrl ?? "").trim();
   const normalizedCurrentNote = (sourceNote ?? "").trim();
@@ -172,7 +245,7 @@ export function ItemSourceModal({
     !saving &&
     !!onSave &&
     hasChanges &&
-    !hasUnsupportedDraftSource &&
+    !hasInvalidDraftSource &&
     !intervalInvalidReason;
 
   const close = () => {
@@ -216,7 +289,7 @@ export function ItemSourceModal({
     >
       <h2 className="text-lg font-bold">Item Source</h2>
       <p className="mt-1 text-sm text-neutral-400">
-        Add a Spotify or YouTube link for{" "}
+        Add a source link for{" "}
         <span className="font-medium text-neutral-200">{itemLabel}</span>.
       </p>
 
@@ -228,9 +301,12 @@ export function ItemSourceModal({
               <Input
                 ref={sourceInputRef}
                 type="url"
-                placeholder="https://open.spotify.com/track/... or https://www.youtube.com/watch?v=..."
+                placeholder="https://example.com (YouTube, Spotify, Vimeo, SoundCloud, Twitch, and direct media can preview)"
                 value={draftUrl}
                 onChange={(event) => setDraftUrl(event.target.value)}
+                spellCheck={false}
+                autoCorrect="off"
+                autoCapitalize="none"
                 disabled={saving}
                 className="w-full"
               />
@@ -277,10 +353,10 @@ export function ItemSourceModal({
               </div>
             )}
 
-            {hasUnsupportedDraftSource && (
-              <ErrorMessage message={UNSUPPORTED_ITEM_SOURCE_MESSAGE} />
+            {hasInvalidDraftSource && (
+              <ErrorMessage message={INVALID_ITEM_SOURCE_MESSAGE} />
             )}
-            {!hasUnsupportedDraftSource && intervalInvalidReason && (
+            {!hasInvalidDraftSource && intervalInvalidReason && (
               <ErrorMessage message={intervalInvalidReason} />
             )}
           </>
@@ -298,13 +374,13 @@ export function ItemSourceModal({
                   />
                 ) : (
                   <div className="flex h-16 w-24 flex-shrink-0 items-center justify-center rounded border border-neutral-700 bg-neutral-900 text-xs font-semibold text-neutral-200">
-                    {activeProvider ? getItemSourceProviderLabel(activeProvider) : "Link"}
+                    {externalSourceLabel}
                   </div>
                 )}
 
                 <div className="min-w-0 flex-1 space-y-1">
                   <p className="text-xs uppercase tracking-wide text-neutral-500">
-                    {activeProvider ? getItemSourceProviderLabel(activeProvider) : "External link"}
+                    {externalSourceLabel}
                   </p>
                   <p className="truncate text-sm font-medium text-neutral-100">{itemLabel}</p>
                   {displayNote && <p className="text-sm text-neutral-300">{displayNote}</p>}
@@ -316,8 +392,9 @@ export function ItemSourceModal({
                 href={activeSourceUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center rounded-md border border-neutral-700 px-2.5 py-1.5 text-xs font-medium text-neutral-200 transition-colors hover:border-amber-400 hover:text-amber-300"
+                className="inline-flex items-center gap-1.5 rounded-md border border-neutral-700 px-2.5 py-1.5 text-xs font-medium text-neutral-200 transition-colors hover:border-amber-400 hover:text-amber-300"
               >
+                <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
                 Open source
               </a>
               {youtubeEmbedUrl && (
@@ -343,10 +420,53 @@ export function ItemSourceModal({
                   />
                 </div>
               )}
+              {activeProvider === null && externalEmbedUrl && (
+                <div className="overflow-hidden rounded-lg border border-neutral-800 bg-black">
+                  {externalSourceKind === "IMAGE" ? (
+                    <img
+                      src={externalEmbedUrl}
+                      alt={`${itemLabel} source preview`}
+                      className="max-h-[28rem] w-full object-contain"
+                    />
+                  ) : externalSourceKind === "VIDEO" ? (
+                    <video src={externalEmbedUrl} className="max-h-[28rem] w-full" controls />
+                  ) : externalSourceKind === "AUDIO" ? (
+                    <div className="p-3">
+                      <audio src={externalEmbedUrl} className="w-full" controls />
+                    </div>
+                  ) : externalSourceKind === "SOUNDCLOUD" ? (
+                    <iframe
+                      src={externalEmbedUrl}
+                      title={`${itemLabel} SoundCloud preview`}
+                      className="w-full"
+                      style={{ height: soundCloudEmbedHeight }}
+                      allow="autoplay; encrypted-media"
+                      loading="lazy"
+                      sandbox="allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-scripts allow-presentation"
+                      referrerPolicy="no-referrer"
+                    />
+                  ) : (
+                    <iframe
+                      src={externalEmbedUrl}
+                      title={`${itemLabel} source preview`}
+                      className="aspect-video w-full"
+                      allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; fullscreen"
+                      loading="lazy"
+                      sandbox="allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-scripts allow-presentation"
+                      referrerPolicy="no-referrer"
+                    />
+                  )}
+                </div>
+              )}
+              {activeProvider === null && externalPreviewNote && (
+                <p className="text-xs text-neutral-500">
+                  {externalPreviewNote}
+                </p>
+              )}
             </div>
-          ) : hasUnsupportedDraftSource ? (
+          ) : hasInvalidDraftSource ? (
             <p className="text-sm text-neutral-500">
-              Unsupported link. Use a Spotify or YouTube URL to show preview and open action.
+              Invalid URL. Use a full http(s) link.
             </p>
           ) : (
             <p className="text-sm text-neutral-500">No source link added yet.</p>

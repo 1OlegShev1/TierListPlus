@@ -18,6 +18,7 @@ coverage/
 
 # debug
 npm-debug.log*
+.npm-cache/
 
 # env files
 .env*.local

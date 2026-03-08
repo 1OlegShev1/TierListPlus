@@ -2,6 +2,7 @@
 
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { Link2 } from "lucide-react";
 import { ItemArtwork } from "@/components/ui/ItemArtwork";
 import { CloseIcon } from "@/components/ui/icons";
 import type { ItemSourceProvider } from "@/types";
@@ -56,6 +57,11 @@ export function DraggableItem({
         opacity: isDragging ? 0.3 : 1,
         transformOrigin: "center center",
       };
+  const sourceControlVisibilityClass = sourceUrl
+    ? "opacity-100"
+    : expanded
+      ? "opacity-100"
+      : "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100";
 
   return (
     <div
@@ -104,11 +110,7 @@ export function DraggableItem({
             sourceUrl
               ? "border-sky-400/80 text-sky-200 hover:border-sky-300 hover:text-sky-100 focus-visible:ring-sky-400/70"
               : "border-amber-500/70 text-amber-300 hover:border-amber-400 hover:text-amber-200 focus-visible:ring-amber-500/60"
-          } ${
-            expanded
-              ? "opacity-100"
-              : "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100"
-          }`}
+          } ${sourceControlVisibilityClass}`}
           aria-label={
             sourceUrl
               ? `Open source for ${label || "item"}`
@@ -124,7 +126,7 @@ export function DraggableItem({
                 : "No source link"
           }
         >
-          <span className="text-sm leading-none">↗</span>
+          <Link2 className="h-3.5 w-3.5" aria-hidden="true" />
         </button>
       )}
       <button

@@ -112,7 +112,29 @@ describe("session item delete route", () => {
     });
   });
 
-  it("rejects unsupported source providers when creating live items", async () => {
+  it("accepts generic external source providers when creating live items", async () => {
+    const tx = {
+      $executeRaw: vi.fn().mockResolvedValue(1),
+      sessionItem: {
+        findFirst: vi.fn().mockResolvedValue(null),
+        create: vi.fn().mockResolvedValue({
+          id: "item_3",
+          label: "New item",
+          imageUrl: "/img/3.webp",
+          sourceUrl: "https://example.com/song",
+          sourceProvider: null,
+          sourceNote: null,
+          sortOrder: 0,
+        }),
+      },
+      templateItem: {
+        create: vi.fn().mockResolvedValue({ id: "template_item_3" }),
+      },
+    };
+    mocks.prisma.$transaction.mockImplementation(
+      async (fn: (client: typeof tx) => Promise<unknown>) => fn(tx),
+    );
+
     const response = await POST(
       jsonRequest("POST", "https://example.test", {
         label: "New item",
@@ -122,9 +144,18 @@ describe("session item delete route", () => {
       routeCtx({ sessionId: "session_1" }),
     );
 
-    expect(response.status).toBe(400);
-    await expect(response.json()).resolves.toEqual({
-      error: "Only Spotify and YouTube links are supported right now.",
+    expect(response.status).toBe(201);
+    await expect(response.json()).resolves.toEqual(
+      expect.objectContaining({
+        sourceUrl: "https://example.com/song",
+        sourceProvider: null,
+      }),
+    );
+    expect(tx.templateItem.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        sourceUrl: "https://example.com/song",
+        sourceProvider: null,
+      }),
     });
   });
 

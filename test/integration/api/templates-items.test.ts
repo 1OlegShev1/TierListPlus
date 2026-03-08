@@ -83,15 +83,25 @@ describe("template item routes", () => {
     });
   });
 
-  it("rejects unsupported source providers", async () => {
+  it("accepts generic external source providers", async () => {
+    const createTemplateItem = vi.fn().mockResolvedValue({
+      id: "item_1",
+      label: "Item 1",
+      imageUrl: "/1.webp",
+      sourceUrl: "https://example.com/song",
+      sourceProvider: null,
+      sourceNote: null,
+      sortOrder: 0,
+      templateId: "t1",
+    });
     mocks.prisma.$transaction.mockImplementation(async (fn: (tx: unknown) => unknown) =>
       fn({
         template: {
           findUnique: vi.fn().mockResolvedValue({ id: "t1", creatorId: "user_1" }),
         },
         templateItem: {
-          findFirst: vi.fn(),
-          create: vi.fn(),
+          findFirst: vi.fn().mockResolvedValue(null),
+          create: createTemplateItem,
         },
       }),
     );
@@ -105,9 +115,18 @@ describe("template item routes", () => {
       routeCtx({ templateId: "t1" }),
     );
 
-    expect(response.status).toBe(400);
-    await expect(response.json()).resolves.toEqual({
-      error: "Only Spotify and YouTube links are supported right now.",
+    expect(response.status).toBe(201);
+    await expect(response.json()).resolves.toEqual(
+      expect.objectContaining({
+        sourceUrl: "https://example.com/song",
+        sourceProvider: null,
+      }),
+    );
+    expect(createTemplateItem).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        sourceUrl: "https://example.com/song",
+        sourceProvider: null,
+      }),
     });
   });
 

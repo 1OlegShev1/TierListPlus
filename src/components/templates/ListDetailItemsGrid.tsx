@@ -1,16 +1,25 @@
 "use client";
 
+import { Link2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { ItemSourceModal } from "@/components/items/ItemSourceModal";
 import { ItemArtwork } from "@/components/ui/ItemArtwork";
+import type { ItemSourceProvider } from "@/types";
 
 interface ListDetailGridItem {
   id: string;
   imageUrl: string;
   label: string;
+  sourceUrl: string | null;
+  sourceProvider: ItemSourceProvider | null;
+  sourceNote: string | null;
+  sourceStartSec: number | null;
+  sourceEndSec: number | null;
 }
 
 export function ListDetailItemsGrid({ items }: { items: ListDetailGridItem[] }) {
   const [previewingItemId, setPreviewingItemId] = useState<string | null>(null);
+  const [sourceModalItemId, setSourceModalItemId] = useState<string | null>(null);
   const cardRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
   useEffect(() => {
@@ -19,6 +28,17 @@ export function ListDetailItemsGrid({ items }: { items: ListDetailGridItem[] }) 
       setPreviewingItemId(null);
     }
   }, [items, previewingItemId]);
+
+  useEffect(() => {
+    if (!sourceModalItemId) return;
+    if (!items.some((item) => item.id === sourceModalItemId)) {
+      setSourceModalItemId(null);
+    }
+  }, [items, sourceModalItemId]);
+
+  const sourceModalItem = sourceModalItemId
+    ? (items.find((item) => item.id === sourceModalItemId) ?? null)
+    : null;
 
   useEffect(() => {
     if (!previewingItemId) return;
@@ -49,8 +69,22 @@ export function ListDetailItemsGrid({ items }: { items: ListDetailGridItem[] }) 
             }
             cardRefs.current.set(item.id, node);
           }}
-          className="rounded-lg border border-neutral-800 bg-neutral-900 p-2"
+          className="relative rounded-lg border border-neutral-800 bg-neutral-900 p-2"
         >
+          {item.sourceUrl && (
+            <button
+              type="button"
+              onClick={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                setSourceModalItemId(item.id);
+              }}
+              className="absolute left-3 top-3 z-10 flex h-6 w-6 items-center justify-center rounded-full border border-sky-400/80 bg-black/70 text-sky-200 transition-colors hover:border-sky-300 hover:text-sky-100"
+              aria-label={`Open source for ${item.label || "item"}`}
+            >
+              <Link2 className="h-3.5 w-3.5" aria-hidden="true" />
+            </button>
+          )}
           <button
             type="button"
             onClick={() => setPreviewingItemId((current) => (current === item.id ? null : item.id))}
@@ -76,6 +110,20 @@ export function ListDetailItemsGrid({ items }: { items: ListDetailGridItem[] }) 
           <p className="mt-1 truncate text-center text-xs text-neutral-300">{item.label}</p>
         </div>
       ))}
+      {sourceModalItem && (
+        <ItemSourceModal
+          open
+          itemLabel={sourceModalItem.label || "Untitled item"}
+          itemImageUrl={sourceModalItem.imageUrl}
+          sourceUrl={sourceModalItem.sourceUrl}
+          sourceProvider={sourceModalItem.sourceProvider}
+          sourceNote={sourceModalItem.sourceNote}
+          sourceStartSec={sourceModalItem.sourceStartSec}
+          sourceEndSec={sourceModalItem.sourceEndSec}
+          editable={false}
+          onClose={() => setSourceModalItemId(null)}
+        />
+      )}
     </div>
   );
 }
