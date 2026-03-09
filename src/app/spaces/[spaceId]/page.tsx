@@ -114,7 +114,13 @@ export default async function SpaceDetailPage({
     prisma.space.findUnique({
       where: { id: spaceId },
       select: {
-        _count: { select: { members: true, templates: true, sessions: true } },
+        _count: {
+          select: {
+            members: true,
+            templates: { where: { isHidden: false } },
+            sessions: true,
+          },
+        },
       },
     }),
   ]);
@@ -203,7 +209,7 @@ export default async function SpaceDetailPage({
             <div className="space-y-1">
               {space.description ? <p className="text-neutral-400">{space.description}</p> : null}
               <p className="text-xs text-neutral-500">
-                {counts?._count.members ?? 0} members · {counts?._count.templates ?? 0} lists ·{" "}
+                {counts?._count.members ?? 0} members · {totalLists} lists ·{" "}
                 {counts?._count.sessions ?? 0} votes
               </p>
             </div>

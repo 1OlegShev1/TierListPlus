@@ -30,7 +30,15 @@ export default async function SpacesPage({
     userId
       ? prisma.space.findMany({
           where: { members: { some: { userId } } },
-          include: { _count: { select: { members: true, templates: true, sessions: true } } },
+          include: {
+            _count: {
+              select: {
+                members: true,
+                templates: { where: { isHidden: false } },
+                sessions: true,
+              },
+            },
+          },
           orderBy: { updatedAt: "desc" },
         })
       : Promise.resolve([]),
@@ -43,7 +51,15 @@ export default async function SpacesPage({
         : {
             visibility: "OPEN",
           },
-      include: { _count: { select: { members: true, templates: true, sessions: true } } },
+      include: {
+        _count: {
+          select: {
+            members: true,
+            templates: { where: { isHidden: false } },
+            sessions: true,
+          },
+        },
+      },
       orderBy: { updatedAt: "desc" },
     }),
   ]);
