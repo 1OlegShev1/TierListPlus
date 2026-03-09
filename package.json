@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
-    "build": "next build",
+    "verify": "npm run lint && npm run test",
+    "build": "npm run verify && next build",
     "start": "next start",
     "test": "vitest run",
     "test:watch": "vitest",
