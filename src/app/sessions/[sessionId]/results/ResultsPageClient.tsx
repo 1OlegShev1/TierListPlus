@@ -1,56 +1,116 @@
 "use client";
 
-import { Link2 } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ItemSourceModal } from "@/components/items/ItemSourceModal";
 import { CloseVoteButton } from "@/components/sessions/CloseVoteButton";
 import { ReopenVoteButton } from "@/components/sessions/ReopenVoteButton";
-import { DraggableItem } from "@/components/tierlist/DraggableItem";
 import { buttonSizes, buttonVariants } from "@/components/ui/Button";
 import { ErrorMessage } from "@/components/ui/ErrorMessage";
-import { ItemArtwork } from "@/components/ui/ItemArtwork";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { useParticipant } from "@/hooks/useParticipant";
 import type { ConsensusItem, ConsensusTier } from "@/lib/consensus";
 import type { SessionResult } from "@/types";
+import { BrowsePanel } from "./BrowsePanel";
+import { BrowseResultsSection } from "./BrowseResultsSection";
+import { EveryoneResultsSection } from "./EveryoneResultsSection";
+import { buildResultsHref, type ResultsView } from "./resultsViewModel";
+import { useBrowseResultsState } from "./useBrowseResultsState";
 import { useResultsDetailsPanel } from "./useResultsDetailsPanel";
 
-const MAX_TIER_TOOLTIP_NAMES = 4;
+function findConsensusItemById(tiers: ConsensusTier[] | null, itemId: string | null) {
+  if (!tiers || !itemId) return null;
+  for (const tier of tiers) {
+    const match = tier.items.find((item) => item.id === itemId);
+    if (match) return match;
+  }
+  return null;
+}
 
-function formatTierVoterPreview(names: string[]): string {
-  const visibleNames = names.slice(0, MAX_TIER_TOOLTIP_NAMES);
-  const hiddenCount = names.length - visibleNames.length;
-  const preview = visibleNames.join(", ");
+function ContextCard({ title, description }: { title: string; description: string }) {
+  return (
+    <div className="mb-6 rounded-2xl border border-neutral-800 bg-neutral-950/70 px-4 py-4 sm:px-5">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">
+        Showing
+      </p>
+      <h2 className="mt-2 text-2xl font-semibold text-neutral-50 sm:text-[1.75rem]">{title}</h2>
+      <p className="mt-2 text-sm text-neutral-400 sm:text-base">{description}</p>
+    </div>
+  );
+}
 
-  if (hiddenCount <= 0) return preview;
-  return `${preview}, +${hiddenCount} more`;
+function ViewToggle({ sessionId, activeView }: { sessionId: string; activeView: ResultsView }) {
+  return (
+    <div className="mb-6 flex flex-wrap gap-2">
+      {[
+        {
+          label: "Everyone",
+          href: buildResultsHref({ sessionId, view: "everyone" }),
+          active: activeView === "everyone",
+        },
+        {
+          label: "Browse",
+          href: buildResultsHref({ sessionId, view: "browse" }),
+          active: activeView === "browse",
+        },
+      ].map((option) => (
+        <Link
+          key={option.label}
+          href={option.href}
+          className={`rounded-full border px-4 py-2 text-sm font-medium transition-colors ${
+            option.active
+              ? "border-amber-500 bg-amber-500/10 text-amber-300"
+              : "border-neutral-700 text-neutral-300 hover:border-amber-500 hover:text-amber-300"
+          }`}
+        >
+          {option.label}
+        </Link>
+      ))}
+    </div>
+  );
 }
 
 export function ResultsPageClient({
   sessionId,
   initialSession,
   initialConsensusTiers,
+  initialView,
   participantId,
+  compareParticipantId,
+  compareEveryone,
   canViewIndividualBallots,
-  consensusParticipantCount,
   initialParticipantName,
   initialParticipantTiers,
   initialParticipantError,
+  initialCompareParticipantName,
+  initialCompareParticipantTiers,
+  initialCompareParticipantError,
 }: {
   sessionId: string;
   initialSession: SessionResult;
   initialConsensusTiers: ConsensusTier[];
+  initialView: ResultsView;
   participantId: string | null;
+  compareParticipantId: string | null;
+  compareEveryone: boolean;
   canViewIndividualBallots: boolean;
-  consensusParticipantCount: number;
   initialParticipantName: string | null;
   initialParticipantTiers: ConsensusTier[] | null;
   initialParticipantError: string | null;
+  initialCompareParticipantName: string | null;
+  initialCompareParticipantTiers: ConsensusTier[] | null;
+  initialCompareParticipantError: string | null;
 }) {
   const { save: saveParticipant, clear: clearParticipant } = useParticipant(sessionId);
   const [session, setSession] = useState(initialSession);
   const [sourceModalItem, setSourceModalItem] = useState<ConsensusItem | null>(null);
+  const [compareLeftExpandedItemId, setCompareLeftExpandedItemId] = useState<string | null>(null);
+  const [compareRightExpandedItemId, setCompareRightExpandedItemId] = useState<string | null>(null);
+  const resultsRef = useRef<HTMLDivElement | null>(null);
+  const compareSelectionKeyRef = useRef(
+    `${participantId ?? "none"}:${compareParticipantId ?? "none"}:${compareEveryone ? "everyone" : "no-everyone"}`,
+  );
+
   const {
     selectedItem,
     detailsItem,
@@ -80,32 +140,73 @@ export function ResultsPageClient({
     session.currentParticipantNickname,
   ]);
 
-  const participantsWithSavedVotes = session.participants.filter((p) => p.hasSavedVotes);
-  const totalParticipants = canViewIndividualBallots
-    ? participantsWithSavedVotes.length
-    : consensusParticipantCount;
-  const selectedParticipant =
-    canViewIndividualBallots
-      ? (participantsWithSavedVotes.find((p) => p.id === participantId) ?? null)
-      : null;
+  useEffect(() => {
+    const nextKey = `${participantId ?? "none"}:${compareParticipantId ?? "none"}:${compareEveryone ? "everyone" : "no-everyone"}`;
+    if (compareSelectionKeyRef.current === nextKey) return;
+    compareSelectionKeyRef.current = nextKey;
+    setCompareLeftExpandedItemId(null);
+    setCompareRightExpandedItemId(null);
+  }, [participantId, compareParticipantId, compareEveryone]);
+
+  const {
+    browseRows,
+    clearSelectionHref,
+    compareWithEveryoneHref,
+    comparedParticipant,
+    hasCompareSelection,
+    hasEveryoneCompareSelection,
+    hasPrimarySelection,
+    isBrowserOpen,
+    searchQuery,
+    selectedParticipant,
+    setSearchQuery,
+    stopComparingHref,
+    toggleBrowserOpen,
+    viewState,
+  } = useBrowseResultsState({
+    sessionId,
+    canViewIndividualBallots,
+    initialView,
+    participants: session.participants,
+    currentParticipantId: session.currentParticipantId,
+    participantId,
+    compareParticipantId,
+    compareEveryone,
+    initialParticipantName,
+    initialCompareParticipantName,
+    initialParticipantTiers,
+    initialCompareParticipantTiers,
+  });
+
   const currentParticipantId = session.currentParticipantId;
-  const isIndividualView = canViewIndividualBallots && !!participantId;
-  const displayTiers = initialParticipantTiers ?? initialConsensusTiers;
-  const consensusLabel = `Everyone (${totalParticipants})`;
-  const baseSubtitle = isIndividualView
-    ? initialParticipantName
-      ? `${initialParticipantName}'s ballot`
-      : selectedParticipant
-        ? `${selectedParticipant.nickname}'s ballot`
-        : "That ballot"
-    : `${consensusLabel} together`;
-  const subtitle = <span>{baseSubtitle}</span>;
   const voteHref = currentParticipantId
     ? `/sessions/${sessionId}/vote`
     : `/sessions/join?code=${encodeURIComponent(session.joinCode)}`;
   const primaryVoteActionLabel = currentParticipantId ? "Resume" : "Join vote";
   const backToVotesHref = session.spaceId ? `/spaces/${session.spaceId}` : "/sessions";
   const backToVotesLabel = session.spaceId ? "Back to Space Votes" : "Back to Votes";
+
+  const scrollToResults = () => {
+    resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+  const compareLeftSelectedItem = findConsensusItemById(
+    initialParticipantTiers,
+    compareLeftExpandedItemId,
+  );
+  const compareRightTiers = hasEveryoneCompareSelection
+    ? initialConsensusTiers
+    : initialCompareParticipantTiers;
+  const compareRightSelectedItem = findConsensusItemById(
+    compareRightTiers,
+    compareRightExpandedItemId,
+  );
+  const handleCompareLeftToggle = (item: ConsensusItem) => {
+    setCompareLeftExpandedItemId((current) => (current === item.id ? null : item.id));
+  };
+  const handleCompareRightToggle = (item: ConsensusItem) => {
+    setCompareRightExpandedItemId((current) => (current === item.id ? null : item.id));
+  };
+
   return (
     <div>
       <Link
@@ -116,7 +217,6 @@ export function ResultsPageClient({
       </Link>
       <PageHeader
         title={`${session.name} Rankings`}
-        subtitle={subtitle}
         actions={
           <div className="flex w-full flex-wrap items-center justify-end gap-2 sm:w-auto sm:shrink-0">
             {session.status === "OPEN" && (
@@ -157,265 +257,78 @@ export function ResultsPageClient({
       />
 
       {canViewIndividualBallots ? (
-        <div className="mb-6">
-          <h2 className="mb-3 text-sm font-medium text-neutral-400">See</h2>
-          <div className="flex flex-wrap gap-2">
-            <Link
-              href={`/sessions/${sessionId}/results`}
-              className={`rounded-full border px-3 py-1 text-sm transition-colors ${
-                !isIndividualView
-                  ? "border-amber-500 bg-amber-500/10 text-amber-400"
-                  : "border-neutral-700 text-neutral-300 hover:border-amber-500 hover:text-amber-400"
-              }`}
-            >
-              {consensusLabel}
-            </Link>
-            {participantsWithSavedVotes.map((participant) => (
-              <Link
-                key={participant.id}
-                href={`/sessions/${sessionId}/results?participant=${participant.id}`}
-                className={`rounded-full border px-3 py-1 text-sm transition-colors ${
-                  participantId === participant.id
-                    ? "border-amber-500 bg-amber-500/10 text-amber-400"
-                    : "border-neutral-700 text-neutral-300 hover:border-amber-500 hover:text-amber-400"
-                }`}
-              >
-                {participant.nickname}
-                {!participant.isComplete && participant.missingItemCount > 0
-                  ? ` (${participant.missingItemCount} left)`
-                  : ""}
-              </Link>
-            ))}
-          </div>
-        </div>
+        <ViewToggle sessionId={sessionId} activeView={viewState.activeView} />
       ) : (
         <div className="mb-6 rounded-lg border border-neutral-800 bg-neutral-900/40 px-3 py-2 text-xs text-neutral-400">
           Shared results view. Individual ballots are hidden.
         </div>
       )}
 
+      {!viewState.isBrowseView && (
+        <ContextCard title={viewState.contextTitle} description={viewState.contextDescription} />
+      )}
+
+      {viewState.isBrowseView && canViewIndividualBallots && (
+        <BrowsePanel
+          title={viewState.browseHeaderTitle}
+          isOpen={isBrowserOpen}
+          onToggleOpen={toggleBrowserOpen}
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          onClearSearch={() => setSearchQuery("")}
+          stopComparingHref={stopComparingHref}
+          clearSelectionHref={clearSelectionHref}
+          compareWithEveryoneHref={compareWithEveryoneHref}
+          listHeightClass={viewState.browserListHeightClass}
+          rows={browseRows}
+          onScrollToResults={scrollToResults}
+        />
+      )}
+
       {initialParticipantError && <ErrorMessage message={initialParticipantError} />}
+      {initialCompareParticipantError && <ErrorMessage message={initialCompareParticipantError} />}
 
-      {!initialParticipantError && (
-        <div className="overflow-hidden rounded-lg border border-neutral-800 touch-pan-y">
-          {displayTiers.map((tier, tierIndex) => {
-            const isFirstTier = tierIndex === 0;
-            const isLastTier = tierIndex === displayTiers.length - 1;
-            const expandedTransformOrigin =
-              isFirstTier && isLastTier
-                ? "center center"
-                : isFirstTier
-                  ? "top center"
-                  : isLastTier
-                    ? "bottom center"
-                    : "center center";
-
-            return (
-              <div
-                key={tier.key}
-                className="flex min-h-[72px] border-b border-neutral-800 last:border-b-0 sm:min-h-[80px] md:min-h-[90px] lg:min-h-[104px]"
-              >
-                <div
-                  className="flex w-20 flex-shrink-0 items-center justify-center px-2 py-2 text-center text-sm font-bold sm:w-24 sm:px-3 sm:text-base md:w-28 md:text-lg lg:w-32 lg:text-xl"
-                  style={{ backgroundColor: tier.color, color: "#000" }}
-                  title={tier.label}
-                >
-                  <span className="block max-w-full text-[11px] leading-tight line-clamp-2 break-words sm:text-base sm:line-clamp-none md:text-lg lg:text-xl">
-                    {tier.label}
-                  </span>
-                </div>
-                <div className="flex flex-1 touch-pan-y flex-wrap items-start gap-1 p-1 sm:gap-1.5 sm:p-1.5 md:gap-2 md:p-2">
-                  {tier.items.map((item) =>
-                    isIndividualView ? (
-                      <DraggableItem
-                        key={item.id}
-                        id={item.id}
-                        label={item.label}
-                        imageUrl={item.imageUrl}
-                        sourceUrl={item.sourceUrl}
-                        sourceProvider={item.sourceProvider}
-                        isExpanded={selectedItem?.id === item.id}
-                        onExpand={() => handleItemToggle(item)}
-                        onCollapse={() => handleItemToggle(item)}
-                        onOpenSource={item.sourceUrl ? () => setSourceModalItem(item) : undefined}
-                        enableSorting={false}
-                        expandedTransformOrigin={expandedTransformOrigin}
-                      />
-                    ) : (
-                      <div
-                        key={item.id}
-                        className="relative h-[62px] w-[62px] flex-shrink-0 sm:h-[70px] sm:w-[70px] md:h-[78px] md:w-[78px] lg:h-[96px] lg:w-[96px]"
-                      >
-                        <button
-                          type="button"
-                          onClick={() => handleItemClick(item)}
-                          onTouchStart={(event) => handleItemTouchStart(item.id, event)}
-                          onTouchEnd={(event) => handleItemTouchEnd(item, event)}
-                          onTouchCancel={handleItemTouchCancel}
-                          className={`group relative h-full w-full cursor-pointer touch-manipulation overflow-hidden rounded-md border transition-colors ${
-                            selectedItem?.id === item.id
-                              ? "border-amber-400 ring-2 ring-amber-400"
-                              : "border-neutral-700 hover:border-neutral-500"
-                          }`}
-                        >
-                          <ItemArtwork
-                            src={item.imageUrl}
-                            alt={item.label}
-                            className="h-full w-full"
-                            presentation="ambient"
-                          />
-                          <span className="absolute inset-x-0 bottom-0 truncate bg-black/70 px-1 py-0.5 text-center text-[11px] leading-tight text-neutral-200 opacity-0 transition-opacity group-hover:opacity-100">
-                            {item.label}
-                          </span>
-                        </button>
-                        {item.sourceUrl && (
-                          <button
-                            type="button"
-                            onClick={(event) => {
-                              event.preventDefault();
-                              event.stopPropagation();
-                              setSourceModalItem(item);
-                            }}
-                            onTouchStart={(event) => {
-                              event.stopPropagation();
-                            }}
-                            onTouchEnd={(event) => {
-                              event.stopPropagation();
-                            }}
-                            aria-label={`Open source for ${item.label || "item"}`}
-                            title="Open source link"
-                            className="absolute left-1 top-1 z-10 flex h-6 w-6 items-center justify-center rounded-full border border-sky-400/80 bg-black/70 text-sky-200 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/70 hover:border-sky-300 hover:text-sky-100"
-                          >
-                            <Link2 className="h-3.5 w-3.5" aria-hidden="true" />
-                          </button>
-                        )}
-                      </div>
-                    ),
-                  )}
-                  {tier.items.length === 0 && (
-                    <span className="flex h-[60px] items-center px-2 text-xs text-neutral-600 sm:h-[70px] sm:px-2.5 md:h-[84px] md:px-3 lg:h-[96px] lg:px-4 lg:text-sm">
-                      No picks
-                    </span>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
+      {!viewState.isBrowseView && !initialParticipantError && (
+        <EveryoneResultsSection
+          resultsRef={resultsRef}
+          consensusTiers={initialConsensusTiers}
+          selectedItem={selectedItem}
+          onItemToggle={handleItemToggle}
+          onItemClick={handleItemClick}
+          onItemTouchStart={handleItemTouchStart}
+          onItemTouchEnd={handleItemTouchEnd}
+          onItemTouchCancel={handleItemTouchCancel}
+          detailsItem={detailsItem}
+          detailsOpen={detailsOpen}
+          detailsPanelRef={detailsPanelRef}
+          isTouchInput={isTouchInput}
+          onOpenSource={(item) => setSourceModalItem(item)}
+        />
       )}
 
-      {!isIndividualView && detailsItem && (
-        <div
-          ref={detailsPanelRef}
-          className={`mt-6 overflow-hidden rounded-2xl border border-neutral-800 bg-neutral-950/60 transition-[opacity,transform,max-height,margin] duration-200 ease-out ${
-            detailsOpen
-              ? "max-h-[32rem] translate-y-0 opacity-100"
-              : "pointer-events-none max-h-0 -translate-y-2 opacity-0"
-          }`}
-        >
-          <div className="border-b border-neutral-800 px-4 py-3">
-            <div className="flex items-center gap-3">
-              <div className="h-16 w-16 flex-shrink-0 overflow-hidden rounded-lg border border-neutral-800 sm:h-20 sm:w-20">
-                <ItemArtwork
-                  src={detailsItem.imageUrl}
-                  alt={detailsItem.label}
-                  className="h-full w-full"
-                  presentation="ambient"
-                  animate={detailsOpen}
-                />
-              </div>
-              <div className="min-w-0">
-                <h3 className="truncate text-base font-semibold text-neutral-100">
-                  {detailsItem.label}
-                </h3>
-                <p className="mt-1 text-sm text-neutral-400">
-                  Average score {detailsItem.averageScore.toFixed(2)} from {detailsItem.totalVotes}{" "}
-                  vote{detailsItem.totalVotes !== 1 ? "s" : ""}
-                </p>
-              </div>
-              {detailsItem.sourceUrl && (
-                <button
-                  type="button"
-                  onClick={() => setSourceModalItem(detailsItem)}
-                  className="ml-2 inline-flex items-center gap-1.5 rounded-md border border-sky-500/70 bg-sky-500/10 px-2 py-1 text-xs font-medium text-sky-200 transition-colors hover:border-sky-400 hover:bg-sky-500/15 hover:text-sky-100 sm:ml-auto"
-                >
-                  <Link2 className="h-3.5 w-3.5" aria-hidden="true" />
-                  Source
-                </button>
-              )}
-            </div>
-          </div>
-          <div className="grid gap-6 px-4 py-4 lg:grid-cols-[minmax(0,1fr)_19rem]">
-            <div>
-              <h4 className="mb-3 text-sm font-medium text-neutral-300">Placement breakdown</h4>
-              <div className="space-y-2 px-4 py-3">
-                {initialConsensusTiers.map((tier) => {
-                  const count = detailsItem.voteDistribution[tier.key] ?? 0;
-                  const voterNames = detailsItem.voterNicknamesByTier[tier.key] ?? [];
-                  const tooltipPreview =
-                    voterNames.length > 0 ? formatTierVoterPreview(voterNames) : null;
-                  const pct =
-                    detailsItem.totalVotes > 0
-                      ? Math.min(100, (count / detailsItem.totalVotes) * 100)
-                      : 0;
-                  const pctRounded = Math.round(pct);
-
-                  return (
-                    <div
-                      key={tier.key}
-                      className="grid grid-cols-[5rem_1fr_auto] items-center gap-3 sm:grid-cols-[6rem_1fr_auto] md:grid-cols-[7rem_1fr_auto] md:gap-4 lg:grid-cols-[8rem_1fr_auto]"
-                    >
-                      <span
-                        className="inline-flex h-7 w-full items-center justify-center overflow-hidden rounded px-2 py-1 text-xs font-bold"
-                        style={{ backgroundColor: tier.color, color: "#000" }}
-                        title={tier.label}
-                      >
-                        <span className="block w-full truncate text-center leading-none">
-                          {tier.label}
-                        </span>
-                      </span>
-                      <div className="group relative">
-                        <div className="relative h-3 overflow-hidden rounded-full border border-neutral-700/80 bg-neutral-900">
-                          <div
-                            aria-hidden="true"
-                            className="absolute inset-0 opacity-30"
-                            style={{
-                              backgroundImage:
-                                "repeating-linear-gradient(90deg, rgba(255,255,255,0.06) 0, rgba(255,255,255,0.06) 6px, transparent 6px, transparent 12px)",
-                            }}
-                          />
-                          <div
-                            className="relative h-full rounded-full transition-[width] duration-500 ease-out"
-                            style={{
-                              width: `${pct}%`,
-                              backgroundColor: tier.color,
-                              boxShadow: `0 0 0 1px ${tier.color}80 inset, 0 0 10px ${tier.color}55`,
-                              minWidth: count > 0 ? "10px" : "0",
-                            }}
-                          />
-                        </div>
-                        {!isTouchInput && tooltipPreview && (
-                          <div className="pointer-events-none absolute left-0 top-full z-10 mt-2 max-w-xs translate-y-1 rounded-md border border-neutral-700 bg-neutral-950 px-3 py-2 text-left text-xs text-neutral-200 opacity-0 shadow-lg transition-all duration-150 group-hover:translate-y-0 group-hover:opacity-100">
-                            <span className="block font-medium text-neutral-100">
-                              {tooltipPreview}
-                            </span>
-                            <span className="mt-1 block text-[11px] text-neutral-400">
-                              {count} vote{count !== 1 ? "s" : ""} in {tier.label}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                      <span className="w-16 text-right text-xs tabular-nums text-neutral-400">
-                        {count} · {pctRounded}%
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {viewState.isBrowseView &&
+        hasPrimarySelection &&
+        !initialParticipantError &&
+        initialParticipantTiers && (
+          <BrowseResultsSection
+            resultsRef={resultsRef}
+            hasCompareSelection={hasCompareSelection}
+            hasEveryoneCompareSelection={hasEveryoneCompareSelection}
+            initialParticipantName={initialParticipantName}
+            selectedNickname={selectedParticipant?.nickname ?? null}
+            initialParticipantTiers={initialParticipantTiers}
+            initialCompareParticipantName={initialCompareParticipantName}
+            comparedNickname={comparedParticipant?.nickname ?? null}
+            compareRightTiers={compareRightTiers}
+            compareLeftSelectedItem={compareLeftSelectedItem}
+            compareRightSelectedItem={compareRightSelectedItem}
+            selectedItem={selectedItem}
+            onCompareLeftToggle={handleCompareLeftToggle}
+            onCompareRightToggle={handleCompareRightToggle}
+            onItemToggle={handleItemToggle}
+            onOpenSource={(item) => setSourceModalItem(item)}
+          />
+        )}
 
       {sourceModalItem && (
         <ItemSourceModal

@@ -19,7 +19,8 @@
     "db:push": "npx prisma db push",
     "db:seed": "npx tsx prisma/seed.ts",
     "db:studio": "npx prisma studio",
-    "uploads:gc": "node scripts/cleanup-orphan-uploads.mjs"
+    "uploads:gc": "node scripts/cleanup-orphan-uploads.mjs",
+    "fixture:vote": "npx tsx scripts/create-vote-fixture.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
