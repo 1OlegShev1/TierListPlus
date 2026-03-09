@@ -1,7 +1,7 @@
 "use client";
 
+import { Link2, Link as LinkIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { Link2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { ItemSourceModal } from "@/components/items/ItemSourceModal";
 import { ImageUploader, type UploadedImage } from "@/components/shared/ImageUploader";
@@ -13,7 +13,14 @@ import { CloseIcon } from "@/components/ui/icons";
 import { Textarea } from "@/components/ui/Textarea";
 import { useUser } from "@/hooks/useUser";
 import { apiFetch, apiPatch, apiPost, getErrorMessage } from "@/lib/api-client";
-import { parseSupportedItemSource } from "@/lib/item-source";
+import {
+  MAX_ITEM_LABEL_LENGTH,
+  normalizeItemLabel,
+  parseAnyItemSource,
+  parseSupportedItemSource,
+  resolveItemImageUrlForWrite,
+  suggestItemLabelFromSourceUrl,
+} from "@/lib/item-source";
 import type { TemplateItemData } from "@/types";
 
 interface ListEditorProps {
@@ -48,17 +55,29 @@ export function ListEditor({
   const itemLabelRefs = useRef<Array<HTMLInputElement | null>>([]);
   const itemCardRefs = useRef<Array<HTMLDivElement | null>>([]);
   const uploadTriggerRef = useRef<HTMLButtonElement>(null);
+  const addByUrlTriggerRef = useRef<HTMLButtonElement>(null);
   const saveButtonRef = useRef<HTMLButtonElement>(null);
+  const [showAddByUrlSourceModal, setShowAddByUrlSourceModal] = useState(false);
+  const [addByUrlSourceError, setAddByUrlSourceError] = useState<string | null>(null);
+  const [addingByUrl, setAddingByUrl] = useState(false);
   const uploadsDisabled = userLoading || !userId;
   const canSave = !saving && !userLoading && !!userId && !!name.trim() && items.length > 0;
 
   const addItem = ({ url, suggestedLabel }: UploadedImage) => {
     setPreviewingItemIndex(null);
-    setItems((prev) => [...prev, { label: suggestedLabel, imageUrl: url, sortOrder: prev.length }]);
+    setItems((prev) => [
+      ...prev,
+      {
+        label: normalizeItemLabel(suggestedLabel) || "New item",
+        imageUrl: url,
+        sortOrder: prev.length,
+      },
+    ]);
   };
 
   const updateItemLabel = (index: number, label: string) => {
-    setItems((prev) => prev.map((item, i) => (i === index ? { ...item, label } : item)));
+    const nextLabel = normalizeItemLabel(label);
+    setItems((prev) => prev.map((item, i) => (i === index ? { ...item, label: nextLabel } : item)));
   };
 
   const removeItem = (index: number) => {
@@ -125,6 +144,12 @@ export function ListEditor({
       return;
     }
 
+    const addByUrlTrigger = addByUrlTriggerRef.current;
+    if (addByUrlTrigger && !addByUrlTrigger.disabled) {
+      addByUrlTrigger.focus();
+      return;
+    }
+
     const uploadTrigger = uploadTriggerRef.current;
     if (uploadTrigger && !uploadTrigger.disabled) {
       uploadTrigger.focus();
@@ -140,7 +165,13 @@ export function ListEditor({
     currentInput.blur();
   };
 
-  const focusUploadTrigger = () => {
+  const focusPrimaryAddTrigger = () => {
+    const addByUrlTrigger = addByUrlTriggerRef.current;
+    if (addByUrlTrigger && !addByUrlTrigger.disabled) {
+      addByUrlTrigger.focus();
+      return;
+    }
+
     const uploadTrigger = uploadTriggerRef.current;
     if (uploadTrigger && !uploadTrigger.disabled) {
       uploadTrigger.focus();
@@ -153,7 +184,7 @@ export function ListEditor({
     if (items.length > 0) return;
 
     e.preventDefault();
-    focusUploadTrigger();
+    focusPrimaryAddTrigger();
   };
 
   const save = async () => {
@@ -371,6 +402,7 @@ export function ListEditor({
                 placeholder="Name this pick"
                 value={item.label}
                 onChange={(e) => updateItemLabel(index, e.target.value)}
+                maxLength={MAX_ITEM_LABEL_LENGTH}
                 onKeyDown={(e) => {
                   if (e.nativeEvent.isComposing) return;
                   if (e.key !== "Enter") return;
@@ -381,6 +413,20 @@ export function ListEditor({
               />
             </div>
           ))}
+          <button
+            ref={addByUrlTriggerRef}
+            type="button"
+            onClick={() => {
+              setAddByUrlSourceError(null);
+              setShowAddByUrlSourceModal(true);
+            }}
+            disabled={uploadsDisabled}
+            className="group flex aspect-square w-full flex-col items-center justify-center rounded-lg border border-dashed border-neutral-700 bg-neutral-900/70 p-3 text-center transition-colors hover:border-amber-400 hover:bg-neutral-900 disabled:cursor-not-allowed disabled:opacity-60"
+            aria-label="Add item via URL"
+          >
+            <LinkIcon className="h-6 w-6 text-neutral-300 transition-colors group-hover:text-amber-300" />
+            <span className="mt-2 text-xs font-medium text-neutral-300">Add via URL</span>
+          </button>
           <ImageUploader
             onUploaded={addItem}
             onUploadStateChange={(uploading) => {
@@ -420,6 +466,80 @@ export function ListEditor({
               sourceEndSec,
             );
             return true;
+          }}
+        />
+      )}
+
+      {showAddByUrlSourceModal && (
+        <ItemSourceModal
+          open
+          mode="CREATE_FROM_URL"
+          itemLabel="New item"
+          itemImageUrl={null}
+          sourceUrl={null}
+          sourceProvider={null}
+          sourceNote={null}
+          sourceStartSec={null}
+          sourceEndSec={null}
+          editable
+          saving={addingByUrl}
+          error={addByUrlSourceError}
+          onClose={() => {
+            if (addingByUrl) return;
+            setShowAddByUrlSourceModal(false);
+          }}
+          onSave={async ({
+            sourceUrl,
+            sourceNote,
+            sourceStartSec,
+            sourceEndSec,
+            itemLabel,
+            resolvedImageUrl,
+            resolvedTitle,
+          }) => {
+            setAddByUrlSourceError(null);
+            if (!sourceUrl) {
+              setAddByUrlSourceError("Source URL is required.");
+              return false;
+            }
+
+            setAddingByUrl(true);
+            try {
+              const parsed = parseAnyItemSource(sourceUrl);
+              if (!parsed) {
+                setAddByUrlSourceError("Enter a valid http(s) URL.");
+                return false;
+              }
+              const imageUrl = resolveItemImageUrlForWrite(resolvedImageUrl, parsed.normalizedUrl);
+              const label = normalizeItemLabel(
+                itemLabel ??
+                  resolvedTitle ??
+                  suggestItemLabelFromSourceUrl(parsed.normalizedUrl) ??
+                  "Link item",
+              );
+
+              setPreviewingItemIndex(null);
+              setItems((prev) => [
+                ...prev,
+                {
+                  label: label || "Link item",
+                  imageUrl,
+                  sourceUrl: parsed.normalizedUrl,
+                  sourceProvider: parsed.provider,
+                  sourceNote,
+                  sourceStartSec,
+                  sourceEndSec,
+                  sortOrder: prev.length,
+                },
+              ]);
+              setShowAddByUrlSourceModal(false);
+              return true;
+            } catch (err) {
+              setAddByUrlSourceError(getErrorMessage(err, "Could not add an item from this URL."));
+              return false;
+            } finally {
+              setAddingByUrl(false);
+            }
           }}
         />
       )}

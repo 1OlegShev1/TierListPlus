@@ -6,12 +6,15 @@ import {
   validateBody,
   withHandler,
 } from "@/lib/api-helpers";
+import { resolveItemImageUrlForCreate } from "@/lib/item-image-storage";
 import {
+  normalizeItemLabel,
   normalizeItemSourceNote,
   resolveItemSourceForWrite,
   resolveSourceIntervalForWrite,
 } from "@/lib/item-source";
 import { prisma } from "@/lib/prisma";
+import { tryDeleteManagedUploadIfUnreferenced } from "@/lib/upload-gc";
 import { addSessionItemSchema } from "@/lib/validators";
 
 export const POST = withHandler(async (request, { params }) => {
@@ -23,6 +26,7 @@ export const POST = withHandler(async (request, { params }) => {
 
   const data = await validateBody(request, addSessionItemSchema);
   const {
+    imageUrl: rawImageUrl,
     sourceUrl: rawSourceUrl,
     sourceNote: rawSourceNote,
     sourceStartSec: rawSourceStartSec,
@@ -34,6 +38,12 @@ export const POST = withHandler(async (request, { params }) => {
     sourceData = resolveItemSourceForWrite(rawSourceUrl);
   } catch (error) {
     badRequest(error instanceof Error ? error.message : "Invalid source URL");
+  }
+  let imageUrl: string;
+  try {
+    imageUrl = await resolveItemImageUrlForCreate(rawImageUrl, sourceData.sourceUrl);
+  } catch (error) {
+    badRequest(error instanceof Error ? error.message : "Invalid image URL");
   }
   const sourceNote = normalizeItemSourceNote(rawSourceNote);
   const hasSourceLink = typeof sourceData.sourceUrl === "string";
@@ -47,43 +57,51 @@ export const POST = withHandler(async (request, { params }) => {
   } catch (error) {
     badRequest(error instanceof Error ? error.message : "Invalid source interval");
   }
+  const normalizedLabel = normalizeItemLabel(restData.label) || "New item";
 
-  const sessionItem = await prisma.$transaction(async (tx) => {
-    // Serialize sort-order allocation per session across all clients/tabs.
-    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext('session_items'), hashtext(${sessionId}))`;
+  const sessionItem = await (async () => {
+    try {
+      return await prisma.$transaction(async (tx) => {
+        // Serialize sort-order allocation per session across all clients/tabs.
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext('session_items'), hashtext(${sessionId}))`;
 
-    const lastItem = await tx.sessionItem.findFirst({
-      where: { sessionId },
-      orderBy: { sortOrder: "desc" },
-      select: { sortOrder: true },
-    });
-    const sortOrder = data.sortOrder ?? (lastItem?.sortOrder ?? -1) + 1;
+        const lastItem = await tx.sessionItem.findFirst({
+          where: { sessionId },
+          orderBy: { sortOrder: "desc" },
+          select: { sortOrder: true },
+        });
+        const sortOrder = data.sortOrder ?? (lastItem?.sortOrder ?? -1) + 1;
 
-    const templateItem = await tx.templateItem.create({
-      data: {
-        templateId: session.templateId,
-        label: restData.label,
-        imageUrl: restData.imageUrl,
-        ...sourceData,
-        ...(hasSourceLink && sourceNote !== undefined ? { sourceNote } : {}),
-        ...intervalData,
-        sortOrder,
-      },
-    });
+        const templateItem = await tx.templateItem.create({
+          data: {
+            templateId: session.templateId,
+            label: normalizedLabel,
+            imageUrl,
+            ...sourceData,
+            ...(hasSourceLink && sourceNote !== undefined ? { sourceNote } : {}),
+            ...intervalData,
+            sortOrder,
+          },
+        });
 
-    return tx.sessionItem.create({
-      data: {
-        sessionId,
-        templateItemId: templateItem.id,
-        label: restData.label,
-        imageUrl: restData.imageUrl,
-        ...sourceData,
-        ...(hasSourceLink && sourceNote !== undefined ? { sourceNote } : {}),
-        ...intervalData,
-        sortOrder,
-      },
-    });
-  });
+        return tx.sessionItem.create({
+          data: {
+            sessionId,
+            templateItemId: templateItem.id,
+            label: normalizedLabel,
+            imageUrl,
+            ...sourceData,
+            ...(hasSourceLink && sourceNote !== undefined ? { sourceNote } : {}),
+            ...intervalData,
+            sortOrder,
+          },
+        });
+      });
+    } catch (error) {
+      await tryDeleteManagedUploadIfUnreferenced(imageUrl, "session item create failure");
+      throw error;
+    }
+  })();
 
   return NextResponse.json(sessionItem, { status: 201 });
 });

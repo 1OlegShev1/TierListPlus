@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
 import { Share2 } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { ErrorMessage } from "@/components/ui/ErrorMessage";
 import { apiFetch, apiPost, getErrorMessage } from "@/lib/api-client";
@@ -58,14 +58,14 @@ export function SpaceInvitePanel({ spaceId }: { spaceId: string }) {
     if (!open && dialog.open) dialog.close();
   }, [open]);
 
-  const buildInviteLink = () => {
+  const buildInviteLink = useCallback(() => {
     const link = new URL(
       "/spaces",
       typeof window === "undefined" ? "https://tierlistplus.local" : window.location.origin,
     );
     link.searchParams.set("joinCode", invite?.code ?? "");
     return link.toString();
-  };
+  }, [invite?.code]);
 
   const copyText = async (value: string) => {
     if (!value) return false;
@@ -93,7 +93,7 @@ export function SpaceInvitePanel({ spaceId }: { spaceId: string }) {
     return copied;
   };
 
-  const prepareQrCode = async () => {
+  const prepareQrCode = useCallback(async () => {
     if (!invite) return;
     setQrLoading(true);
     setQrError("");
@@ -117,12 +117,12 @@ export function SpaceInvitePanel({ spaceId }: { spaceId: string }) {
     } finally {
       setQrLoading(false);
     }
-  };
+  }, [buildInviteLink, invite]);
 
   useEffect(() => {
     if (!open || !invite || qrCodeDataUrl || qrLoading) return;
     void prepareQrCode();
-  }, [open, invite, qrCodeDataUrl, qrLoading]);
+  }, [open, invite, qrCodeDataUrl, qrLoading, prepareQrCode]);
 
   const rotateInvite = async () => {
     if (busy) return;

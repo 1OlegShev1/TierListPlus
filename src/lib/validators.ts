@@ -1,4 +1,5 @@
 import { z } from "zod/v4";
+import { MAX_ITEM_LABEL_LENGTH } from "@/lib/item-source";
 import { MANAGED_WEBP_UPLOAD_URL_RE } from "@/lib/uploads";
 
 const MAX_INT_32 = 2_147_483_647;
@@ -32,15 +33,25 @@ export const updateTemplateSchema = z.object({
   isPublic: z.boolean().optional(),
 });
 
-export const addTemplateItemSchema = z.object({
-  label: z.string().max(100),
-  imageUrl: z.string().min(1),
-  sourceUrl: z.string().trim().url().max(500).optional(),
-  sourceNote: z.string().trim().max(120).optional(),
-  sourceStartSec: z.number().int().min(0).max(MAX_INT_32).optional(),
-  sourceEndSec: z.number().int().min(0).max(MAX_INT_32).optional(),
-  sortOrder: z.number().int().min(0).optional(),
-});
+export const addTemplateItemSchema = z
+  .object({
+    label: z.string().max(MAX_ITEM_LABEL_LENGTH),
+    imageUrl: z.string().trim().min(1).optional(),
+    sourceUrl: z.string().trim().url().max(500).optional(),
+    sourceNote: z.string().trim().max(120).optional(),
+    sourceStartSec: z.number().int().min(0).max(MAX_INT_32).optional(),
+    sourceEndSec: z.number().int().min(0).max(MAX_INT_32).optional(),
+    sortOrder: z.number().int().min(0).optional(),
+  })
+  .refine(
+    (data) =>
+      (typeof data.imageUrl === "string" && data.imageUrl.length > 0) ||
+      (typeof data.sourceUrl === "string" && data.sourceUrl.length > 0),
+    {
+      message: "Provide imageUrl or sourceUrl",
+      path: ["imageUrl"],
+    },
+  );
 
 export const addSessionItemSchema = addTemplateItemSchema;
 
@@ -49,7 +60,7 @@ export const cleanupUploadSchema = z.object({
 });
 
 export const updateTemplateItemSchema = z.object({
-  label: z.string().max(100).optional(),
+  label: z.string().max(MAX_ITEM_LABEL_LENGTH).optional(),
   imageUrl: z.string().min(1).optional(),
   sourceUrl: z.string().trim().url().max(500).nullable().optional(),
   sourceNote: z.string().trim().max(120).nullable().optional(),

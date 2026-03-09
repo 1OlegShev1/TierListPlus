@@ -38,6 +38,12 @@ describe("template item routes", () => {
   });
 
   it("adds a template item with automatic sort order", async () => {
+    mocks.prisma.template.findUnique.mockResolvedValue({
+      id: "t1",
+      creatorId: "user_1",
+      spaceId: null,
+      space: null,
+    });
     const createTemplateItem = vi.fn().mockResolvedValue({
       id: "item_1",
       label: "Item 1",
@@ -50,9 +56,6 @@ describe("template item routes", () => {
     });
     mocks.prisma.$transaction.mockImplementation(async (fn: (tx: unknown) => unknown) =>
       fn({
-        template: {
-          findUnique: vi.fn().mockResolvedValue({ id: "t1", creatorId: "user_1" }),
-        },
         templateItem: {
           findFirst: vi.fn().mockResolvedValue({ sortOrder: 4 }),
           create: createTemplateItem,
@@ -84,6 +87,12 @@ describe("template item routes", () => {
   });
 
   it("accepts generic external source providers", async () => {
+    mocks.prisma.template.findUnique.mockResolvedValue({
+      id: "t1",
+      creatorId: "user_1",
+      spaceId: null,
+      space: null,
+    });
     const createTemplateItem = vi.fn().mockResolvedValue({
       id: "item_1",
       label: "Item 1",
@@ -96,9 +105,6 @@ describe("template item routes", () => {
     });
     mocks.prisma.$transaction.mockImplementation(async (fn: (tx: unknown) => unknown) =>
       fn({
-        template: {
-          findUnique: vi.fn().mockResolvedValue({ id: "t1", creatorId: "user_1" }),
-        },
         templateItem: {
           findFirst: vi.fn().mockResolvedValue(null),
           create: createTemplateItem,
@@ -131,11 +137,14 @@ describe("template item routes", () => {
   });
 
   it("rejects non-YouTube interval payloads on create", async () => {
+    mocks.prisma.template.findUnique.mockResolvedValue({
+      id: "t1",
+      creatorId: "user_1",
+      spaceId: null,
+      space: null,
+    });
     mocks.prisma.$transaction.mockImplementation(async (fn: (tx: unknown) => unknown) =>
       fn({
-        template: {
-          findUnique: vi.fn().mockResolvedValue({ id: "t1", creatorId: "user_1" }),
-        },
         templateItem: {
           findFirst: vi.fn(),
           create: vi.fn(),
@@ -291,16 +300,14 @@ describe("template item routes", () => {
 
   it("does not crash for anonymous space checks when members are not selected", async () => {
     mocks.getRequestAuth.mockResolvedValue(null);
+    mocks.prisma.template.findUnique.mockResolvedValue({
+      id: "t1",
+      creatorId: "user_owner",
+      spaceId: "space_1",
+      space: { creatorId: "user_owner", members: false },
+    });
     mocks.prisma.$transaction.mockImplementation(async (fn: (tx: unknown) => unknown) =>
       fn({
-        template: {
-          findUnique: vi.fn().mockResolvedValue({
-            id: "t1",
-            creatorId: "user_owner",
-            spaceId: "space_1",
-            space: { creatorId: "user_owner" },
-          }),
-        },
         templateItem: {
           findFirst: vi.fn(),
           create: vi.fn(),

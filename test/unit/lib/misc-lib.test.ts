@@ -1,25 +1,30 @@
 import { z } from "zod/v4";
+import { pickParticipantSurvivor } from "@/lib/account-linking-helpers";
 import {
   ApiError,
-  formatZodError,
   forbidden,
+  formatZodError,
   mapApiError,
   notFound,
   requireOwner,
   validateBody,
   withHandler,
 } from "@/lib/api-helpers";
-import { pickParticipantSurvivor } from "@/lib/account-linking-helpers";
 import { DEFAULT_TIER_CONFIG, deriveTierKeys } from "@/lib/constants";
-import { canAccessTemplate, getTemplateVisibilityWhere, isTemplateOwner } from "@/lib/template-access";
 import {
-  createSpaceSchema,
+  canAccessTemplate,
+  getTemplateVisibilityWhere,
+  isTemplateOwner,
+} from "@/lib/template-access";
+import {
+  addTemplateItemSchema,
   createSessionSchema,
+  createSpaceSchema,
   joinSessionSchema,
   submitVotesSchema,
   tierConfigSchema,
-  updateSpaceSchema,
   updateSessionSchema,
+  updateSpaceSchema,
 } from "@/lib/validators";
 import { makeKnownRequestError, makeParticipant } from "../../helpers/mocks";
 
@@ -38,9 +43,9 @@ describe("template helpers and constants", () => {
     expect(isTemplateOwner({ creatorId: "user_1" }, "user_1")).toBe(true);
     expect(canAccessTemplate({ creatorId: "user_2", isPublic: true }, null)).toBe(true);
     expect(canAccessTemplate({ creatorId: "user_1", isPublic: false }, "user_1")).toBe(true);
-    expect(canAccessTemplate({ creatorId: "user_1", isPublic: true, isHidden: true }, "user_1")).toBe(
-      false,
-    );
+    expect(
+      canAccessTemplate({ creatorId: "user_1", isPublic: true, isHidden: true }, "user_1"),
+    ).toBe(false);
     expect(DEFAULT_TIER_CONFIG).toHaveLength(5);
   });
 
@@ -100,6 +105,17 @@ describe("validators", () => {
     expect(
       updateSpaceSchema.safeParse({
         accentColor: "VIOLET",
+      }).success,
+    ).toBe(false);
+    expect(
+      addTemplateItemSchema.safeParse({
+        label: "From URL",
+        sourceUrl: "https://example.com/article",
+      }).success,
+    ).toBe(true);
+    expect(
+      addTemplateItemSchema.safeParse({
+        label: "Missing media",
       }).success,
     ).toBe(false);
   });

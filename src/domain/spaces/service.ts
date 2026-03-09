@@ -1,7 +1,7 @@
 import type { SpaceAccentColor } from "@prisma/client";
 import { canReadSpace } from "@/domain/policy/access";
-import { getTemplateForRead } from "@/domain/templates/service";
 import { resolveSpaceAccessContext } from "@/domain/policy/resolvers";
+import { getTemplateForRead } from "@/domain/templates/service";
 import { badRequest, forbidden, notFound } from "@/lib/api-helpers";
 import { generateSpaceInviteCode } from "@/lib/nanoid";
 import { prisma } from "@/lib/prisma";

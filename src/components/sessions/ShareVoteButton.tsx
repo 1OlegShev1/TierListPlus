@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
 import { Share2 } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { ErrorMessage } from "@/components/ui/ErrorMessage";
 import { useUser } from "@/hooks/useUser";
@@ -48,14 +48,14 @@ export function ShareVoteButton({
     if (!open && dialog.open) dialog.close();
   }, [open]);
 
-  const buildJoinLink = () => {
+  const buildJoinLink = useCallback(() => {
     const link = new URL(
       "/sessions/join",
       typeof window === "undefined" ? "https://tierlistplus.local" : window.location.origin,
     );
     link.searchParams.set("code", joinCode);
     return link.toString();
-  };
+  }, [joinCode]);
 
   const copyText = async (value: string) => {
     if (!value) return false;
@@ -83,7 +83,7 @@ export function ShareVoteButton({
     return copied;
   };
 
-  const prepareQrCode = async () => {
+  const prepareQrCode = useCallback(async () => {
     setQrLoading(true);
     setQrError("");
     try {
@@ -109,12 +109,12 @@ export function ShareVoteButton({
     } finally {
       setQrLoading(false);
     }
-  };
+  }, [buildJoinLink]);
 
   useEffect(() => {
     if (!open || qrCodeDataUrl || qrLoading) return;
     void prepareQrCode();
-  }, [open, qrCodeDataUrl, qrLoading]);
+  }, [open, qrCodeDataUrl, qrLoading, prepareQrCode]);
 
   const copyCode = async () => {
     setCopyError("");
@@ -188,7 +188,11 @@ export function ShareVoteButton({
                 {qrLoading ? (
                   <p className="text-sm text-neutral-700">Preparing QR...</p>
                 ) : qrCodeDataUrl ? (
-                  <img src={qrCodeDataUrl} alt="QR code for vote invite" className="w-full rounded" />
+                  <img
+                    src={qrCodeDataUrl}
+                    alt="QR code for vote invite"
+                    className="w-full rounded"
+                  />
                 ) : (
                   <p className="text-sm text-neutral-700">QR code unavailable.</p>
                 )}

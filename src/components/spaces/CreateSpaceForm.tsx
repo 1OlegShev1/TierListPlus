@@ -44,7 +44,7 @@ export function CreateSpaceForm() {
       <div className="mt-4 grid gap-2.5 sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-center">
         <Input
           className="h-11"
-          placeholder="e.g., Anime Lovers"
+          placeholder="e.g., Movie Night Crew"
           value={name}
           onChange={(event) => setName(event.target.value)}
         />

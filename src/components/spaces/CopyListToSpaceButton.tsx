@@ -37,11 +37,10 @@ export function CopyListToSpaceButton({
     } catch (err) {
       setError(getErrorMessage(err, "Could not copy this list into the space"));
     } finally {
-      if (!shouldReset) {
-        return;
+      if (shouldReset) {
+        copyInFlightRef.current = false;
+        setCopying(false);
       }
-      copyInFlightRef.current = false;
-      setCopying(false);
     }
   };
 

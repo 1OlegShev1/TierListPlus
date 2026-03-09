@@ -14,6 +14,7 @@ describe("source preview resolver", () => {
     expect(result.provider).toBe("YOUTUBE");
     expect(result.youtubeContentKind).toBe("VIDEO");
     expect(result.embedUrl).toBe("https://www.youtube.com/embed/dQw4w9WgXcQ");
+    expect(result.thumbnailUrl).toBe("https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg");
     expect(result.embedType).toBe("iframe");
     expect(result.resolvedBy).toBe("native");
   });
@@ -36,18 +37,106 @@ describe("source preview resolver", () => {
       expect(result.provider).toBe("YOUTUBE");
       expect(result.youtubeContentKind).toBe("SHORTS");
       expect(result.embedUrl).toBe("https://www.youtube.com/embed/Jp46t341ijE");
+      expect(result.thumbnailUrl).toBe("https://i.ytimg.com/hq2.jpg");
       expect(result.resolvedBy).toBe("native");
     } finally {
       globalThis.fetch = originalFetch;
     }
   });
 
+  it("resolves YouTube duration from watch page metadata when available", async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ width: 200, height: 113, thumbnail_url: "https://i.ytimg.com/hq.jpg" }),
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        text: async () =>
+          '<meta itemprop="duration" content="PT1M30S" /><script>var x={"lengthSeconds":"90"};</script>',
+      } as Response);
+
+    try {
+      const result = await resolveSourcePreview(
+        "https://www.youtube.com/watch?v=Jp46t341ijE",
+        null,
+        { detectYouTubeContentKind: true, includeYouTubeDuration: true },
+      );
+      expect(result.provider).toBe("YOUTUBE");
+      expect(result.durationSec).toBe(90);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it("does not fetch YouTube watch page when duration is not requested", async () => {
+    const originalFetch = globalThis.fetch;
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ width: 200, height: 113, thumbnail_url: "https://i.ytimg.com/hq.jpg" }),
+    } as Response);
+    globalThis.fetch = fetchMock;
+
+    try {
+      const result = await resolveSourcePreview(
+        "https://www.youtube.com/watch?v=Jp46t341ijE",
+        null,
+        { detectYouTubeContentKind: true, includeYouTubeDuration: false },
+      );
+      expect(result.provider).toBe("YOUTUBE");
+      expect(result.durationSec).toBeNull();
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it("returns Spotify oEmbed metadata for title and thumbnail", async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        title: "Uranium Heart",
+        thumbnail_url: "https://image-cdn-fa.spotifycdn.com/image/ab67616d00001e02139acc2cf55729a5991ef2bf",
+      }),
+    } as Response);
+
+    try {
+      const result = await resolveSourcePreview("https://open.spotify.com/track/5O9j5J7eMaBKHqNqupnu0i");
+      expect(result.provider).toBe("SPOTIFY");
+      expect(result.embedUrl).toBe("https://open.spotify.com/embed/track/5O9j5J7eMaBKHqNqupnu0i");
+      expect(result.thumbnailUrl).toBe(
+        "https://image-cdn-fa.spotifycdn.com/image/ab67616d00001e02139acc2cf55729a5991ef2bf",
+      );
+      expect(result.title).toBe("Uranium Heart");
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
   it("returns native external embed for Vimeo", async () => {
-    const result = await resolveSourcePreview("https://vimeo.com/123456789");
-    expect(result.provider).toBeNull();
-    expect(result.kind).toBe("VIMEO");
-    expect(result.embedUrl).toBe("https://player.vimeo.com/video/123456789");
-    expect(result.resolvedBy).toBe("native");
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        title: "The Miracle",
+        thumbnail_url: "https://i.vimeocdn.com/video/2129137440-b65534ce.jpg",
+      }),
+    } as Response);
+
+    try {
+      const result = await resolveSourcePreview("https://vimeo.com/123456789");
+      expect(result.provider).toBeNull();
+      expect(result.kind).toBe("VIMEO");
+      expect(result.embedUrl).toBe("https://player.vimeo.com/video/123456789");
+      expect(result.thumbnailUrl).toBe("https://i.vimeocdn.com/video/2129137440-b65534ce.jpg");
+      expect(result.title).toBe("The Miracle");
+      expect(result.resolvedBy).toBe("native");
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
   });
 
   it("uses resolver and caches SoundCloud short-link previews", async () => {
@@ -74,14 +163,47 @@ describe("source preview resolver", () => {
     }
   });
 
-  it("returns native preview for X status links", async () => {
-    const result = await resolveSourcePreview("https://x.com/openai/status/1895463212345678901");
-    expect(result.kind).toBe("X");
-    expect(result.embedUrl).toBe(
-      "https://platform.twitter.com/embed/Tweet.html?id=1895463212345678901&dnt=true",
-    );
-    expect(result.note).toBeNull();
-    expect(result.resolvedBy).toBe("native");
+  it("returns native preview for X status links and resolves title via oEmbed", async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        author_name: "Roundtable",
+        html: "<blockquote><p>Hello from X message</p></blockquote>",
+      }),
+    } as Response);
+
+    try {
+      const result = await resolveSourcePreview("https://x.com/openai/status/1895463212345678901");
+      expect(result.kind).toBe("X");
+      expect(result.embedUrl).toBe(
+        "https://platform.twitter.com/embed/Tweet.html?id=1895463212345678901&dnt=true",
+      );
+      expect(result.title).toBe("Hello from X message");
+      expect(result.note).toBeNull();
+      expect(result.resolvedBy).toBe("native");
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it("resolves Instagram reel thumbnail from open graph metadata", async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      text: async () =>
+        '<meta property="og:title" content="Reel title" /><meta property="og:image" content="https://scontent.cdninstagram.com/reel.jpg?x=1&amp;y=2" />',
+    } as Response);
+
+    try {
+      const result = await resolveSourcePreview("https://www.instagram.com/reel/DVfKzGbiDeA/");
+      expect(result.kind).toBe("INSTAGRAM");
+      expect(result.thumbnailUrl).toBe("https://scontent.cdninstagram.com/reel.jpg?x=1&y=2");
+      expect(result.title).toBe("Reel title");
+      expect(result.resolvedBy).toBe("native");
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
   });
 
   it("rejects unsafe SoundCloud oEmbed iframe hosts", async () => {
@@ -153,7 +275,16 @@ describe("source preview resolver", () => {
           headers: { location: "https://www.tiktok.com/@artist/video/7481928374655643001" },
         }),
       )
-      .mockResolvedValueOnce(new Response(null, { status: 200 }));
+      .mockResolvedValueOnce(new Response(null, { status: 200 }))
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            title: "Video title",
+            thumbnail_url: "https://p19-common-sign.tiktokcdn-eu.com/video-thumb.jpeg",
+          }),
+          { status: 200, headers: { "content-type": "application/json" } },
+        ),
+      );
     globalThis.fetch = fetchMock;
 
     try {
@@ -162,9 +293,11 @@ describe("source preview resolver", () => {
       expect(result.embedUrl).toBe(
         "https://www.tiktok.com/player/v1/7481928374655643001?autoplay=1&loop=1&description=0&music_info=0&rel=0",
       );
+      expect(result.thumbnailUrl).toBe("https://p19-common-sign.tiktokcdn-eu.com/video-thumb.jpeg");
+      expect(result.title).toBe("Video title");
       expect(result.resolvedBy).toBe("resolver");
       expect(result.note).toBeNull();
-      expect(fetchMock).toHaveBeenCalledTimes(2);
+      expect(fetchMock).toHaveBeenCalledTimes(3);
     } finally {
       globalThis.fetch = originalFetch;
     }
