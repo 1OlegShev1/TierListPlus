@@ -59,6 +59,7 @@ describe("sources resolve route", () => {
       sourceUrl: "https://example.com",
       provider: null,
       youtubeContentKind: null,
+      durationSec: null,
       kind: "GENERIC",
       label: "External link",
       embedUrl: null,
@@ -82,6 +83,7 @@ describe("sources resolve route", () => {
     await expect(response.json()).resolves.toEqual(resolvedPayload);
     expect(mocks.resolveSourcePreview).toHaveBeenCalledWith(sourceUrl, "app.example.com", {
       detectYouTubeContentKind: true,
+      includeYouTubeDuration: false,
     });
   });
 

@@ -52,15 +52,62 @@ interface ItemSourceModalProps {
   }) => Promise<boolean>;
 }
 
-function parseOptionalPositiveInt(value: string): number | null | "invalid" {
+function parseOptionalTimeToSeconds(value: string): number | null | "incomplete" | "invalid" {
   const trimmed = value.trim();
   if (!trimmed) return null;
-  if (!/^\d+$/.test(trimmed)) return "invalid";
-  const parsed = Number.parseInt(trimmed, 10);
-  if (!Number.isFinite(parsed) || parsed < 0 || parsed > MAX_SOURCE_INTERVAL_SECONDS) {
+
+  if (/^\d+$/.test(trimmed)) {
+    const parsed = Number.parseInt(trimmed, 10);
+    if (!Number.isFinite(parsed) || parsed < 0 || parsed > MAX_SOURCE_INTERVAL_SECONDS) {
+      return "invalid";
+    }
+    return parsed;
+  }
+
+  if (!/^\d+(?::\d*){1,2}$/.test(trimmed)) return "invalid";
+  if (trimmed.endsWith(":")) return "incomplete";
+  const segmentsRaw = trimmed.split(":");
+  if (segmentsRaw.some((segment) => segment.length === 0)) return "incomplete";
+
+  const segments = segmentsRaw.map((segment) => Number.parseInt(segment, 10));
+  if (segments.some((segment) => !Number.isFinite(segment) || segment < 0)) return "invalid";
+
+  let totalSeconds = 0;
+  if (segments.length === 2) {
+    const [minutes, seconds] = segments;
+    if (seconds > 59) return "invalid";
+    totalSeconds = minutes * 60 + seconds;
+  } else if (segments.length === 3) {
+    const [hours, minutes, seconds] = segments;
+    if (minutes > 59 || seconds > 59) return "invalid";
+    totalSeconds = hours * 3600 + minutes * 60 + seconds;
+  } else {
     return "invalid";
   }
-  return parsed;
+
+  if (totalSeconds > MAX_SOURCE_INTERVAL_SECONDS) return "invalid";
+  return totalSeconds;
+}
+
+function formatIntervalInputValue(seconds: number | null | undefined): string {
+  if (typeof seconds !== "number" || seconds < 0) return "";
+  const normalized = Math.floor(seconds);
+  const hours = Math.floor(normalized / 3600);
+  const minutes = Math.floor((normalized % 3600) / 60);
+  const remainderSeconds = normalized % 60;
+
+  if (hours > 0) {
+    return `${hours}:${String(minutes).padStart(2, "0")}:${String(remainderSeconds).padStart(2, "0")}`;
+  }
+  if (minutes > 0) {
+    return `${minutes}:${String(remainderSeconds).padStart(2, "0")}`;
+  }
+  return String(remainderSeconds);
+}
+
+function formatDurationLabel(seconds: number | null): string | null {
+  if (typeof seconds !== "number" || !Number.isFinite(seconds) || seconds <= 0) return null;
+  return formatIntervalInputValue(seconds);
 }
 
 function isTwitchClipSourceUrl(sourceUrl: string | null | undefined): boolean {
@@ -87,6 +134,7 @@ type ResolvedExternalPreview = {
 type SourcePreviewResolutionPayload = ResolvedExternalPreview & {
   provider: ItemSourceProvider | null;
   youtubeContentKind: "VIDEO" | "SHORTS" | null;
+  durationSec: number | null;
   thumbnailUrl: string | null;
   title: string | null;
 };
@@ -109,17 +157,14 @@ export function ItemSourceModal({
 }: ItemSourceModalProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const sourceInputRef = useRef<HTMLInputElement>(null);
-  const resolveRequestIdRef = useRef(0);
+  const previewResolveRequestIdRef = useRef(0);
+  const durationResolveRequestIdRef = useRef(0);
   const [draftUrl, setDraftUrl] = useState(sourceUrl ?? "");
   const [draftLabel, setDraftLabel] = useState(itemLabel);
   const [draftLabelTouched, setDraftLabelTouched] = useState(false);
   const [draftNote, setDraftNote] = useState(sourceNote ?? "");
-  const [draftStartSec, setDraftStartSec] = useState(
-    typeof sourceStartSec === "number" ? String(sourceStartSec) : "",
-  );
-  const [draftEndSec, setDraftEndSec] = useState(
-    typeof sourceEndSec === "number" ? String(sourceEndSec) : "",
-  );
+  const [draftStartSec, setDraftStartSec] = useState(formatIntervalInputValue(sourceStartSec));
+  const [draftEndSec, setDraftEndSec] = useState(formatIntervalInputValue(sourceEndSec));
   const [embedParentHostname, setEmbedParentHostname] = useState("");
   const [resolvedExternalPreview, setResolvedExternalPreview] =
     useState<ResolvedExternalPreview | null>(null);
@@ -128,7 +173,10 @@ export function ItemSourceModal({
   >(null);
   const [resolvedThumbnailUrl, setResolvedThumbnailUrl] = useState<string | null>(null);
   const [resolvedSourceTitle, setResolvedSourceTitle] = useState<string | null>(null);
+  const [resolvedSourceDurationSec, setResolvedSourceDurationSec] = useState<number | null>(null);
   const [isResolvingSourcePreview, setIsResolvingSourcePreview] = useState(false);
+  const [isResolvingDurationMetadata, setIsResolvingDurationMetadata] = useState(false);
+  const [hasDurationResolutionAttempted, setHasDurationResolutionAttempted] = useState(false);
   const [showExpandedPreview, setShowExpandedPreview] = useState(false);
 
   useEffect(() => {
@@ -142,8 +190,8 @@ export function ItemSourceModal({
     setDraftLabel(itemLabel);
     setDraftLabelTouched(false);
     setDraftNote(sourceNote ?? "");
-    setDraftStartSec(typeof sourceStartSec === "number" ? String(sourceStartSec) : "");
-    setDraftEndSec(typeof sourceEndSec === "number" ? String(sourceEndSec) : "");
+    setDraftStartSec(formatIntervalInputValue(sourceStartSec));
+    setDraftEndSec(formatIntervalInputValue(sourceEndSec));
     setShowExpandedPreview(false);
   }, [itemLabel, open, sourceEndSec, sourceNote, sourceStartSec, sourceUrl]);
 
@@ -186,29 +234,59 @@ export function ItemSourceModal({
   const hasSource = !!activeParsedSource;
   const shouldValidateIntervals =
     trimmedDraftUrl.length > 0 && parsedDraftSource?.provider === "YOUTUBE";
+  const hasIntervalInput =
+    draftStartSec.trim().length > 0 ||
+    draftEndSec.trim().length > 0 ||
+    typeof sourceStartSec === "number" ||
+    typeof sourceEndSec === "number";
+  const shouldResolveDurationMetadata = shouldValidateIntervals && hasIntervalInput;
 
   const displayNote = trimmedDraftNote.length > 0 ? trimmedDraftNote : (sourceNote ?? "").trim();
-  const parsedDraftStartSec = parseOptionalPositiveInt(draftStartSec);
-  const parsedDraftEndSec = parseOptionalPositiveInt(draftEndSec);
+  const parsedDraftStartSec = parseOptionalTimeToSeconds(draftStartSec);
+  const parsedDraftEndSec = parseOptionalTimeToSeconds(draftEndSec);
+  const resolvedDurationLabel = formatDurationLabel(resolvedSourceDurationSec);
+  const hasInvalidDraftIntervalInput =
+    parsedDraftStartSec === "invalid" || parsedDraftEndSec === "invalid";
+  const hasIncompleteDraftIntervalInput =
+    parsedDraftStartSec === "incomplete" || parsedDraftEndSec === "incomplete";
+  const hasUnresolvedDraftIntervalInput =
+    shouldValidateIntervals && (hasInvalidDraftIntervalInput || hasIncompleteDraftIntervalInput);
+  const shouldBlockSaveForDurationCheck =
+    shouldResolveDurationMetadata && isResolvingDurationMetadata;
+  const durationResolutionUnavailableMessage =
+    shouldResolveDurationMetadata &&
+    hasDurationResolutionAttempted &&
+    !isResolvingDurationMetadata &&
+    resolvedSourceDurationSec === null
+      ? "Could not verify clip length right now. If end time is too high, playback stops at clip end."
+      : null;
   const intervalInvalidReason = shouldValidateIntervals
     ? parsedDraftStartSec === "invalid"
-      ? `Start time must be an integer between 0 and ${MAX_SOURCE_INTERVAL_SECONDS}.`
+      ? "Invalid start time. Use sec, mm:ss, or hh:mm:ss (e.g. 90, 1:30, 1:02:30)."
       : parsedDraftEndSec === "invalid"
-        ? `End time must be an integer between 0 and ${MAX_SOURCE_INTERVAL_SECONDS}.`
+        ? "Invalid end time. Use sec, mm:ss, or hh:mm:ss (e.g. 90, 1:30, 1:02:30)."
         : typeof parsedDraftStartSec === "number" &&
             typeof parsedDraftEndSec === "number" &&
             parsedDraftEndSec <= parsedDraftStartSec
           ? "End time must be greater than start time."
-          : null
+          : typeof parsedDraftStartSec === "number" &&
+              typeof resolvedSourceDurationSec === "number" &&
+              parsedDraftStartSec >= resolvedSourceDurationSec
+            ? `Start time must be before clip end (${resolvedDurationLabel ?? "known duration"}).`
+            : typeof parsedDraftEndSec === "number" &&
+                typeof resolvedSourceDurationSec === "number" &&
+                parsedDraftEndSec > resolvedSourceDurationSec
+              ? `End time can be at most ${resolvedDurationLabel ?? "clip duration"}.`
+              : null
     : null;
   const resolvedStartSec = shouldValidateIntervals
-    ? parsedDraftStartSec === "invalid"
-      ? null
+    ? parsedDraftStartSec === "invalid" || parsedDraftStartSec === "incomplete"
+      ? (sourceStartSec ?? null)
       : (parsedDraftStartSec ?? sourceStartSec ?? null)
     : null;
   const resolvedEndSec = shouldValidateIntervals
-    ? parsedDraftEndSec === "invalid"
-      ? null
+    ? parsedDraftEndSec === "invalid" || parsedDraftEndSec === "incomplete"
+      ? (sourceEndSec ?? null)
       : (parsedDraftEndSec ?? sourceEndSec ?? null)
     : null;
   const youtubeEmbedUrl =
@@ -316,7 +394,7 @@ export function ItemSourceModal({
   })();
 
   useEffect(() => {
-    const requestId = ++resolveRequestIdRef.current;
+    const requestId = ++previewResolveRequestIdRef.current;
     setResolvedExternalPreview(null);
     setResolvedYouTubeContentKind(null);
     setResolvedThumbnailUrl(null);
@@ -327,12 +405,10 @@ export function ItemSourceModal({
       activeProvider === null &&
       fallbackExternalCapability?.previewMode === "RESOLVER" &&
       !fallbackExternalEmbedUrl;
-    const shouldResolveYouTubeKind =
-      activeProvider === "YOUTUBE" &&
-      activeParsedSource?.provider === "YOUTUBE" &&
-      activeParsedSource.youtubeContentKind !== "SHORTS";
+    const shouldResolveYouTubeMetadata =
+      activeProvider === "YOUTUBE" && activeParsedSource?.provider === "YOUTUBE";
     const shouldResolveCreateMetadata = isCreateFromUrlMode;
-    if (!shouldResolveExternal && !shouldResolveYouTubeKind && !shouldResolveCreateMetadata) {
+    if (!shouldResolveExternal && !shouldResolveYouTubeMetadata && !shouldResolveCreateMetadata) {
       return;
     }
     if (shouldResolveCreateMetadata) {
@@ -350,9 +426,9 @@ export function ItemSourceModal({
         signal: controller.signal,
       })
         .then(async (response) => {
-          if (!response.ok || resolveRequestIdRef.current !== requestId) return;
+          if (!response.ok || previewResolveRequestIdRef.current !== requestId) return;
           const payload = (await response.json()) as SourcePreviewResolutionPayload;
-          if (resolveRequestIdRef.current !== requestId) return;
+          if (previewResolveRequestIdRef.current !== requestId) return;
           setResolvedThumbnailUrl(payload.thumbnailUrl ?? null);
           setResolvedSourceTitle(payload.title ?? null);
           if (payload.provider === "YOUTUBE") {
@@ -366,7 +442,7 @@ export function ItemSourceModal({
         })
         .finally(() => {
           clearTimeout(resolveTimeout);
-          if (resolveRequestIdRef.current !== requestId) return;
+          if (previewResolveRequestIdRef.current !== requestId) return;
           if (shouldResolveCreateMetadata) {
             setIsResolvingSourcePreview(false);
           }
@@ -388,24 +464,105 @@ export function ItemSourceModal({
     isCreateFromUrlMode,
   ]);
 
+  useEffect(() => {
+    const requestId = ++durationResolveRequestIdRef.current;
+    setResolvedSourceDurationSec(null);
+    setIsResolvingDurationMetadata(false);
+    setHasDurationResolutionAttempted(false);
+    if (
+      !activeSourceUrl ||
+      !shouldResolveDurationMetadata ||
+      activeProvider !== "YOUTUBE" ||
+      activeParsedSource?.provider !== "YOUTUBE"
+    ) {
+      return;
+    }
+
+    setIsResolvingDurationMetadata(true);
+    const controller = new AbortController();
+    const resolveTimeout = setTimeout(() => controller.abort(), 5_000);
+    const timeout = setTimeout(() => {
+      const params = new URLSearchParams({ url: activeSourceUrl, includeDuration: "1" });
+      if (embedParentHostname) {
+        params.set("parent", embedParentHostname);
+      }
+      void fetch(`/api/sources/resolve?${params.toString()}`, {
+        signal: controller.signal,
+      })
+        .then(async (response) => {
+          if (!response.ok || durationResolveRequestIdRef.current !== requestId) return;
+          const payload = (await response.json()) as SourcePreviewResolutionPayload;
+          if (durationResolveRequestIdRef.current !== requestId) return;
+          setResolvedSourceDurationSec(
+            typeof payload.durationSec === "number" && payload.durationSec > 0
+              ? Math.floor(payload.durationSec)
+              : null,
+          );
+        })
+        .catch(() => {
+          // Keep fallback behavior; save should still be possible when duration is unknown.
+        })
+        .finally(() => {
+          clearTimeout(resolveTimeout);
+          if (durationResolveRequestIdRef.current !== requestId) return;
+          setIsResolvingDurationMetadata(false);
+          setHasDurationResolutionAttempted(true);
+        });
+    }, 200);
+
+    return () => {
+      clearTimeout(timeout);
+      clearTimeout(resolveTimeout);
+      controller.abort();
+    };
+  }, [
+    activeParsedSource,
+    activeProvider,
+    activeSourceUrl,
+    embedParentHostname,
+    shouldResolveDurationMetadata,
+  ]);
+
   const normalizedCurrentUrl = (sourceUrl ?? "").trim();
   const normalizedCurrentNote = (sourceNote ?? "").trim();
   const normalizedCurrentStartSec =
-    typeof sourceStartSec === "number" && sourceStartSec >= 0 ? String(sourceStartSec) : "";
+    typeof sourceStartSec === "number" && sourceStartSec >= 0 ? Math.floor(sourceStartSec) : null;
   const normalizedCurrentEndSec =
-    typeof sourceEndSec === "number" && sourceEndSec >= 0 ? String(sourceEndSec) : "";
+    typeof sourceEndSec === "number" && sourceEndSec >= 0 ? Math.floor(sourceEndSec) : null;
+  const normalizedDraftStartSec =
+    parsedDraftStartSec === "invalid" || parsedDraftStartSec === "incomplete"
+      ? draftStartSec.trim()
+      : parsedDraftStartSec;
+  const normalizedDraftEndSec =
+    parsedDraftEndSec === "invalid" || parsedDraftEndSec === "incomplete"
+      ? draftEndSec.trim()
+      : parsedDraftEndSec;
+  const inlineValidationMessage = hasInvalidDraftSource
+    ? INVALID_ITEM_SOURCE_MESSAGE
+    : intervalInvalidReason;
+  const hasValidSourceForCreate = trimmedDraftUrl.length > 0 && !!parsedDraftSource;
+  const createResolvingHint =
+    isCreateFromUrlMode && hasValidSourceForCreate && isResolvingSourcePreview
+      ? "Resolving title and thumbnail..."
+      : null;
+  const durationResolvingHint =
+    shouldResolveDurationMetadata && isResolvingDurationMetadata ? "Checking clip length..." : null;
+  const inlineHintMessage =
+    !inlineValidationMessage &&
+    (createResolvingHint ?? durationResolvingHint ?? durationResolutionUnavailableMessage);
   const hasChanges =
     trimmedDraftUrl !== normalizedCurrentUrl ||
     trimmedDraftNote !== normalizedCurrentNote ||
-    draftStartSec.trim() !== normalizedCurrentStartSec ||
-    draftEndSec.trim() !== normalizedCurrentEndSec;
-  const hasValidSourceForCreate = trimmedDraftUrl.length > 0 && !!parsedDraftSource;
+    normalizedDraftStartSec !== normalizedCurrentStartSec ||
+    normalizedDraftEndSec !== normalizedCurrentEndSec;
   const canSave =
     editable &&
     !saving &&
     !!onSave &&
     (isCreateFromUrlMode ? hasValidSourceForCreate && !isResolvingSourcePreview : hasChanges) &&
     !hasInvalidDraftSource &&
+    !hasUnresolvedDraftIntervalInput &&
+    !shouldBlockSaveForDurationCheck &&
     !intervalInvalidReason;
 
   useEffect(() => {
@@ -425,9 +582,11 @@ export function ItemSourceModal({
       sourceNote:
         trimmedDraftUrl.length > 0 && trimmedDraftNote.length > 0 ? trimmedDraftNote : null,
       sourceStartSec:
-        shouldValidateIntervals && parsedDraftStartSec !== "invalid" ? parsedDraftStartSec : null,
+        shouldValidateIntervals && typeof parsedDraftStartSec === "number"
+          ? parsedDraftStartSec
+          : null,
       sourceEndSec:
-        shouldValidateIntervals && parsedDraftEndSec !== "invalid" ? parsedDraftEndSec : null,
+        shouldValidateIntervals && typeof parsedDraftEndSec === "number" ? parsedDraftEndSec : null,
     };
     if (isCreateFromUrlMode) {
       payload.itemLabel = resolvedDraftLabel || fallbackCreateLabel;
@@ -532,38 +691,49 @@ export function ItemSourceModal({
               />
             </label>
             {activeParsedSource?.provider === "YOUTUBE" && (
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <label className="block space-y-2">
-                  <span className="text-sm font-medium text-neutral-300">Start (sec)</span>
-                  <Input
-                    type="text"
-                    inputMode="numeric"
-                    placeholder="e.g. 30"
-                    value={draftStartSec}
-                    onChange={(event) => setDraftStartSec(event.target.value)}
-                    disabled={saving}
-                    className="w-full"
-                  />
-                </label>
-                <label className="block space-y-2">
-                  <span className="text-sm font-medium text-neutral-300">End (sec)</span>
-                  <Input
-                    type="text"
-                    inputMode="numeric"
-                    placeholder="e.g. 75"
-                    value={draftEndSec}
-                    onChange={(event) => setDraftEndSec(event.target.value)}
-                    disabled={saving}
-                    className="w-full"
-                  />
-                </label>
+              <div className="space-y-2">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <label className="block space-y-2">
+                    <span className="text-sm font-medium text-neutral-300">Start time</span>
+                    <Input
+                      type="text"
+                      inputMode="text"
+                      placeholder="e.g. 1:30"
+                      value={draftStartSec}
+                      onChange={(event) => setDraftStartSec(event.target.value)}
+                      disabled={saving}
+                      className="w-full"
+                    />
+                  </label>
+                  <label className="block space-y-2">
+                    <span className="text-sm font-medium text-neutral-300">End time</span>
+                    <Input
+                      type="text"
+                      inputMode="text"
+                      placeholder="e.g. 2:15"
+                      value={draftEndSec}
+                      onChange={(event) => setDraftEndSec(event.target.value)}
+                      disabled={saving}
+                      className="w-full"
+                    />
+                  </label>
+                </div>
+                <p className="text-xs text-neutral-500">
+                  Examples: 90, 1:30, 1:02:30.{" "}
+                  {resolvedDurationLabel
+                    ? `Clip length: ${resolvedDurationLabel}.`
+                    : "If end exceeds clip length, playback ends naturally."}
+                </p>
               </div>
             )}
 
-            {hasInvalidDraftSource && <ErrorMessage message={INVALID_ITEM_SOURCE_MESSAGE} />}
-            {!hasInvalidDraftSource && intervalInvalidReason && (
-              <ErrorMessage message={intervalInvalidReason} />
-            )}
+            <div className="min-h-[3.75rem]" aria-live="polite">
+              {inlineValidationMessage ? (
+                <ErrorMessage message={inlineValidationMessage} />
+              ) : inlineHintMessage ? (
+                <p className="text-xs text-neutral-500">{inlineHintMessage}</p>
+              ) : null}
+            </div>
           </>
         ) : null}
 
@@ -713,9 +883,6 @@ export function ItemSourceModal({
         </div>
 
         {error && <ErrorMessage message={error} />}
-        {!error && isCreateFromUrlMode && hasValidSourceForCreate && isResolvingSourcePreview && (
-          <p className="text-xs text-neutral-500">Resolving title and thumbnail...</p>
-        )}
       </div>
 
       <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:justify-end">

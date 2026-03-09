@@ -95,3 +95,30 @@ export function LinkIcon({ className = "h-4 w-4" }: IconProps) {
     </svg>
   );
 }
+
+export function EyeIcon({ className = "h-4 w-4" }: IconProps) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M2.25 12s3.75-7.5 9.75-7.5 9.75 7.5 9.75 7.5-3.75 7.5-9.75 7.5S2.25 12 2.25 12z"
+      />
+      <circle cx="12" cy="12" r="3" strokeWidth={2} />
+    </svg>
+  );
+}
+
+export function EyeSlashIcon({ className = "h-4 w-4" }: IconProps) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M3 3l18 18M9.9 4.85A11.38 11.38 0 0112 4.5c6 0 9.75 7.5 9.75 7.5a15.8 15.8 0 01-3.14 3.94M14.12 14.12A3 3 0 019.88 9.88M6.61 6.61A16.6 16.6 0 002.25 12s3.75 7.5 9.75 7.5a11.32 11.32 0 005.39-1.36"
+      />
+    </svg>
+  );
+}

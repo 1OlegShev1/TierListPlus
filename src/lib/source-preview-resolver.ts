@@ -15,6 +15,7 @@ export interface SourcePreviewResolution {
   sourceUrl: string;
   provider: ItemSourceProvider | null;
   youtubeContentKind: "VIDEO" | "SHORTS" | null;
+  durationSec: number | null;
   kind: ExternalSourceKind | null;
   label: string;
   embedUrl: string | null;
@@ -28,6 +29,7 @@ export interface SourcePreviewResolution {
 interface OEmbedMetadata {
   thumbnailUrl: string | null;
   title: string | null;
+  durationSec: number | null;
 }
 
 interface ResolverPreviewResolution extends OEmbedMetadata {
@@ -46,6 +48,7 @@ interface CacheEntry {
 
 interface ResolveSourcePreviewOptions {
   detectYouTubeContentKind?: boolean;
+  includeYouTubeDuration?: boolean;
 }
 
 const PREVIEW_CACHE_TTL_MS = 5 * 60 * 1000;
@@ -77,8 +80,9 @@ function getCacheKey(
   sourceUrl: string,
   parentHostname: string | null,
   detectYouTubeContentKind: boolean,
+  includeYouTubeDuration: boolean,
 ): string {
-  return `${sourceUrl}::${parentHostname ?? ""}::ytkind:${detectYouTubeContentKind ? "1" : "0"}`;
+  return `${sourceUrl}::${parentHostname ?? ""}::ytkind:${detectYouTubeContentKind ? "1" : "0"}::ytdur:${includeYouTubeDuration ? "1" : "0"}`;
 }
 
 function pruneCache(now: number) {
@@ -179,6 +183,21 @@ function normalizeMetadataTitle(input: unknown): string | null {
   return normalized ? normalized.slice(0, MAX_ITEM_LABEL_LENGTH) : null;
 }
 
+function normalizeDurationSeconds(input: unknown): number | null {
+  if (typeof input === "number") {
+    if (!Number.isFinite(input) || input <= 0) return null;
+    return Math.floor(input);
+  }
+  if (typeof input === "string") {
+    const trimmed = input.trim();
+    if (!trimmed) return null;
+    const parsed = Number(trimmed);
+    if (!Number.isFinite(parsed) || parsed <= 0) return null;
+    return Math.floor(parsed);
+  }
+  return null;
+}
+
 function normalizeMetadataUrl(input: unknown): string | null {
   if (typeof input !== "string") return null;
   const trimmed = input.trim();
@@ -196,11 +215,57 @@ function normalizeMetadataUrl(input: unknown): string | null {
 function parseOEmbedMetadata(payload: {
   title?: unknown;
   thumbnail_url?: unknown;
+  duration?: unknown;
 }): OEmbedMetadata {
   return {
     title: normalizeMetadataTitle(payload.title),
     thumbnailUrl: normalizeMetadataUrl(payload.thumbnail_url),
+    durationSec: normalizeDurationSeconds(payload.duration),
   };
+}
+
+function parseIso8601DurationToSeconds(input: string): number | null {
+  const match = input.trim().match(/^PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+(?:\.\d+)?)S)?$/i);
+  if (!match) return null;
+  const hours = match[1] ? Number(match[1]) : 0;
+  const minutes = match[2] ? Number(match[2]) : 0;
+  const seconds = match[3] ? Number(match[3]) : 0;
+  if (!Number.isFinite(hours) || !Number.isFinite(minutes) || !Number.isFinite(seconds)) {
+    return null;
+  }
+  const total = Math.floor(hours * 3600 + minutes * 60 + seconds);
+  return total > 0 ? total : null;
+}
+
+function extractYouTubeDurationSecondsFromHtml(html: string): number | null {
+  const isoByOrderOne = html.match(
+    /<meta[^>]+itemprop=["']duration["'][^>]+content=["']([^"']+)["'][^>]*>/i,
+  )?.[1];
+  const isoByOrderTwo = html.match(
+    /<meta[^>]+content=["']([^"']+)["'][^>]+itemprop=["']duration["'][^>]*>/i,
+  )?.[1];
+  const isoDuration = isoByOrderOne ?? isoByOrderTwo;
+  if (isoDuration) {
+    const parsedIso = parseIso8601DurationToSeconds(isoDuration);
+    if (parsedIso) return parsedIso;
+  }
+
+  const lengthSeconds = html.match(/"lengthSeconds":"(\d+)"/)?.[1];
+  if (lengthSeconds) {
+    const parsed = normalizeDurationSeconds(lengthSeconds);
+    if (parsed) return parsed;
+  }
+
+  const approxDurationMs = html.match(/"approxDurationMs":"(\d+)"/)?.[1];
+  if (approxDurationMs) {
+    const parsedMs = normalizeDurationSeconds(approxDurationMs);
+    if (parsedMs) {
+      const seconds = Math.floor(parsedMs / 1000);
+      return seconds > 0 ? seconds : null;
+    }
+  }
+
+  return null;
 }
 
 function decodeHtmlMetaValue(input: string): string {
@@ -315,7 +380,13 @@ async function resolveEmbedUrlViaOEmbed(
     const url = `https://soundcloud.com/oembed?format=json&url=${encodeURIComponent(sourceUrl)}`;
     const response = await fetchWithTimeout(url, {}, OEMBED_FETCH_TIMEOUT_MS);
     if (!response?.ok) {
-      return { embedUrl: null, thumbnailUrl: null, title: null, canonicalSourceUrl: null };
+      return {
+        embedUrl: null,
+        thumbnailUrl: null,
+        title: null,
+        durationSec: null,
+        canonicalSourceUrl: null,
+      };
     }
     const payload = (await response.json()) as {
       html?: unknown;
@@ -333,28 +404,53 @@ async function resolveEmbedUrlViaOEmbed(
   if (resolver === "TIKTOK_OEMBED") {
     const finalUrl = await resolveTrustedRedirectTarget(resolver, sourceUrl);
     if (!finalUrl) {
-      return { embedUrl: null, thumbnailUrl: null, title: null, canonicalSourceUrl: null };
+      return {
+        embedUrl: null,
+        thumbnailUrl: null,
+        title: null,
+        durationSec: null,
+        canonicalSourceUrl: null,
+      };
     }
     const metadata = await resolveTikTokMetadataViaOEmbed(finalUrl);
     return {
       embedUrl: buildExternalSourceEmbedUrl(finalUrl, null),
       thumbnailUrl: metadata.thumbnailUrl,
       title: metadata.title,
+      durationSec: metadata.durationSec,
       canonicalSourceUrl: finalUrl,
     };
   }
 
   if (resolver === "X_OEMBED") {
     // X oEmbed is also script/widget driven; no iframe URL is returned.
-    return { embedUrl: null, thumbnailUrl: null, title: null, canonicalSourceUrl: null };
+    return {
+      embedUrl: null,
+      thumbnailUrl: null,
+      title: null,
+      durationSec: null,
+      canonicalSourceUrl: null,
+    };
   }
 
   if (resolver === "INSTAGRAM_OEMBED") {
     // Instagram oEmbed requires Meta app setup + token; keep as fallback for now.
-    return { embedUrl: null, thumbnailUrl: null, title: null, canonicalSourceUrl: null };
+    return {
+      embedUrl: null,
+      thumbnailUrl: null,
+      title: null,
+      durationSec: null,
+      canonicalSourceUrl: null,
+    };
   }
 
-  return { embedUrl: null, thumbnailUrl: null, title: null, canonicalSourceUrl: null };
+  return {
+    embedUrl: null,
+    thumbnailUrl: null,
+    title: null,
+    durationSec: null,
+    canonicalSourceUrl: null,
+  };
 }
 
 async function detectYouTubeContentKindViaOEmbed(videoId: string): Promise<YouTubeOEmbedMetadata> {
@@ -362,7 +458,7 @@ async function detectYouTubeContentKindViaOEmbed(videoId: string): Promise<YouTu
   const oEmbedUrl = `https://www.youtube.com/oembed?format=json&url=${encodeURIComponent(shortsUrl)}`;
   const response = await fetchWithTimeout(oEmbedUrl, {}, OEMBED_FETCH_TIMEOUT_MS);
   if (!response?.ok) {
-    return { contentKind: null, thumbnailUrl: null, title: null };
+    return { contentKind: null, thumbnailUrl: null, title: null, durationSec: null };
   }
 
   const payload = (await response.json()) as {
@@ -389,21 +485,46 @@ async function detectYouTubeContentKindViaOEmbed(videoId: string): Promise<YouTu
       contentKind: height > width ? "SHORTS" : "VIDEO",
       thumbnailUrl: metadata.thumbnailUrl,
       title: metadata.title,
+      durationSec: metadata.durationSec,
     };
   }
 
   if (typeof payload.thumbnail_url === "string" && payload.thumbnail_url.includes("/hq2")) {
-    return { contentKind: "SHORTS", thumbnailUrl: metadata.thumbnailUrl, title: metadata.title };
+    return {
+      contentKind: "SHORTS",
+      thumbnailUrl: metadata.thumbnailUrl,
+      title: metadata.title,
+      durationSec: metadata.durationSec,
+    };
   }
 
-  return { contentKind: null, thumbnailUrl: metadata.thumbnailUrl, title: metadata.title };
+  return {
+    contentKind: null,
+    thumbnailUrl: metadata.thumbnailUrl,
+    title: metadata.title,
+    durationSec: metadata.durationSec,
+  };
+}
+
+async function resolveYouTubeDurationViaWatchPage(videoId: string): Promise<number | null> {
+  const watchUrl = `https://www.youtube.com/watch?v=${encodeURIComponent(videoId)}`;
+  const response = await fetchWithTimeout(watchUrl, {}, OEMBED_FETCH_TIMEOUT_MS);
+  if (!response?.ok) {
+    return null;
+  }
+  try {
+    const html = (await response.text()).slice(0, 300_000);
+    return extractYouTubeDurationSecondsFromHtml(html);
+  } catch {
+    return null;
+  }
 }
 
 async function resolveSpotifyMetadataViaOEmbed(sourceUrl: string): Promise<OEmbedMetadata> {
   const oEmbedUrl = `https://open.spotify.com/oembed?url=${encodeURIComponent(sourceUrl)}`;
   const response = await fetchWithTimeout(oEmbedUrl, {}, OEMBED_FETCH_TIMEOUT_MS);
   if (!response?.ok) {
-    return { thumbnailUrl: null, title: null };
+    return { thumbnailUrl: null, title: null, durationSec: null };
   }
   const payload = (await response.json()) as {
     title?: unknown;
@@ -416,7 +537,7 @@ async function resolveVimeoMetadataViaOEmbed(sourceUrl: string): Promise<OEmbedM
   const oEmbedUrl = `https://vimeo.com/api/oembed.json?url=${encodeURIComponent(sourceUrl)}`;
   const response = await fetchWithTimeout(oEmbedUrl, {}, OEMBED_FETCH_TIMEOUT_MS);
   if (!response?.ok) {
-    return { thumbnailUrl: null, title: null };
+    return { thumbnailUrl: null, title: null, durationSec: null };
   }
   const payload = (await response.json()) as {
     title?: unknown;
@@ -429,7 +550,7 @@ async function resolveTikTokMetadataViaOEmbed(sourceUrl: string): Promise<OEmbed
   const oEmbedUrl = `https://www.tiktok.com/oembed?url=${encodeURIComponent(sourceUrl)}`;
   const response = await fetchWithTimeout(oEmbedUrl, {}, OEMBED_FETCH_TIMEOUT_MS);
   if (!response?.ok) {
-    return { thumbnailUrl: null, title: null };
+    return { thumbnailUrl: null, title: null, durationSec: null };
   }
   const payload = (await response.json()) as {
     title?: unknown;
@@ -441,7 +562,7 @@ async function resolveTikTokMetadataViaOEmbed(sourceUrl: string): Promise<OEmbed
 async function resolveInstagramMetadataViaHtml(sourceUrl: string): Promise<OEmbedMetadata> {
   const response = await fetchWithTimeout(sourceUrl, {}, OEMBED_FETCH_TIMEOUT_MS);
   if (!response?.ok) {
-    return { thumbnailUrl: null, title: null };
+    return { thumbnailUrl: null, title: null, durationSec: null };
   }
 
   const html = (await response.text()).slice(0, 200_000);
@@ -451,7 +572,7 @@ async function resolveInstagramMetadataViaHtml(sourceUrl: string): Promise<OEmbe
   const thumbnailUrl = normalizeMetadataUrl(
     extractMetaTagContent(html, "og:image") ?? extractMetaTagContent(html, "twitter:image"),
   );
-  return { thumbnailUrl, title };
+  return { thumbnailUrl, title, durationSec: null };
 }
 
 function normalizeXUrlForOEmbed(sourceUrl: string): string {
@@ -472,7 +593,7 @@ async function resolveXMetadataViaOEmbed(sourceUrl: string): Promise<OEmbedMetad
   const oEmbedUrl = `https://publish.twitter.com/oembed?omit_script=1&dnt=true&url=${encodeURIComponent(normalizedUrl)}`;
   const response = await fetchWithTimeout(oEmbedUrl, {}, OEMBED_FETCH_TIMEOUT_MS);
   if (!response?.ok) {
-    return { thumbnailUrl: null, title: null };
+    return { thumbnailUrl: null, title: null, durationSec: null };
   }
 
   const payload = (await response.json()) as {
@@ -485,7 +606,7 @@ async function resolveXMetadataViaOEmbed(sourceUrl: string): Promise<OEmbedMetad
       ? (payload.html.match(/<p[^>]*>([\s\S]*?)<\/p>/i)?.[1] ?? payload.html)
       : "";
   const title = normalizeMetadataTitle(stripHtmlTags(body)) ?? authorName;
-  return { thumbnailUrl: null, title };
+  return { thumbnailUrl: null, title, durationSec: null };
 }
 
 export async function resolveSourcePreview(
@@ -501,7 +622,13 @@ export async function resolveSourcePreview(
   const now = Date.now();
   const normalizedParent = normalizeParentHostname(parentHostname ?? null);
   const detectYouTubeContentKind = !!options?.detectYouTubeContentKind;
-  const cacheKey = getCacheKey(parsed.normalizedUrl, normalizedParent, detectYouTubeContentKind);
+  const includeYouTubeDuration = !!options?.includeYouTubeDuration;
+  const cacheKey = getCacheKey(
+    parsed.normalizedUrl,
+    normalizedParent,
+    detectYouTubeContentKind,
+    includeYouTubeDuration,
+  );
   const cached = getCachedValue(cacheKey, now);
   if (cached) return cached;
 
@@ -509,6 +636,7 @@ export async function resolveSourcePreview(
     let youtubeContentKind: "VIDEO" | "SHORTS" | null = null;
     let thumbnailUrl = parsed.thumbnailUrl;
     let title: string | null = null;
+    let durationSec: number | null = null;
     if (parsed.provider === "YOUTUBE") {
       youtubeContentKind = parsed.youtubeContentKind;
       if (detectYouTubeContentKind && parsed.youtubeVideoId) {
@@ -518,18 +646,27 @@ export async function resolveSourcePreview(
         }
         thumbnailUrl = metadata.thumbnailUrl ?? thumbnailUrl;
         title = metadata.title;
+        if (includeYouTubeDuration) {
+          durationSec = metadata.durationSec;
+        }
+      }
+      if (includeYouTubeDuration && parsed.youtubeVideoId) {
+        durationSec =
+          durationSec ?? (await resolveYouTubeDurationViaWatchPage(parsed.youtubeVideoId));
       }
     }
     if (parsed.provider === "SPOTIFY") {
       const metadata = await resolveSpotifyMetadataViaOEmbed(parsed.normalizedUrl);
       thumbnailUrl = metadata.thumbnailUrl ?? thumbnailUrl;
       title = metadata.title;
+      durationSec = metadata.durationSec;
     }
 
     const directProviderResult: SourcePreviewResolution = {
       sourceUrl: parsed.normalizedUrl,
       provider: parsed.provider,
       youtubeContentKind,
+      durationSec,
       kind: null,
       label: parsed.provider === "YOUTUBE" ? "YouTube" : "Spotify",
       embedUrl: parsed.embedUrl,
@@ -551,6 +688,7 @@ export async function resolveSourcePreview(
   let resolvedBy: SourcePreviewResolution["resolvedBy"] = embedUrl ? "native" : "none";
   let thumbnailUrl: string | null = kind === "IMAGE" ? parsed.normalizedUrl : null;
   let title: string | null = null;
+  let durationSec: number | null = null;
   let canonicalSourceUrl = parsed.normalizedUrl;
   let attemptedResolverMetadata = false;
 
@@ -581,6 +719,7 @@ export async function resolveSourcePreview(
       const metadata = await resolveVimeoMetadataViaOEmbed(canonicalSourceUrl);
       thumbnailUrl = metadata.thumbnailUrl ?? thumbnailUrl;
       title = metadata.title ?? title;
+      durationSec = metadata.durationSec ?? durationSec;
     } catch {
       // Keep fallback behavior; source save should never fail on metadata fetch.
     }
@@ -593,6 +732,7 @@ export async function resolveSourcePreview(
       }
       thumbnailUrl = metadata.thumbnailUrl ?? thumbnailUrl;
       title = metadata.title ?? title;
+      durationSec = metadata.durationSec ?? durationSec;
     } catch {
       // Keep fallback behavior; source save should never fail on metadata fetch.
     }
@@ -601,6 +741,7 @@ export async function resolveSourcePreview(
       const metadata = await resolveTikTokMetadataViaOEmbed(canonicalSourceUrl);
       thumbnailUrl = metadata.thumbnailUrl ?? thumbnailUrl;
       title = metadata.title ?? title;
+      durationSec = metadata.durationSec ?? durationSec;
     } catch {
       // Keep fallback behavior; source save should never fail on metadata fetch.
     }
@@ -609,6 +750,7 @@ export async function resolveSourcePreview(
       const metadata = await resolveInstagramMetadataViaHtml(canonicalSourceUrl);
       thumbnailUrl = metadata.thumbnailUrl ?? thumbnailUrl;
       title = metadata.title ?? title;
+      durationSec = metadata.durationSec ?? durationSec;
     } catch {
       // Keep fallback behavior; source save should never fail on metadata fetch.
     }
@@ -616,6 +758,7 @@ export async function resolveSourcePreview(
     try {
       const metadata = await resolveXMetadataViaOEmbed(canonicalSourceUrl);
       title = metadata.title ?? title;
+      durationSec = metadata.durationSec ?? durationSec;
     } catch {
       // Keep fallback behavior; source save should never fail on metadata fetch.
     }
@@ -628,6 +771,7 @@ export async function resolveSourcePreview(
     sourceUrl: parsed.normalizedUrl,
     provider: null,
     youtubeContentKind: null,
+    durationSec,
     kind,
     label,
     embedUrl: embedUrl ?? null,

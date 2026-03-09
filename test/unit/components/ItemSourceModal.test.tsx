@@ -49,8 +49,8 @@ describe("ItemSourceModal", () => {
       />,
     );
 
-    const startInput = screen.getByLabelText("Start (sec)");
-    const endInput = screen.getByLabelText("End (sec)");
+    const startInput = screen.getByLabelText("Start time");
+    const endInput = screen.getByLabelText("End time");
     fireEvent.change(startInput, { target: { value: "60" } });
     fireEvent.change(endInput, { target: { value: "30" } });
 
@@ -64,8 +64,8 @@ describe("ItemSourceModal", () => {
     await waitFor(() => {
       expect(screen.queryByText("End time must be greater than start time.")).toBeNull();
     });
-    expect(screen.queryByLabelText("Start (sec)")).toBeNull();
-    expect(screen.queryByLabelText("End (sec)")).toBeNull();
+    expect(screen.queryByLabelText("Start time")).toBeNull();
+    expect(screen.queryByLabelText("End time")).toBeNull();
     expect((saveButton as HTMLButtonElement).disabled).toBe(false);
 
     fireEvent.click(saveButton);
@@ -137,6 +137,279 @@ describe("ItemSourceModal", () => {
         sourceEndSec: null,
       });
     });
+  });
+
+  it("parses mm:ss YouTube intervals before save", async () => {
+    const onSave = vi.fn().mockResolvedValue(true);
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = vi.fn().mockImplementation((input: RequestInfo | URL) => {
+      const url = typeof input === "string" ? input : input.toString();
+      if (url.includes("includeDuration=1")) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({
+            provider: "YOUTUBE",
+            youtubeContentKind: "VIDEO",
+            durationSec: 180,
+            kind: null,
+            label: "YouTube",
+            embedUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ",
+            embedType: "iframe",
+            thumbnailUrl: "https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg",
+            title: "Clip",
+            note: null,
+          }),
+        } as Response);
+      }
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({
+          provider: "YOUTUBE",
+          youtubeContentKind: "VIDEO",
+          durationSec: null,
+          kind: null,
+          label: "YouTube",
+          embedUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ",
+          embedType: "iframe",
+          thumbnailUrl: "https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg",
+          title: "Clip",
+          note: null,
+        }),
+      } as Response);
+    });
+
+    try {
+      render(
+        <ItemSourceModal
+          open
+          editable
+          itemLabel="Song"
+          sourceUrl={YOUTUBE_URL}
+          onClose={vi.fn()}
+          onSave={onSave}
+        />,
+      );
+
+      fireEvent.change(screen.getByLabelText("Start time"), { target: { value: "1:30" } });
+      fireEvent.change(screen.getByLabelText("End time"), { target: { value: "2:15" } });
+
+      await waitFor(() => {
+        expect((screen.getByRole("button", { name: "Save Source" }) as HTMLButtonElement).disabled).toBe(
+          false,
+        );
+      });
+      fireEvent.click(screen.getByRole("button", { name: "Save Source" }));
+
+      await waitFor(() => {
+        expect(onSave).toHaveBeenCalledWith({
+          sourceUrl: YOUTUBE_URL,
+          sourceNote: null,
+          sourceStartSec: 90,
+          sourceEndSec: 135,
+        });
+      });
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it("treats trailing-colon interval as in-progress without showing format error", () => {
+    const onSave = vi.fn().mockResolvedValue(true);
+
+    render(
+      <ItemSourceModal
+        open
+        editable
+        itemLabel="Song"
+        sourceUrl={YOUTUBE_URL}
+        onClose={vi.fn()}
+        onSave={onSave}
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText("End time"), { target: { value: "2:" } });
+
+    expect(screen.queryByText(/invalid end time/i)).toBeNull();
+    expect((screen.getByRole("button", { name: "Save Source" }) as HTMLButtonElement).disabled).toBe(
+      true,
+    );
+  });
+
+  it("enforces end time against resolved clip duration when available", async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        provider: "YOUTUBE",
+        youtubeContentKind: "VIDEO",
+        durationSec: 90,
+        kind: null,
+        label: "YouTube",
+        embedUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ",
+        embedType: "iframe",
+        thumbnailUrl: "https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg",
+        title: "Clip",
+        note: null,
+      }),
+    } as Response);
+
+    try {
+      render(
+        <ItemSourceModal
+          open
+          editable
+          itemLabel="Song"
+          sourceUrl={YOUTUBE_URL}
+          onClose={vi.fn()}
+          onSave={vi.fn().mockResolvedValue(true)}
+        />,
+      );
+
+      fireEvent.change(screen.getByLabelText("End time"), { target: { value: "2:00" } });
+      await waitFor(() => {
+        expect(screen.getByText(/Clip length: 1:30\./)).toBeTruthy();
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText("End time can be at most 1:30.")).toBeTruthy();
+      });
+      expect((screen.getByRole("button", { name: "Save Source" }) as HTMLButtonElement).disabled).toBe(
+        true,
+      );
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it("blocks save while duration check is in progress for entered YouTube interval", async () => {
+    const originalFetch = globalThis.fetch;
+    const deferredDurationResponse = createDeferred<Response>();
+    globalThis.fetch = vi.fn().mockImplementation((input: RequestInfo | URL) => {
+      const url = typeof input === "string" ? input : input.toString();
+      if (url.includes("includeDuration=1")) {
+        return deferredDurationResponse.promise;
+      }
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({
+          provider: "YOUTUBE",
+          youtubeContentKind: "VIDEO",
+          durationSec: null,
+          kind: null,
+          label: "YouTube",
+          embedUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ",
+          embedType: "iframe",
+          thumbnailUrl: "https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg",
+          title: "Clip",
+          note: null,
+        }),
+      } as Response);
+    });
+
+    try {
+      render(
+        <ItemSourceModal
+          open
+          editable
+          itemLabel="Song"
+          sourceUrl={YOUTUBE_URL}
+          onClose={vi.fn()}
+          onSave={vi.fn().mockResolvedValue(true)}
+        />,
+      );
+
+      fireEvent.change(screen.getByLabelText("End time"), { target: { value: "2:00" } });
+
+      await waitFor(() => {
+        expect(screen.getByText("Checking clip length...")).toBeTruthy();
+      });
+      expect((screen.getByRole("button", { name: "Save Source" }) as HTMLButtonElement).disabled).toBe(
+        true,
+      );
+
+      deferredDurationResponse.resolve({
+        ok: true,
+        json: async () => ({
+          provider: "YOUTUBE",
+          youtubeContentKind: "VIDEO",
+          durationSec: 180,
+          kind: null,
+          label: "YouTube",
+          embedUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ",
+          embedType: "iframe",
+          thumbnailUrl: "https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg",
+          title: "Clip",
+          note: null,
+        }),
+      } as Response);
+
+      await waitFor(() => {
+        expect(screen.queryByText("Checking clip length...")).toBeNull();
+      });
+      expect((screen.getByRole("button", { name: "Save Source" }) as HTMLButtonElement).disabled).toBe(
+        false,
+      );
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it("shows fallback note when duration cannot be verified and still allows save", async () => {
+    const onSave = vi.fn().mockResolvedValue(true);
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        provider: "YOUTUBE",
+        youtubeContentKind: "VIDEO",
+        durationSec: null,
+        kind: null,
+        label: "YouTube",
+        embedUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ",
+        embedType: "iframe",
+        thumbnailUrl: "https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg",
+        title: "Clip",
+        note: null,
+      }),
+    } as Response);
+
+    try {
+      render(
+        <ItemSourceModal
+          open
+          editable
+          itemLabel="Song"
+          sourceUrl={YOUTUBE_URL}
+          onClose={vi.fn()}
+          onSave={onSave}
+        />,
+      );
+
+      fireEvent.change(screen.getByLabelText("End time"), { target: { value: "2:00" } });
+
+      await waitFor(() => {
+        expect(
+          screen.getByText(
+            "Could not verify clip length right now. If end time is too high, playback stops at clip end.",
+          ),
+        ).toBeTruthy();
+      });
+      expect((screen.getByRole("button", { name: "Save Source" }) as HTMLButtonElement).disabled).toBe(
+        false,
+      );
+
+      fireEvent.click(screen.getByRole("button", { name: "Save Source" }));
+      await waitFor(() => {
+        expect(onSave).toHaveBeenCalledWith({
+          sourceUrl: YOUTUBE_URL,
+          sourceNote: null,
+          sourceStartSec: null,
+          sourceEndSec: 120,
+        });
+      });
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
   });
 
   it("allows editing item label in create-from-url mode", async () => {

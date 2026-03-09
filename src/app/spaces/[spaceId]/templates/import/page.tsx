@@ -53,7 +53,10 @@ export default async function SpaceImportTemplatePage({
 
   return (
     <div className="space-y-6">
-      <Link href={`/spaces/${space.id}#lists`} className={`${buttonVariants.ghost} inline-flex items-center`}>
+      <Link
+        href={`/spaces/${space.id}#lists`}
+        className={`${buttonVariants.ghost} inline-flex items-center`}
+      >
         &larr; Back to Space
       </Link>
 

@@ -44,6 +44,55 @@ describe("source preview resolver", () => {
     }
   });
 
+  it("resolves YouTube duration from watch page metadata when available", async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ width: 200, height: 113, thumbnail_url: "https://i.ytimg.com/hq.jpg" }),
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        text: async () =>
+          '<meta itemprop="duration" content="PT1M30S" /><script>var x={"lengthSeconds":"90"};</script>',
+      } as Response);
+
+    try {
+      const result = await resolveSourcePreview(
+        "https://www.youtube.com/watch?v=Jp46t341ijE",
+        null,
+        { detectYouTubeContentKind: true, includeYouTubeDuration: true },
+      );
+      expect(result.provider).toBe("YOUTUBE");
+      expect(result.durationSec).toBe(90);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it("does not fetch YouTube watch page when duration is not requested", async () => {
+    const originalFetch = globalThis.fetch;
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ width: 200, height: 113, thumbnail_url: "https://i.ytimg.com/hq.jpg" }),
+    } as Response);
+    globalThis.fetch = fetchMock;
+
+    try {
+      const result = await resolveSourcePreview(
+        "https://www.youtube.com/watch?v=Jp46t341ijE",
+        null,
+        { detectYouTubeContentKind: true, includeYouTubeDuration: false },
+      );
+      expect(result.provider).toBe("YOUTUBE");
+      expect(result.durationSec).toBeNull();
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
   it("returns Spotify oEmbed metadata for title and thumbnail", async () => {
     const originalFetch = globalThis.fetch;
     globalThis.fetch = vi.fn().mockResolvedValue({

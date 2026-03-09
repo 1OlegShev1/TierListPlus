@@ -65,6 +65,7 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const sourceUrl = searchParams.get("url")?.trim() ?? "";
   const parent = searchParams.get("parent")?.trim() ?? null;
+  const includeDuration = searchParams.get("includeDuration") === "1";
 
   if (!sourceUrl) {
     return NextResponse.json({ error: INVALID_ITEM_SOURCE_MESSAGE }, { status: 400 });
@@ -76,6 +77,7 @@ export async function GET(request: Request) {
   try {
     const resolution = await resolveSourcePreview(sourceUrl, parent, {
       detectYouTubeContentKind: true,
+      includeYouTubeDuration: includeDuration,
     });
     return NextResponse.json(resolution, {
       status: 200,

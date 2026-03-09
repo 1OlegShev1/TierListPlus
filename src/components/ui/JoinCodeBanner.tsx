@@ -1,14 +1,18 @@
 "use client";
 
 import { useState } from "react";
+import { EyeIcon, EyeSlashIcon } from "@/components/ui/icons";
 
 interface JoinCodeBannerProps {
   joinCode: string;
+  hideCodeByDefault?: boolean;
 }
 
-export function JoinCodeBanner({ joinCode }: JoinCodeBannerProps) {
+export function JoinCodeBanner({ joinCode, hideCodeByDefault = false }: JoinCodeBannerProps) {
   const [copiedTarget, setCopiedTarget] = useState<"code" | "link" | null>(null);
   const [copyError, setCopyError] = useState<string | null>(null);
+  const [isCodeVisible, setIsCodeVisible] = useState(!hideCodeByDefault);
+  const maskedJoinCode = "**** ****";
 
   const copyText = async (value: string, target: "code" | "link") => {
     try {
@@ -36,11 +40,20 @@ export function JoinCodeBanner({ joinCode }: JoinCodeBannerProps) {
       <span className="text-neutral-500">Invite code:</span>
       <button
         type="button"
+        onClick={() => setIsCodeVisible((prev) => !prev)}
+        aria-label={isCodeVisible ? "Hide invite code" : "Reveal invite code"}
+        title={isCodeVisible ? "Hide invite code" : "Reveal invite code"}
+        className="inline-flex h-8 cursor-pointer items-center justify-center rounded-md border border-neutral-700 bg-neutral-950 px-2 text-neutral-200 transition-colors hover:border-neutral-500 hover:bg-neutral-900"
+      >
+        {isCodeVisible ? <EyeSlashIcon className="h-4 w-4" /> : <EyeIcon className="h-4 w-4" />}
+      </button>
+      <button
+        type="button"
         onClick={copyCode}
-        title="Click to copy invite code"
+        title={isCodeVisible ? "Click to copy invite code" : "Invite code hidden. Click to copy."}
         className="inline-flex h-8 cursor-pointer items-center justify-center rounded-md border border-neutral-700 bg-neutral-950 px-2 font-mono text-sm font-semibold tracking-[0.14em] text-amber-300 transition-colors hover:border-amber-400/60 hover:bg-amber-500/10 hover:text-amber-200"
       >
-        {joinCode}
+        {isCodeVisible ? joinCode : maskedJoinCode}
       </button>
       <button
         type="button"

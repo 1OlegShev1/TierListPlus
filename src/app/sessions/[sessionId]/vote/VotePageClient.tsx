@@ -90,7 +90,7 @@ export function VotePageClient({
         <div className="min-w-0">
           <h1 className="truncate text-lg font-bold sm:text-2xl">{session.name}</h1>
           <div className="mt-0.5 flex flex-wrap items-center gap-2 sm:mt-1 sm:gap-2.5">
-            <JoinCodeBanner joinCode={session.joinCode} />
+            <JoinCodeBanner joinCode={session.joinCode} hideCodeByDefault />
           </div>
         </div>
         <div className="text-left md:text-right">
