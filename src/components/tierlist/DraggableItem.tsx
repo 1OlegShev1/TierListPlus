@@ -24,6 +24,8 @@ interface DraggableItemProps {
   removing?: boolean;
   enableSorting?: boolean;
   expandedTransformOrigin?: "center center" | "top center" | "bottom center";
+  metricsClassName?: string;
+  expandedScale?: number;
 }
 
 export function DraggableItem({
@@ -42,6 +44,8 @@ export function DraggableItem({
   removing = false,
   enableSorting = true,
   expandedTransformOrigin = "center center",
+  metricsClassName = COMPACT_DRAGGABLE_ITEM_METRICS_CLASS,
+  expandedScale = 1.6,
 }: DraggableItemProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id,
@@ -50,7 +54,7 @@ export function DraggableItem({
 
   const expanded = !overlay && !isDragging && isExpanded;
   const dndTransform = CSS.Transform.toString(transform);
-  const composedTransform = [dndTransform, expanded ? "scale(1.6)" : null]
+  const composedTransform = [dndTransform, expanded ? `scale(${expandedScale})` : null]
     .filter(Boolean)
     .join(" ");
   const style = overlay
@@ -72,7 +76,7 @@ export function DraggableItem({
       ref={overlay || !enableSorting ? undefined : setNodeRef}
       style={style}
       data-peek-item={overlay ? undefined : "true"}
-      className={`group relative h-[var(--compact-item-size)] w-[var(--compact-item-size)] flex-shrink-0 overflow-visible ${COMPACT_DRAGGABLE_ITEM_METRICS_CLASS} ${
+      className={`group relative h-[var(--compact-item-size)] w-[var(--compact-item-size)] flex-shrink-0 overflow-visible ${metricsClassName} ${
         expanded ? "z-20" : "z-0"
       }`}
     >

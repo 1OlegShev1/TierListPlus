@@ -22,6 +22,7 @@ export function useResultsDetailsPanel({
   const detailsPanelRef = useRef<HTMLDivElement | null>(null);
   const wasDetailsOpenRef = useRef(false);
   const touchStartRef = useRef<{ id: string; x: number; y: number } | null>(null);
+  const previousParticipantIdRef = useRef<string | null>(participantId);
   const isIndividualView = !!participantId;
 
   useEffect(() => {
@@ -73,6 +74,12 @@ export function useResultsDetailsPanel({
       window.cancelAnimationFrame(raf2);
     };
   }, [detailsItem, detailsOpen, initialParticipantError, isIndividualView, isTouchInput]);
+
+  useEffect(() => {
+    if (previousParticipantIdRef.current === participantId) return;
+    previousParticipantIdRef.current = participantId;
+    setSelectedItem(null);
+  }, [participantId]);
 
   useEffect(() => {
     if (isIndividualView) {

@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { tierConfigSchema } from "@/lib/validators";
 import type { Item, SessionResult, TierConfig } from "@/types";
 import { ResultsPageClient } from "./ResultsPageClient";
+import { deriveBrowseQueryState } from "./resultsViewModel";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +17,17 @@ interface ParticipantVote {
   rankInTier: number;
   sessionItem: Item;
 }
+
+const SESSION_ITEM_SELECT = {
+  id: true,
+  label: true,
+  imageUrl: true,
+  sourceUrl: true,
+  sourceProvider: true,
+  sourceNote: true,
+  sourceStartSec: true,
+  sourceEndSec: true,
+} as const;
 
 function normalizeJoinCode(value: string | null): string | null {
   if (!value) return null;
@@ -51,6 +63,28 @@ function buildParticipantTiers(
   }));
 }
 
+async function loadParticipantTiers({
+  sessionId,
+  participantId,
+  tierConfig,
+}: {
+  sessionId: string;
+  participantId: string;
+  tierConfig: TierConfig[];
+}) {
+  const participantVotes = await prisma.tierVote.findMany({
+    where: { participantId, sessionItem: { sessionId } },
+    include: {
+      sessionItem: {
+        select: SESSION_ITEM_SELECT,
+      },
+    },
+    orderBy: { rankInTier: "asc" },
+  });
+
+  return buildParticipantTiers(participantVotes, tierConfig);
+}
+
 export default async function ResultsPage({
   params,
   searchParams,
@@ -60,8 +94,14 @@ export default async function ResultsPage({
 }) {
   const { sessionId } = await params;
   const resolvedSearchParams = (await searchParams) ?? {};
+  const requestedView: "browse" | "everyone" =
+    typeof resolvedSearchParams.view === "string" && resolvedSearchParams.view === "browse"
+      ? "browse"
+      : "everyone";
   const requestedParticipantId =
     typeof resolvedSearchParams.participant === "string" ? resolvedSearchParams.participant : null;
+  const requestedCompareParticipantId =
+    typeof resolvedSearchParams.compare === "string" ? resolvedSearchParams.compare : null;
   const providedCode = normalizeJoinCode(
     typeof resolvedSearchParams.code === "string" ? resolvedSearchParams.code : null,
   );
@@ -89,16 +129,7 @@ export default async function ResultsPage({
       },
       items: {
         orderBy: { sortOrder: "asc" },
-        select: {
-          id: true,
-          label: true,
-          imageUrl: true,
-          sourceUrl: true,
-          sourceProvider: true,
-          sourceNote: true,
-          sourceStartSec: true,
-          sourceEndSec: true,
-        },
+        select: SESSION_ITEM_SELECT,
       },
       participants: {
         orderBy: { createdAt: "asc" },
@@ -173,12 +204,19 @@ export default async function ResultsPage({
     missingItemCount: Math.max(0, totalItemCount - _count.tierVotes),
     isComplete: totalItemCount > 0 && _count.tierVotes >= totalItemCount,
   }));
-  const consensusParticipantCount = participants.filter((participant) => participant.hasSavedVotes).length;
-
-  const participantId = canViewIndividualBallots ? requestedParticipantId : null;
+  const { initialView, participantId, compareParticipantId, compareEveryone } =
+    deriveBrowseQueryState({
+      canViewIndividualBallots,
+      requestedView,
+      requestedParticipantId,
+      requestedCompareParticipantId,
+    });
   let initialParticipantName: string | null = null;
   let initialParticipantTiers: ConsensusTier[] | null = null;
   let initialParticipantError: string | null = null;
+  let initialCompareParticipantName: string | null = null;
+  let initialCompareParticipantTiers: ConsensusTier[] | null = null;
+  let initialCompareParticipantError: string | null = null;
 
   if (participantId) {
     const selectedParticipant = participants.find(
@@ -187,27 +225,29 @@ export default async function ResultsPage({
     if (!selectedParticipant) {
       initialParticipantError = "Couldn't load that ballot.";
     } else {
-      const participantVotes = await prisma.tierVote.findMany({
-        where: { participantId, sessionItem: { sessionId } },
-        include: {
-          sessionItem: {
-            select: {
-              id: true,
-              label: true,
-              imageUrl: true,
-              sourceUrl: true,
-              sourceProvider: true,
-              sourceNote: true,
-              sourceStartSec: true,
-              sourceEndSec: true,
-            },
-          },
-        },
-        orderBy: { rankInTier: "asc" },
-      });
-
       initialParticipantName = selectedParticipant.nickname;
-      initialParticipantTiers = buildParticipantTiers(participantVotes, tierConfig);
+      initialParticipantTiers = await loadParticipantTiers({
+        sessionId,
+        participantId,
+        tierConfig,
+      });
+    }
+  }
+
+  if (participantId && compareParticipantId && !initialParticipantError) {
+    const comparedParticipant = participants.find(
+      (participant) => participant.id === compareParticipantId,
+    );
+
+    if (!comparedParticipant) {
+      initialCompareParticipantError = "Couldn't load that comparison.";
+    } else {
+      initialCompareParticipantName = comparedParticipant.nickname;
+      initialCompareParticipantTiers = await loadParticipantTiers({
+        sessionId,
+        participantId: compareParticipantId,
+        tierConfig,
+      });
     }
   }
 
@@ -227,16 +267,20 @@ export default async function ResultsPage({
 
   return (
     <ResultsPageClient
-      key={`${sessionId}:${participantId ?? "all"}`}
       sessionId={sessionId}
       initialSession={sessionResult}
       initialConsensusTiers={consensusTiers}
+      initialView={initialView}
       participantId={participantId}
+      compareParticipantId={compareParticipantId}
+      compareEveryone={compareEveryone}
       canViewIndividualBallots={canViewIndividualBallots}
-      consensusParticipantCount={consensusParticipantCount}
       initialParticipantName={initialParticipantName}
       initialParticipantTiers={initialParticipantTiers}
       initialParticipantError={initialParticipantError}
+      initialCompareParticipantName={initialCompareParticipantName}
+      initialCompareParticipantTiers={initialCompareParticipantTiers}
+      initialCompareParticipantError={initialCompareParticipantError}
     />
   );
 }
