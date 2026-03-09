@@ -119,10 +119,10 @@ export function BrowsePanel({
                     aria-label={
                       row.isSelected ? `Deselect ${row.nickname}` : `Select ${row.nickname}`
                     }
-                    className="absolute inset-0 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/70"
+                    className="absolute inset-0 z-10 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/70"
                   />
 
-                  <div className="relative z-10 min-w-0 flex-1">
+                  <div className="pointer-events-none min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2 text-sm font-medium text-neutral-100">
                       <span className="truncate">{row.nickname}</span>
                       {row.isCurrentParticipant && (

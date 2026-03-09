@@ -26,6 +26,7 @@ interface DraggableItemProps {
   expandedTransformOrigin?: "center center" | "top center" | "bottom center";
   metricsClassName?: string;
   expandedScale?: number;
+  compareDifferenceState?: "none" | "same" | "changed";
 }
 
 export function DraggableItem({
@@ -46,6 +47,7 @@ export function DraggableItem({
   expandedTransformOrigin = "center center",
   metricsClassName = COMPACT_DRAGGABLE_ITEM_METRICS_CLASS,
   expandedScale = 1.6,
+  compareDifferenceState = "none",
 }: DraggableItemProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id,
@@ -57,12 +59,19 @@ export function DraggableItem({
   const composedTransform = [dndTransform, expanded ? `scale(${expandedScale})` : null]
     .filter(Boolean)
     .join(" ");
+  const shouldToneDownSame =
+    compareDifferenceState === "same" && !overlay && !expanded && !isDragging;
+  const changedNeutralClass =
+    compareDifferenceState === "changed" && !overlay && !expanded && !isDragging
+      ? "border-amber-400/75 ring-1 ring-amber-400/45 bg-amber-400/6"
+      : "border-neutral-700";
   const style = overlay
     ? undefined
     : {
         transform: composedTransform || undefined,
         transition: enableSorting ? transition : "transform 200ms ease",
-        opacity: isDragging ? 0.3 : 1,
+        opacity: isDragging ? 0.3 : shouldToneDownSame ? 0.28 : 1,
+        filter: shouldToneDownSame ? "grayscale(0.92) saturate(0.22) brightness(0.78)" : undefined,
         transformOrigin: expanded ? expandedTransformOrigin : "center center",
       };
   const sourceControlVisibilityClass = sourceUrl
@@ -163,7 +172,7 @@ export function DraggableItem({
               ? "border-amber-300 shadow-2xl shadow-black/60 ring-2 ring-amber-400/70"
               : isDragging
                 ? "border-amber-400 ring-2 ring-amber-400/50"
-                : "border-neutral-700"
+                : changedNeutralClass
         }`}
       >
         <ItemArtwork

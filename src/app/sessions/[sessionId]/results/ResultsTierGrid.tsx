@@ -8,6 +8,7 @@ import { ItemArtwork } from "@/components/ui/ItemArtwork";
 import type { ConsensusItem, ConsensusTier } from "@/lib/consensus";
 
 export type ExpandedTransformOrigin = "center center" | "top center" | "bottom center";
+export type CompareDifferenceStateByItemId = Record<string, "none" | "same" | "changed">;
 
 export function getExpandedTransformOrigin(
   tierIndex: number,
@@ -32,6 +33,7 @@ export function ResultsTierGrid({
   onItemTouchCancel,
   onOpenSource,
   compact = false,
+  compareDifferenceStateByItemId,
 }: {
   tiers: ConsensusTier[];
   individualView: boolean;
@@ -43,6 +45,7 @@ export function ResultsTierGrid({
   onItemTouchCancel: () => void;
   onOpenSource: (item: ConsensusItem) => void;
   compact?: boolean;
+  compareDifferenceStateByItemId?: CompareDifferenceStateByItemId;
 }) {
   const rowHeightClass = compact
     ? "min-h-[60px] sm:min-h-[68px] md:min-h-[74px] lg:min-h-[88px]"
@@ -102,6 +105,7 @@ export function ResultsTierGrid({
                     expandedTransformOrigin={expandedTransformOrigin}
                     metricsClassName={compact ? TIGHT_DRAGGABLE_ITEM_METRICS_CLASS : undefined}
                     expandedScale={compact ? 1.25 : undefined}
+                    compareDifferenceState={compareDifferenceStateByItemId?.[item.id] ?? "none"}
                   />
                 ) : (
                   <div key={item.id} className={`relative flex-shrink-0 ${nonIndividualItemClass}`}>
@@ -171,6 +175,7 @@ export function CompareColumn({
   onItemToggle,
   onOpenSource,
   compact = false,
+  compareDifferenceStateByItemId,
 }: {
   title: string;
   tiers: ConsensusTier[];
@@ -178,6 +183,7 @@ export function CompareColumn({
   onItemToggle: (item: ConsensusItem) => void;
   onOpenSource: (item: ConsensusItem) => void;
   compact?: boolean;
+  compareDifferenceStateByItemId?: CompareDifferenceStateByItemId;
 }) {
   return (
     <div>
@@ -195,6 +201,7 @@ export function CompareColumn({
         onItemTouchCancel={() => undefined}
         onOpenSource={onOpenSource}
         compact={compact}
+        compareDifferenceStateByItemId={compareDifferenceStateByItemId}
       />
     </div>
   );
