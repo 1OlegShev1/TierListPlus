@@ -1,6 +1,7 @@
 "use client";
 
 import { DndContext, DragOverlay } from "@dnd-kit/core";
+import { Link as LinkIcon } from "lucide-react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { type ReactNode, useEffect, useRef, useState } from "react";
@@ -12,6 +13,12 @@ import { useTierListStore } from "@/hooks/useTierList";
 import { useUser } from "@/hooks/useUser";
 import { apiPost, getErrorMessage } from "@/lib/api-client";
 import { seedTiersFromRanking } from "@/lib/bracket-seeding";
+import {
+  normalizeItemLabel,
+  parseAnyItemSource,
+  resolveItemImageUrlForWrite,
+  suggestItemLabelFromSourceUrl,
+} from "@/lib/item-source";
 import { clearDraft, getDraft, saveDraft } from "@/lib/vote-draft";
 import type { Item, TierConfig } from "@/types";
 import { DraggableItem } from "./DraggableItem";
@@ -123,6 +130,8 @@ export function TierListBoard({
   const [showSavedTemplateNotice, setShowSavedTemplateNotice] = useState(false);
   const [sourceModalItemId, setSourceModalItemId] = useState<string | null>(null);
   const [sourceModalReadOnly, setSourceModalReadOnly] = useState(false);
+  const [showAddByUrlSourceModal, setShowAddByUrlSourceModal] = useState(false);
+  const [addByUrlSourceError, setAddByUrlSourceError] = useState<string | null>(null);
   const showSubmitBusyState = useDelayedBusy(submitting, {
     showDelayMs: 180,
     minVisibleMs: 320,
@@ -161,6 +170,7 @@ export function TierListBoard({
     hasPendingItemMutations,
     handleUploadStateChange,
     handleUploadedImage,
+    handleAddItemFromUrl,
     handleSaveLiveItemLabel,
     handleSaveLiveItemSource,
     handleRemoveLiveItem,
@@ -329,25 +339,47 @@ export function TierListBoard({
           : "Waiting for the vote host to add items."
       : "All items ranked!";
   const uploadCard = canManageItems ? (
-    <div className="w-[112px] flex-shrink-0 rounded-lg border border-neutral-700 bg-neutral-950 p-1.5 sm:w-[120px] md:w-[128px]">
-      <ImageUploader
-        onUploaded={handleUploadedImage}
-        onUploadStateChange={handleUploadStateChange}
-        multiple
-        idleLabel={
-          userLoading
-            ? "Getting ready..."
-            : uploadsDisabled
-              ? "Device needed"
-              : showCreatingItemState
-                ? "Adding..."
-                : "Upload"
-        }
-        disabled={uploadsDisabled}
-        className="aspect-square w-full"
-      />
-      <div aria-hidden="true" className="mt-1 h-[30px]" />
-    </div>
+    <>
+      <div className="w-[112px] flex-shrink-0 rounded-lg border border-neutral-700 bg-neutral-950 p-1.5 sm:w-[120px] md:w-[128px]">
+        <button
+          type="button"
+          onClick={() => {
+            setAddByUrlSourceError(null);
+            setShowAddByUrlSourceModal(true);
+          }}
+          disabled={uploadsDisabled || hasPendingItemMutations}
+          className="flex aspect-square w-full flex-col items-center justify-center rounded border border-dashed border-neutral-700 bg-neutral-900/70 text-neutral-300 transition-colors hover:border-amber-400 hover:text-amber-300 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          <LinkIcon className="h-5 w-5" />
+          <span className="mt-2 text-xs font-medium">Add via URL</span>
+        </button>
+        <div
+          aria-hidden="true"
+          className="mt-1 flex h-[30px] items-center justify-center text-[11px] text-neutral-500"
+        >
+          Link item
+        </div>
+      </div>
+      <div className="w-[112px] flex-shrink-0 rounded-lg border border-neutral-700 bg-neutral-950 p-1.5 sm:w-[120px] md:w-[128px]">
+        <ImageUploader
+          onUploaded={handleUploadedImage}
+          onUploadStateChange={handleUploadStateChange}
+          multiple
+          idleLabel={
+            userLoading
+              ? "Getting ready..."
+              : uploadsDisabled
+                ? "Device needed"
+                : showCreatingItemState
+                  ? "Adding..."
+                  : "Upload"
+          }
+          disabled={uploadsDisabled}
+          className="aspect-square w-full"
+        />
+        <div aria-hidden="true" className="mt-1 h-[30px]" />
+      </div>
+    </>
   ) : null;
 
   useAutoDismissFlag(draftRestored, () => setDraftRestored(false), 3000);
@@ -625,6 +657,75 @@ export function TierListBoard({
             setShowSessionBracket(false);
           }}
           onCancel={() => setShowSessionBracket(false)}
+        />
+      )}
+
+      {showAddByUrlSourceModal && (
+        <ItemSourceModal
+          open
+          mode="CREATE_FROM_URL"
+          itemLabel="New item"
+          itemImageUrl={null}
+          sourceUrl={null}
+          sourceProvider={null}
+          sourceNote={null}
+          sourceStartSec={null}
+          sourceEndSec={null}
+          editable={canManageItems && !submitting && !submitted}
+          saving={creatingItemCount > 0}
+          error={addByUrlSourceError}
+          onClose={() => {
+            if (creatingItemCount > 0) return;
+            setShowAddByUrlSourceModal(false);
+          }}
+          onSave={async ({
+            sourceUrl,
+            sourceNote,
+            sourceStartSec,
+            sourceEndSec,
+            itemLabel,
+            resolvedImageUrl,
+            resolvedTitle,
+          }) => {
+            setAddByUrlSourceError(null);
+            if (!sourceUrl) {
+              setAddByUrlSourceError("Source URL is required.");
+              return false;
+            }
+
+            try {
+              const parsed = parseAnyItemSource(sourceUrl);
+              if (!parsed) {
+                setAddByUrlSourceError("Enter a valid http(s) URL.");
+                return false;
+              }
+              const imageUrl = resolveItemImageUrlForWrite(resolvedImageUrl, parsed.normalizedUrl);
+              const label = normalizeItemLabel(
+                itemLabel ??
+                  resolvedTitle ??
+                  suggestItemLabelFromSourceUrl(parsed.normalizedUrl) ??
+                  "Link item",
+              );
+
+              const result = await handleAddItemFromUrl({
+                label: label || "Link item",
+                imageUrl,
+                sourceUrl: parsed.normalizedUrl,
+                sourceNote,
+                sourceStartSec,
+                sourceEndSec,
+              });
+              if (result.created) {
+                setShowAddByUrlSourceModal(false);
+              } else {
+                setAddByUrlSourceError(result.error ?? "Failed to add item");
+              }
+              return result.created;
+            } catch (err) {
+              setAddByUrlSourceError(getErrorMessage(err, "Could not add an item from this URL."));
+              return false;
+            }
+          }}
         />
       )}
     </div>

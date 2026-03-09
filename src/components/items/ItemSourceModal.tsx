@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { ErrorMessage } from "@/components/ui/ErrorMessage";
 import { Input } from "@/components/ui/Input";
+import { ItemArtwork } from "@/components/ui/ItemArtwork";
 import { Textarea } from "@/components/ui/Textarea";
 import {
   buildExternalSourceEmbedUrl,
@@ -15,13 +16,20 @@ import {
   getExternalSourceKindLabel,
   getItemSourceProviderLabel,
   INVALID_ITEM_SOURCE_MESSAGE,
+  MAX_ITEM_LABEL_LENGTH,
   MAX_SOURCE_INTERVAL_SECONDS,
+  normalizeItemLabel,
   parseAnyItemSource,
+  resolveItemImageUrlForWrite,
+  suggestItemLabelFromSourceUrl,
 } from "@/lib/item-source";
 import type { ItemSourceProvider } from "@/types";
 
+type ItemSourceModalMode = "EDIT_SOURCE" | "CREATE_FROM_URL";
+
 interface ItemSourceModalProps {
   open: boolean;
+  mode?: ItemSourceModalMode;
   itemLabel: string;
   itemImageUrl?: string | null;
   sourceUrl?: string | null;
@@ -38,6 +46,9 @@ interface ItemSourceModalProps {
     sourceNote: string | null;
     sourceStartSec: number | null;
     sourceEndSec: number | null;
+    itemLabel?: string | null;
+    resolvedImageUrl?: string | null;
+    resolvedTitle?: string | null;
   }) => Promise<boolean>;
 }
 
@@ -76,10 +87,13 @@ type ResolvedExternalPreview = {
 type SourcePreviewResolutionPayload = ResolvedExternalPreview & {
   provider: ItemSourceProvider | null;
   youtubeContentKind: "VIDEO" | "SHORTS" | null;
+  thumbnailUrl: string | null;
+  title: string | null;
 };
 
 export function ItemSourceModal({
   open,
+  mode = "EDIT_SOURCE",
   itemLabel,
   itemImageUrl = null,
   sourceUrl,
@@ -97,6 +111,8 @@ export function ItemSourceModal({
   const sourceInputRef = useRef<HTMLInputElement>(null);
   const resolveRequestIdRef = useRef(0);
   const [draftUrl, setDraftUrl] = useState(sourceUrl ?? "");
+  const [draftLabel, setDraftLabel] = useState(itemLabel);
+  const [draftLabelTouched, setDraftLabelTouched] = useState(false);
   const [draftNote, setDraftNote] = useState(sourceNote ?? "");
   const [draftStartSec, setDraftStartSec] = useState(
     typeof sourceStartSec === "number" ? String(sourceStartSec) : "",
@@ -110,6 +126,9 @@ export function ItemSourceModal({
   const [resolvedYouTubeContentKind, setResolvedYouTubeContentKind] = useState<
     "VIDEO" | "SHORTS" | null
   >(null);
+  const [resolvedThumbnailUrl, setResolvedThumbnailUrl] = useState<string | null>(null);
+  const [resolvedSourceTitle, setResolvedSourceTitle] = useState<string | null>(null);
+  const [isResolvingSourcePreview, setIsResolvingSourcePreview] = useState(false);
   const [showExpandedPreview, setShowExpandedPreview] = useState(false);
 
   useEffect(() => {
@@ -120,11 +139,13 @@ export function ItemSourceModal({
   useEffect(() => {
     if (!open) return;
     setDraftUrl(sourceUrl ?? "");
+    setDraftLabel(itemLabel);
+    setDraftLabelTouched(false);
     setDraftNote(sourceNote ?? "");
     setDraftStartSec(typeof sourceStartSec === "number" ? String(sourceStartSec) : "");
     setDraftEndSec(typeof sourceEndSec === "number" ? String(sourceEndSec) : "");
     setShowExpandedPreview(false);
-  }, [open, sourceEndSec, sourceNote, sourceStartSec, sourceUrl]);
+  }, [itemLabel, open, sourceEndSec, sourceNote, sourceStartSec, sourceUrl]);
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -270,12 +291,37 @@ export function ItemSourceModal({
   const externalPreviewNote =
     resolvedExternalPreview?.note ??
     (!externalEmbedUrl ? (fallbackExternalCapability?.fallbackNote ?? null) : null);
-  const previewImageUrl = itemImageUrl ?? activeParsedSource?.thumbnailUrl ?? null;
+  const isCreateFromUrlMode = mode === "CREATE_FROM_URL";
+  const resolvedPreviewTitle = isCreateFromUrlMode ? normalizeItemLabel(resolvedSourceTitle) : "";
+  const suggestedLabelFromUrl = useMemo(() => {
+    if (!isCreateFromUrlMode || !activeSourceUrl) return "";
+    return suggestItemLabelFromSourceUrl(activeSourceUrl);
+  }, [activeSourceUrl, isCreateFromUrlMode]);
+  const fallbackCreateLabel = normalizeItemLabel(
+    resolvedPreviewTitle || suggestedLabelFromUrl || itemLabel || "New item",
+  );
+  const resolvedDraftLabel = normalizeItemLabel(draftLabel);
+  const previewItemLabel = isCreateFromUrlMode
+    ? resolvedDraftLabel || fallbackCreateLabel
+    : itemLabel;
+  const previewImageUrl = (() => {
+    if (!isCreateFromUrlMode && itemImageUrl) return itemImageUrl;
+    if (resolvedThumbnailUrl) return resolvedThumbnailUrl;
+    if (!activeSourceUrl) return activeParsedSource?.thumbnailUrl ?? null;
+    try {
+      return resolveItemImageUrlForWrite(undefined, activeSourceUrl);
+    } catch {
+      return activeParsedSource?.thumbnailUrl ?? null;
+    }
+  })();
 
   useEffect(() => {
     const requestId = ++resolveRequestIdRef.current;
     setResolvedExternalPreview(null);
     setResolvedYouTubeContentKind(null);
+    setResolvedThumbnailUrl(null);
+    setResolvedSourceTitle(null);
+    setIsResolvingSourcePreview(false);
     if (!activeSourceUrl) return;
     const shouldResolveExternal =
       activeProvider === null &&
@@ -285,9 +331,16 @@ export function ItemSourceModal({
       activeProvider === "YOUTUBE" &&
       activeParsedSource?.provider === "YOUTUBE" &&
       activeParsedSource.youtubeContentKind !== "SHORTS";
-    if (!shouldResolveExternal && !shouldResolveYouTubeKind) return;
+    const shouldResolveCreateMetadata = isCreateFromUrlMode;
+    if (!shouldResolveExternal && !shouldResolveYouTubeKind && !shouldResolveCreateMetadata) {
+      return;
+    }
+    if (shouldResolveCreateMetadata) {
+      setIsResolvingSourcePreview(true);
+    }
 
     const controller = new AbortController();
+    const resolveTimeout = setTimeout(() => controller.abort(), 5_000);
     const timeout = setTimeout(() => {
       const params = new URLSearchParams({ url: activeSourceUrl });
       if (embedParentHostname) {
@@ -300,6 +353,8 @@ export function ItemSourceModal({
           if (!response.ok || resolveRequestIdRef.current !== requestId) return;
           const payload = (await response.json()) as SourcePreviewResolutionPayload;
           if (resolveRequestIdRef.current !== requestId) return;
+          setResolvedThumbnailUrl(payload.thumbnailUrl ?? null);
+          setResolvedSourceTitle(payload.title ?? null);
           if (payload.provider === "YOUTUBE") {
             setResolvedYouTubeContentKind(payload.youtubeContentKind ?? null);
             return;
@@ -308,11 +363,19 @@ export function ItemSourceModal({
         })
         .catch(() => {
           // Keep client fallback metadata and open-source behavior.
+        })
+        .finally(() => {
+          clearTimeout(resolveTimeout);
+          if (resolveRequestIdRef.current !== requestId) return;
+          if (shouldResolveCreateMetadata) {
+            setIsResolvingSourcePreview(false);
+          }
         });
     }, 200);
 
     return () => {
       clearTimeout(timeout);
+      clearTimeout(resolveTimeout);
       controller.abort();
     };
   }, [
@@ -322,6 +385,7 @@ export function ItemSourceModal({
     embedParentHostname,
     fallbackExternalCapability?.previewMode,
     fallbackExternalEmbedUrl,
+    isCreateFromUrlMode,
   ]);
 
   const normalizedCurrentUrl = (sourceUrl ?? "").trim();
@@ -335,13 +399,19 @@ export function ItemSourceModal({
     trimmedDraftNote !== normalizedCurrentNote ||
     draftStartSec.trim() !== normalizedCurrentStartSec ||
     draftEndSec.trim() !== normalizedCurrentEndSec;
+  const hasValidSourceForCreate = trimmedDraftUrl.length > 0 && !!parsedDraftSource;
   const canSave =
     editable &&
     !saving &&
     !!onSave &&
-    hasChanges &&
+    (isCreateFromUrlMode ? hasValidSourceForCreate && !isResolvingSourcePreview : hasChanges) &&
     !hasInvalidDraftSource &&
     !intervalInvalidReason;
+
+  useEffect(() => {
+    if (!isCreateFromUrlMode || draftLabelTouched) return;
+    setDraftLabel(fallbackCreateLabel);
+  }, [draftLabelTouched, fallbackCreateLabel, isCreateFromUrlMode]);
 
   const close = () => {
     if (saving) return;
@@ -350,7 +420,7 @@ export function ItemSourceModal({
 
   const save = async () => {
     if (!canSave || !onSave) return;
-    const succeeded = await onSave({
+    const payload: Parameters<NonNullable<typeof onSave>>[0] = {
       sourceUrl: trimmedDraftUrl.length > 0 ? trimmedDraftUrl : null,
       sourceNote:
         trimmedDraftUrl.length > 0 && trimmedDraftNote.length > 0 ? trimmedDraftNote : null,
@@ -358,7 +428,13 @@ export function ItemSourceModal({
         shouldValidateIntervals && parsedDraftStartSec !== "invalid" ? parsedDraftStartSec : null,
       sourceEndSec:
         shouldValidateIntervals && parsedDraftEndSec !== "invalid" ? parsedDraftEndSec : null,
-    });
+    };
+    if (isCreateFromUrlMode) {
+      payload.itemLabel = resolvedDraftLabel || fallbackCreateLabel;
+      payload.resolvedImageUrl = previewImageUrl ?? null;
+      payload.resolvedTitle = resolvedPreviewTitle || null;
+    }
+    const succeeded = await onSave(payload);
 
     if (succeeded) {
       onClose();
@@ -382,16 +458,29 @@ export function ItemSourceModal({
       }}
       className="fixed inset-0 m-auto max-h-[calc(100dvh-2rem)] w-[min(calc(100vw-2rem),34rem)] overflow-y-auto rounded-xl border border-neutral-700 bg-neutral-900 p-4 text-left text-white shadow-2xl shadow-black/60 backdrop:bg-black/70 focus:outline-none sm:p-6"
     >
-      <h2 className="text-lg font-bold">Item Source</h2>
+      <h2 className="text-lg font-bold">
+        {isCreateFromUrlMode ? "Add Item via URL" : "Item Source"}
+      </h2>
       <p className="mt-1 text-sm text-neutral-400">
-        Add a source link for <span className="font-medium text-neutral-200">{itemLabel}</span>.
+        {isCreateFromUrlMode ? (
+          <>
+            Paste a URL to create <span className="font-medium text-neutral-200">{itemLabel}</span>.
+            The resolved thumbnail (or media fallback) will be used as item image.
+          </>
+        ) : (
+          <>
+            Add a source link for <span className="font-medium text-neutral-200">{itemLabel}</span>.
+          </>
+        )}
       </p>
 
       <div className="mt-5 space-y-4">
         {editable ? (
           <>
             <label className="block space-y-2">
-              <span className="text-sm font-medium text-neutral-300">Source URL</span>
+              <span className="text-sm font-medium text-neutral-300">
+                {isCreateFromUrlMode ? "Item URL" : "Source URL"}
+              </span>
               <Input
                 ref={sourceInputRef}
                 type="url"
@@ -406,15 +495,39 @@ export function ItemSourceModal({
               />
             </label>
 
+            {isCreateFromUrlMode && (
+              <label className="block space-y-2">
+                <span className="text-sm font-medium text-neutral-300">Item label</span>
+                <Input
+                  type="text"
+                  placeholder="e.g. The Miracle"
+                  value={draftLabel}
+                  onChange={(event) => {
+                    setDraftLabel(event.target.value);
+                    setDraftLabelTouched(true);
+                  }}
+                  maxLength={MAX_ITEM_LABEL_LENGTH}
+                  disabled={saving}
+                  className="w-full"
+                />
+              </label>
+            )}
+
             <label className="block space-y-2">
-              <span className="text-sm font-medium text-neutral-300">Source Note (optional)</span>
+              <span className="text-sm font-medium text-neutral-300">
+                {isCreateFromUrlMode ? "Description (optional)" : "Source Note (optional)"}
+              </span>
               <Textarea
                 value={draftNote}
                 onChange={(event) => setDraftNote(event.target.value)}
                 maxLength={120}
                 rows={2}
                 disabled={saving}
-                placeholder="Official audio, live version, remix, etc."
+                placeholder={
+                  isCreateFromUrlMode
+                    ? "Short context for voters (optional)"
+                    : "Official audio, live version, remix, etc."
+                }
                 className="w-full"
               />
             </label>
@@ -459,10 +572,12 @@ export function ItemSourceModal({
             <div className="space-y-3">
               <div className="flex items-start gap-3">
                 {previewImageUrl ? (
-                  <img
+                  <ItemArtwork
                     src={previewImageUrl}
                     alt="Source preview"
-                    className="h-16 w-24 flex-shrink-0 rounded object-cover"
+                    className="h-16 w-24 flex-shrink-0 rounded"
+                    loading="lazy"
+                    decoding="async"
                   />
                 ) : (
                   <div className="flex h-16 w-24 flex-shrink-0 items-center justify-center rounded border border-neutral-700 bg-neutral-900 text-xs font-semibold text-neutral-200">
@@ -474,7 +589,9 @@ export function ItemSourceModal({
                   <p className="text-xs uppercase tracking-wide text-neutral-500">
                     {externalSourceLabel}
                   </p>
-                  <p className="truncate text-sm font-medium text-neutral-100">{itemLabel}</p>
+                  <p className="truncate text-sm font-medium text-neutral-100">
+                    {previewItemLabel}
+                  </p>
                   {displayNote && <p className="text-sm text-neutral-300">{displayNote}</p>}
                   <p className="truncate text-xs text-neutral-500">{activeSourceUrl}</p>
                 </div>
@@ -507,7 +624,7 @@ export function ItemSourceModal({
                     <div className="bg-black p-2">
                       <iframe
                         src={youtubeEmbedUrl}
-                        title={`${itemLabel} YouTube Shorts preview`}
+                        title={`${previewItemLabel} YouTube Shorts preview`}
                         className="w-full"
                         style={{ height: "min(52dvh, 30rem)" }}
                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
@@ -517,7 +634,7 @@ export function ItemSourceModal({
                   ) : (
                     <iframe
                       src={youtubeEmbedUrl}
-                      title={`${itemLabel} YouTube preview`}
+                      title={`${previewItemLabel} YouTube preview`}
                       className="aspect-video w-full"
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                       allowFullScreen
@@ -529,7 +646,7 @@ export function ItemSourceModal({
                 <div className="overflow-hidden rounded-lg border border-neutral-800 bg-black">
                   <iframe
                     src={spotifyEmbedUrl}
-                    title={`${itemLabel} Spotify preview`}
+                    title={`${previewItemLabel} Spotify preview`}
                     className="w-full"
                     style={{ height: spotifyEmbedHeight }}
                     allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
@@ -542,7 +659,7 @@ export function ItemSourceModal({
                   {externalEmbedType === "image" ? (
                     <img
                       src={externalEmbedUrl}
-                      alt={`${itemLabel} source preview`}
+                      alt={`${previewItemLabel} source preview`}
                       className="max-h-[28rem] w-full object-contain"
                     />
                   ) : externalEmbedType === "video" ? (
@@ -556,7 +673,7 @@ export function ItemSourceModal({
                   ) : externalSourceKind === "SOUNDCLOUD" ? (
                     <iframe
                       src={externalEmbedUrl}
-                      title={`${itemLabel} SoundCloud preview`}
+                      title={`${previewItemLabel} SoundCloud preview`}
                       className="w-full"
                       style={{ height: soundCloudEmbedHeight }}
                       allow="autoplay; encrypted-media"
@@ -568,7 +685,7 @@ export function ItemSourceModal({
                     <div className="bg-black p-2">
                       <iframe
                         src={externalEmbedUrl}
-                        title={`${itemLabel} source preview`}
+                        title={`${previewItemLabel} source preview`}
                         className={externalIframeClassName}
                         style={externalIframeStyle}
                         allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; fullscreen"
@@ -587,20 +704,35 @@ export function ItemSourceModal({
           ) : hasInvalidDraftSource ? (
             <p className="text-sm text-neutral-500">Invalid URL. Use a full http(s) link.</p>
           ) : (
-            <p className="text-sm text-neutral-500">No source link added yet.</p>
+            <p className="text-sm text-neutral-500">
+              {isCreateFromUrlMode
+                ? "Paste a URL to preview and add this item."
+                : "No source link added yet."}
+            </p>
           )}
         </div>
 
         {error && <ErrorMessage message={error} />}
+        {!error && isCreateFromUrlMode && hasValidSourceForCreate && isResolvingSourcePreview && (
+          <p className="text-xs text-neutral-500">Resolving title and thumbnail...</p>
+        )}
       </div>
 
       <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:justify-end">
         <Button variant="secondary" onClick={close} disabled={saving} className="w-full sm:w-auto">
-          Close
+          {isCreateFromUrlMode ? "Cancel" : "Close"}
         </Button>
         {editable && (
           <Button onClick={() => void save()} disabled={!canSave} className="w-full sm:w-auto">
-            {saving ? "Saving..." : "Save Source"}
+            {isCreateFromUrlMode
+              ? saving
+                ? "Adding..."
+                : isResolvingSourcePreview
+                  ? "Resolving..."
+                  : "Add item"
+              : saving
+                ? "Saving..."
+                : "Save Source"}
           </Button>
         )}
       </div>
@@ -621,7 +753,7 @@ export function ItemSourceModal({
             <div className="overflow-hidden rounded-lg border border-neutral-800 bg-black p-1">
               <iframe
                 src={expandedPreviewUrl}
-                title={`${itemLabel} large source preview`}
+                title={`${previewItemLabel} large source preview`}
                 className="w-full"
                 style={{ height: "min(82dvh, 56rem)" }}
                 allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; fullscreen"

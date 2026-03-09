@@ -8,6 +8,7 @@ import {
   normalizeItemSourceNote,
   parseAnyItemSource,
   parseSupportedItemSource,
+  resolveItemImageUrlForWrite,
   resolveItemSourceForWrite,
   resolveSourceIntervalForWrite,
 } from "@/lib/item-source";
@@ -144,6 +145,39 @@ describe("item source utils", () => {
   it("clears source fields when URL is null/blank", () => {
     expect(resolveItemSourceForWrite(null)).toEqual({ sourceUrl: null, sourceProvider: null });
     expect(resolveItemSourceForWrite("   ")).toEqual({ sourceUrl: null, sourceProvider: null });
+  });
+
+  it("derives image URL from supported source URLs", () => {
+    expect(resolveItemImageUrlForWrite(undefined, "https://youtu.be/dQw4w9WgXcQ?t=43")).toBe(
+      "https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg",
+    );
+    expect(resolveItemImageUrlForWrite(undefined, "https://cdn.example.com/cover.webp")).toBe(
+      "https://cdn.example.com/cover.webp",
+    );
+    expect(
+      resolveItemImageUrlForWrite(
+        undefined,
+        "https://open.spotify.com/track/4uLU6hMCjMI75M1A2tKUQC?si=abc123",
+      ),
+    ).toBe("source-placeholder://audio");
+  });
+
+  it("uses media-kind fallback artwork when source has no thumbnail", () => {
+    expect(resolveItemImageUrlForWrite(undefined, "https://example.com/sample.mp4")).toBe(
+      "source-placeholder://video",
+    );
+    expect(resolveItemImageUrlForWrite(undefined, "https://example.com/source.pdf")).toBe(
+      "source-placeholder://document",
+    );
+    expect(resolveItemImageUrlForWrite(undefined, "https://example.com/article")).toBe(
+      "source-placeholder://generic",
+    );
+  });
+
+  it("requires either image URL or source URL on create", () => {
+    expect(() => resolveItemImageUrlForWrite(undefined, undefined)).toThrow(
+      "Provide an image URL or a source URL.",
+    );
   });
 
   it("normalizes optional source notes", () => {

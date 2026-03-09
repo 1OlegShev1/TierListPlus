@@ -1,3 +1,8 @@
+import {
+  getSourceArtworkPlaceholderImageUrl,
+  type SourceArtworkPlaceholderKind,
+} from "@/lib/item-artwork-placeholder";
+
 export type ItemSourceProvider = "SPOTIFY" | "YOUTUBE";
 export type ExternalSourceKind =
   | "VIMEO"
@@ -87,6 +92,7 @@ const VIDEO_FILE_EXT_RE = /\.(m3u8|mp4|mov|ogv|webm)$/i;
 const AUDIO_FILE_EXT_RE = /\.(aac|flac|m4a|mp3|ogg|wav)$/i;
 const PDF_FILE_EXT_RE = /\.pdf$/i;
 export const MAX_SOURCE_INTERVAL_SECONDS = 2_147_483_647;
+export const MAX_ITEM_LABEL_LENGTH = 100;
 
 const EXTERNAL_SOURCE_CAPABILITIES: Record<ExternalSourceKind, ExternalSourceCapability> = {
   VIMEO: {
@@ -454,6 +460,20 @@ export function getExternalSourceKindLabel(kind: ExternalSourceKind | null): str
 }
 
 export const INVALID_ITEM_SOURCE_MESSAGE = "Enter a valid http(s) URL.";
+export const DEFAULT_SOURCE_FALLBACK_IMAGE_URL = getSourceArtworkPlaceholderImageUrl("GENERIC");
+
+const SOURCE_FALLBACK_ARTWORK_BY_KIND: Partial<
+  Record<ExternalSourceKind, SourceArtworkPlaceholderKind>
+> = {
+  VIMEO: "VIDEO",
+  SOUNDCLOUD: "AUDIO",
+  TWITCH: "VIDEO",
+  VIDEO: "VIDEO",
+  AUDIO: "AUDIO",
+  PDF: "DOCUMENT",
+  INSTAGRAM: "VIDEO",
+  TIKTOK: "VIDEO",
+};
 
 export function resolveItemSourceForWrite(sourceUrl: string | null | undefined): {
   sourceUrl?: string | null;
@@ -478,6 +498,73 @@ export function resolveItemSourceForWrite(sourceUrl: string | null | undefined):
     sourceUrl: parsed.normalizedUrl,
     sourceProvider: parsed.provider ?? null,
   };
+}
+
+export function resolveItemImageUrlForWrite(
+  imageUrl: string | null | undefined,
+  sourceUrl: string | null | undefined,
+): string {
+  const trimmedImageUrl = typeof imageUrl === "string" ? imageUrl.trim() : "";
+  if (trimmedImageUrl) {
+    return trimmedImageUrl;
+  }
+
+  const trimmedSourceUrl = typeof sourceUrl === "string" ? sourceUrl.trim() : "";
+  if (!trimmedSourceUrl) {
+    throw new Error("Provide an image URL or a source URL.");
+  }
+
+  const parsedSource = parseAnyItemSource(trimmedSourceUrl);
+  if (!parsedSource) {
+    throw new Error(INVALID_ITEM_SOURCE_MESSAGE);
+  }
+
+  if (parsedSource.thumbnailUrl) {
+    return parsedSource.thumbnailUrl;
+  }
+
+  if (parsedSource.provider === "SPOTIFY") {
+    return getSourceArtworkPlaceholderImageUrl("AUDIO");
+  }
+
+  const externalKind = detectExternalSourceKind(parsedSource.normalizedUrl);
+  if (externalKind === "IMAGE") {
+    return parsedSource.normalizedUrl;
+  }
+
+  const fallbackKind = externalKind ? SOURCE_FALLBACK_ARTWORK_BY_KIND[externalKind] : undefined;
+  return fallbackKind
+    ? getSourceArtworkPlaceholderImageUrl(fallbackKind)
+    : DEFAULT_SOURCE_FALLBACK_IMAGE_URL;
+}
+
+export function suggestItemLabelFromSourceUrl(sourceUrl: string): string {
+  const parsed = parseAnyItemSource(sourceUrl);
+  if (!parsed) return "";
+
+  try {
+    const url = new URL(parsed.normalizedUrl);
+    const pathSegment = url.pathname.split("/").filter(Boolean).slice(-1)[0] ?? "";
+    if (pathSegment) {
+      const normalizedPath = decodeURIComponent(pathSegment)
+        .replace(/\.[a-z0-9]{2,8}$/i, "")
+        .replace(/[-_]+/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+      if (normalizedPath) {
+        return normalizedPath.slice(0, MAX_ITEM_LABEL_LENGTH);
+      }
+    }
+    return url.hostname.replace(/^www\./i, "");
+  } catch {
+    return "";
+  }
+}
+
+export function normalizeItemLabel(input: string | null | undefined): string {
+  if (typeof input !== "string") return "";
+  const normalized = input.trim().replace(/\s+/g, " ");
+  return normalized.slice(0, MAX_ITEM_LABEL_LENGTH);
 }
 
 export function normalizeItemSourceNote(

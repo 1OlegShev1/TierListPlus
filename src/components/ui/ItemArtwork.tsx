@@ -1,3 +1,8 @@
+import { FileText, Link2, Music, Play } from "lucide-react";
+import {
+  parseSourceArtworkPlaceholderImageUrl,
+  type SourceArtworkPlaceholderKind,
+} from "@/lib/item-artwork-placeholder";
 import { getStaticArtworkSrc, isAnimatedImageUrl } from "@/lib/media";
 import { cn } from "@/lib/utils";
 
@@ -24,6 +29,19 @@ const insetClasses: Record<ItemArtworkInset, string> = {
   default: "p-[6%]",
 };
 
+function SourcePlaceholderIcon({
+  kind,
+  className,
+}: {
+  kind: SourceArtworkPlaceholderKind;
+  className: string;
+}) {
+  if (kind === "VIDEO") return <Play className={className} aria-hidden="true" />;
+  if (kind === "AUDIO") return <Music className={className} aria-hidden="true" />;
+  if (kind === "DOCUMENT") return <FileText className={className} aria-hidden="true" />;
+  return <Link2 className={className} aria-hidden="true" />;
+}
+
 export function ItemArtwork({
   src,
   alt,
@@ -37,6 +55,20 @@ export function ItemArtwork({
   animate = false,
   showAnimatedHint = false,
 }: ItemArtworkProps) {
+  const placeholderKind = parseSourceArtworkPlaceholderImageUrl(src);
+  if (placeholderKind) {
+    return (
+      <div className={cn("relative overflow-hidden bg-neutral-950", className)}>
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.12),transparent_38%),linear-gradient(to_bottom,rgba(38,38,38,0.18),rgba(10,10,10,0.64))]" />
+        <div className="relative flex h-full w-full items-center justify-center">
+          <div className="flex h-[72%] w-[72%] items-center justify-center rounded-2xl border border-neutral-700 bg-neutral-900/75">
+            <SourcePlaceholderIcon kind={placeholderKind} className="h-10 w-10 text-neutral-200" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const isAnimated = isAnimatedImageUrl(src);
   const staticSrc = getStaticArtworkSrc(src);
   const displaySrc = animate && isAnimated ? src : staticSrc;

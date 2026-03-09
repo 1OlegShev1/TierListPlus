@@ -9,7 +9,22 @@ import {
   getErrorMessage,
   tryCleanupUnattachedUpload,
 } from "@/lib/api-client";
+import { normalizeItemLabel } from "@/lib/item-source";
 import type { Item } from "@/types";
+
+interface CreateLiveItemPayload {
+  label: string;
+  imageUrl?: string;
+  sourceUrl?: string | null;
+  sourceNote?: string | null;
+  sourceStartSec?: number | null;
+  sourceEndSec?: number | null;
+}
+
+interface AddItemFromUrlResult {
+  created: boolean;
+  error: string | null;
+}
 
 interface UseLiveSessionItemsArgs {
   sessionId: string;
@@ -107,10 +122,11 @@ export function useLiveSessionItems({
 
       const createItem = async () => {
         try {
-          const item = await apiPost<Item>(`/api/sessions/${sessionId}/items`, {
-            label: suggestedLabel.trim(),
+          const payload: CreateLiveItemPayload = {
+            label: normalizeItemLabel(suggestedLabel) || "New item",
             imageUrl: url,
-          });
+          };
+          const item = await apiPost<Item>(`/api/sessions/${sessionId}/items`, payload);
           if (!isCurrentSession(requestSessionId)) {
             void cleanupAbandonedUpload(url);
             return;
@@ -134,6 +150,60 @@ export function useLiveSessionItems({
     [appendItem, canCreateLiveItems, cleanupAbandonedUpload, isCurrentSession, sessionId],
   );
 
+  const handleAddItemFromUrl = useCallback(
+    async ({
+      label,
+      imageUrl,
+      sourceUrl,
+      sourceNote,
+      sourceStartSec,
+      sourceEndSec,
+    }: CreateLiveItemPayload) => {
+      const requestSessionId = sessionId;
+      if (!canCreateLiveItems(requestSessionId)) {
+        return { created: false, error: "Item creation is currently unavailable." };
+      }
+
+      setCreatingItemCount((count) => count + 1);
+      setItemMutationError(null);
+
+      const createItem = async (): Promise<AddItemFromUrlResult> => {
+        try {
+          const payload: CreateLiveItemPayload = {
+            label: normalizeItemLabel(label) || "Link item",
+            imageUrl,
+            sourceUrl: sourceUrl ?? undefined,
+            sourceNote: sourceNote ?? undefined,
+            sourceStartSec: sourceStartSec ?? undefined,
+            sourceEndSec: sourceEndSec ?? undefined,
+          };
+          const item = await apiPost<Item>(`/api/sessions/${sessionId}/items`, {
+            ...payload,
+          });
+          if (!isCurrentSession(requestSessionId)) return { created: false, error: null };
+          appendItem(item);
+          return { created: true, error: null };
+        } catch (err) {
+          if (!isCurrentSession(requestSessionId)) return { created: false, error: null };
+          const errorMessage = getErrorMessage(err, "Failed to add item");
+          setItemMutationError(errorMessage);
+          return { created: false, error: errorMessage };
+        } finally {
+          if (isCurrentSession(requestSessionId)) {
+            setCreatingItemCount((count) => Math.max(0, count - 1));
+          }
+        }
+      };
+
+      return await new Promise<AddItemFromUrlResult>((resolve) => {
+        createItemQueueRef.current = createItemQueueRef.current
+          .catch(() => undefined)
+          .then(async () => resolve(await createItem()));
+      });
+    },
+    [appendItem, canCreateLiveItems, isCurrentSession, sessionId],
+  );
+
   const handleSaveLiveItemLabel = useCallback(
     async (itemId: string, label: string) => {
       const requestSessionId = sessionId;
@@ -142,7 +212,9 @@ export function useLiveSessionItems({
       setSavingItemId(itemId);
       setItemMutationError(null);
       try {
-        const item = await apiPatch<Item>(`/api/sessions/${sessionId}/items/${itemId}`, { label });
+        const item = await apiPatch<Item>(`/api/sessions/${sessionId}/items/${itemId}`, {
+          label: normalizeItemLabel(label),
+        });
         if (!isCurrentSession(requestSessionId)) return false;
         updateItem(item);
         return true;
@@ -231,6 +303,7 @@ export function useLiveSessionItems({
     hasPendingItemMutations,
     handleUploadStateChange,
     handleUploadedImage,
+    handleAddItemFromUrl,
     handleSaveLiveItemLabel,
     handleSaveLiveItemSource,
     handleRemoveLiveItem,

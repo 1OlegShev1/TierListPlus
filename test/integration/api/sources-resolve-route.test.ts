@@ -58,10 +58,13 @@ describe("sources resolve route", () => {
     const resolvedPayload = {
       sourceUrl: "https://example.com",
       provider: null,
+      youtubeContentKind: null,
       kind: "GENERIC",
       label: "External link",
       embedUrl: null,
       embedType: null,
+      thumbnailUrl: null,
+      title: null,
       note: "No inline preview for this link type yet.",
       resolvedBy: "none",
     };

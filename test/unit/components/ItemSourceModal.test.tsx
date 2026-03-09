@@ -139,6 +139,110 @@ describe("ItemSourceModal", () => {
     });
   });
 
+  it("allows editing item label in create-from-url mode", async () => {
+    const onSave = vi.fn().mockResolvedValue(true);
+    const onClose = vi.fn();
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        provider: null,
+        youtubeContentKind: null,
+        kind: "GENERIC",
+        label: "External link",
+        embedUrl: null,
+        embedType: null,
+        thumbnailUrl: null,
+        title: "Resolved title",
+        note: null,
+      }),
+    } as Response);
+
+    try {
+      render(
+        <ItemSourceModal
+          open
+          mode="CREATE_FROM_URL"
+          editable
+          itemLabel="New item"
+          onClose={onClose}
+          onSave={onSave}
+        />,
+      );
+
+      fireEvent.change(screen.getByLabelText("Item URL"), { target: { value: GENERIC_URL } });
+      await waitFor(() => {
+        expect(
+          (screen.getByRole("button", { name: "Add item" }) as HTMLButtonElement).disabled,
+        ).toBe(false);
+      });
+      fireEvent.change(screen.getByLabelText("Item label"), { target: { value: "Custom label" } });
+      const addButton = screen.getByRole("button", { name: "Add item" });
+
+      fireEvent.click(addButton);
+
+      await waitFor(() => {
+        expect(onSave).toHaveBeenCalledWith(
+          expect.objectContaining({
+            sourceUrl: GENERIC_URL,
+            itemLabel: "Custom label",
+          }),
+        );
+      });
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it("disables add while create-from-url preview is resolving", async () => {
+    const onSave = vi.fn().mockResolvedValue(true);
+    const deferred = createDeferred<Response>();
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = vi.fn().mockReturnValue(deferred.promise);
+
+    try {
+      render(
+        <ItemSourceModal
+          open
+          mode="CREATE_FROM_URL"
+          editable
+          itemLabel="New item"
+          onClose={vi.fn()}
+          onSave={onSave}
+        />,
+      );
+
+      fireEvent.change(screen.getByLabelText("Item URL"), { target: { value: GENERIC_URL } });
+      await waitFor(() => {
+        expect(screen.getByRole("button", { name: "Resolving..." })).toBeTruthy();
+      });
+      expect(
+        (screen.getByRole("button", { name: "Resolving..." }) as HTMLButtonElement).disabled,
+      ).toBe(true);
+
+      deferred.resolve({
+        ok: true,
+        json: async () => ({
+          provider: null,
+          youtubeContentKind: null,
+          kind: "GENERIC",
+          label: "External link",
+          embedUrl: null,
+          embedType: null,
+          thumbnailUrl: null,
+          title: "Resolved title",
+          note: null,
+        }),
+      } as Response);
+
+      await waitFor(() => {
+        expect(screen.getByRole("button", { name: "Add item" })).toBeTruthy();
+      });
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
   it("renders Vimeo embed preview in read-only mode", () => {
     render(
       <ItemSourceModal
