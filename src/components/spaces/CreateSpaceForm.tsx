@@ -36,9 +36,9 @@ export function CreateSpaceForm() {
   };
 
   return (
-    <div className="rounded-xl border border-neutral-800 bg-neutral-900 p-4 sm:p-5">
-      <h2 className="text-base font-semibold text-neutral-100">Create a Space</h2>
-      <p className="mt-1 text-sm text-neutral-500">
+    <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-4 sm:p-5">
+      <h2 className="text-base font-semibold text-[var(--fg-primary)]">Create a Space</h2>
+      <p className="mt-1 text-sm text-[var(--fg-subtle)]">
         Private for friend groups, open for communities.
       </p>
       <div className="mt-4 grid gap-2.5 sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-center">
@@ -48,13 +48,19 @@ export function CreateSpaceForm() {
           value={name}
           onChange={(event) => setName(event.target.value)}
         />
-        <fieldset className="inline-flex h-11 rounded-lg border border-neutral-700 bg-neutral-950/60 p-1">
+        <fieldset className="relative inline-grid h-11 min-w-[10.5rem] grid-cols-2 rounded-lg border border-[var(--border-default)] bg-[var(--bg-soft-contrast)] p-1">
           <legend className="sr-only">Space visibility</legend>
+          <span
+            aria-hidden="true"
+            className={`pointer-events-none absolute bottom-1 left-1 top-1 w-[calc(50%-0.25rem)] rounded-md border border-[var(--border-default)] bg-[var(--bg-surface)] shadow-sm transition-transform duration-200 ${
+              visibility === "OPEN" ? "translate-x-full" : "translate-x-0"
+            }`}
+          />
           <label
-            className={`flex min-w-[5.25rem] cursor-pointer items-center justify-center rounded-md px-3 text-sm font-medium transition-colors ${
+            className={`relative z-10 flex cursor-pointer items-center justify-center rounded-md px-3 text-sm font-medium transition-colors ${
               visibility === "PRIVATE"
-                ? "bg-amber-500/15 text-amber-300"
-                : "text-neutral-300 hover:bg-neutral-800 hover:text-neutral-100"
+                ? "text-[var(--fg-primary)]"
+                : "text-[var(--fg-muted)] hover:text-[var(--fg-secondary)]"
             }`}
           >
             <input
@@ -68,10 +74,10 @@ export function CreateSpaceForm() {
             Private
           </label>
           <label
-            className={`flex min-w-[5.25rem] cursor-pointer items-center justify-center rounded-md px-3 text-sm font-medium transition-colors ${
+            className={`relative z-10 flex cursor-pointer items-center justify-center rounded-md px-3 text-sm font-medium transition-colors ${
               visibility === "OPEN"
-                ? "bg-amber-500/15 text-amber-300"
-                : "text-neutral-300 hover:bg-neutral-800 hover:text-neutral-100"
+                ? "text-[var(--fg-primary)]"
+                : "text-[var(--fg-muted)] hover:text-[var(--fg-secondary)]"
             }`}
           >
             <input

@@ -177,7 +177,7 @@ export function BracketModal({ items, onComplete, onCancel }: BracketModalProps)
   const itemB = currentMatchup?.itemBId ? itemMap.get(currentMatchup.itemBId) : null;
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/70 p-3 backdrop-blur-sm sm:p-6">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-[var(--bg-overlay)] p-3 backdrop-blur-sm sm:p-6">
       <div className="flex min-h-[calc(100dvh-1.5rem)] items-center justify-center sm:min-h-[calc(100dvh-3rem)]">
         <div
           ref={dialogRef}
@@ -185,19 +185,19 @@ export function BracketModal({ items, onComplete, onCancel }: BracketModalProps)
           role="dialog"
           aria-modal="true"
           aria-labelledby="bracket-modal-title"
-          className="mx-auto flex max-h-[calc(100dvh-1.5rem)] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-neutral-800 bg-neutral-950 sm:max-h-[calc(100dvh-3rem)]"
+          className="mx-auto flex max-h-[calc(100dvh-1.5rem)] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-elevated)] sm:max-h-[calc(100dvh-3rem)]"
         >
           <div className="px-4 pt-4 sm:px-6 sm:pt-6">
             <div className="mb-4 text-center sm:mb-6">
               <h2 id="bracket-modal-title" className="text-lg font-bold">
                 Head-to-Head Mode
               </h2>
-              <p className="mt-1 text-xs text-neutral-500">
+              <p className="mt-1 text-xs text-[var(--fg-subtle)]">
                 {isComplete
                   ? "Head-to-head run complete!"
                   : `Round ${currentRound} of ${bracketState.rounds} · ${decidedManualVotes}/${totalManualVotes} face-offs done`}
               </p>
-              <p className="mt-2 text-[11px] text-neutral-500">
+              <p className="mt-2 text-[11px] text-[var(--fg-subtle)]">
                 This reshuffles your current placements here. You can still tweak them before you
                 lock them in.
               </p>
@@ -211,7 +211,7 @@ export function BracketModal({ items, onComplete, onCancel }: BracketModalProps)
 
             {isComplete && (
               <div className="space-y-2">
-                <p className="text-center text-sm text-neutral-400">Your quick ranking:</p>
+                <p className="text-center text-sm text-[var(--fg-muted)]">Your quick ranking:</p>
                 <ol className="space-y-1">
                   {ranked.map((id, i) => {
                     const item = itemMap.get(id);
@@ -219,9 +219,9 @@ export function BracketModal({ items, onComplete, onCancel }: BracketModalProps)
                     return (
                       <li
                         key={id}
-                        className="flex items-center gap-3 rounded-lg bg-neutral-900 px-3 py-2"
+                        className="flex items-center gap-3 rounded-lg bg-[var(--bg-surface)] px-3 py-2"
                       >
-                        <span className="w-6 text-right text-sm font-bold text-amber-400">
+                        <span className="w-6 text-right text-sm font-bold text-[var(--accent-primary)]">
                           {i + 1}
                         </span>
                         <ItemArtwork
@@ -240,11 +240,11 @@ export function BracketModal({ items, onComplete, onCancel }: BracketModalProps)
             )}
           </div>
 
-          <div className="border-t border-neutral-800 bg-neutral-950/95 px-4 py-3 sm:px-6 sm:py-4">
+          <div className="border-t border-[var(--border-subtle)] bg-[var(--bg-elevated)] px-4 py-3 sm:px-6 sm:py-4">
             {/* Progress bar */}
-            <div className="h-1 overflow-hidden rounded-full bg-neutral-800">
+            <div className="h-1 overflow-hidden rounded-full bg-[var(--bg-surface-hover)]">
               <div
-                className="h-1 rounded-full bg-amber-500 transition-all"
+                className="h-1 rounded-full bg-[var(--action-primary-bg)] transition-all"
                 style={{
                   width: `${totalManualVotes > 0 ? Math.min(100, (decidedManualVotes / totalManualVotes) * 100) : 0}%`,
                 }}
@@ -256,7 +256,7 @@ export function BracketModal({ items, onComplete, onCancel }: BracketModalProps)
               <Button
                 variant="secondary"
                 onClick={onCancel}
-                className="px-4 text-sm text-neutral-400"
+                className="px-4 text-sm text-[var(--fg-muted)]"
               >
                 Cancel
               </Button>

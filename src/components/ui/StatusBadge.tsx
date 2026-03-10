@@ -1,7 +1,7 @@
 const statusStyles: Record<string, string> = {
-  OPEN: "bg-green-500/20 text-green-400",
-  CLOSED: "bg-red-500/20 text-red-400",
-  ARCHIVED: "bg-neutral-500/20 text-neutral-400",
+  OPEN: "bg-[var(--state-success-bg)] text-[var(--state-success-fg)]",
+  CLOSED: "bg-[var(--state-danger-bg)] text-[var(--state-danger-fg)]",
+  ARCHIVED: "bg-[var(--state-muted-bg)] text-[var(--state-muted-fg)]",
 };
 
 const statusLabels: Record<string, string> = {

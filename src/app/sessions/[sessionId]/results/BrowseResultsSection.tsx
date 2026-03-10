@@ -62,8 +62,8 @@ export function BrowseResultsSection({
               onClick={onToggleHighlightDifferences}
               className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
                 highlightDifferences
-                  ? "border-amber-500/80 bg-amber-500/15 text-amber-200"
-                  : "border-neutral-700 text-neutral-300 hover:border-neutral-500 hover:text-neutral-100"
+                  ? "border-[var(--accent-primary)]/80 bg-[var(--accent-primary)]/15 text-[var(--accent-primary-hover)]"
+                  : "border-[var(--border-default)] text-[var(--fg-secondary)] hover:border-[var(--border-strong)] hover:text-[var(--fg-primary)]"
               }`}
             >
               Highlight differences {highlightDifferences ? "On" : "Off"}

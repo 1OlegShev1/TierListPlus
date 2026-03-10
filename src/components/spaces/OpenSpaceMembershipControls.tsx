@@ -59,7 +59,12 @@ export function OpenSpaceMembershipControls({
           {busy ? "Joining..." : "Join Space"}
         </Button>
       ) : !isOwner ? (
-        <Button variant="secondary" onClick={leave} disabled={busy}>
+        <Button
+          variant="secondary"
+          onClick={leave}
+          disabled={busy}
+          className="hover:border-[var(--border-strong)] hover:text-[var(--fg-primary)]"
+        >
           {busy ? "Leaving...?" : "Leave Space"}
         </Button>
       ) : null}

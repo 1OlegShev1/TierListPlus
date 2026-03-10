@@ -136,16 +136,18 @@ export function SpaceInvitePanel({ spaceId }: { spaceId: string }) {
 
   return (
     <>
-      <div className="rounded-xl border border-neutral-800 bg-neutral-900 p-4">
-        <h3 className="text-sm font-semibold text-neutral-100">Private Invite</h3>
-        <p className="mt-1 text-xs text-neutral-500">Single reusable code with 7-day expiry.</p>
+      <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-4">
+        <h3 className="text-sm font-semibold text-[var(--fg-primary)]">Private Invite</h3>
+        <p className="mt-1 text-xs text-[var(--fg-subtle)]">
+          Single reusable code with 7-day expiry.
+        </p>
         {invite && (
-          <p className="mt-1 text-xs text-neutral-500">
+          <p className="mt-1 text-xs text-[var(--fg-subtle)]">
             This is the active invite. Anyone with it can join until{" "}
             {new Date(invite.expiresAt).toLocaleDateString()}.
           </p>
         )}
-        <p className="mt-1 text-xs text-neutral-500">
+        <p className="mt-1 text-xs text-[var(--fg-subtle)]">
           Rotate invite to immediately disable previously shared links.
         </p>
 
@@ -173,11 +175,13 @@ export function SpaceInvitePanel({ spaceId }: { spaceId: string }) {
         </div>
 
         {invite ? (
-          <p className="mt-3 font-mono text-xs tracking-[0.18em] text-amber-300">{invite.code}</p>
+          <p className="mt-3 font-mono text-xs tracking-[0.18em] text-[var(--accent-primary)]">
+            {invite.code}
+          </p>
         ) : loading ? (
-          <p className="mt-3 text-xs text-neutral-500">Loading invite code...</p>
+          <p className="mt-3 text-xs text-[var(--fg-subtle)]">Loading invite code...</p>
         ) : (
-          <p className="mt-3 text-xs text-neutral-500">No active invite code yet.</p>
+          <p className="mt-3 text-xs text-[var(--fg-subtle)]">No active invite code yet.</p>
         )}
 
         {error && (
@@ -186,7 +190,7 @@ export function SpaceInvitePanel({ spaceId }: { spaceId: string }) {
           </div>
         )}
         {notice && (
-          <div className="mt-3 rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-200">
+          <div className="mt-3 rounded-lg border border-[var(--state-success-fg)] bg-[var(--state-success-bg)] px-3 py-2 text-xs text-[var(--state-success-fg)]">
             {notice}
           </div>
         )}
@@ -195,17 +199,21 @@ export function SpaceInvitePanel({ spaceId }: { spaceId: string }) {
       <dialog
         ref={dialogRef}
         onClose={() => setOpen(false)}
-        className="fixed inset-0 m-auto w-[min(calc(100vw-2rem),42rem)] rounded-xl border border-neutral-700 bg-neutral-900 p-5 text-left text-white shadow-2xl shadow-black/60 backdrop:bg-black/70 focus:outline-none"
+        className="fixed inset-0 m-auto w-[min(calc(100vw-2rem),42rem)] rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface)] p-5 text-left text-[var(--fg-primary)] shadow-2xl shadow-black/60 backdrop:bg-[var(--bg-overlay)] focus:outline-none"
       >
         <div className="space-y-5">
-          <div className="rounded-xl border border-amber-500/20 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent p-4">
-            <p className="text-xs uppercase tracking-wider text-amber-200">Invite People</p>
-            <h3 className="mt-1 text-xl font-semibold text-neutral-100">Share this space</h3>
-            <p className="mt-1 text-sm text-neutral-400">
+          <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-soft-contrast)] p-4">
+            <p className="text-xs uppercase tracking-wider text-[var(--accent-primary)]">
+              Invite People
+            </p>
+            <h3 className="mt-1 text-xl font-semibold text-[var(--fg-primary)]">
+              Share this space
+            </h3>
+            <p className="mt-1 text-sm text-[var(--fg-muted)]">
               Anyone with this code can join while the invite is active.
             </p>
             {invite ? (
-              <p className="mt-1 text-xs text-neutral-500">
+              <p className="mt-1 text-xs text-[var(--fg-subtle)]">
                 Active until {new Date(invite.expiresAt).toLocaleDateString()}. Rotate invite to
                 revoke old links.
               </p>
@@ -213,17 +221,19 @@ export function SpaceInvitePanel({ spaceId }: { spaceId: string }) {
           </div>
 
           <div className="space-y-4">
-            <div className="rounded-lg border border-neutral-700 bg-black/30 p-3">
-              <p className="text-xs uppercase tracking-wider text-neutral-500">Invite code</p>
-              <p className="mt-1 font-mono text-lg tracking-widest text-amber-300">
+            <div className="rounded-lg border border-[var(--border-default)] bg-[var(--bg-soft-contrast)] p-3">
+              <p className="text-xs uppercase tracking-wider text-[var(--fg-subtle)]">
+                Invite code
+              </p>
+              <p className="mt-1 font-mono text-lg tracking-widest text-[var(--accent-primary)]">
                 {invite?.code ?? "No active code"}
               </p>
             </div>
 
             <div className="grid gap-4 sm:grid-cols-[minmax(0,16rem)_minmax(0,1fr)] sm:items-start">
-              <div className="rounded-lg border border-neutral-700 bg-white p-3 shadow-lg shadow-black/30">
+              <div className="rounded-lg border border-[var(--border-default)] bg-[var(--bg-elevated)] p-3 shadow-lg shadow-black/30">
                 {qrLoading ? (
-                  <p className="text-sm text-neutral-700">Preparing QR...</p>
+                  <p className="text-sm text-[var(--fg-muted)]">Preparing QR...</p>
                 ) : qrCodeDataUrl ? (
                   <img
                     src={qrCodeDataUrl}
@@ -231,7 +241,7 @@ export function SpaceInvitePanel({ spaceId }: { spaceId: string }) {
                     className="w-full rounded"
                   />
                 ) : (
-                  <p className="text-sm text-neutral-700">QR code unavailable.</p>
+                  <p className="text-sm text-[var(--fg-muted)]">QR code unavailable.</p>
                 )}
               </div>
 
@@ -244,7 +254,7 @@ export function SpaceInvitePanel({ spaceId }: { spaceId: string }) {
                     {linkCopied ? "Link copied" : "Copy full link"}
                   </Button>
                 </div>
-                <p className="text-xs text-neutral-500">
+                <p className="text-xs text-[var(--fg-subtle)]">
                   Share the link directly, or let people scan the QR code on mobile. Anyone with an
                   active code can join this private space.
                 </p>

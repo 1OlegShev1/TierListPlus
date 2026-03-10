@@ -83,7 +83,7 @@ export default async function SpaceImportTemplatePage({
             return (
               <div
                 key={list.id}
-                className="flex flex-col gap-3 rounded-xl border border-neutral-800 bg-neutral-950/30 p-3 sm:flex-row sm:items-center"
+                className="flex flex-col gap-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-soft-contrast)] p-3 sm:flex-row sm:items-center"
               >
                 <Link href={`/templates/${list.id}`} className="min-w-0 flex-1">
                   <ListPreviewCard
@@ -92,7 +92,7 @@ export default async function SpaceImportTemplatePage({
                     secondaryLabel={secondaryLabel}
                     items={list.items}
                     chips={chips}
-                    className="transition-colors hover:border-neutral-600"
+                    className="transition-colors hover:border-[var(--border-strong)]"
                   />
                 </Link>
                 <div className="sm:shrink-0">

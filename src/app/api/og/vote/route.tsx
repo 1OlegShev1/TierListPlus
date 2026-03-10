@@ -25,7 +25,7 @@ export function GET(request: NextRequest) {
         justifyContent: "space-between",
         background:
           "linear-gradient(135deg, rgba(10,10,10,1) 0%, rgba(24,24,24,1) 50%, rgba(46,32,18,1) 100%)",
-        color: "#f5f5f5",
+        color: "rgb(245 245 245)",
         padding: "64px",
         fontFamily: "Arial, sans-serif",
       }}
@@ -36,7 +36,7 @@ export function GET(request: NextRequest) {
           alignItems: "center",
           borderRadius: "999px",
           border: "2px solid rgba(245, 158, 11, 0.45)",
-          color: "#f59e0b",
+          color: "rgb(245 158 11)",
           padding: "10px 18px",
           fontSize: "26px",
           fontWeight: 700,
@@ -78,7 +78,7 @@ export function GET(request: NextRequest) {
         }}
       >
         <div>Rank together</div>
-        <div style={{ color: "#f59e0b", fontWeight: 700 }}>tierlistplus</div>
+        <div style={{ color: "rgb(245 158 11)", fontWeight: 700 }}>tierlistplus</div>
       </div>
     </div>,
     {

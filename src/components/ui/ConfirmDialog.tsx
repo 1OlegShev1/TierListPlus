@@ -48,10 +48,10 @@ export function ConfirmDialog({
     <dialog
       ref={dialogRef}
       onClose={onCancel}
-      className="fixed inset-0 m-auto w-[min(calc(100vw-2rem),32rem)] rounded-xl border border-neutral-700 bg-neutral-900 p-6 text-left text-white shadow-2xl shadow-black/60 backdrop:bg-black/70 focus:outline-none"
+      className="fixed inset-0 m-auto w-[min(calc(100vw-2rem),32rem)] rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface)] p-6 text-left text-[var(--fg-primary)] shadow-2xl shadow-black/60 backdrop:bg-[var(--bg-overlay)] focus:outline-none"
     >
       <h2 className="mb-2 text-lg font-bold">{title}</h2>
-      <p className="mb-6 text-sm text-neutral-400">{description}</p>
+      <p className="mb-6 text-sm text-[var(--fg-muted)]">{description}</p>
       <div className="flex justify-end gap-3">
         <Button variant="secondary" onClick={onCancel} disabled={loading}>
           Cancel
@@ -60,8 +60,10 @@ export function ConfirmDialog({
           onClick={onConfirm}
           disabled={loading}
           className={cn(
-            confirmVariant === "danger" && "bg-red-600 hover:bg-red-500",
-            confirmVariant === "primary" && "bg-amber-500 text-black hover:bg-amber-400",
+            confirmVariant === "danger" &&
+              "bg-[var(--action-danger-bg)] text-[var(--action-danger-fg)] hover:bg-[var(--action-danger-bg-hover)]",
+            confirmVariant === "primary" &&
+              "bg-[var(--action-primary-bg)] text-[var(--action-primary-fg)] hover:bg-[var(--action-primary-bg-hover)]",
           )}
         >
           {confirmButtonLabel}

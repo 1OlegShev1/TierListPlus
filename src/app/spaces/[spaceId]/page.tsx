@@ -160,7 +160,7 @@ export default async function SpaceDetailPage({
   const totalLists = counts?._count.templates ?? 0;
   const showVotesSeeAll = !votesExpanded && totalVotes > SPACE_LANDING_SECTION_LIMIT;
   const showListsSeeAll = !listsExpanded && totalLists > SPACE_LANDING_SECTION_LIMIT;
-  const sectionSecondaryActionClassName = `${buttonVariants.secondary} !h-9 !min-w-[7rem] !self-start !px-3 !py-0 !text-sm !font-medium`;
+  const sectionSecondaryActionClassName = `${buttonVariants.secondary} !h-9 !min-w-[7rem] !self-start !px-3 !py-0 !text-sm !font-medium hover:border-[var(--border-strong)] hover:text-[var(--fg-primary)]`;
   const sectionPrimaryActionClassName = `${buttonVariants.primary} !h-9 !min-w-[7rem] !self-start !px-3 !py-0 !text-sm !font-medium`;
 
   return (
@@ -173,7 +173,7 @@ export default async function SpaceDetailPage({
         <PageHeader
           title={
             <div className="flex items-center gap-3">
-              <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-neutral-700 bg-neutral-950">
+              <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-[var(--border-default)] bg-[var(--bg-elevated)]">
                 {space.logoUrl ? (
                   <img
                     src={space.logoUrl}
@@ -181,16 +181,20 @@ export default async function SpaceDetailPage({
                     className="h-full w-full object-cover"
                   />
                 ) : (
-                  <span className="text-base font-semibold text-neutral-400">{nameInitial}</span>
+                  <span className="text-base font-semibold text-[var(--fg-muted)]">
+                    {nameInitial}
+                  </span>
                 )}
               </div>
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
-                  <p className="truncate text-2xl font-bold text-neutral-100">{space.name}</p>
+                  <p className="truncate text-2xl font-bold text-[var(--fg-primary)]">
+                    {space.name}
+                  </p>
                   {space.isOwner ? (
                     <Link
                       href={spaceHref(spaceId, "settings")}
-                      className="inline-flex h-10 w-10 items-center justify-center text-neutral-500 transition-colors hover:text-neutral-200"
+                      className="inline-flex h-10 w-10 items-center justify-center text-[var(--fg-subtle)] transition-colors hover:text-[var(--fg-secondary)]"
                       aria-label="Open space settings"
                     >
                       <GearIcon className="h-6 w-6" />
@@ -207,8 +211,10 @@ export default async function SpaceDetailPage({
           }
           subtitle={
             <div className="space-y-1">
-              {space.description ? <p className="text-neutral-400">{space.description}</p> : null}
-              <p className="text-xs text-neutral-500">
+              {space.description ? (
+                <p className="text-[var(--fg-muted)]">{space.description}</p>
+              ) : null}
+              <p className="text-xs text-[var(--fg-subtle)]">
                 {counts?._count.members ?? 0} members · {totalLists} lists ·{" "}
                 {counts?._count.sessions ?? 0} votes
               </p>
@@ -291,7 +297,7 @@ export default async function SpaceDetailPage({
                 return (
                   <div
                     key={vote.id}
-                    className="card-hover-lift flex flex-col gap-3 rounded-xl border border-neutral-800 bg-neutral-900 p-4 transition-colors hover:border-neutral-600 sm:flex-row sm:items-center sm:gap-5"
+                    className="card-hover-lift flex flex-col gap-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-4 transition-colors hover:border-[var(--border-strong)] sm:flex-row sm:items-center sm:gap-5"
                   >
                     <Link href={`/sessions/${vote.id}`} className="min-w-0 flex-1">
                       <VotePreviewSummary
@@ -348,7 +354,7 @@ export default async function SpaceDetailPage({
                   More
                 </Link>
               ) : null}
-              <p className="text-sm text-neutral-500">{`Page ${votesPage}`}</p>
+              <p className="text-sm text-[var(--fg-subtle)]">{`Page ${votesPage}`}</p>
             </div>
           ) : null}
         </section>
@@ -425,7 +431,7 @@ export default async function SpaceDetailPage({
                       secondaryLabel={secondaryLabel}
                       items={list.items}
                       chips={chips}
-                      className="transition-colors hover:border-neutral-600"
+                      className="transition-colors hover:border-[var(--border-strong)]"
                     />
                   </Link>
                 );
@@ -456,26 +462,26 @@ export default async function SpaceDetailPage({
                   More
                 </Link>
               ) : null}
-              <p className="text-sm text-neutral-500">{`Page ${listsPage}`}</p>
+              <p className="text-sm text-[var(--fg-subtle)]">{`Page ${listsPage}`}</p>
             </div>
           ) : null}
         </section>
 
         {space.isOwner ? (
-          <details className="group rounded-xl border border-neutral-800 bg-neutral-900/30 p-4 transition-colors hover:border-neutral-700 hover:bg-neutral-900/40">
-            <summary className="flex w-full cursor-pointer list-none items-center justify-between gap-3 rounded-lg p-2 text-left text-sm font-medium text-neutral-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/60 [&::-webkit-details-marker]:hidden">
+          <details className="group rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface)] p-4 transition-colors hover:border-[var(--border-strong)]">
+            <summary className="flex w-full cursor-pointer list-none items-center justify-between gap-3 rounded-lg p-2 text-left text-sm font-medium text-[var(--fg-secondary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] [&::-webkit-details-marker]:hidden">
               <span>Owner access controls</span>
               <span aria-hidden="true" className="inline-flex shrink-0 items-center justify-center">
-                <ChevronDownIcon className="h-7 w-7 text-neutral-500 transition-all group-hover:text-neutral-200 group-open:rotate-180" />
+                <ChevronDownIcon className="h-7 w-7 text-[var(--fg-subtle)] transition-all group-hover:text-[var(--fg-secondary)] group-open:rotate-180" />
               </span>
             </summary>
             <div className="mt-4 space-y-4">
               {space.visibility === "PRIVATE" ? <SpaceInvitePanel spaceId={space.id} /> : null}
-              <div className="rounded-xl border border-neutral-800 bg-neutral-900">
+              <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)]">
                 {members.length === 0 ? (
-                  <div className="px-4 py-5 text-sm text-neutral-500">No members found.</div>
+                  <div className="px-4 py-5 text-sm text-[var(--fg-subtle)]">No members found.</div>
                 ) : (
-                  <div className="divide-y divide-neutral-800">
+                  <div className="divide-y divide-[var(--border-subtle)]">
                     {members.map((member, index) => {
                       const canRemove =
                         member.userId !== space.creatorId && member.userId !== userId;
@@ -498,14 +504,14 @@ export default async function SpaceDetailPage({
                           className="flex items-center justify-between gap-3 px-4 py-3"
                         >
                           <div className="min-w-0">
-                            <p className="truncate text-sm font-medium text-neutral-200">
+                            <p className="truncate text-sm font-medium text-[var(--fg-secondary)]">
                               {displayName}
                             </p>
-                            <p className="text-xs uppercase tracking-[0.12em] text-neutral-500">
+                            <p className="text-xs uppercase tracking-[0.12em] text-[var(--fg-subtle)]">
                               {member.role} · joined {joinedOn}
                             </p>
                             {aliasNicknames.length > 0 ? (
-                              <p className="mt-0.5 truncate text-xs text-neutral-500">
+                              <p className="mt-0.5 truncate text-xs text-[var(--fg-subtle)]">
                                 Also used: {aliasNicknames.slice(0, 3).join(", ")}
                               </p>
                             ) : null}
@@ -525,15 +531,15 @@ export default async function SpaceDetailPage({
       </div>
 
       {space.isOwner && panel === "settings" ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-3 backdrop-blur-sm sm:p-6">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--bg-overlay)] p-3 backdrop-blur-sm sm:p-6">
           <Link
             href={spaceHref(spaceId)}
             aria-label="Close settings"
             className="absolute inset-0 z-0"
           />
-          <div className="relative z-10 max-h-[calc(100dvh-2rem)] w-full max-w-3xl overflow-y-auto rounded-xl border border-neutral-700 bg-neutral-900 p-4 shadow-2xl shadow-black/60 sm:p-6">
+          <div className="relative z-10 max-h-[calc(100dvh-2rem)] w-full max-w-3xl overflow-y-auto rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface)] p-4 shadow-2xl shadow-black/60 sm:p-6">
             <div className="mb-4 flex items-center justify-between gap-3">
-              <h2 className="text-lg font-semibold text-neutral-100">Space settings</h2>
+              <h2 className="text-lg font-semibold text-[var(--fg-primary)]">Space settings</h2>
             </div>
             <SpaceSettingsPanel
               spaceId={space.id}
@@ -545,7 +551,7 @@ export default async function SpaceDetailPage({
               showHeader={false}
               defaultMode="edit"
               closeHref={spaceHref(space.id)}
-              className="border-neutral-700 bg-neutral-950"
+              className="border-[var(--border-default)] bg-[var(--bg-elevated)]"
             />
           </div>
         </div>

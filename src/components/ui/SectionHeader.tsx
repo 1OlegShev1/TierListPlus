@@ -17,8 +17,8 @@ export function SectionHeader({
   return (
     <div className="mb-4 flex items-start justify-between gap-3">
       <div className="min-w-0 flex-1">
-        <h2 className="text-xl font-semibold text-neutral-200 sm:text-2xl">{title}</h2>
-        {subtitle && <p className="mt-1 text-sm text-neutral-500 sm:text-base">{subtitle}</p>}
+        <h2 className="text-xl font-semibold text-[var(--fg-primary)] sm:text-2xl">{title}</h2>
+        {subtitle && <p className="mt-1 text-sm text-[var(--fg-muted)] sm:text-base">{subtitle}</p>}
       </div>
       {actions ??
         (actionHref && actionLabel ? (

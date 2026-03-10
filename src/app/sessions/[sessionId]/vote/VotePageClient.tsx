@@ -14,7 +14,7 @@ import { apiPatch, getErrorMessage } from "@/lib/api-client";
 import type { SessionData } from "@/types";
 
 const resultsLinkClassName =
-  "inline-flex h-10 items-center justify-center rounded-lg border border-amber-500/60 bg-amber-500/10 px-4 text-sm font-medium text-amber-300 transition-colors hover:border-amber-400 hover:bg-amber-500/15 hover:text-amber-200";
+  "inline-flex h-10 items-center justify-center rounded-lg border border-[var(--accent-primary)]/60 bg-[var(--accent-primary)]/10 px-4 text-sm font-medium text-[var(--accent-primary-hover)] transition-colors hover:border-[var(--accent-primary-hover)] hover:bg-[var(--accent-primary)]/15 hover:text-[var(--fg-primary)]";
 const statusBadgeBaseClassName =
   "inline-flex min-h-[38px] items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium";
 
@@ -68,11 +68,11 @@ export function VotePageClient({
 
   const joinStatusLabel = isLocked ? "Joins locked" : "Joins open";
   const joinStatusToneClassName = isLocked
-    ? "border-orange-500/40 bg-orange-500/10 text-orange-200"
-    : "border-emerald-500/40 bg-emerald-500/10 text-emerald-200";
+    ? "border-[var(--border-default)] bg-[var(--bg-soft-contrast)] text-[var(--fg-secondary)]"
+    : "border-[var(--state-success-fg)]/45 bg-[var(--state-success-bg)] text-[var(--state-success-fg)]";
   const joinStatusHoverClassName = isLocked
-    ? "hover:border-orange-400/70 hover:bg-orange-500/15"
-    : "hover:border-emerald-400/70 hover:bg-emerald-500/15";
+    ? "hover:border-[var(--border-strong)] hover:bg-[var(--bg-surface-hover)]"
+    : "hover:border-[var(--state-success-fg)]/70 hover:bg-[var(--state-success-bg)]";
   const JoinStatusIcon = isLocked ? LockClosedIcon : LockOpenIcon;
   const backHref = session.spaceId ? `/spaces/${session.spaceId}#votes` : "/sessions";
   const backLabel = session.spaceId ? "Back to Space Votes" : "Back to Votes";
@@ -141,7 +141,7 @@ export function VotePageClient({
               />
             )}
           </div>
-          {lockError && <p className="mt-1 text-xs text-red-400">{lockError}</p>}
+          {lockError && <p className="mt-1 text-xs text-[var(--state-danger-fg)]">{lockError}</p>}
         </div>
       </div>
 

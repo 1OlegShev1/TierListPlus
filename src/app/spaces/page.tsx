@@ -109,7 +109,7 @@ export default async function SpacesPage({
           subtitle="Open communities you can browse, join, and vote in."
         />
         {discoverOpenSpaces.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-neutral-800 bg-neutral-950/40 px-5 py-4 text-sm text-neutral-500">
+          <div className="rounded-2xl border border-dashed border-[var(--border-subtle)] bg-[var(--bg-soft-contrast)] px-5 py-4 text-sm text-[var(--fg-subtle)]">
             No open spaces to discover right now.
           </div>
         ) : (
@@ -169,12 +169,12 @@ function SpaceCard({
   return (
     <Link
       href={`/spaces/${id}`}
-      className={`card-hover-lift relative overflow-hidden rounded-xl border border-neutral-800 bg-neutral-900 p-4 transition-colors ${accent.borderClassName}`}
+      className={`card-hover-lift relative overflow-hidden rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-4 transition-colors ${accent.borderClassName}`}
     >
       <div className={`pointer-events-none absolute inset-0 opacity-80 ${accent.glowClassName}`} />
       <div className="relative">
         <div className="flex items-start gap-3">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-neutral-700 bg-neutral-950">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-[var(--border-default)] bg-[var(--bg-elevated)]">
             {logoUrl ? (
               <img
                 src={logoUrl}
@@ -184,11 +184,11 @@ function SpaceCard({
                 decoding="async"
               />
             ) : (
-              <span className="text-sm font-semibold text-neutral-400">{nameInitial}</span>
+              <span className="text-sm font-semibold text-[var(--fg-muted)]">{nameInitial}</span>
             )}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-lg font-semibold text-neutral-100">{name}</p>
+            <p className="truncate text-lg font-semibold text-[var(--fg-primary)]">{name}</p>
             <p
               className={`mt-1 inline-flex rounded-full border px-2 py-0.5 text-[0.67rem] uppercase tracking-[0.11em] ${accent.badgeClassName}`}
             >
@@ -197,8 +197,10 @@ function SpaceCard({
           </div>
         </div>
       </div>
-      {description ? <p className="relative mt-3 text-sm text-neutral-400">{description}</p> : null}
-      <p className="mt-3 text-sm text-neutral-400">
+      {description ? (
+        <p className="relative mt-3 text-sm text-[var(--fg-muted)]">{description}</p>
+      ) : null}
+      <p className="mt-3 text-sm text-[var(--fg-muted)]">
         {memberCount} members · {listCount} lists · {voteCount} votes
       </p>
     </Link>

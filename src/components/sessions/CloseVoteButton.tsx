@@ -66,7 +66,7 @@ export function CloseVoteButton({
         aria-label={label}
         title={label}
         className={cn(
-          "inline-flex h-10 cursor-pointer items-center justify-center rounded-lg border border-amber-500/60 bg-amber-500/10 px-4 text-sm font-medium text-amber-200 transition-colors hover:border-amber-400 hover:bg-amber-500/15 hover:text-amber-100",
+          "inline-flex h-10 cursor-pointer items-center justify-center rounded-lg border border-[var(--accent-primary)]/60 bg-[var(--accent-primary)]/10 px-4 text-sm font-medium text-[var(--accent-primary-hover)] transition-colors hover:border-[var(--accent-primary-hover)] hover:bg-[var(--accent-primary)]/15 hover:text-[var(--fg-primary)]",
           className,
         )}
       >

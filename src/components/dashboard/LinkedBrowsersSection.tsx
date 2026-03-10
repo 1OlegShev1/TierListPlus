@@ -159,36 +159,38 @@ export function LinkedBrowsersSection({
   };
 
   return (
-    <section className="group mt-4 rounded-xl border border-neutral-800 bg-black/20 p-4 transition-colors hover:border-neutral-700 sm:p-5">
+    <section className="group mt-4 rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface)] p-4 transition-colors hover:border-[var(--border-strong)] sm:p-5">
       <button
         type="button"
         onClick={() => setShowLinkedBrowsers((prev) => !prev)}
-        className="flex w-full items-center justify-between rounded-lg text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/60"
+        className="flex w-full items-center justify-between rounded-lg text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"
         aria-expanded={showLinkedBrowsers}
         aria-controls="linked-browsers-content"
       >
         <div>
-          <h3 className="text-sm font-semibold text-neutral-200">3. Linked Browsers & Access</h3>
-          <p className="mt-1 text-sm text-neutral-400">
+          <h3 className="text-sm font-semibold text-[var(--fg-primary)]">
+            3. Linked Browsers & Access
+          </h3>
+          <p className="mt-1 text-sm text-[var(--fg-muted)]">
             Review linked browsers, check last activity, and revoke access when needed.
           </p>
         </div>
         <ChevronDownIcon
-          className={`h-6 w-6 text-neutral-500 transition-all group-hover:text-neutral-300 ${showLinkedBrowsers ? "rotate-180" : ""}`}
+          className={`h-6 w-6 text-[var(--fg-subtle)] transition-all group-hover:text-[var(--fg-secondary)] ${showLinkedBrowsers ? "rotate-180" : ""}`}
         />
       </button>
 
       {showLinkedBrowsers ? (
         <div id="linked-browsers-content" className="mt-4">
           <div className="mb-3 flex items-center justify-between">
-            <p className="text-sm text-neutral-400">Linked browsers</p>
-            {loading && <span className="text-xs text-neutral-500">Loading...</span>}
+            <p className="text-sm text-[var(--fg-muted)]">Linked browsers</p>
+            {loading && <span className="text-xs text-[var(--fg-subtle)]">Loading...</span>}
           </div>
           {loadError && <ErrorMessage message={loadError} />}
           {revokeError && <ErrorMessage message={revokeError} />}
           {renameError && <ErrorMessage message={renameError} />}
           {!loading && devices.length === 0 ? (
-            <p className="text-sm text-neutral-500">No other browsers linked yet.</p>
+            <p className="text-sm text-[var(--fg-subtle)]">No other browsers linked yet.</p>
           ) : (
             <div className="space-y-3">
               {devices.map((device) => {
@@ -199,7 +201,7 @@ export function LinkedBrowsersSection({
                 return (
                   <div
                     key={device.id}
-                    className="flex flex-col gap-3 rounded-lg border border-neutral-800 bg-black/20 p-3 sm:flex-row sm:items-center sm:justify-between"
+                    className="flex flex-col gap-3 rounded-lg border border-[var(--border-default)] bg-[var(--bg-elevated)] p-3 sm:flex-row sm:items-center sm:justify-between"
                   >
                     <div>
                       <div className="flex flex-wrap items-center gap-2">
@@ -222,15 +224,17 @@ export function LinkedBrowsersSection({
                             className="h-9 w-full sm:w-80"
                           />
                         ) : (
-                          <p className="font-medium text-neutral-200">{device.displayName}</p>
+                          <p className="font-medium text-[var(--fg-primary)]">
+                            {device.displayName}
+                          </p>
                         )}
                         {device.isCurrent && (
-                          <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-xs font-medium text-amber-300">
+                          <span className="rounded-full border border-[var(--accent-primary)]/50 bg-[var(--accent-primary)]/12 px-2 py-0.5 text-xs font-medium text-[var(--accent-primary-hover)]">
                             Current
                           </span>
                         )}
                       </div>
-                      <p className="mt-1 text-xs text-neutral-500">
+                      <p className="mt-1 text-xs text-[var(--fg-subtle)]">
                         Created {formatDate(device.createdAt)} &middot; Last activity{" "}
                         {formatDate(device.lastSeenAt)}
                       </p>
@@ -250,7 +254,7 @@ export function LinkedBrowsersSection({
                             variant="ghost"
                             onClick={cancelRenamingDevice}
                             disabled={isRenaming}
-                            className="text-neutral-400 hover:text-neutral-300"
+                            className="text-[var(--fg-muted)] hover:text-[var(--fg-secondary)]"
                           >
                             Cancel
                           </Button>
@@ -261,7 +265,7 @@ export function LinkedBrowsersSection({
                             variant="ghost"
                             onClick={() => startRenamingDevice(device)}
                             disabled={Boolean(renamingDeviceId)}
-                            className="text-neutral-400 hover:text-neutral-300"
+                            className="text-[var(--fg-muted)] hover:text-[var(--fg-secondary)]"
                           >
                             Rename
                           </Button>
@@ -270,7 +274,7 @@ export function LinkedBrowsersSection({
                               variant="ghost"
                               onClick={() => revokeDevice(device.id)}
                               disabled={revokingDeviceId === device.id}
-                              className="text-red-400 hover:text-red-300"
+                              className="text-[var(--state-danger-fg)] hover:text-[var(--action-danger-bg-hover)]"
                             >
                               {revokingDeviceId === device.id ? "Revoking..." : "Revoke"}
                             </Button>

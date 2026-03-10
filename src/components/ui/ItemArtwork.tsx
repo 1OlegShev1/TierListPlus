@@ -58,11 +58,18 @@ export function ItemArtwork({
   const placeholderKind = parseSourceArtworkPlaceholderImageUrl(src);
   if (placeholderKind) {
     return (
-      <div className={cn("relative overflow-hidden bg-neutral-950", className)}>
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.12),transparent_38%),linear-gradient(to_bottom,rgba(38,38,38,0.18),rgba(10,10,10,0.64))]" />
+      <div className={cn("relative overflow-hidden bg-[var(--bg-canvas)]", className)}>
+        <div
+          className="absolute inset-0"
+          style={{ background: "var(--bg-media-ambient)" }}
+          aria-hidden="true"
+        />
         <div className="relative flex h-full w-full items-center justify-center">
-          <div className="flex h-[72%] w-[72%] items-center justify-center rounded-2xl border border-neutral-700 bg-neutral-900/75">
-            <SourcePlaceholderIcon kind={placeholderKind} className="h-10 w-10 text-neutral-200" />
+          <div className="flex h-[72%] w-[72%] items-center justify-center rounded-2xl border border-[var(--border-default)] bg-[var(--bg-surface)]/75">
+            <SourcePlaceholderIcon
+              kind={placeholderKind}
+              className="h-10 w-10 text-[var(--fg-secondary)]"
+            />
           </div>
         </div>
       </div>
@@ -76,7 +83,7 @@ export function ItemArtwork({
 
   if (presentation === "cover") {
     return (
-      <div className={cn("relative overflow-hidden bg-neutral-950", className)}>
+      <div className={cn("relative overflow-hidden bg-[var(--bg-canvas)]", className)}>
         <img
           src={displaySrc}
           alt={alt}
@@ -86,7 +93,7 @@ export function ItemArtwork({
           className={cn("pointer-events-none h-full w-full object-cover", imageClassName)}
         />
         {renderAnimatedHint && (
-          <span className="pointer-events-none absolute left-1.5 top-1.5 rounded bg-black/70 px-1.5 py-0.5 text-[9px] font-semibold tracking-[0.08em] text-white/95">
+          <span className="pointer-events-none absolute left-1.5 top-1.5 rounded bg-[var(--bg-media-overlay)] px-1.5 py-0.5 text-[9px] font-semibold tracking-[0.08em] text-[var(--fg-on-media-overlay)]">
             GIF
           </span>
         )}
@@ -95,7 +102,7 @@ export function ItemArtwork({
   }
 
   return (
-    <div className={cn("relative overflow-hidden bg-neutral-950", className)}>
+    <div className={cn("relative overflow-hidden bg-[var(--bg-canvas)]", className)}>
       <img
         src={staticSrc}
         alt=""
@@ -105,7 +112,11 @@ export function ItemArtwork({
         draggable={false}
         className="pointer-events-none absolute inset-0 h-full w-full scale-[1.15] object-cover opacity-25 blur-md saturate-150"
       />
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.12),transparent_38%),linear-gradient(to_bottom,rgba(38,38,38,0.18),rgba(10,10,10,0.64))]" />
+      <div
+        className="pointer-events-none absolute inset-0"
+        style={{ background: "var(--bg-media-ambient)" }}
+        aria-hidden="true"
+      />
       <img
         src={displaySrc}
         alt={alt}
@@ -119,7 +130,7 @@ export function ItemArtwork({
         )}
       />
       {renderAnimatedHint && (
-        <span className="pointer-events-none absolute left-1.5 top-1.5 rounded bg-black/70 px-1.5 py-0.5 text-[9px] font-semibold tracking-[0.08em] text-white/95">
+        <span className="pointer-events-none absolute left-1.5 top-1.5 rounded bg-[var(--bg-media-overlay)] px-1.5 py-0.5 text-[9px] font-semibold tracking-[0.08em] text-[var(--fg-on-media-overlay)]">
           GIF
         </span>
       )}

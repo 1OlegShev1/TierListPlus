@@ -31,7 +31,7 @@ export function ItemPreview({
           alt={item.label ?? ""}
           loading="lazy"
           decoding="async"
-          className="aspect-square w-full rounded-lg border border-neutral-800/80"
+          className="aspect-square w-full rounded-lg border border-[var(--border-subtle)]"
           presentation="ambient"
           inset="compact"
         />
@@ -40,7 +40,7 @@ export function ItemPreview({
         <div
           // biome-ignore lint/suspicious/noArrayIndexKey: static placeholders never reorder
           key={index}
-          className="aspect-square w-full rounded-lg border border-dashed border-neutral-800 bg-neutral-900/80"
+          className="aspect-square w-full rounded-lg border border-dashed border-[var(--border-subtle)] bg-[var(--bg-soft-contrast)]"
         />
       ))}
     </div>

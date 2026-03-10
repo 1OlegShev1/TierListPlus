@@ -69,7 +69,7 @@ export function ListDetailItemsGrid({ items }: { items: ListDetailGridItem[] }) 
             }
             cardRefs.current.set(item.id, node);
           }}
-          className="relative rounded-lg border border-neutral-800 bg-neutral-900 p-2"
+          className="relative rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-2"
         >
           {item.sourceUrl && (
             <button
@@ -79,10 +79,10 @@ export function ListDetailItemsGrid({ items }: { items: ListDetailGridItem[] }) 
                 event.stopPropagation();
                 setSourceModalItemId(item.id);
               }}
-              className="absolute left-3 top-3 z-10 flex h-6 w-6 items-center justify-center rounded-full border border-sky-400/80 bg-black/70 text-sky-200 transition-colors hover:border-sky-300 hover:text-sky-100"
+              className="absolute left-3 top-3 z-10 flex h-6 w-6 items-center justify-center rounded-full border border-[var(--source-control-linked-border)] bg-[var(--source-control-linked-bg)] text-[var(--source-control-linked-fg)] shadow-sm transition-colors hover:border-[var(--source-control-linked-border-hover)] hover:bg-[var(--source-control-linked-bg-hover)] hover:text-[var(--source-control-linked-fg-hover)]"
               aria-label={`Open source for ${item.label || "item"}`}
             >
-              <Link2 className="h-3.5 w-3.5" aria-hidden="true" />
+              <Link2 className="h-4 w-4" aria-hidden="true" />
             </button>
           )}
           <button
@@ -94,7 +94,7 @@ export function ListDetailItemsGrid({ items }: { items: ListDetailGridItem[] }) 
               if (card && nextFocused instanceof Node && card.contains(nextFocused)) return;
               setPreviewingItemId((current) => (current === item.id ? null : current));
             }}
-            className="block w-full overflow-hidden rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-2 focus-visible:ring-offset-neutral-900"
+            className="block w-full overflow-hidden rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-surface)]"
             aria-label={`Preview animation for ${item.label || "pick"}`}
           >
             <ItemArtwork
@@ -107,7 +107,9 @@ export function ListDetailItemsGrid({ items }: { items: ListDetailGridItem[] }) 
               showAnimatedHint
             />
           </button>
-          <p className="mt-1 truncate text-center text-xs text-neutral-300">{item.label}</p>
+          <p className="mt-1 truncate text-center text-xs text-[var(--fg-secondary)]">
+            {item.label}
+          </p>
         </div>
       ))}
       {sourceModalItem && (

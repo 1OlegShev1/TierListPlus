@@ -180,14 +180,14 @@ function ListSection({
                   secondaryLabel={secondaryLabel}
                   items={list.items}
                   chips={chips}
-                  className="transition-colors hover:border-neutral-600"
+                  className="transition-colors hover:border-[var(--border-strong)]"
                 />
               </Link>
             );
           })}
         </div>
       ) : (
-        <div className="rounded-2xl border border-dashed border-neutral-800 bg-neutral-950/40 px-5 py-4 text-sm text-neutral-500">
+        <div className="rounded-2xl border border-dashed border-[var(--border-subtle)] bg-[var(--bg-soft-contrast)] px-5 py-4 text-sm text-[var(--fg-muted)]">
           Nothing else here right now.
         </div>
       )}
@@ -209,7 +209,7 @@ function ListSection({
               More
             </Link>
           )}
-          <p className="text-sm text-neutral-500">{pagination.pageLabel}</p>
+          <p className="text-sm text-[var(--fg-muted)]">{pagination.pageLabel}</p>
         </div>
       )}
     </section>

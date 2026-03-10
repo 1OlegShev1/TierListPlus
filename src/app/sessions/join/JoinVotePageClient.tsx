@@ -179,17 +179,17 @@ export function JoinVotePageClient({ initialSession = null }: JoinVotePageClient
           &larr; Back to Votes
         </Link>
         <h1 className="mb-3 text-center text-2xl font-bold">View Vote Results</h1>
-        <p className="mb-4 text-center text-sm text-neutral-400">
+        <p className="mb-4 text-center text-sm text-[var(--fg-muted)]">
           This shared link points to a closed vote in a private space.
         </p>
 
-        <div className="space-y-3 rounded-lg border border-neutral-700 bg-neutral-900/70 p-4 text-sm text-neutral-300">
-          <p className="font-medium text-neutral-100">
+        <div className="space-y-3 rounded-lg border border-[var(--border-default)] bg-[var(--bg-surface)] p-4 text-sm text-[var(--fg-secondary)]">
+          <p className="font-medium text-[var(--fg-primary)]">
             {privateSpaceName
               ? `Join "${privateSpaceName}" to continue.`
               : "Join this private space to continue."}
           </p>
-          <p className="text-neutral-400">
+          <p className="text-[var(--fg-muted)]">
             If you are not a member yet, ask the space owner for an invite.
           </p>
           <div className="flex flex-wrap items-center gap-2">
@@ -234,7 +234,7 @@ export function JoinVotePageClient({ initialSession = null }: JoinVotePageClient
 
       <form className="space-y-4" onSubmit={handleSubmit}>
         <label className="block">
-          <span className="mb-2 block text-sm font-medium text-neutral-400">Join Code</span>
+          <span className="mb-2 block text-sm font-medium text-[var(--fg-muted)]">Join Code</span>
           <Input
             type="text"
             placeholder="e.g., ABCD1234"
@@ -246,7 +246,9 @@ export function JoinVotePageClient({ initialSession = null }: JoinVotePageClient
         </label>
 
         <label className="block">
-          <span className="mb-2 block text-sm font-medium text-neutral-400">Your Nickname</span>
+          <span className="mb-2 block text-sm font-medium text-[var(--fg-muted)]">
+            Your Nickname
+          </span>
           <Input
             type="text"
             placeholder="e.g., Alex"
@@ -262,16 +264,16 @@ export function JoinVotePageClient({ initialSession = null }: JoinVotePageClient
             {userError && <ErrorMessage message={userError} />}
             {error && <ErrorMessage message={error.message} />}
             {isPrivateSpaceMembershipError && (
-              <div className="rounded-lg border border-neutral-700 bg-neutral-900/70 p-3 text-sm text-neutral-300">
-                <p className="font-medium text-neutral-100">
+              <div className="rounded-lg border border-[var(--border-default)] bg-[var(--bg-surface)] p-3 text-sm text-[var(--fg-secondary)]">
+                <p className="font-medium text-[var(--fg-primary)]">
                   {privateSpaceName
                     ? `This vote lives in "${privateSpaceName}", and that space is private.`
                     : "This vote lives in a private space."}
                 </p>
-                <p className="mt-1 text-neutral-400">
+                <p className="mt-1 text-[var(--fg-muted)]">
                   Join the space first, then continue to this vote.
                 </p>
-                <p className="mt-1 text-neutral-500">
+                <p className="mt-1 text-[var(--fg-subtle)]">
                   If you are not a member yet, ask the space owner for an invite.
                 </p>
                 {canJoinSpaceWithInvite ? (
@@ -291,7 +293,7 @@ export function JoinVotePageClient({ initialSession = null }: JoinVotePageClient
                           : "Join space and continue"}
                     </Button>
                     {!nickname.trim() ? (
-                      <p className="text-xs text-neutral-500">
+                      <p className="text-xs text-[var(--fg-subtle)]">
                         Enter your nickname first, then continue.
                       </p>
                     ) : null}

@@ -116,7 +116,7 @@ export function TierRowActions({
         ref={buttonRef}
         type="button"
         onClick={toggle}
-        className="cursor-pointer rounded border border-neutral-700 bg-neutral-900/80 p-1 text-neutral-300 hover:border-neutral-500 hover:text-neutral-100"
+        className="cursor-pointer rounded border border-[var(--border-default)] bg-[var(--bg-surface)] p-1 text-[var(--fg-secondary)] hover:border-[var(--border-strong)] hover:text-[var(--fg-primary)]"
         title="Tier actions"
         aria-label={`Actions for ${label} tier`}
         aria-expanded={open}
@@ -129,7 +129,7 @@ export function TierRowActions({
         <div
           id={menuId}
           ref={menuRef}
-          className={`absolute right-0 z-20 min-w-[168px] rounded-lg border border-neutral-700 bg-neutral-800 py-1.5 shadow-lg ${
+          className={`absolute right-0 z-20 min-w-[168px] rounded-lg border border-[var(--border-default)] bg-[var(--bg-surface)] py-1.5 shadow-lg ${
             openUpward ? "bottom-full mb-1" : "top-full mt-1"
           }`}
         >
@@ -137,23 +137,23 @@ export function TierRowActions({
             ref={firstActionRef}
             type="button"
             onClick={() => act(onInsertAbove)}
-            className="flex w-full cursor-pointer items-center gap-2 px-3 py-1.5 text-left text-sm text-neutral-300 hover:bg-neutral-700"
+            className="flex w-full cursor-pointer items-center gap-2 px-3 py-1.5 text-left text-sm text-[var(--fg-secondary)] hover:bg-[var(--bg-surface-hover)]"
           >
             <PlusIcon className="h-4 w-4" /> Insert above
           </button>
           <button
             type="button"
             onClick={() => act(onInsertBelow)}
-            className="flex w-full cursor-pointer items-center gap-2 px-3 py-1.5 text-left text-sm text-neutral-300 hover:bg-neutral-700"
+            className="flex w-full cursor-pointer items-center gap-2 px-3 py-1.5 text-left text-sm text-[var(--fg-secondary)] hover:bg-[var(--bg-surface-hover)]"
           >
             <PlusIcon className="h-4 w-4" /> Insert below
           </button>
-          <hr className="my-1 border-neutral-700" />
+          <hr className="my-1 border-[var(--border-default)]" />
           <button
             type="button"
             onClick={() => act(onDelete)}
             disabled={!canDelete}
-            className="flex w-full cursor-pointer items-center gap-2 px-3 py-1.5 text-left text-sm text-red-400 hover:bg-neutral-700 disabled:cursor-default disabled:opacity-30 disabled:hover:bg-transparent"
+            className="flex w-full cursor-pointer items-center gap-2 px-3 py-1.5 text-left text-sm text-[var(--state-danger-fg)] hover:bg-[var(--bg-surface-hover)] disabled:cursor-default disabled:opacity-30 disabled:hover:bg-transparent"
           >
             <CloseIcon className="h-4 w-4" /> Delete row
           </button>

@@ -101,17 +101,19 @@ export function StartVoteFromTemplateButton({
             setOpen(false);
           }
         }}
-        className="fixed inset-0 m-auto max-h-[calc(100dvh-2rem)] w-[min(calc(100vw-2rem),32rem)] overflow-y-auto rounded-xl border border-neutral-700 bg-neutral-900 p-4 text-left text-white shadow-2xl shadow-black/60 backdrop:bg-black/70 focus:outline-none sm:p-6"
+        className="fixed inset-0 m-auto max-h-[calc(100dvh-2rem)] w-[min(calc(100vw-2rem),32rem)] overflow-y-auto rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface)] p-4 text-left text-[var(--fg-primary)] shadow-2xl shadow-black/60 backdrop:bg-[var(--bg-overlay)] focus:outline-none sm:p-6"
       >
         <h2 className="text-lg font-bold">Start Vote</h2>
-        <p className="mt-2 text-sm text-neutral-400">
+        <p className="mt-2 text-sm text-[var(--fg-muted)]">
           This vote will start from{" "}
-          <span className="font-medium text-neutral-200">{templateName}</span>.
+          <span className="font-medium text-[var(--fg-primary)]">{templateName}</span>.
         </p>
 
         <form className="mt-6 space-y-5" onSubmit={handleSubmit}>
           <label className="block">
-            <span className="mb-2 block text-sm font-medium text-neutral-300">Vote Name</span>
+            <span className="mb-2 block text-sm font-medium text-[var(--fg-secondary)]">
+              Vote Name
+            </span>
             <Input
               ref={voteNameRef}
               type="text"
@@ -123,7 +125,9 @@ export function StartVoteFromTemplateButton({
           </label>
 
           <label className="block">
-            <span className="mb-2 block text-sm font-medium text-neutral-300">Your Nickname</span>
+            <span className="mb-2 block text-sm font-medium text-[var(--fg-secondary)]">
+              Your Nickname
+            </span>
             <Input
               type="text"
               placeholder="e.g., Alex"
@@ -135,16 +139,16 @@ export function StartVoteFromTemplateButton({
           </label>
 
           {!spaceId && (
-            <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-neutral-800 bg-neutral-950/60 p-4 transition-colors hover:border-neutral-700 hover:bg-neutral-800">
+            <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elevated)] p-4 transition-colors hover:border-[var(--border-default)] hover:bg-[var(--bg-surface-hover)]">
               <input
                 type="checkbox"
                 checked={!isPrivate}
                 onChange={(e) => setIsPrivate(!e.target.checked)}
-                className="h-4 w-4 accent-amber-500"
+                className="h-4 w-4 accent-[var(--accent-primary)]"
               />
               <div>
                 <p className="font-medium">Show in public Votes list</p>
-                <p className="text-sm text-neutral-500">
+                <p className="text-sm text-[var(--fg-subtle)]">
                   Off by default. People can still join private votes with the code.
                 </p>
               </div>

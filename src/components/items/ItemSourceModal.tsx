@@ -615,20 +615,22 @@ export function ItemSourceModal({
           onClose();
         }
       }}
-      className="fixed inset-0 m-auto max-h-[calc(100dvh-2rem)] w-[min(calc(100vw-2rem),34rem)] overflow-y-auto rounded-xl border border-neutral-700 bg-neutral-900 p-4 text-left text-white shadow-2xl shadow-black/60 backdrop:bg-black/70 focus:outline-none sm:p-6"
+      className="fixed inset-0 m-auto max-h-[calc(100dvh-2rem)] w-[min(calc(100vw-2rem),34rem)] overflow-y-auto rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface)] p-4 text-left text-[var(--fg-primary)] shadow-2xl shadow-black/60 backdrop:bg-[var(--bg-overlay)] focus:outline-none sm:p-6"
     >
       <h2 className="text-lg font-bold">
         {isCreateFromUrlMode ? "Add Item via URL" : "Item Source"}
       </h2>
-      <p className="mt-1 text-sm text-neutral-400">
+      <p className="mt-1 text-sm text-[var(--fg-muted)]">
         {isCreateFromUrlMode ? (
           <>
-            Paste a URL to create <span className="font-medium text-neutral-200">{itemLabel}</span>.
-            The resolved thumbnail (or media fallback) will be used as item image.
+            Paste a URL to create{" "}
+            <span className="font-medium text-[var(--fg-secondary)]">{itemLabel}</span>. The
+            resolved thumbnail (or media fallback) will be used as item image.
           </>
         ) : (
           <>
-            Add a source link for <span className="font-medium text-neutral-200">{itemLabel}</span>.
+            Add a source link for{" "}
+            <span className="font-medium text-[var(--fg-secondary)]">{itemLabel}</span>.
           </>
         )}
       </p>
@@ -637,7 +639,7 @@ export function ItemSourceModal({
         {editable ? (
           <>
             <label className="block space-y-2">
-              <span className="text-sm font-medium text-neutral-300">
+              <span className="text-sm font-medium text-[var(--fg-secondary)]">
                 {isCreateFromUrlMode ? "Item URL" : "Source URL"}
               </span>
               <Input
@@ -653,14 +655,14 @@ export function ItemSourceModal({
                 className="w-full"
               />
             </label>
-            <p className="text-xs text-neutral-500">
+            <p className="text-xs text-[var(--fg-subtle)]">
               External previews may contact third-party platforms and are subject to their terms and
               privacy policies.
             </p>
 
             {isCreateFromUrlMode && (
               <label className="block space-y-2">
-                <span className="text-sm font-medium text-neutral-300">Item label</span>
+                <span className="text-sm font-medium text-[var(--fg-secondary)]">Item label</span>
                 <Input
                   type="text"
                   placeholder="e.g. The Miracle"
@@ -677,7 +679,7 @@ export function ItemSourceModal({
             )}
 
             <label className="block space-y-2">
-              <span className="text-sm font-medium text-neutral-300">
+              <span className="text-sm font-medium text-[var(--fg-secondary)]">
                 {isCreateFromUrlMode ? "Description (optional)" : "Source Note (optional)"}
               </span>
               <Textarea
@@ -698,7 +700,9 @@ export function ItemSourceModal({
               <div className="space-y-2">
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <label className="block space-y-2">
-                    <span className="text-sm font-medium text-neutral-300">Start time</span>
+                    <span className="text-sm font-medium text-[var(--fg-secondary)]">
+                      Start time
+                    </span>
                     <Input
                       type="text"
                       inputMode="text"
@@ -710,7 +714,7 @@ export function ItemSourceModal({
                     />
                   </label>
                   <label className="block space-y-2">
-                    <span className="text-sm font-medium text-neutral-300">End time</span>
+                    <span className="text-sm font-medium text-[var(--fg-secondary)]">End time</span>
                     <Input
                       type="text"
                       inputMode="text"
@@ -722,7 +726,7 @@ export function ItemSourceModal({
                     />
                   </label>
                 </div>
-                <p className="text-xs text-neutral-500">
+                <p className="text-xs text-[var(--fg-subtle)]">
                   Examples: 90, 1:30, 1:02:30.{" "}
                   {resolvedDurationLabel
                     ? `Clip length: ${resolvedDurationLabel}.`
@@ -735,13 +739,13 @@ export function ItemSourceModal({
               {inlineValidationMessage ? (
                 <ErrorMessage message={inlineValidationMessage} />
               ) : inlineHintMessage ? (
-                <p className="text-xs text-neutral-500">{inlineHintMessage}</p>
+                <p className="text-xs text-[var(--fg-subtle)]">{inlineHintMessage}</p>
               ) : null}
             </div>
           </>
         ) : null}
 
-        <div className="rounded-lg border border-neutral-800 bg-neutral-950/70 p-3">
+        <div className="rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elevated)] p-3">
           {hasSource && activeSourceUrl ? (
             <div className="space-y-3">
               <div className="flex items-start gap-3">
@@ -754,20 +758,22 @@ export function ItemSourceModal({
                     decoding="async"
                   />
                 ) : (
-                  <div className="flex h-16 w-24 flex-shrink-0 items-center justify-center rounded border border-neutral-700 bg-neutral-900 text-xs font-semibold text-neutral-200">
+                  <div className="flex h-16 w-24 flex-shrink-0 items-center justify-center rounded border border-[var(--border-default)] bg-[var(--bg-surface)] text-xs font-semibold text-[var(--fg-secondary)]">
                     {externalSourceLabel}
                   </div>
                 )}
 
                 <div className="min-w-0 flex-1 space-y-1">
-                  <p className="text-xs uppercase tracking-wide text-neutral-500">
+                  <p className="text-xs uppercase tracking-wide text-[var(--fg-subtle)]">
                     {externalSourceLabel}
                   </p>
-                  <p className="truncate text-sm font-medium text-neutral-100">
+                  <p className="truncate text-sm font-medium text-[var(--fg-primary)]">
                     {previewItemLabel}
                   </p>
-                  {displayNote && <p className="text-sm text-neutral-300">{displayNote}</p>}
-                  <p className="truncate text-xs text-neutral-500">{activeSourceUrl}</p>
+                  {displayNote && (
+                    <p className="text-sm text-[var(--fg-secondary)]">{displayNote}</p>
+                  )}
+                  <p className="truncate text-xs text-[var(--fg-subtle)]">{activeSourceUrl}</p>
                 </div>
               </div>
 
@@ -776,7 +782,7 @@ export function ItemSourceModal({
                   href={activeSourceUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 rounded-md border border-neutral-700 px-2.5 py-1.5 text-xs font-medium text-neutral-200 transition-colors hover:border-amber-400 hover:text-amber-300"
+                  className="inline-flex items-center gap-1.5 rounded-md border border-[var(--border-default)] px-2.5 py-1.5 text-xs font-medium text-[var(--fg-secondary)] transition-colors hover:border-[var(--accent-primary)] hover:text-[var(--accent-primary-hover)]"
                 >
                   <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
                   Open source
@@ -785,7 +791,7 @@ export function ItemSourceModal({
                   <button
                     type="button"
                     onClick={() => setShowExpandedPreview(true)}
-                    className="inline-flex items-center gap-1.5 rounded-md border border-neutral-700 px-2.5 py-1.5 text-xs font-medium text-neutral-200 transition-colors hover:border-amber-400 hover:text-amber-300"
+                    className="inline-flex items-center gap-1.5 rounded-md border border-[var(--border-default)] px-2.5 py-1.5 text-xs font-medium text-[var(--fg-secondary)] transition-colors hover:border-[var(--accent-primary)] hover:text-[var(--accent-primary-hover)]"
                   >
                     <Maximize2 className="h-3.5 w-3.5" aria-hidden="true" />
                     Large preview
@@ -793,9 +799,9 @@ export function ItemSourceModal({
                 )}
               </div>
               {youtubeEmbedUrl && (
-                <div className="overflow-hidden rounded-lg border border-neutral-800 bg-black">
+                <div className="overflow-hidden rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-canvas)]">
                   {isPortraitYouTubeEmbed ? (
-                    <div className="bg-black p-2">
+                    <div className="bg-[var(--bg-canvas)] p-2">
                       <iframe
                         src={youtubeEmbedUrl}
                         title={`${previewItemLabel} YouTube Shorts preview`}
@@ -817,7 +823,7 @@ export function ItemSourceModal({
                 </div>
               )}
               {spotifyEmbedUrl && (
-                <div className="overflow-hidden rounded-lg border border-neutral-800 bg-black">
+                <div className="overflow-hidden rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-canvas)]">
                   <iframe
                     src={spotifyEmbedUrl}
                     title={`${previewItemLabel} Spotify preview`}
@@ -829,7 +835,7 @@ export function ItemSourceModal({
                 </div>
               )}
               {activeProvider === null && externalEmbedUrl && (
-                <div className="overflow-hidden rounded-lg border border-neutral-800 bg-black">
+                <div className="overflow-hidden rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-canvas)]">
                   {externalEmbedType === "image" ? (
                     <img
                       src={externalEmbedUrl}
@@ -856,7 +862,7 @@ export function ItemSourceModal({
                       referrerPolicy="no-referrer"
                     />
                   ) : (
-                    <div className="bg-black p-2">
+                    <div className="bg-[var(--bg-canvas)] p-2">
                       <iframe
                         src={externalEmbedUrl}
                         title={`${previewItemLabel} source preview`}
@@ -872,13 +878,13 @@ export function ItemSourceModal({
                 </div>
               )}
               {activeProvider === null && externalPreviewNote && (
-                <p className="text-xs text-neutral-500">{externalPreviewNote}</p>
+                <p className="text-xs text-[var(--fg-subtle)]">{externalPreviewNote}</p>
               )}
             </div>
           ) : hasInvalidDraftSource ? (
-            <p className="text-sm text-neutral-500">Invalid URL. Use a full http(s) link.</p>
+            <p className="text-sm text-[var(--fg-subtle)]">Invalid URL. Use a full http(s) link.</p>
           ) : (
-            <p className="text-sm text-neutral-500">
+            <p className="text-sm text-[var(--fg-subtle)]">
               {isCreateFromUrlMode
                 ? "Paste a URL to preview and add this item."
                 : "No source link added yet."}
@@ -909,10 +915,10 @@ export function ItemSourceModal({
       </div>
 
       {showExpandedPreview && expandedPreviewUrl && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-3">
-          <div className="w-[min(calc(100vw-1.5rem),32rem)] rounded-xl border border-neutral-700 bg-neutral-900 p-3 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--bg-overlay)] p-3">
+          <div className="w-[min(calc(100vw-1.5rem),32rem)] rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface)] p-3 shadow-2xl">
             <div className="mb-2 flex items-center justify-between gap-2">
-              <p className="text-sm font-semibold text-neutral-100">Large Preview</p>
+              <p className="text-sm font-semibold text-[var(--fg-primary)]">Large Preview</p>
               <Button
                 variant="secondary"
                 onClick={() => setShowExpandedPreview(false)}
@@ -921,7 +927,7 @@ export function ItemSourceModal({
                 Close preview
               </Button>
             </div>
-            <div className="overflow-hidden rounded-lg border border-neutral-800 bg-black p-1">
+            <div className="overflow-hidden rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-canvas)] p-1">
               <iframe
                 src={expandedPreviewUrl}
                 title={`${previewItemLabel} large source preview`}

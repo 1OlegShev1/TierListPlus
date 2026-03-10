@@ -257,6 +257,6 @@ describe("TierListBoard", () => {
     }
 
     fireEvent.click(spotlightButton);
-    expect(spotlightButton.className.includes("border-amber-300")).toBe(true);
+    expect(spotlightButton.className.includes("border-[var(--accent-primary-hover)]")).toBe(true);
   });
 });
