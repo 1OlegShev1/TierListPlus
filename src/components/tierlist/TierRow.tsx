@@ -93,7 +93,7 @@ export function TierRow({
   return (
     <div>
       <div
-        className={`flex min-h-[72px] border-b border-neutral-800 sm:min-h-[80px] md:min-h-[90px] lg:min-h-[104px] ${isFirst ? "rounded-t-lg" : ""} ${isLast ? "rounded-b-lg border-b-0" : ""}`}
+        className={`flex min-h-[72px] border-b border-[var(--border-subtle)] sm:min-h-[80px] md:min-h-[90px] lg:min-h-[104px] ${isFirst ? "rounded-t-lg" : ""} ${isLast ? "rounded-b-lg border-b-0" : ""}`}
       >
         {/* Color Strip (leftmost) */}
         <TierColorPicker
@@ -125,7 +125,7 @@ export function TierRow({
                 }
               }}
               maxLength={20}
-              className="w-12 rounded bg-black/20 px-1 py-0.5 text-center text-xs font-bold text-inherit focus:outline-none focus:ring-1 focus:ring-black/40 sm:w-14 sm:text-sm md:w-16 md:text-base"
+              className="w-12 rounded bg-[var(--bg-soft-contrast)] px-1 py-0.5 text-center text-xs font-bold text-inherit focus:outline-none focus:ring-1 focus:ring-[var(--focus-ring)] sm:w-14 sm:text-sm md:w-16 md:text-base"
               aria-label="Edit tier label"
             />
           ) : (
@@ -149,7 +149,7 @@ export function TierRow({
         <div
           ref={setNodeRef}
           className={`flex flex-1 flex-wrap items-start gap-1 p-1 transition-colors sm:gap-1.5 sm:p-1.5 md:gap-2 md:p-2 ${
-            isOver ? "bg-neutral-800/50" : ""
+            isOver ? "bg-[var(--bg-surface-hover)]" : ""
           }`}
         >
           <SortableContext items={items} strategy={rectSortingStrategy}>
@@ -174,7 +174,7 @@ export function TierRow({
             })}
           </SortableContext>
           {items.length === 0 && !isOver && (
-            <span className="flex h-[60px] items-center px-2 text-xs text-neutral-600 sm:h-[70px] sm:px-2.5 md:h-[84px] md:px-3 lg:h-[96px] lg:px-4 lg:text-sm">
+            <span className="flex h-[60px] items-center px-2 text-xs text-[var(--fg-subtle)] sm:h-[70px] sm:px-2.5 md:h-[84px] md:px-3 lg:h-[96px] lg:px-4 lg:text-sm">
               Drop items here
             </span>
           )}
@@ -182,11 +182,11 @@ export function TierRow({
 
         {/* Rank button */}
         {items.length >= 2 && (
-          <div className="flex flex-shrink-0 items-center border-l border-neutral-800 px-1 sm:px-1.5 md:px-2">
+          <div className="flex flex-shrink-0 items-center border-l border-[var(--border-subtle)] px-1 sm:px-1.5 md:px-2">
             <button
               type="button"
               onClick={() => setShowBracket(true)}
-              className="cursor-pointer rounded px-1 py-0.5 text-[11px] font-medium text-neutral-500 transition-colors hover:bg-neutral-800 hover:text-amber-400 sm:px-1.5 sm:py-1 sm:text-xs md:px-2 md:py-1.5 md:text-sm"
+              className="cursor-pointer rounded px-1 py-0.5 text-[11px] font-medium text-[var(--fg-subtle)] transition-colors hover:bg-[var(--bg-surface-hover)] hover:text-[var(--accent-primary-hover)] sm:px-1.5 sm:py-1 sm:text-xs md:px-2 md:py-1.5 md:text-sm"
               title="Rank items with 1v1 bracket"
               aria-label={`Rank items in ${label} tier using bracket`}
             >
@@ -198,13 +198,13 @@ export function TierRow({
         {/* Row edit controls (right side) */}
         {canEditTier && (
           <div
-            className={`flex w-10 flex-shrink-0 flex-col items-center justify-center gap-1 border-l border-neutral-800 bg-neutral-950/60 sm:w-11 md:w-12 lg:w-12 ${isFirst ? "rounded-tr-lg" : ""} ${isLast ? "rounded-br-lg" : ""}`}
+            className={`flex w-10 flex-shrink-0 flex-col items-center justify-center gap-1 border-l border-[var(--border-subtle)] bg-[var(--bg-elevated)] sm:w-11 md:w-12 lg:w-12 ${isFirst ? "rounded-tr-lg" : ""} ${isLast ? "rounded-br-lg" : ""}`}
           >
             <button
               type="button"
               onClick={onMoveUp}
               disabled={isFirst}
-              className="cursor-pointer rounded p-1 text-neutral-400 hover:bg-neutral-800 hover:text-neutral-100 disabled:cursor-default disabled:opacity-30"
+              className="cursor-pointer rounded p-1 text-[var(--fg-muted)] hover:bg-[var(--bg-surface-hover)] hover:text-[var(--fg-primary)] disabled:cursor-default disabled:opacity-30"
               title="Move row up"
               aria-label={`Move ${label} tier up`}
             >
@@ -224,7 +224,7 @@ export function TierRow({
               type="button"
               onClick={onMoveDown}
               disabled={isLast}
-              className="cursor-pointer rounded p-1 text-neutral-400 hover:bg-neutral-800 hover:text-neutral-100 disabled:cursor-default disabled:opacity-30"
+              className="cursor-pointer rounded p-1 text-[var(--fg-muted)] hover:bg-[var(--bg-surface-hover)] hover:text-[var(--fg-primary)] disabled:cursor-default disabled:opacity-30"
               title="Move row down"
               aria-label={`Move ${label} tier down`}
             >

@@ -144,7 +144,7 @@ export function EditableUnrankedItemCard({
         setNodeRef(node);
       }}
       style={style}
-      className={`group relative flex h-[var(--editable-item-height)] w-[var(--editable-item-width)] flex-shrink-0 flex-col rounded-lg border border-neutral-700 bg-neutral-950 p-[var(--editable-item-padding)] ${EDITABLE_UNRANKED_ITEM_METRICS_CLASS}`}
+      className={`group relative flex h-[var(--editable-item-height)] w-[var(--editable-item-width)] flex-shrink-0 flex-col rounded-lg border border-[var(--border-default)] bg-[var(--bg-elevated)] p-[var(--editable-item-padding)] ${EDITABLE_UNRANKED_ITEM_METRICS_CLASS}`}
     >
       <button
         type="button"
@@ -158,10 +158,10 @@ export function EditableUnrankedItemCard({
           e.stopPropagation();
         }}
         disabled={saving || removing}
-        className={`absolute left-1.5 top-1.5 z-10 flex h-6 min-w-6 items-center justify-center gap-1 rounded-full border bg-black/70 px-1.5 text-[10px] font-medium transition-all focus-visible:outline-none focus-visible:ring-2 disabled:cursor-default disabled:opacity-70 ${
+        className={`absolute left-1.5 top-1.5 z-10 flex h-6 min-w-6 items-center justify-center gap-1 rounded-full border bg-[var(--bg-overlay)] px-1.5 text-[10px] font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] disabled:cursor-default disabled:opacity-70 ${
           sourceUrl
-            ? "border-sky-400/80 text-sky-200 hover:border-sky-300 hover:text-sky-100 focus-visible:ring-sky-400/70"
-            : "border-neutral-700 text-neutral-200 hover:border-amber-500 hover:text-amber-300 focus-visible:ring-neutral-500/60"
+            ? "border-[var(--accent-primary)] text-[var(--accent-primary-hover)] hover:border-[var(--accent-primary-hover)] hover:text-[var(--fg-primary)]"
+            : "border-[var(--border-default)] text-[var(--fg-secondary)] hover:border-[var(--accent-primary)] hover:text-[var(--accent-primary-hover)]"
         }`}
         aria-label={
           sourceUrl ? `Open source for ${label || "item"}` : `Add source for ${label || "item"}`
@@ -184,7 +184,7 @@ export function EditableUnrankedItemCard({
           e.stopPropagation();
         }}
         disabled={saving || removing}
-        className="absolute right-1.5 top-1.5 z-10 flex h-6 w-6 items-center justify-center rounded-full border border-neutral-700 bg-black/70 text-neutral-200 transition-all hover:border-red-500 hover:bg-red-600 hover:text-white disabled:cursor-default disabled:opacity-70"
+        className="absolute right-1.5 top-1.5 z-10 flex h-6 w-6 items-center justify-center rounded-full border border-[var(--border-default)] bg-[var(--bg-overlay)] text-[var(--fg-secondary)] transition-all hover:border-[var(--action-danger-bg)] hover:bg-[var(--action-danger-bg)] hover:text-[var(--action-danger-fg)] disabled:cursor-default disabled:opacity-70"
         aria-label={`Remove ${label || "item"}`}
       >
         {removing ? "..." : <CloseIcon className="h-3.5 w-3.5" />}
@@ -257,7 +257,7 @@ export function EditableUnrankedItemCard({
           maxLength={100}
           disabled={saving}
           placeholder="Name this pick"
-          className="mt-[var(--editable-item-label-gap)] h-[var(--editable-item-label-height)] w-full rounded border border-neutral-700 bg-neutral-900 px-2 py-1 text-xs text-white placeholder:text-neutral-500 focus:border-amber-500 focus:outline-none disabled:opacity-70"
+          className="mt-[var(--editable-item-label-gap)] h-[var(--editable-item-label-height)] w-full rounded border border-[var(--border-default)] bg-[var(--bg-surface)] px-2 py-1 text-xs text-[var(--fg-primary)] placeholder:text-[var(--fg-subtle)] focus:border-[var(--accent-primary)] focus:outline-none disabled:opacity-70"
           aria-label="Edit item label"
         />
       ) : (
@@ -265,7 +265,7 @@ export function EditableUnrankedItemCard({
           type="button"
           onClick={startEditing}
           disabled={saving || removing}
-          className="mt-[var(--editable-item-label-gap)] block h-[var(--editable-item-label-height)] w-full truncate rounded border border-transparent px-1 py-1 text-left text-xs text-neutral-200 transition-colors hover:border-neutral-800 hover:bg-neutral-900 disabled:cursor-default disabled:opacity-70"
+          className="mt-[var(--editable-item-label-gap)] block h-[var(--editable-item-label-height)] w-full truncate rounded border border-transparent px-1 py-1 text-left text-xs text-[var(--fg-secondary)] transition-colors hover:border-[var(--border-subtle)] hover:bg-[var(--bg-surface)] disabled:cursor-default disabled:opacity-70"
           title={labelText}
           aria-label={`Edit ${label || "item"} label`}
         >

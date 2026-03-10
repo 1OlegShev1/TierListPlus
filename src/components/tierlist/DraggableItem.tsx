@@ -63,8 +63,8 @@ export function DraggableItem({
     compareDifferenceState === "same" && !overlay && !expanded && !isDragging;
   const changedNeutralClass =
     compareDifferenceState === "changed" && !overlay && !expanded && !isDragging
-      ? "border-amber-400/75 ring-1 ring-amber-400/45 bg-amber-400/6"
-      : "border-neutral-700";
+      ? "border-[var(--accent-primary)]/75 ring-1 ring-[var(--focus-ring)] bg-[var(--bg-soft-contrast)]"
+      : "border-[var(--border-default)]";
   const style = overlay
     ? undefined
     : {
@@ -101,7 +101,7 @@ export function DraggableItem({
             e.preventDefault();
             e.stopPropagation();
           }}
-          className={`absolute right-1 top-1 z-10 flex h-6 w-6 items-center justify-center rounded-full border border-neutral-700 bg-black/70 text-neutral-200 transition-all hover:border-red-500 hover:bg-red-600 hover:text-white ${
+          className={`absolute right-1 top-1 z-10 flex h-6 w-6 items-center justify-center rounded-full border border-[var(--border-default)] bg-[var(--bg-overlay)] text-[var(--fg-secondary)] transition-all hover:border-[var(--action-danger-bg)] hover:bg-[var(--action-danger-bg)] hover:text-[var(--action-danger-fg)] ${
             expanded
               ? "opacity-100"
               : "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100"
@@ -123,10 +123,10 @@ export function DraggableItem({
             e.preventDefault();
             e.stopPropagation();
           }}
-          className={`absolute left-1 top-1 z-10 flex h-6 w-6 items-center justify-center rounded-full border bg-black/70 transition-all focus-visible:outline-none focus-visible:ring-2 ${
+          className={`absolute left-1 top-1 z-10 flex h-6 w-6 items-center justify-center rounded-full border bg-[var(--bg-overlay)] transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] ${
             sourceUrl
-              ? "border-sky-400/80 text-sky-200 hover:border-sky-300 hover:text-sky-100 focus-visible:ring-sky-400/70"
-              : "border-amber-500/70 text-amber-300 hover:border-amber-400 hover:text-amber-200 focus-visible:ring-amber-500/60"
+              ? "border-[var(--accent-primary)] text-[var(--accent-primary-hover)] hover:border-[var(--accent-primary-hover)] hover:text-[var(--fg-primary)]"
+              : "border-[var(--border-default)] text-[var(--fg-secondary)] hover:border-[var(--accent-primary)] hover:text-[var(--accent-primary-hover)]"
           } ${sourceControlVisibilityClass}`}
           aria-label={
             sourceUrl
@@ -167,11 +167,11 @@ export function DraggableItem({
           enableSorting ? "cursor-grab active:cursor-grabbing" : "cursor-pointer"
         } ${
           overlay
-            ? "shadow-xl shadow-black/50 ring-2 ring-amber-400"
+            ? "shadow-xl ring-2 ring-[var(--accent-primary)]"
             : expanded
-              ? "border-amber-300 shadow-2xl shadow-black/60 ring-2 ring-amber-400/70"
+              ? "border-[var(--accent-primary-hover)] shadow-2xl ring-2 ring-[var(--focus-ring)]"
               : isDragging
-                ? "border-amber-400 ring-2 ring-amber-400/50"
+                ? "border-[var(--accent-primary)] ring-2 ring-[var(--focus-ring)]"
                 : changedNeutralClass
         }`}
       >
@@ -185,7 +185,7 @@ export function DraggableItem({
           showAnimatedHint
         />
         <span
-          className={`pointer-events-none absolute inset-x-0 bottom-0 truncate bg-black/70 px-1 py-0.5 text-center text-[11px] leading-tight text-neutral-200 transition-opacity ${
+          className={`pointer-events-none absolute inset-x-0 bottom-0 truncate bg-[var(--bg-overlay)] px-1 py-0.5 text-center text-[11px] leading-tight text-[var(--fg-secondary)] transition-opacity ${
             expanded
               ? "opacity-100"
               : "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100"
