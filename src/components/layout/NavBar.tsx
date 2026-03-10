@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { ThemeSwitcher } from "@/components/theme/ThemeSwitcher";
 import { GearIcon } from "@/components/ui/GearIcon";
 
 const links = [
@@ -49,6 +50,7 @@ export function NavBar() {
             );
           })}
         </div>
+        <ThemeSwitcher compact className="hidden shrink-0 sm:inline-flex" />
         <Link
           href="/devices"
           aria-label="Devices"

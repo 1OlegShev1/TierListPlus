@@ -1,0 +1,98 @@
+"use client";
+
+import { Laptop2, Moon, Sun } from "lucide-react";
+import { type ComponentType, useEffect, useState } from "react";
+import {
+  applyThemePreference,
+  isThemePreference,
+  persistThemePreference,
+  readStoredThemePreference,
+  resolveThemePreference,
+  THEME_PREFERENCE_STORAGE_KEY,
+  type ThemePreference,
+} from "@/lib/theme-preference";
+import { cn } from "@/lib/utils";
+
+const THEME_OPTIONS: Array<{
+  value: ThemePreference;
+  label: string;
+  icon: ComponentType<{ className?: string; "aria-hidden"?: boolean }>;
+}> = [
+  { value: "dark", label: "Dark", icon: Moon },
+  { value: "light", label: "Light", icon: Sun },
+  { value: "system", label: "System", icon: Laptop2 },
+];
+
+export function ThemeSwitcher({
+  compact = false,
+  className,
+}: {
+  compact?: boolean;
+  className?: string;
+}) {
+  const [preference, setPreference] = useState<ThemePreference>("dark");
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    const resolved = resolveThemePreference("dark");
+    setPreference(resolved);
+    applyThemePreference(resolved);
+    setReady(true);
+  }, []);
+
+  useEffect(() => {
+    const onStorage = (event: StorageEvent) => {
+      if (event.key !== THEME_PREFERENCE_STORAGE_KEY) return;
+      if (!isThemePreference(event.newValue)) return;
+      setPreference(event.newValue);
+      applyThemePreference(event.newValue);
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, []);
+
+  const updatePreference = (next: ThemePreference) => {
+    setPreference(next);
+    applyThemePreference(next);
+    persistThemePreference(next);
+  };
+
+  return (
+    <fieldset
+      className={cn(
+        "inline-flex items-center gap-1 rounded-lg border border-[var(--border-default)] bg-[var(--bg-surface)] p-1",
+        className,
+      )}
+      data-ready={ready ? "true" : "false"}
+    >
+      <legend className="sr-only">Theme mode</legend>
+      {THEME_OPTIONS.map((option) => {
+        const Icon = option.icon;
+        const active = ready
+          ? preference === option.value
+          : (readStoredThemePreference() ?? "dark") === option.value;
+
+        return (
+          <button
+            key={option.value}
+            type="button"
+            onClick={() => updatePreference(option.value)}
+            className={cn(
+              "inline-flex h-8 items-center justify-center rounded-md border px-2 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]",
+              compact ? "w-8" : "gap-1.5",
+              active
+                ? "border-[var(--border-strong)] bg-[var(--bg-surface-hover)] text-[var(--fg-primary)]"
+                : "border-transparent text-[var(--fg-muted)] hover:border-[var(--border-default)] hover:text-[var(--fg-primary)]",
+            )}
+            aria-label={`Switch theme to ${option.label}`}
+            aria-pressed={active}
+            title={option.label}
+          >
+            <Icon className="h-3.5 w-3.5" aria-hidden />
+            {!compact ? <span>{option.label}</span> : null}
+          </button>
+        );
+      })}
+    </fieldset>
+  );
+}
