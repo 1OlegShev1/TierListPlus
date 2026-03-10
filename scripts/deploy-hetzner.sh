@@ -10,18 +10,25 @@ BUILDKIT_MIN_FREE_SPACE="${BUILDKIT_MIN_FREE_SPACE:-10gb}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
-require_command() {
-  local cmd="$1"
-  if ! command -v "${cmd}" >/dev/null 2>&1; then
-    echo "Missing required command: ${cmd}" >&2
-    echo "Install it in the shell you use for deploy (recommended: WSL Debian)." >&2
-    exit 1
-  fi
+find_command() {
+  local cmd
+  for cmd in "$@"; do
+    if command -v "${cmd}" >/dev/null 2>&1; then
+      echo "${cmd}"
+      return 0
+    fi
+  done
+  return 1
 }
 
-require_command ssh
+SSH_BIN="${SSH_BIN:-$(find_command ssh ssh.exe || true)}"
+if [[ -z "${SSH_BIN}" ]]; then
+  echo "Missing required command: ssh (or ssh.exe)" >&2
+  echo "Install OpenSSH in the shell you use for deploy (recommended: WSL Debian)." >&2
+  exit 1
+fi
 
-if ! ssh -o BatchMode=yes -o ConnectTimeout=8 -o StrictHostKeyChecking=accept-new "${REMOTE_HOST}" "exit 0" >/dev/null 2>&1; then
+if ! "${SSH_BIN}" -o BatchMode=yes -o ConnectTimeout=8 -o StrictHostKeyChecking=accept-new "${REMOTE_HOST}" "exit 0" >/dev/null 2>&1; then
   echo "Cannot reach ${REMOTE_HOST} over SSH." >&2
   echo "Check: Tailscale running, host reachable on tailnet, and SSH auth configured." >&2
   exit 1
@@ -29,7 +36,7 @@ fi
 
 echo "Deploying ${REPO_ROOT} -> ${REMOTE_HOST}:${REMOTE_DIR}"
 
-ssh "${REMOTE_HOST}" "sudo mkdir -p '${REMOTE_DIR}'"
+ "${SSH_BIN}" "${REMOTE_HOST}" "sudo mkdir -p '${REMOTE_DIR}'"
 
 if command -v rsync >/dev/null 2>&1; then
   rsync -rlptDz --delete \
@@ -53,7 +60,7 @@ else
   STAGE_DIR="/tmp/tierlistplus-sync-$(date +%s)-$$"
   echo "rsync not found; falling back to tar-over-ssh sync."
 
-  ssh "${REMOTE_HOST}" "sudo rm -rf '${STAGE_DIR}' && sudo mkdir -p '${STAGE_DIR}'"
+  "${SSH_BIN}" "${REMOTE_HOST}" "sudo rm -rf '${STAGE_DIR}' && sudo mkdir -p '${STAGE_DIR}'"
 
   tar -C "${REPO_ROOT}" -cf - \
     --exclude '.git' \
@@ -69,9 +76,9 @@ else
     --exclude 'docker-compose.yml' \
     --exclude '*.tsbuildinfo' \
     --exclude 'public/uploads/*' \
-    . | ssh "${REMOTE_HOST}" "sudo tar -xf - -C '${STAGE_DIR}'"
+    . | "${SSH_BIN}" "${REMOTE_HOST}" "sudo tar -xf - -C '${STAGE_DIR}'"
 
-  ssh "${REMOTE_HOST}" "
+  "${SSH_BIN}" "${REMOTE_HOST}" "
     sudo bash -lc '
       set -euo pipefail
       stage=\"${STAGE_DIR}\"
@@ -87,7 +94,7 @@ else
   "
 fi
 
-ssh "${REMOTE_HOST}" "
+"${SSH_BIN}" "${REMOTE_HOST}" "
   sudo bash -lc '
     set -euo pipefail
     cd \"${REMOTE_DIR}\"
