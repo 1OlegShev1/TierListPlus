@@ -216,33 +216,37 @@ export function ShareVoteButton({
         className="fixed inset-0 m-auto w-[min(calc(100vw-2rem),42rem)] rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface)] p-5 text-left text-[var(--fg-primary)] shadow-2xl shadow-black/60 backdrop:bg-[var(--bg-overlay)] focus:outline-none"
       >
         <div className="space-y-5">
-          <div className="rounded-xl border border-amber-500/20 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent p-4">
-            <p className="text-xs uppercase tracking-wider text-amber-200">Invite People</p>
+          <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-soft-contrast)] p-4">
+            <p className="text-xs uppercase tracking-wider text-[var(--accent-primary)]">
+              Invite People
+            </p>
             <h3 className="mt-1 text-xl font-semibold text-[var(--fg-primary)]">Share this vote</h3>
             <p className="mt-1 text-sm text-[var(--fg-muted)]">{statusMessage}</p>
           </div>
           {isPrivateSpaceVote && (
-            <div className="rounded-lg border border-sky-500/30 bg-sky-500/10 p-3">
-              <p className="text-xs uppercase tracking-wider text-sky-200">Private Space Access</p>
-              <p className="mt-1 text-sm text-sky-100">{privateSpacePrompt}</p>
+            <div className="rounded-lg border border-[var(--border-default)] bg-[var(--state-muted-bg)] p-3">
+              <p className="text-xs uppercase tracking-wider text-[var(--state-muted-fg)]">
+                Private Space Access
+              </p>
+              <p className="mt-1 text-sm text-[var(--fg-secondary)]">{privateSpacePrompt}</p>
               {canIncludeSpaceInvite ? (
-                <div className="mt-3 rounded-lg border border-sky-400/20 bg-[var(--bg-soft-contrast)] p-3">
+                <div className="mt-3 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elevated)] p-3">
                   <div className="flex items-start justify-between gap-3">
                     <div className="space-y-1">
-                      <p className="text-sm font-medium text-sky-100">
+                      <p className="text-sm font-medium text-[var(--fg-primary)]">
                         Include space invite in shared link
                       </p>
-                      <p className="text-xs text-sky-200/80">
+                      <p className="text-xs text-[var(--fg-muted)]">
                         Optional. Recipients can join the private space and continue to the vote in
                         one flow.
                       </p>
-                      <p className="text-xs text-sky-200/70">
+                      <p className="text-xs text-[var(--fg-subtle)]">
                         {includeSpaceInvite
                           ? "This shared link includes the active invite."
                           : "This shared link does not include the invite. Recipients must already be members or use a separate invite code."}
                       </p>
                       {formattedSpaceInviteExpiry ? (
-                        <p className="text-xs text-sky-200/70">
+                        <p className="text-xs text-[var(--fg-subtle)]">
                           Invite expires on {formattedSpaceInviteExpiry}.
                         </p>
                       ) : null}
@@ -273,7 +277,9 @@ export function ShareVoteButton({
                             ? "Loading..."
                             : "Generate invite"}
                       </Button>
-                      <p className="text-xs text-sky-200/70">No active space invite found yet.</p>
+                      <p className="text-xs text-[var(--fg-subtle)]">
+                        No active space invite found yet.
+                      </p>
                     </div>
                   )}
                 </div>
@@ -290,9 +296,9 @@ export function ShareVoteButton({
             </div>
 
             <div className="grid gap-4 sm:grid-cols-[minmax(0,16rem)_minmax(0,1fr)] sm:items-start">
-              <div className="rounded-lg border border-neutral-700 bg-white p-3 shadow-lg shadow-black/30">
+              <div className="rounded-lg border border-[var(--border-default)] bg-[var(--bg-elevated)] p-3 shadow-lg shadow-black/30">
                 {qrLoading ? (
-                  <p className="text-sm text-neutral-700">Preparing QR...</p>
+                  <p className="text-sm text-[var(--fg-muted)]">Preparing QR...</p>
                 ) : qrCodeDataUrl ? (
                   <img
                     src={qrCodeDataUrl}
@@ -300,7 +306,7 @@ export function ShareVoteButton({
                     className="w-full rounded"
                   />
                 ) : (
-                  <p className="text-sm text-neutral-700">QR code unavailable.</p>
+                  <p className="text-sm text-[var(--fg-muted)]">QR code unavailable.</p>
                 )}
               </div>
 

@@ -63,6 +63,8 @@ Root token definitions live in `src/app/globals.css`.
   - `src/components/spaces/SpaceInvitePanel.tsx` (completed)
   - `src/app/spaces/[spaceId]/page.tsx` (completed)
   - `src/app/sessions/[sessionId]/results/BrowsePanel.tsx` (completed)
+  - `src/components/dashboard/LinkedBrowsersSection.tsx` (completed)
+  - `src/app/sessions/[sessionId]/results/EveryoneResultsSection.tsx` (completed)
   - `src/components/tierlist/TierListBoard.tsx` (completed)
   - `src/components/shared/ImageUploader.tsx` (completed)
   - `src/components/templates/ListEditor.tsx` (completed)

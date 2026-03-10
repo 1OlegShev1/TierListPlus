@@ -65,15 +65,15 @@ export function EveryoneResultsSection({
       {detailsItem && (
         <div
           ref={detailsPanelRef}
-          className={`mt-6 overflow-hidden rounded-2xl border border-neutral-800 bg-neutral-950/60 transition-[opacity,transform,max-height,margin] duration-200 ease-out ${
+          className={`mt-6 overflow-hidden rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-soft-contrast)] transition-[opacity,transform,max-height,margin] duration-200 ease-out ${
             detailsOpen
               ? "max-h-[32rem] translate-y-0 opacity-100"
               : "pointer-events-none max-h-0 -translate-y-2 opacity-0"
           }`}
         >
-          <div className="border-b border-neutral-800 px-4 py-3">
+          <div className="border-b border-[var(--border-subtle)] px-4 py-3">
             <div className="flex items-center gap-3">
-              <div className="h-16 w-16 flex-shrink-0 overflow-hidden rounded-lg border border-neutral-800 sm:h-20 sm:w-20">
+              <div className="h-16 w-16 flex-shrink-0 overflow-hidden rounded-lg border border-[var(--border-subtle)] sm:h-20 sm:w-20">
                 <ItemArtwork
                   src={detailsItem.imageUrl}
                   alt={detailsItem.label}
@@ -83,10 +83,10 @@ export function EveryoneResultsSection({
                 />
               </div>
               <div className="min-w-0">
-                <h3 className="truncate text-base font-semibold text-neutral-100">
+                <h3 className="truncate text-base font-semibold text-[var(--fg-primary)]">
                   {detailsItem.label}
                 </h3>
-                <p className="mt-1 text-sm text-neutral-400">
+                <p className="mt-1 text-sm text-[var(--fg-muted)]">
                   Average score {detailsItem.averageScore.toFixed(2)} from {detailsItem.totalVotes}{" "}
                   vote{detailsItem.totalVotes !== 1 ? "s" : ""}
                 </p>
@@ -95,7 +95,7 @@ export function EveryoneResultsSection({
                 <button
                   type="button"
                   onClick={() => onOpenSource(detailsItem)}
-                  className="ml-2 inline-flex items-center gap-1.5 rounded-md border border-sky-500/70 bg-sky-500/10 px-2 py-1 text-xs font-medium text-sky-200 transition-colors hover:border-sky-400 hover:bg-sky-500/15 hover:text-sky-100 sm:ml-auto"
+                  className="ml-2 inline-flex items-center gap-1.5 rounded-md border border-[var(--accent-primary)]/70 bg-[var(--bg-soft-contrast)] px-2 py-1 text-xs font-medium text-[var(--accent-primary-hover)] transition-colors hover:border-[var(--accent-primary-hover)] hover:bg-[var(--bg-surface-hover)] hover:text-[var(--fg-primary)] sm:ml-auto"
                 >
                   <Link2 className="h-3.5 w-3.5" aria-hidden="true" />
                   Source
@@ -105,7 +105,9 @@ export function EveryoneResultsSection({
           </div>
           <div className="grid gap-6 px-4 py-4 lg:grid-cols-[minmax(0,1fr)_19rem]">
             <div>
-              <h4 className="mb-3 text-sm font-medium text-neutral-300">Placement breakdown</h4>
+              <h4 className="mb-3 text-sm font-medium text-[var(--fg-secondary)]">
+                Placement breakdown
+              </h4>
               <div className="space-y-2 px-4 py-3">
                 {consensusTiers.map((tier) => {
                   const count = detailsItem.voteDistribution[tier.key] ?? 0;
@@ -133,7 +135,7 @@ export function EveryoneResultsSection({
                         </span>
                       </span>
                       <div className="group relative">
-                        <div className="relative h-3 overflow-hidden rounded-full border border-neutral-700/80 bg-neutral-900">
+                        <div className="relative h-3 overflow-hidden rounded-full border border-[var(--border-default)]/80 bg-[var(--bg-elevated)]">
                           <div
                             aria-hidden="true"
                             className="absolute inset-0 opacity-30"
@@ -153,17 +155,17 @@ export function EveryoneResultsSection({
                           />
                         </div>
                         {!isTouchInput && tooltipPreview && (
-                          <div className="pointer-events-none absolute left-0 top-full z-10 mt-2 max-w-xs translate-y-1 rounded-md border border-neutral-700 bg-neutral-950 px-3 py-2 text-left text-xs text-neutral-200 opacity-0 shadow-lg transition-all duration-150 group-hover:translate-y-0 group-hover:opacity-100">
-                            <span className="block font-medium text-neutral-100">
+                          <div className="pointer-events-none absolute left-0 top-full z-10 mt-2 max-w-xs translate-y-1 rounded-md border border-[var(--border-default)] bg-[var(--bg-elevated)] px-3 py-2 text-left text-xs text-[var(--fg-secondary)] opacity-0 shadow-lg transition-all duration-150 group-hover:translate-y-0 group-hover:opacity-100">
+                            <span className="block font-medium text-[var(--fg-primary)]">
                               {tooltipPreview}
                             </span>
-                            <span className="mt-1 block text-[11px] text-neutral-400">
+                            <span className="mt-1 block text-[11px] text-[var(--fg-subtle)]">
                               {count} vote{count !== 1 ? "s" : ""} in {tier.label}
                             </span>
                           </div>
                         )}
                       </div>
-                      <span className="w-16 text-right text-xs tabular-nums text-neutral-400">
+                      <span className="w-16 text-right text-xs tabular-nums text-[var(--fg-subtle)]">
                         {count} · {pctRounded}%
                       </span>
                     </div>
