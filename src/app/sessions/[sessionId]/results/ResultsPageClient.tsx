@@ -29,12 +29,14 @@ function findConsensusItemById(tiers: ConsensusTier[] | null, itemId: string | n
 
 function ContextCard({ title, description }: { title: string; description: string }) {
   return (
-    <div className="mb-6 rounded-2xl border border-neutral-800 bg-neutral-950/70 px-4 py-4 sm:px-5">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">
+    <div className="mb-6 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-soft-contrast)] px-4 py-4 sm:px-5">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--fg-subtle)]">
         Showing
       </p>
-      <h2 className="mt-2 text-2xl font-semibold text-neutral-50 sm:text-[1.75rem]">{title}</h2>
-      <p className="mt-2 text-sm text-neutral-400 sm:text-base">{description}</p>
+      <h2 className="mt-2 text-2xl font-semibold text-[var(--fg-primary)] sm:text-[1.75rem]">
+        {title}
+      </h2>
+      <p className="mt-2 text-sm text-[var(--fg-muted)] sm:text-base">{description}</p>
     </div>
   );
 }
@@ -59,8 +61,8 @@ function ViewToggle({ sessionId, activeView }: { sessionId: string; activeView: 
           href={option.href}
           className={`rounded-full border px-4 py-2 text-sm font-medium transition-colors ${
             option.active
-              ? "border-amber-500 bg-amber-500/10 text-amber-300"
-              : "border-neutral-700 text-neutral-300 hover:border-amber-500 hover:text-amber-300"
+              ? "border-[var(--accent-primary)] bg-[var(--bg-soft-contrast)] text-[var(--accent-primary-hover)]"
+              : "border-[var(--border-default)] text-[var(--fg-secondary)] hover:border-[var(--accent-primary)] hover:text-[var(--accent-primary-hover)]"
           }`}
         >
           {option.label}
@@ -261,7 +263,7 @@ export function ResultsPageClient({
       {canViewIndividualBallots ? (
         <ViewToggle sessionId={sessionId} activeView={viewState.activeView} />
       ) : (
-        <div className="mb-6 rounded-lg border border-neutral-800 bg-neutral-900/40 px-3 py-2 text-xs text-neutral-400">
+        <div className="mb-6 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-soft-contrast)] px-3 py-2 text-xs text-[var(--fg-muted)]">
           Shared results view. Individual ballots are hidden.
         </div>
       )}

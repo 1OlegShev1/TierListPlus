@@ -77,6 +77,7 @@ Root token definitions live in `src/app/globals.css`.
   - `src/components/templates/StartVoteFromTemplateButton.tsx` (completed)
   - `src/components/spaces/CreateSpaceForm.tsx` (completed)
   - `src/app/sessions/[sessionId]/results/ResultsTierGrid.tsx` (completed)
+  - `src/app/sessions/[sessionId]/results/ResultsPageClient.tsx` (completed)
   - `src/components/shared/ImageUploader.tsx` (completed)
   - `src/components/templates/ListEditor.tsx` (completed)
   - `src/components/home/HomeContent.tsx` (completed)
