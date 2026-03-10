@@ -11,6 +11,9 @@ const mocks = vi.hoisted(() => ({
     participant: {
       create: vi.fn(),
     },
+    user: {
+      updateMany: vi.fn(),
+    },
   },
   getRequestAuth: vi.fn(),
   requireRequestAuth: vi.fn(),
@@ -37,6 +40,7 @@ describe("sessions collection route", () => {
     mocks.prisma.template.findUnique.mockReset();
     mocks.prisma.template.create.mockReset();
     mocks.prisma.participant.create.mockReset();
+    mocks.prisma.user.updateMany.mockReset();
     mocks.getRequestAuth.mockReset().mockResolvedValue(null);
     mocks.requireRequestAuth.mockReset().mockResolvedValue({ userId: "user_1" });
     mocks.generateJoinCode.mockReset().mockReturnValue("JOINCODE");
@@ -325,6 +329,7 @@ describe("sessions collection route", () => {
       id: "participant_1",
       nickname: "Host",
     });
+    mocks.prisma.user.updateMany.mockRejectedValueOnce(new Error("write failed"));
 
     const response = await POST(
       jsonRequest("POST", "https://example.test", {

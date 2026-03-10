@@ -59,6 +59,14 @@ export const POST = withHandler(async (request) => {
   });
 
   if (existingForUser) {
+    try {
+      await prisma.user.updateMany({
+        where: { id: userId },
+        data: { nickname: existingForUser.nickname },
+      });
+    } catch {
+      // Suggestion persistence is best-effort only.
+    }
     return NextResponse.json({
       sessionId: session.id,
       participantId: existingForUser.id,
@@ -119,6 +127,15 @@ export const POST = withHandler(async (request) => {
           return concurrentParticipant;
         }
       })();
+
+  try {
+    await prisma.user.updateMany({
+      where: { id: userId },
+      data: { nickname: participant.nickname },
+    });
+  } catch {
+    // Suggestion persistence is best-effort only.
+  }
 
   return NextResponse.json({
     sessionId: session.id,

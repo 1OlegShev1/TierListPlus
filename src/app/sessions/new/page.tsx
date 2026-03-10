@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { NewVoteForm } from "@/components/sessions/NewVoteForm";
 import { getCookieAuth } from "@/lib/auth";
+import { getSuggestedNicknameForUser } from "@/lib/nickname-suggestion";
 import { prisma } from "@/lib/prisma";
 import { canReadSpace, getSpaceAccessForUser } from "@/lib/space";
 import { getTemplateVisibilityWhere } from "@/lib/template-access";
@@ -47,6 +48,7 @@ export default async function NewVotePage({
     accessSpaceId = spaceAccess.id;
     accessSpaceName = spaceAccess.name;
   }
+  const suggestedNickname = await getSuggestedNicknameForUser(userId);
 
   const templates = await prisma.template.findMany({
     where: accessSpaceId
@@ -130,6 +132,7 @@ export default async function NewVotePage({
     <NewVoteForm
       spaceId={accessSpaceId}
       spaceName={accessSpaceName}
+      initialNickname={suggestedNickname}
       initialLists={initialLists}
       initialSelectedListId={preselectedListId}
       initialSelectedListDetails={initialSelectedListDetails}

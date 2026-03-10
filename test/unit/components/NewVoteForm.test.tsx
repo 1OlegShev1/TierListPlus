@@ -98,6 +98,21 @@ describe("NewVoteForm", () => {
     });
   });
 
+  it("prefills nickname from initial suggestion", () => {
+    render(
+      <NewVoteForm
+        initialNickname="LastUsedNick"
+        initialLists={initialLists}
+        initialSelectedListId="template_1"
+        initialSelectedListDetails={initialSelectedListDetails}
+      />,
+    );
+
+    expect((screen.getByPlaceholderText("e.g., Alex") as HTMLInputElement).value).toBe(
+      "LastUsedNick",
+    );
+  });
+
   it("ignores repeated submits while create is already in flight", async () => {
     let resolveCreate: ((value: { id: string; participantId: string; participantNickname: string }) => void) | undefined;
     mocks.apiPost.mockReturnValue(

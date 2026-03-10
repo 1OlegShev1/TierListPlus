@@ -13,12 +13,14 @@ interface StartVoteFromTemplateButtonProps {
   templateId: string;
   templateName: string;
   spaceId?: string | null;
+  initialNickname?: string | null;
 }
 
 export function StartVoteFromTemplateButton({
   templateId,
   templateName,
   spaceId = null,
+  initialNickname = null,
 }: StartVoteFromTemplateButtonProps) {
   const router = useRouter();
   const dialogRef = useRef<HTMLDialogElement>(null);
@@ -26,7 +28,7 @@ export function StartVoteFromTemplateButton({
   const { userId, isLoading: userLoading, error: userError, retry: retryUser } = useUser();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
-  const [nickname, setNickname] = useState("");
+  const [nickname, setNickname] = useState(initialNickname ?? "");
   const [isPrivate, setIsPrivate] = useState(true);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState("");

@@ -8,6 +8,7 @@ import { StartVoteFromTemplateButton } from "@/components/templates/StartVoteFro
 import { buttonVariants } from "@/components/ui/Button";
 import { canMutateSpaceResource } from "@/lib/api-helpers";
 import { getCookieAuth } from "@/lib/auth";
+import { getSuggestedNicknameForUser } from "@/lib/nickname-suggestion";
 import { prisma } from "@/lib/prisma";
 import { canAccessTemplate, isTemplateOwner } from "@/lib/template-access";
 
@@ -50,6 +51,7 @@ export default async function ListDetailPage({
   } else if (!canAccessTemplate(list, userId)) {
     notFound();
   }
+  const suggestedNickname = await getSuggestedNicknameForUser(userId);
 
   const owner = isTemplateOwner(list, userId);
   const isSpaceOwner =
@@ -94,6 +96,7 @@ export default async function ListDetailPage({
             templateId={templateId}
             templateName={list.name}
             spaceId={list.spaceId}
+            initialNickname={suggestedNickname}
           />
           {canManage && (
             <DeleteListButton listId={templateId} creatorId={list.creatorId} canDeleteOverride />

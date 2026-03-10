@@ -212,6 +212,14 @@ export async function createSession(input: CreateSessionInput) {
     const participant = await prisma.participant.create({
       data: { sessionId: session.id, nickname, userId: creatorId },
     });
+    try {
+      await prisma.user.updateMany({
+        where: { id: creatorId },
+        data: { nickname: participant.nickname },
+      });
+    } catch {
+      // Suggestion persistence is best-effort only.
+    }
     participantId = participant.id;
     participantNickname = participant.nickname;
   }

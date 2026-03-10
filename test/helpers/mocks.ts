@@ -20,6 +20,10 @@ export function createPrismaMock() {
       create: vi.fn(),
       update: vi.fn(),
     },
+    user: {
+      findUnique: vi.fn(),
+      updateMany: vi.fn(),
+    },
     tierVote: {
       findMany: vi.fn(),
       deleteMany: vi.fn(),

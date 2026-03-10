@@ -24,6 +24,7 @@ interface SelectedListDetails {
 export function NewVoteForm({
   spaceId = null,
   spaceName = null,
+  initialNickname = null,
   initialLists = [],
   initialSelectedListId = null,
   initialSelectedListDetails = null,
@@ -31,6 +32,7 @@ export function NewVoteForm({
 }: {
   spaceId?: string | null;
   spaceName?: string | null;
+  initialNickname?: string | null;
   initialLists?: ListSummary[];
   initialSelectedListId?: string | null;
   initialSelectedListDetails?: SelectedListDetails | null;
@@ -54,7 +56,7 @@ export function NewVoteForm({
   const [step, setStep] = useState<"pick" | "details">(initialSelectedListId ? "details" : "pick");
   const [listQuery, setListQuery] = useState("");
   const [name, setName] = useState("");
-  const [nickname, setNickname] = useState("");
+  const [nickname, setNickname] = useState(initialNickname ?? "");
   const [isPrivate, setIsPrivate] = useState(true);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState("");

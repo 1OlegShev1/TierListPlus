@@ -8,6 +8,9 @@ const mocks = vi.hoisted(() => ({
       findMany: vi.fn(),
       findUnique: vi.fn(),
     },
+    user: {
+      findUnique: vi.fn(),
+    },
   },
 }));
 
@@ -61,6 +64,7 @@ describe("space create page access", () => {
     mocks.canReadSpace.mockReset();
     mocks.prisma.template.findMany.mockReset().mockResolvedValue([]);
     mocks.prisma.template.findUnique.mockReset().mockResolvedValue(null);
+    mocks.prisma.user.findUnique.mockReset().mockResolvedValue(null);
   });
 
   it("redirects open-space non-members from new list page to the space page", async () => {

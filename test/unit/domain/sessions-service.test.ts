@@ -12,6 +12,9 @@ const mocks = vi.hoisted(() => ({
     participant: {
       create: vi.fn(),
     },
+    user: {
+      updateMany: vi.fn(),
+    },
   },
 }));
 
@@ -41,6 +44,7 @@ describe("sessions service", () => {
     mocks.prisma.template.findUnique.mockReset();
     mocks.prisma.template.create.mockReset();
     mocks.prisma.participant.create.mockReset();
+    mocks.prisma.user.updateMany.mockReset();
   });
 
   it("blocks private-space session reads for non-members", async () => {
