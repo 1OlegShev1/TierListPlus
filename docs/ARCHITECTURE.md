@@ -191,6 +191,7 @@ No bracket trees or bracket votes are persisted server-side; bracket assist is l
   - `POST` stores `sourceTemplateId` when a visible template was used as the starting point
 - `POST /api/sessions/join`
   - Enforces `OPEN` and lock rules (`isLocked`)
+  - Private-space non-members receive structured `403` (`code: SPACE_MEMBERSHIP_REQUIRED`, plus `spaceId/spaceName`)
 - `GET/PATCH/DELETE /api/sessions/[sessionId]`
   - `GET` includes participant completion summary plus `templateIsHidden`
   - `PATCH/DELETE` owner-only
@@ -254,8 +255,16 @@ Key paths:
   - privacy, lock, live item editing, template publish/copy, vote, and session controls
 - `src/components/spaces/SpaceInvitePanel.tsx`
   - private invite share modal (copy code/link + QR)
+- `src/components/sessions/ShareVoteButton.tsx`
+  - vote share is available to vote creator or space owner
+  - private-space vote share supports optional `spaceInvite` embedding in join link (space owner only)
 - `src/components/spaces/SpaceActionPanel.tsx`
-  - supports `joinCode` query prefill flow from `/spaces?joinCode=...`
+  - supports guarded invite prefill flow from `/spaces?joinCode=...&expectedSpaceId=...`
+- `src/app/sessions/join/JoinVotePageClient.tsx`
+  - supports one-step continuation when vote link includes `spaceInvite`
+  - passes `expectedSpaceId` during invite joins to prevent cross-space membership side effects
+  - open votes: `join space -> retry vote join`
+  - closed private-space votes for non-members: `join space -> open results`
 
 ## Run and Verify
 

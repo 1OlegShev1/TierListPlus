@@ -53,6 +53,19 @@ describe("JoinSpaceByCodeForm", () => {
     expect(mocks.push).toHaveBeenCalledWith("/spaces/space_1");
   });
 
+  it("forwards expectedSpaceId when provided", async () => {
+    render(<JoinSpaceByCodeForm initialCode="abC123" initialExpectedSpaceId="space_1" />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Join" }));
+
+    await waitFor(() => {
+      expect(mocks.apiPost).toHaveBeenCalledWith("/api/spaces/join", {
+        code: "ABC123",
+        expectedSpaceId: "space_1",
+      });
+    });
+  });
+
   it("updates the input value when initialCode changes", () => {
     const { rerender } = render(<JoinSpaceByCodeForm initialCode="abc" />);
 
@@ -63,4 +76,3 @@ describe("JoinSpaceByCodeForm", () => {
     expect(input.value).toBe("XYZ9");
   });
 });
-

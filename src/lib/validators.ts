@@ -129,4 +129,5 @@ export const updateSpaceSchema = z.object({
 
 export const joinSpaceSchema = z.object({
   code: z.string().trim().min(1).max(30),
+  expectedSpaceId: z.string().trim().min(1).optional(),
 });

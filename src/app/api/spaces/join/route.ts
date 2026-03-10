@@ -6,7 +6,7 @@ import { joinSpaceSchema } from "@/lib/validators";
 
 export const POST = withHandler(async (request) => {
   const { userId } = await requireRequestAuth(request);
-  const { code } = await validateBody(request, joinSpaceSchema);
-  const result = await joinPrivateSpaceByInviteCode(userId, code);
+  const { code, expectedSpaceId } = await validateBody(request, joinSpaceSchema);
+  const result = await joinPrivateSpaceByInviteCode(userId, code, expectedSpaceId);
   return NextResponse.json(result);
 });

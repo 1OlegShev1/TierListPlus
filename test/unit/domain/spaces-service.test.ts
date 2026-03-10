@@ -10,10 +10,12 @@ const mocks = vi.hoisted(() => ({
     spaceMember: {
       findMany: vi.fn(),
       findUnique: vi.fn(),
+      create: vi.fn(),
       delete: vi.fn(),
     },
     spaceInvite: {
       findFirst: vi.fn(),
+      findUnique: vi.fn(),
     },
     template: {
       findMany: vi.fn(),
@@ -49,8 +51,10 @@ describe("spaces service", () => {
     mocks.prisma.space.update.mockReset();
     mocks.prisma.spaceMember.findMany.mockReset();
     mocks.prisma.spaceMember.findUnique.mockReset();
+    mocks.prisma.spaceMember.create.mockReset();
     mocks.prisma.spaceMember.delete.mockReset();
     mocks.prisma.spaceInvite.findFirst.mockReset();
+    mocks.prisma.spaceInvite.findUnique.mockReset();
     mocks.prisma.template.findMany.mockReset();
     mocks.prisma.template.create.mockReset();
   });
@@ -558,5 +562,32 @@ describe("spaces service", () => {
     expect(mocks.prisma.spaceMember.delete).toHaveBeenCalledWith({
       where: { id: "membership_target" },
     });
+  });
+
+  it("rejects invite joins when expectedSpaceId does not match before creating membership", async () => {
+    mocks.prisma.spaceInvite.findUnique.mockResolvedValue({
+      id: "invite_1",
+      code: "ABC123",
+      spaceId: "space_actual",
+      revokedAt: null,
+      expiresAt: new Date("2099-01-01T00:00:00.000Z"),
+      space: {
+        id: "space_actual",
+        visibility: "PRIVATE",
+      },
+    });
+
+    const { joinPrivateSpaceByInviteCode } = await import("@/domain/spaces/service");
+    await expect(
+      joinPrivateSpaceByInviteCode("user_1", "ABC123", "space_expected"),
+    ).rejects.toEqual(
+      expect.objectContaining({
+        status: 400,
+        details: "This invite does not match the space for this vote",
+      }),
+    );
+
+    expect(mocks.prisma.spaceMember.findUnique).not.toHaveBeenCalled();
+    expect(mocks.prisma.spaceMember.create).not.toHaveBeenCalled();
   });
 });

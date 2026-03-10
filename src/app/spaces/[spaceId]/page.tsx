@@ -310,6 +310,9 @@ export default async function SpaceDetailPage({
                         creatorId={vote.creatorId}
                         status={vote.status}
                         isLocked={vote.isLocked}
+                        spaceVisibility={space.visibility}
+                        spaceId={space.id}
+                        canShareSpaceInvite={space.isOwner}
                         iconOnly
                       />
                       <Link href={`/sessions/${vote.id}`} className={buttonVariants.secondary}>

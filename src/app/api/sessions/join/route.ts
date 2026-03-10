@@ -1,6 +1,6 @@
 import { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
-import { badRequest, forbidden, notFound, validateBody, withHandler } from "@/lib/api-helpers";
+import { badRequest, notFound, validateBody, withHandler } from "@/lib/api-helpers";
 import { requireRequestAuth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { joinSessionSchema } from "@/lib/validators";
@@ -19,6 +19,8 @@ export const POST = withHandler(async (request) => {
       isLocked: true,
       space: {
         select: {
+          id: true,
+          name: true,
           visibility: true,
           members: {
             where: { userId },
@@ -36,7 +38,16 @@ export const POST = withHandler(async (request) => {
     session.space?.visibility === "PRIVATE" &&
     (!Array.isArray(session.space.members) || session.space.members.length === 0)
   ) {
-    forbidden("Only members of this private space can join this vote");
+    return NextResponse.json(
+      {
+        error: "Only members of this private space can join this vote",
+        code: "SPACE_MEMBERSHIP_REQUIRED",
+        spaceId: session.space.id,
+        spaceName: session.space.name,
+        spaceVisibility: session.space.visibility,
+      },
+      { status: 403 },
+    );
   }
 
   const existingForUser = await prisma.participant.findFirst({

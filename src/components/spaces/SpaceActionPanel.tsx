@@ -8,9 +8,11 @@ import { ChevronDownIcon } from "@/components/ui/icons";
 export function SpaceActionPanel({
   defaultOpen = false,
   defaultJoinCode = "",
+  defaultExpectedSpaceId = "",
 }: {
   defaultOpen?: boolean;
   defaultJoinCode?: string;
+  defaultExpectedSpaceId?: string;
 }) {
   const [open, setOpen] = useState(defaultOpen);
 
@@ -48,7 +50,10 @@ export function SpaceActionPanel({
       {open ? (
         <div id="space-actions-content" className="mt-4 grid gap-4 lg:grid-cols-2">
           <CreateSpaceForm />
-          <JoinSpaceByCodeForm initialCode={defaultJoinCode} />
+          <JoinSpaceByCodeForm
+            initialCode={defaultJoinCode}
+            initialExpectedSpaceId={defaultExpectedSpaceId}
+          />
         </div>
       ) : null}
     </section>

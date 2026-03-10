@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { Loading } from "@/components/ui/Loading";
+import { getCookieAuth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { JoinVotePageClient } from "./JoinVotePageClient";
 
@@ -23,6 +24,14 @@ function normalizeJoinCode(value: string | null): string | null {
   const trimmed = value.trim();
   if (!trimmed) return null;
   return trimmed.toUpperCase();
+}
+
+interface JoinSessionContext {
+  id: string;
+  status: string;
+  spaceId: string | null;
+  spaceName: string | null;
+  spaceVisibility: "OPEN" | "PRIVATE" | null;
 }
 
 function buildJoinMetadata(
@@ -118,20 +127,60 @@ export default async function JoinVotePage({
 }) {
   const resolvedSearchParams = (await searchParams) ?? {};
   const joinCode = normalizeJoinCode(firstParamValue(resolvedSearchParams.code));
+  const spaceInviteCode = normalizeJoinCode(firstParamValue(resolvedSearchParams.spaceInvite));
+  let initialSession: JoinSessionContext | null = null;
 
   if (joinCode) {
+    const cookieStore = await cookies();
+    const auth = await getCookieAuth(cookieStore);
+    const requestUserId = auth?.userId ?? null;
+
     const vote = await prisma.session.findUnique({
       where: { joinCode },
-      select: { id: true, status: true },
+      select: {
+        id: true,
+        status: true,
+        space: {
+          select: {
+            id: true,
+            name: true,
+            visibility: true,
+          },
+        },
+      },
     });
-    if (vote && vote.status !== "OPEN") {
+
+    if (vote) {
+      initialSession = {
+        id: vote.id,
+        status: vote.status,
+        spaceId: vote.space?.id ?? null,
+        spaceName: vote.space?.name ?? null,
+        spaceVisibility: vote.space?.visibility ?? null,
+      };
+    }
+
+    const isClosedVote = !!vote && vote.status !== "OPEN";
+    const isClosedPrivateSpaceVote = isClosedVote && vote?.space?.visibility === "PRIVATE";
+    let isSpaceMember = false;
+    if (isClosedPrivateSpaceVote && requestUserId && vote?.space?.id) {
+      const membership = await prisma.spaceMember.findUnique({
+        where: { spaceId_userId: { spaceId: vote.space.id, userId: requestUserId } },
+        select: { id: true },
+      });
+      isSpaceMember = !!membership;
+    }
+    const shouldAllowJoinSpaceThenContinue =
+      isClosedPrivateSpaceVote && !!spaceInviteCode && !isSpaceMember;
+
+    if (isClosedVote && !shouldAllowJoinSpaceThenContinue) {
       redirect(`/sessions/${vote.id}/results?code=${encodeURIComponent(joinCode)}`);
     }
   }
 
   return (
     <Suspense fallback={<Loading />}>
-      <JoinVotePageClient />
+      <JoinVotePageClient initialSession={initialSession} />
     </Suspense>
   );
 }

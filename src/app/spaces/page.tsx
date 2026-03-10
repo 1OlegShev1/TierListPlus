@@ -22,6 +22,11 @@ export default async function SpacesPage({
   const joinCodeParam =
     typeof resolvedSearchParams.joinCode === "string" ? resolvedSearchParams.joinCode : "";
   const joinCode = joinCodeParam.trim().toUpperCase();
+  const expectedSpaceIdParam =
+    typeof resolvedSearchParams.expectedSpaceId === "string"
+      ? resolvedSearchParams.expectedSpaceId
+      : "";
+  const expectedSpaceId = expectedSpaceIdParam.trim();
   const cookieStore = await cookies();
   const auth = await getCookieAuth(cookieStore);
   const userId = auth?.userId ?? null;
@@ -128,8 +133,9 @@ export default async function SpacesPage({
       </section>
 
       <SpaceActionPanel
-        defaultOpen={mySpaces.length === 0 || joinCode.length > 0}
+        defaultOpen={mySpaces.length === 0 || joinCode.length > 0 || expectedSpaceId.length > 0}
         defaultJoinCode={joinCode}
+        defaultExpectedSpaceId={expectedSpaceId}
       />
     </div>
   );

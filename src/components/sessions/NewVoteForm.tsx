@@ -314,6 +314,9 @@ export function NewVoteForm({
               <p className="text-sm text-neutral-500">
                 Off by default. People can still join private votes with the code.
               </p>
+              <p className="text-xs text-neutral-500">
+                Share only content you are allowed to publish and distribute.
+              </p>
             </div>
           </label>
         )}

@@ -12,8 +12,11 @@ vi.mock("@/components/spaces/CreateSpaceForm", () => ({
 }));
 
 vi.mock("@/components/spaces/JoinSpaceByCodeForm", () => ({
-  JoinSpaceByCodeForm: (props: { initialCode?: string }) => {
-    mocks.joinForm(props.initialCode ?? "");
+  JoinSpaceByCodeForm: (props: { initialCode?: string; initialExpectedSpaceId?: string }) => {
+    mocks.joinForm({
+      initialCode: props.initialCode ?? "",
+      initialExpectedSpaceId: props.initialExpectedSpaceId ?? "",
+    });
     return <div>JoinForm</div>;
   },
 }));
@@ -24,15 +27,26 @@ describe("SpaceActionPanel", () => {
   });
 
   it("opens when defaultOpen becomes true after initial render", () => {
-    const { rerender } = render(<SpaceActionPanel defaultOpen={false} defaultJoinCode="" />);
+    const { rerender } = render(
+      <SpaceActionPanel defaultOpen={false} defaultJoinCode="" defaultExpectedSpaceId="" />,
+    );
 
     expect(screen.queryByText("CreateForm")).toBeNull();
     expect(screen.queryByText("JoinForm")).toBeNull();
 
-    rerender(<SpaceActionPanel defaultOpen={true} defaultJoinCode="AB12" />);
+    rerender(
+      <SpaceActionPanel
+        defaultOpen={true}
+        defaultJoinCode="AB12"
+        defaultExpectedSpaceId="space_1"
+      />,
+    );
 
     expect(screen.getByText("CreateForm")).toBeTruthy();
     expect(screen.getByText("JoinForm")).toBeTruthy();
-    expect(mocks.joinForm).toHaveBeenCalledWith("AB12");
+    expect(mocks.joinForm).toHaveBeenCalledWith({
+      initialCode: "AB12",
+      initialExpectedSpaceId: "space_1",
+    });
   });
 });

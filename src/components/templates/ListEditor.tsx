@@ -298,6 +298,9 @@ export function ListEditor({
               <p className="text-sm text-neutral-500">
                 Off by default. Private lists are only visible to you.
               </p>
+              <p className="text-xs text-neutral-500">
+                If you publish, you confirm you have rights to the content and links you share.
+              </p>
             </div>
           </label>
         )}

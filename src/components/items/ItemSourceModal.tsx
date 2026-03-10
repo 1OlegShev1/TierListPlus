@@ -653,6 +653,10 @@ export function ItemSourceModal({
                 className="w-full"
               />
             </label>
+            <p className="text-xs text-neutral-500">
+              External previews may contact third-party platforms and are subject to their terms and
+              privacy policies.
+            </p>
 
             {isCreateFromUrlMode && (
               <label className="block space-y-2">

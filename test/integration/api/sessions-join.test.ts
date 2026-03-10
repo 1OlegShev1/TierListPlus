@@ -60,6 +60,8 @@ describe("sessions join route", () => {
     mocks.prisma.session.findUnique.mockResolvedValueOnce(
       makeSession({
         space: {
+          id: "space_private_1",
+          name: "Anime Club",
           visibility: "PRIVATE",
           members: [],
         },
@@ -73,6 +75,10 @@ describe("sessions join route", () => {
     expect(response.status).toBe(403);
     await expect(response.json()).resolves.toEqual({
       error: "Only members of this private space can join this vote",
+      code: "SPACE_MEMBERSHIP_REQUIRED",
+      spaceId: "space_private_1",
+      spaceName: "Anime Club",
+      spaceVisibility: "PRIVATE",
     });
 
     mocks.prisma.session.findUnique.mockResolvedValueOnce(

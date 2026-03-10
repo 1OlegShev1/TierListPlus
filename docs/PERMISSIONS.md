@@ -136,6 +136,7 @@ Resource: join flow + vote submissions
   - Session must be `OPEN`
   - If `isLocked`, new participants are blocked
   - Private space sessions require space membership
+  - For private-space non-members, API returns `403` with `code=SPACE_MEMBERSHIP_REQUIRED` and space metadata (`spaceId`, `spaceName`)
 - Submit/update votes:
   - Participant ownership is required (`requireParticipantOwner`)
   - Session must be open (`requireOpenSession`)
@@ -170,13 +171,22 @@ Related files:
 ## Share-Link Behavior
 
 Share UI:
-- Owner-only action from vote cards
-- Always shares join-code URL: `/sessions/join?code=<JOIN_CODE>`
-- QR encodes the same URL (transport convenience only)
+- Vote creator or space owner action from vote cards
+- Shares join-code URL: `/sessions/join?code=<JOIN_CODE>`
+- For private-space votes, owner can optionally include active space invite in the same link:
+  - `/sessions/join?code=<JOIN_CODE>&spaceInvite=<INVITE_CODE>`
+- QR encodes the same URL currently shown in the modal
 
 Landing behavior:
 - If target session is open: join page flow
 - If target session is closed/non-open: redirect to `/sessions/{id}/results?code=<JOIN_CODE>`
+  - Exception: private-space closed links with `spaceInvite` and a non-member viewer stay on join page for a "join space then continue" flow
+- If join fails with `SPACE_MEMBERSHIP_REQUIRED` and `spaceInvite` is present:
+  - Join page offers “Join space and continue”
+  - Client joins space via `/api/spaces/join`, passing `expectedSpaceId` from vote context
+  - API rejects mismatched invite/space pairs before membership changes
+  - On success, client retries vote join
+  - For closed private-space links, client joins space then routes directly to results
 
 Security model:
 - The URL itself does not grant global bypass
@@ -192,8 +202,12 @@ Related files:
 
 Share UI:
 - Space owner can generate/rotate private invite code
-- Owner can open share modal, copy code, copy full link, and share QR
+- Vote creator or space owner can open vote share modal, copy code, copy full link, and share QR
 - Full link format: `/spaces?joinCode=<INVITE_CODE>`
+- Guarded vote-redirect flow may append `expectedSpaceId`:
+  - `/spaces?joinCode=<INVITE_CODE>&expectedSpaceId=<SPACE_ID>`
+  - Join requests carrying `expectedSpaceId` are rejected if invite belongs to another space
+- In private-space vote share modal, only space owner can optionally include active space invite in vote links
 
 Landing behavior:
 - `/spaces` reads `joinCode` query param
@@ -227,6 +241,7 @@ Related files:
 | Space OPEN | (Space rule) | OPEN/CLOSED | Anyone | Yes | Join rules still apply | Yes | Yes |
 | Space PRIVATE | (Space rule) | OPEN/CLOSED | Member | Yes | Yes | Yes | Yes |
 | Space PRIVATE | (Space rule) | OPEN/CLOSED | Non-member | No | No | No | No |
+| Space PRIVATE | (Space rule) | OPEN/CLOSED | Invite holder (not yet member) | No | Yes (join space first) | After joining | After joining |
 
 ### Templates (Lists)
 

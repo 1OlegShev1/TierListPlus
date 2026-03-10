@@ -24,7 +24,11 @@ vi.mock("@/lib/prisma", () => ({
 }));
 
 vi.mock("@/components/spaces/SpaceActionPanel", () => ({
-  SpaceActionPanel: (props: { defaultOpen?: boolean; defaultJoinCode?: string }) => {
+  SpaceActionPanel: (props: {
+    defaultOpen?: boolean;
+    defaultJoinCode?: string;
+    defaultExpectedSpaceId?: string;
+  }) => {
     mocks.spaceActionPanel(props);
     return null;
   },
@@ -32,13 +36,21 @@ vi.mock("@/components/spaces/SpaceActionPanel", () => ({
 
 import SpacesPage from "@/app/spaces/page";
 
-function findSpaceActionPanelProps(node: unknown): { defaultOpen?: boolean; defaultJoinCode?: string } | null {
+function findSpaceActionPanelProps(node: unknown): {
+  defaultOpen?: boolean;
+  defaultJoinCode?: string;
+  defaultExpectedSpaceId?: string;
+} | null {
   if (!React.isValidElement(node)) return null;
   const typedNode = node as React.ReactElement<{ children?: React.ReactNode }>;
   if (typedNode.type && typeof typedNode.type === "function") {
     const name = (typedNode.type as { name?: string }).name;
     if (name === "SpaceActionPanel") {
-      return typedNode.props as { defaultOpen?: boolean; defaultJoinCode?: string };
+      return typedNode.props as {
+        defaultOpen?: boolean;
+        defaultJoinCode?: string;
+        defaultExpectedSpaceId?: string;
+      };
     }
   }
 
@@ -78,6 +90,20 @@ describe("spaces page join code wiring", () => {
     expect(props).toEqual({
       defaultOpen: true,
       defaultJoinCode: "AB12C",
+      defaultExpectedSpaceId: "",
+    });
+  });
+
+  it("passes expectedSpaceId for guarded invite joins", async () => {
+    const tree = await SpacesPage({
+      searchParams: { joinCode: "ab12c", expectedSpaceId: "space_1" },
+    });
+    const props = findSpaceActionPanelProps(tree);
+
+    expect(props).toEqual({
+      defaultOpen: true,
+      defaultJoinCode: "AB12C",
+      defaultExpectedSpaceId: "space_1",
     });
   });
 
@@ -88,7 +114,7 @@ describe("spaces page join code wiring", () => {
     expect(props).toEqual({
       defaultOpen: false,
       defaultJoinCode: "",
+      defaultExpectedSpaceId: "",
     });
   });
 });
-

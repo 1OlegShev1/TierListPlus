@@ -8,16 +8,27 @@ import { Input } from "@/components/ui/Input";
 import { useUser } from "@/hooks/useUser";
 import { apiPost, getErrorMessage } from "@/lib/api-client";
 
-export function JoinSpaceByCodeForm({ initialCode = "" }: { initialCode?: string }) {
+export function JoinSpaceByCodeForm({
+  initialCode = "",
+  initialExpectedSpaceId = "",
+}: {
+  initialCode?: string;
+  initialExpectedSpaceId?: string;
+}) {
   const router = useRouter();
   const { userId, isLoading: userLoading } = useUser();
   const [code, setCode] = useState(initialCode.toUpperCase());
+  const [expectedSpaceId, setExpectedSpaceId] = useState(initialExpectedSpaceId.trim());
   const [joining, setJoining] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     setCode(initialCode.toUpperCase());
   }, [initialCode]);
+
+  useEffect(() => {
+    setExpectedSpaceId(initialExpectedSpaceId.trim());
+  }, [initialExpectedSpaceId]);
 
   const canJoin = !!userId && !userLoading && !joining && code.trim().length > 0;
 
@@ -28,6 +39,7 @@ export function JoinSpaceByCodeForm({ initialCode = "" }: { initialCode?: string
     try {
       const result = await apiPost<{ spaceId: string }>("/api/spaces/join", {
         code: code.trim().toUpperCase(),
+        ...(expectedSpaceId ? { expectedSpaceId } : {}),
       });
       router.push(`/spaces/${result.spaceId}`);
       router.refresh();

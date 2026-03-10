@@ -93,6 +93,29 @@ describe("spaces api routes", () => {
     expect(mocks.spacesService.joinPrivateSpaceByInviteCode).toHaveBeenCalledWith(
       "user_1",
       "abc123",
+      undefined,
+    );
+  });
+
+  it("forwards expectedSpaceId for guarded invite joins", async () => {
+    mocks.spacesService.joinPrivateSpaceByInviteCode.mockResolvedValue({
+      spaceId: "space_1",
+      joined: true,
+    });
+
+    const response = await joinByCode(
+      jsonRequest("POST", "https://example.test", {
+        code: "abc123",
+        expectedSpaceId: "space_1",
+      }),
+      routeCtx({}),
+    );
+
+    expect(response.status).toBe(200);
+    expect(mocks.spacesService.joinPrivateSpaceByInviteCode).toHaveBeenCalledWith(
+      "user_1",
+      "abc123",
+      "space_1",
     );
   });
 

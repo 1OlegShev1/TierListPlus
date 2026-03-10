@@ -4,16 +4,19 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { SpaceInvitePanel } from "@/components/spaces/SpaceInvitePanel";
 
 const mocks = vi.hoisted(() => ({
-  apiFetch: vi.fn(),
-  apiPost: vi.fn(),
+  fetchPrivateSpaceInvite: vi.fn(),
+  rotatePrivateSpaceInvite: vi.fn(),
   getErrorMessage: vi.fn((_error: unknown, fallback?: string) => fallback ?? "Request failed"),
   toDataURL: vi.fn(),
 }));
 
 vi.mock("@/lib/api-client", () => ({
-  apiFetch: mocks.apiFetch,
-  apiPost: mocks.apiPost,
   getErrorMessage: mocks.getErrorMessage,
+}));
+
+vi.mock("@/lib/space-invite-client", () => ({
+  fetchPrivateSpaceInvite: mocks.fetchPrivateSpaceInvite,
+  rotatePrivateSpaceInvite: mocks.rotatePrivateSpaceInvite,
 }));
 
 vi.mock("qrcode", () => ({
@@ -35,10 +38,11 @@ describe("SpaceInvitePanel", () => {
   });
 
   beforeEach(() => {
-    mocks.apiFetch.mockReset().mockResolvedValue({
-      invite: { code: "ABCD1234", expiresAt: "2026-03-20T00:00:00.000Z" },
+    mocks.fetchPrivateSpaceInvite.mockReset().mockResolvedValue({
+      code: "ABCD1234",
+      expiresAt: "2026-03-20T00:00:00.000Z",
     });
-    mocks.apiPost.mockReset().mockResolvedValue({
+    mocks.rotatePrivateSpaceInvite.mockReset().mockResolvedValue({
       code: "ZXCV9999",
       expiresAt: "2026-03-21T00:00:00.000Z",
     });
@@ -87,9 +91,14 @@ describe("SpaceInvitePanel", () => {
     fireEvent.click(screen.getByRole("button", { name: "Rotate code" }));
 
     await waitFor(() => {
-      expect(mocks.apiPost).toHaveBeenCalledWith("/api/spaces/space_1/invite", {});
+      expect(mocks.rotatePrivateSpaceInvite).toHaveBeenCalledWith("space_1");
     });
     const codeNodes = await screen.findAllByText("ZXCV9999");
     expect(codeNodes.length).toBeGreaterThan(0);
+    expect(
+      screen.getByText(
+        /Invite rotated\. People can join this space until .* Previous invite links were revoked\./,
+      ),
+    ).toBeTruthy();
   });
 });

@@ -4,18 +4,20 @@ import { Share2 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { ErrorMessage } from "@/components/ui/ErrorMessage";
-import { apiFetch, apiPost, getErrorMessage } from "@/lib/api-client";
-
-interface InvitePayload {
-  code: string;
-  expiresAt: string;
-}
+import { getErrorMessage } from "@/lib/api-client";
+import { copyTextWithFallback, generateQrDataUrl } from "@/lib/share-utils";
+import {
+  fetchPrivateSpaceInvite,
+  type PrivateSpaceInvitePayload,
+  rotatePrivateSpaceInvite,
+} from "@/lib/space-invite-client";
 
 export function SpaceInvitePanel({ spaceId }: { spaceId: string }) {
-  const [invite, setInvite] = useState<InvitePayload | null>(null);
+  const [invite, setInvite] = useState<PrivateSpaceInvitePayload | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
   const [qrCodeDataUrl, setQrCodeDataUrl] = useState("");
   const [qrLoading, setQrLoading] = useState(false);
@@ -31,11 +33,9 @@ export function SpaceInvitePanel({ spaceId }: { spaceId: string }) {
       setLoading(true);
       setError(null);
       try {
-        const payload = await apiFetch<{ invite: InvitePayload | null }>(
-          `/api/spaces/${spaceId}/invite`,
-        );
+        const payload = await fetchPrivateSpaceInvite(spaceId);
         if (!mounted) return;
-        setInvite(payload.invite);
+        setInvite(payload);
       } catch (err) {
         if (!mounted) return;
         setError(getErrorMessage(err, "Could not load invite code"));
@@ -67,50 +67,12 @@ export function SpaceInvitePanel({ spaceId }: { spaceId: string }) {
     return link.toString();
   }, [invite?.code]);
 
-  const copyText = async (value: string) => {
-    if (!value) return false;
-
-    if (navigator.clipboard?.writeText) {
-      try {
-        await navigator.clipboard.writeText(value);
-        return true;
-      } catch {
-        return false;
-      }
-    }
-
-    const textarea = document.createElement("textarea");
-    textarea.value = value;
-    textarea.setAttribute("readonly", "");
-    textarea.style.position = "fixed";
-    textarea.style.opacity = "0";
-    textarea.style.pointerEvents = "none";
-    document.body.appendChild(textarea);
-    textarea.focus();
-    textarea.select();
-    const copied = document.execCommand("copy");
-    document.body.removeChild(textarea);
-    return copied;
-  };
-
   const prepareQrCode = useCallback(async () => {
     if (!invite) return;
     setQrLoading(true);
     setQrError("");
     try {
-      const qrCodeModule = await import("qrcode");
-      const toDataUrl = qrCodeModule.toDataURL ?? qrCodeModule.default?.toDataURL;
-      if (!toDataUrl) {
-        throw new Error("QR generation is not available.");
-      }
-      const dataUrl = await toDataUrl(buildInviteLink(), {
-        width: 300,
-        margin: 1,
-        color: {
-          dark: "#111111",
-          light: "#ffffff",
-        },
-      });
+      const dataUrl = await generateQrDataUrl(buildInviteLink());
       setQrCodeDataUrl(dataUrl);
     } catch {
       setQrError("Could not generate QR code for this invite.");
@@ -126,13 +88,22 @@ export function SpaceInvitePanel({ spaceId }: { spaceId: string }) {
 
   const rotateInvite = async () => {
     if (busy) return;
+    const isRotate = !!invite;
     setBusy(true);
     setError(null);
+    setNotice(null);
     setQrCodeDataUrl("");
     try {
-      const payload = await apiPost<InvitePayload>(`/api/spaces/${spaceId}/invite`, {});
+      const payload = await rotatePrivateSpaceInvite(spaceId);
       setInvite(payload);
+      const expiresOn = new Date(payload.expiresAt).toLocaleDateString();
+      setNotice(
+        isRotate
+          ? `Invite rotated. People can join this space until ${expiresOn}. Previous invite links were revoked.`
+          : `Invite created. People can join this space until ${expiresOn}. Rotate to revoke it anytime.`,
+      );
     } catch (err) {
+      setNotice(null);
       setError(getErrorMessage(err, "Could not rotate invite code"));
     } finally {
       setBusy(false);
@@ -142,7 +113,7 @@ export function SpaceInvitePanel({ spaceId }: { spaceId: string }) {
   const copyCode = async () => {
     if (!invite) return;
     setCopyError("");
-    const copied = await copyText(invite.code);
+    const copied = await copyTextWithFallback(invite.code);
     if (!copied) {
       setCopyError("Copy failed on this device. Please copy manually.");
       return;
@@ -154,7 +125,7 @@ export function SpaceInvitePanel({ spaceId }: { spaceId: string }) {
   const copyLink = async () => {
     if (!invite) return;
     setCopyError("");
-    const copied = await copyText(buildInviteLink());
+    const copied = await copyTextWithFallback(buildInviteLink());
     if (!copied) {
       setCopyError("Copy failed on this device. Please copy manually.");
       return;
@@ -170,9 +141,13 @@ export function SpaceInvitePanel({ spaceId }: { spaceId: string }) {
         <p className="mt-1 text-xs text-neutral-500">Single reusable code with 7-day expiry.</p>
         {invite && (
           <p className="mt-1 text-xs text-neutral-500">
-            Expires {new Date(invite.expiresAt).toLocaleDateString()}
+            This is the active invite. Anyone with it can join until{" "}
+            {new Date(invite.expiresAt).toLocaleDateString()}.
           </p>
         )}
+        <p className="mt-1 text-xs text-neutral-500">
+          Rotate invite to immediately disable previously shared links.
+        </p>
 
         <div className="mt-3 flex flex-wrap items-center gap-2">
           <Button variant="secondary" onClick={rotateInvite} disabled={busy || loading}>
@@ -210,6 +185,11 @@ export function SpaceInvitePanel({ spaceId }: { spaceId: string }) {
             <ErrorMessage message={error} />
           </div>
         )}
+        {notice && (
+          <div className="mt-3 rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-200">
+            {notice}
+          </div>
+        )}
       </div>
 
       <dialog
@@ -224,6 +204,12 @@ export function SpaceInvitePanel({ spaceId }: { spaceId: string }) {
             <p className="mt-1 text-sm text-neutral-400">
               Anyone with this code can join while the invite is active.
             </p>
+            {invite ? (
+              <p className="mt-1 text-xs text-neutral-500">
+                Active until {new Date(invite.expiresAt).toLocaleDateString()}. Rotate invite to
+                revoke old links.
+              </p>
+            ) : null}
           </div>
 
           <div className="space-y-4">
@@ -259,7 +245,8 @@ export function SpaceInvitePanel({ spaceId }: { spaceId: string }) {
                   </Button>
                 </div>
                 <p className="text-xs text-neutral-500">
-                  Share the link directly, or let people scan the QR code on mobile.
+                  Share the link directly, or let people scan the QR code on mobile. Anyone with an
+                  active code can join this private space.
                 </p>
               </div>
             </div>

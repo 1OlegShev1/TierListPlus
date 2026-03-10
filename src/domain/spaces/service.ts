@@ -195,7 +195,11 @@ export async function updateSpace(
   return updated;
 }
 
-export async function joinPrivateSpaceByInviteCode(userId: string, code: string) {
+export async function joinPrivateSpaceByInviteCode(
+  userId: string,
+  code: string,
+  expectedSpaceId?: string,
+) {
   const invite = await prisma.spaceInvite.findUnique({
     where: { code: code.trim().toUpperCase() },
     include: {
@@ -214,6 +218,9 @@ export async function joinPrivateSpaceByInviteCode(userId: string, code: string)
 
   if (invite.space.visibility !== "PRIVATE") {
     badRequest("This invite code is not valid for a private space");
+  }
+  if (expectedSpaceId && invite.spaceId !== expectedSpaceId) {
+    badRequest("This invite does not match the space for this vote");
   }
 
   const existing = await prisma.spaceMember.findUnique({
