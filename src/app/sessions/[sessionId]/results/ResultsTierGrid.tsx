@@ -67,14 +67,14 @@ export function ResultsTierGrid({
     : "h-[60px] px-2 text-xs sm:h-[70px] sm:px-2.5 md:h-[84px] md:px-3 lg:h-[96px] lg:px-4 lg:text-sm";
 
   return (
-    <div className="overflow-hidden rounded-lg border border-neutral-800 touch-pan-y">
+    <div className="overflow-hidden rounded-lg border border-[var(--border-subtle)] touch-pan-y">
       {tiers.map((tier, tierIndex) => {
         const expandedTransformOrigin = getExpandedTransformOrigin(tierIndex, tiers.length);
 
         return (
           <div
             key={tier.key}
-            className={`flex border-b border-neutral-800 last:border-b-0 ${rowHeightClass}`}
+            className={`flex border-b border-[var(--border-subtle)] last:border-b-0 ${rowHeightClass}`}
           >
             <div
               className={`flex flex-shrink-0 items-center justify-center py-2 text-center font-bold ${labelWidthClass}`}
@@ -117,8 +117,8 @@ export function ResultsTierGrid({
                       onTouchCancel={onItemTouchCancel}
                       className={`group relative h-full w-full cursor-pointer touch-manipulation overflow-hidden rounded-md border transition-colors ${
                         selectedItem?.id === item.id
-                          ? "border-amber-400 ring-2 ring-amber-400"
-                          : "border-neutral-700 hover:border-neutral-500"
+                          ? "border-[var(--accent-primary)] ring-2 ring-[var(--focus-ring)]"
+                          : "border-[var(--border-default)] hover:border-[var(--border-strong)]"
                       }`}
                     >
                       <ItemArtwork
@@ -127,7 +127,7 @@ export function ResultsTierGrid({
                         className="h-full w-full"
                         presentation="ambient"
                       />
-                      <span className="absolute inset-x-0 bottom-0 truncate bg-black/70 px-1 py-0.5 text-center text-[11px] leading-tight text-neutral-200 opacity-0 transition-opacity group-hover:opacity-100">
+                      <span className="absolute inset-x-0 bottom-0 truncate bg-[var(--bg-overlay)] px-1 py-0.5 text-center text-[11px] leading-tight text-[var(--fg-secondary)] opacity-0 transition-opacity group-hover:opacity-100">
                         {item.label}
                       </span>
                     </button>
@@ -147,7 +147,7 @@ export function ResultsTierGrid({
                         }}
                         aria-label={`Open source for ${item.label || "item"}`}
                         title="Open source link"
-                        className="absolute left-1 top-1 z-10 flex h-6 w-6 items-center justify-center rounded-full border border-sky-400/80 bg-black/70 text-sky-200 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/70 hover:border-sky-300 hover:text-sky-100"
+                        className="absolute left-1 top-1 z-10 flex h-6 w-6 items-center justify-center rounded-full border border-[var(--accent-primary)]/80 bg-[var(--bg-overlay)] text-[var(--accent-primary-hover)] transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] hover:border-[var(--accent-primary-hover)] hover:text-[var(--fg-primary)]"
                       >
                         <Link2 className="h-3.5 w-3.5" aria-hidden="true" />
                       </button>
@@ -156,7 +156,7 @@ export function ResultsTierGrid({
                 ),
               )}
               {tier.items.length === 0 && (
-                <span className={`flex items-center text-neutral-600 ${emptyTierClass}`}>
+                <span className={`flex items-center text-[var(--fg-subtle)] ${emptyTierClass}`}>
                   No picks
                 </span>
               )}
@@ -188,7 +188,7 @@ export function CompareColumn({
   return (
     <div>
       <div className="mb-3 flex items-center justify-between gap-3">
-        <h3 className="text-lg font-semibold text-neutral-100">{title}</h3>
+        <h3 className="text-lg font-semibold text-[var(--fg-primary)]">{title}</h3>
       </div>
       <ResultsTierGrid
         tiers={tiers}

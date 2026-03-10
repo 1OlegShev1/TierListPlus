@@ -36,9 +36,9 @@ export function CreateSpaceForm() {
   };
 
   return (
-    <div className="rounded-xl border border-neutral-800 bg-neutral-900 p-4 sm:p-5">
-      <h2 className="text-base font-semibold text-neutral-100">Create a Space</h2>
-      <p className="mt-1 text-sm text-neutral-500">
+    <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-4 sm:p-5">
+      <h2 className="text-base font-semibold text-[var(--fg-primary)]">Create a Space</h2>
+      <p className="mt-1 text-sm text-[var(--fg-subtle)]">
         Private for friend groups, open for communities.
       </p>
       <div className="mt-4 grid gap-2.5 sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-center">
@@ -48,13 +48,13 @@ export function CreateSpaceForm() {
           value={name}
           onChange={(event) => setName(event.target.value)}
         />
-        <fieldset className="inline-flex h-11 rounded-lg border border-neutral-700 bg-neutral-950/60 p-1">
+        <fieldset className="inline-flex h-11 rounded-lg border border-[var(--border-default)] bg-[var(--bg-elevated)] p-1">
           <legend className="sr-only">Space visibility</legend>
           <label
             className={`flex min-w-[5.25rem] cursor-pointer items-center justify-center rounded-md px-3 text-sm font-medium transition-colors ${
               visibility === "PRIVATE"
-                ? "bg-amber-500/15 text-amber-300"
-                : "text-neutral-300 hover:bg-neutral-800 hover:text-neutral-100"
+                ? "bg-[var(--bg-soft-contrast)] text-[var(--accent-primary-hover)]"
+                : "text-[var(--fg-secondary)] hover:bg-[var(--bg-surface-hover)] hover:text-[var(--fg-primary)]"
             }`}
           >
             <input
@@ -70,8 +70,8 @@ export function CreateSpaceForm() {
           <label
             className={`flex min-w-[5.25rem] cursor-pointer items-center justify-center rounded-md px-3 text-sm font-medium transition-colors ${
               visibility === "OPEN"
-                ? "bg-amber-500/15 text-amber-300"
-                : "text-neutral-300 hover:bg-neutral-800 hover:text-neutral-100"
+                ? "bg-[var(--bg-soft-contrast)] text-[var(--accent-primary-hover)]"
+                : "text-[var(--fg-secondary)] hover:bg-[var(--bg-surface-hover)] hover:text-[var(--fg-primary)]"
             }`}
           >
             <input
