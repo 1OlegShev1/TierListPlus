@@ -60,6 +60,7 @@ Root token definitions live in `src/app/globals.css`.
   - `src/components/dashboard/RecoverySection.tsx` (completed)
   - `src/components/sessions/ShareVoteButton.tsx` (completed)
   - `src/components/spaces/SpaceSettingsPanel.tsx` (completed)
+  - `src/components/spaces/SpaceInvitePanel.tsx` (completed)
 
 4. Accent layer (next)
 - Refactor `src/lib/space-theme.ts` so accent output composes cleanly with semantic base tokens in both light and dark themes.
