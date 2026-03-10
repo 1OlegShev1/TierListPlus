@@ -346,7 +346,7 @@ export function ListEditor({
               <button
                 type="button"
                 onClick={() => removeItem(index)}
-                className="absolute right-1 top-1 z-10 flex h-7 w-7 items-center justify-center rounded-full border border-[var(--border-default)] bg-[var(--bg-overlay)] text-[var(--fg-secondary)] opacity-0 transition-all hover:border-[var(--action-danger-bg)] hover:bg-[var(--action-danger-bg)] hover:text-[var(--action-danger-fg)] focus-visible:opacity-100 group-hover:opacity-100 group-focus-within:opacity-100"
+                className="absolute right-1 top-1 z-10 flex h-7 w-7 items-center justify-center rounded-full border border-[var(--border-default)] bg-[var(--bg-media-overlay)] text-[var(--fg-on-media-overlay)] opacity-0 transition-all hover:border-[var(--action-danger-bg)] hover:bg-[var(--action-danger-bg)] hover:text-[var(--action-danger-fg)] focus-visible:opacity-100 group-hover:opacity-100 group-focus-within:opacity-100"
                 aria-label={`Remove ${item.label || "pick"}`}
               >
                 <CloseIcon className="h-4 w-4" />
@@ -354,10 +354,10 @@ export function ListEditor({
               <button
                 type="button"
                 onClick={() => setEditingSourceIndex(index)}
-                className={`absolute left-1 top-1 z-10 flex h-7 min-w-7 items-center justify-center gap-1 rounded-full border bg-[var(--bg-overlay)] px-2 text-xs font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] ${
+                className={`absolute left-1 top-1 z-10 flex h-7 min-w-7 items-center justify-center gap-1 rounded-full border px-2 text-xs font-medium shadow-sm transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] ${
                   item.sourceUrl
-                    ? "border-[var(--accent-primary)] text-[var(--accent-primary-hover)] hover:border-[var(--accent-primary-hover)] hover:text-[var(--fg-primary)]"
-                    : "border-[var(--border-default)] text-[var(--fg-secondary)] hover:border-[var(--accent-primary)] hover:text-[var(--accent-primary-hover)]"
+                    ? "border-[var(--source-control-linked-border)] bg-[var(--source-control-linked-bg)] text-[var(--source-control-linked-fg)] hover:border-[var(--source-control-linked-border-hover)] hover:bg-[var(--source-control-linked-bg-hover)] hover:text-[var(--source-control-linked-fg-hover)]"
+                    : "border-[var(--source-control-unlinked-border)] bg-[var(--source-control-unlinked-bg)] text-[var(--source-control-unlinked-fg)] hover:border-[var(--source-control-unlinked-border-hover)] hover:bg-[var(--source-control-unlinked-bg-hover)] hover:text-[var(--source-control-unlinked-fg-hover)]"
                 } ${
                   item.sourceUrl
                     ? "opacity-100"
@@ -370,7 +370,7 @@ export function ListEditor({
                 }
                 title={item.sourceUrl ? "Open source link" : "Add source link"}
               >
-                <Link2 className="h-3.5 w-3.5" aria-hidden="true" />
+                <Link2 className="h-4 w-4" aria-hidden="true" />
                 {item.sourceUrl ? "See" : "Add"}
               </button>
               <button

@@ -50,7 +50,12 @@ export function NavBar() {
             );
           })}
         </div>
-        <ThemeSwitcher compact className="hidden shrink-0 sm:inline-flex" />
+        <div className="shrink-0 lg:hidden">
+          <ThemeSwitcher variant="cycle" />
+        </div>
+        <div className="hidden shrink-0 lg:block">
+          <ThemeSwitcher compact />
+        </div>
         <Link
           href="/devices"
           aria-label="Devices"

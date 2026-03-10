@@ -158,17 +158,17 @@ export function EditableUnrankedItemCard({
           e.stopPropagation();
         }}
         disabled={saving || removing}
-        className={`absolute left-1.5 top-1.5 z-10 flex h-6 min-w-6 items-center justify-center gap-1 rounded-full border bg-[var(--bg-overlay)] px-1.5 text-[10px] font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] disabled:cursor-default disabled:opacity-70 ${
+        className={`absolute left-1.5 top-1.5 z-10 flex h-6 min-w-6 items-center justify-center gap-1 rounded-full border px-1.5 text-[10px] font-medium shadow-sm transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] disabled:cursor-default disabled:opacity-70 ${
           sourceUrl
-            ? "border-[var(--accent-primary)] text-[var(--accent-primary-hover)] hover:border-[var(--accent-primary-hover)] hover:text-[var(--fg-primary)]"
-            : "border-[var(--border-default)] text-[var(--fg-secondary)] hover:border-[var(--accent-primary)] hover:text-[var(--accent-primary-hover)]"
+            ? "border-[var(--source-control-linked-border)] bg-[var(--source-control-linked-bg)] text-[var(--source-control-linked-fg)] hover:border-[var(--source-control-linked-border-hover)] hover:bg-[var(--source-control-linked-bg-hover)] hover:text-[var(--source-control-linked-fg-hover)]"
+            : "border-[var(--source-control-unlinked-border)] bg-[var(--source-control-unlinked-bg)] text-[var(--source-control-unlinked-fg)] hover:border-[var(--source-control-unlinked-border-hover)] hover:bg-[var(--source-control-unlinked-bg-hover)] hover:text-[var(--source-control-unlinked-fg-hover)]"
         }`}
         aria-label={
           sourceUrl ? `Open source for ${label || "item"}` : `Add source for ${label || "item"}`
         }
         title={sourceUrl ? "Open source link" : "Add source link"}
       >
-        <Link2 className="h-3 w-3" aria-hidden="true" />
+        <Link2 className="h-3.5 w-3.5" aria-hidden="true" />
         {sourceUrl ? "See" : "Add"}
       </button>
 
@@ -184,7 +184,7 @@ export function EditableUnrankedItemCard({
           e.stopPropagation();
         }}
         disabled={saving || removing}
-        className="absolute right-1.5 top-1.5 z-10 flex h-6 w-6 items-center justify-center rounded-full border border-[var(--border-default)] bg-[var(--bg-overlay)] text-[var(--fg-secondary)] transition-all hover:border-[var(--action-danger-bg)] hover:bg-[var(--action-danger-bg)] hover:text-[var(--action-danger-fg)] disabled:cursor-default disabled:opacity-70"
+        className="absolute right-1.5 top-1.5 z-10 flex h-6 w-6 items-center justify-center rounded-full border border-[var(--border-default)] bg-[var(--bg-media-overlay)] text-[var(--fg-on-media-overlay)] transition-all hover:border-[var(--action-danger-bg)] hover:bg-[var(--action-danger-bg)] hover:text-[var(--action-danger-fg)] disabled:cursor-default disabled:opacity-70"
         aria-label={`Remove ${label || "item"}`}
       >
         {removing ? "..." : <CloseIcon className="h-3.5 w-3.5" />}

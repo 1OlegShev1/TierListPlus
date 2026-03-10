@@ -23,11 +23,19 @@ const THEME_OPTIONS: Array<{
   { value: "system", label: "System", icon: Laptop2 },
 ];
 
+function getNextThemePreference(current: ThemePreference): ThemePreference {
+  const index = THEME_OPTIONS.findIndex((option) => option.value === current);
+  if (index < 0) return "dark";
+  return THEME_OPTIONS[(index + 1) % THEME_OPTIONS.length]?.value ?? "dark";
+}
+
 export function ThemeSwitcher({
   compact = false,
+  variant = "segmented",
   className,
 }: {
   compact?: boolean;
+  variant?: "segmented" | "cycle";
   className?: string;
 }) {
   const [preference, setPreference] = useState<ThemePreference>("dark");
@@ -56,6 +64,31 @@ export function ThemeSwitcher({
     applyThemePreference(next);
     persistThemePreference(next);
   };
+
+  if (variant === "cycle") {
+    const activePreference = ready ? preference : (readStoredThemePreference() ?? "dark");
+    const activeOption =
+      THEME_OPTIONS.find((option) => option.value === activePreference) ?? THEME_OPTIONS[0];
+    const nextPreference = getNextThemePreference(activePreference);
+    const nextOption =
+      THEME_OPTIONS.find((option) => option.value === nextPreference) ?? THEME_OPTIONS[0];
+    const ActiveIcon = activeOption.icon;
+
+    return (
+      <button
+        type="button"
+        onClick={() => updatePreference(nextPreference)}
+        className={cn(
+          "inline-flex h-10 w-10 items-center justify-center rounded-lg border border-[var(--border-default)] bg-[var(--bg-surface)] text-[var(--fg-muted)] transition-colors hover:border-[var(--border-strong)] hover:text-[var(--fg-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]",
+          className,
+        )}
+        aria-label={`Theme ${activeOption.label}. Switch to ${nextOption.label}`}
+        title={`Theme: ${activeOption.label} (next: ${nextOption.label})`}
+      >
+        <ActiveIcon className="h-4 w-4" aria-hidden />
+      </button>
+    );
+  }
 
   return (
     <fieldset

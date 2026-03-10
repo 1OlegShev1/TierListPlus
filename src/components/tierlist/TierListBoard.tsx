@@ -507,7 +507,7 @@ export function TierListBoard({
       >
         <div
           ref={containerRef}
-          className="relative rounded-lg border border-[var(--border-subtle)] touch-pan-y"
+          className="relative rounded-lg border border-[var(--border-grid)] touch-pan-y"
         >
           {tierConfig.map((tier, index) => (
             <div key={tier.key} data-tier-key={tier.key}>

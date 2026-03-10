@@ -119,8 +119,8 @@ export function RecoverySection() {
       width: 320,
       margin: 1,
       color: {
-        dark: "rgb(17 17 17)",
-        light: "rgb(255 255 255)",
+        dark: "#111111",
+        light: "#ffffff",
       },
     });
 
@@ -217,12 +217,12 @@ export function RecoverySection() {
   };
 
   return (
-    <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-4 sm:p-6">
+    <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface)] p-4 sm:p-6">
       <h2 className="mb-3 text-base font-semibold text-[var(--fg-secondary)] sm:mb-4 sm:text-lg">
         Link Another Browser
       </h2>
 
-      <section className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-soft-contrast)] p-4 sm:p-5">
+      <section className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-elevated)] p-4 sm:p-5">
         <h3 className="text-sm font-semibold text-[var(--fg-secondary)]">
           1. Generate Code (Current Browser)
         </h3>
@@ -231,7 +231,7 @@ export function RecoverySection() {
         </p>
         <div className="mt-3">
           {activeLinkCode ? (
-            <div className="space-y-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-soft-contrast)] p-4">
+            <div className="space-y-3 rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface)] p-4">
               <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                 <p className="text-xs uppercase tracking-wider text-[var(--fg-subtle)]">
                   One-time code
@@ -299,7 +299,7 @@ export function RecoverySection() {
         {qrError && <ErrorMessage message={qrError} />}
       </section>
 
-      <section className="mt-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-soft-contrast)] p-4 sm:p-5">
+      <section className="mt-4 rounded-xl border border-[var(--border-default)] bg-[var(--bg-elevated)] p-4 sm:p-5">
         <h3 className="text-sm font-semibold text-[var(--fg-secondary)]">2. Link This Browser</h3>
         <p className="mt-1 text-sm text-[var(--fg-muted)]">
           Enter a one-time code manually, or open this page from a QR link to pre-fill it.
@@ -357,7 +357,7 @@ export function RecoverySection() {
         className="fixed inset-0 m-auto w-[min(calc(100vw-2rem),42rem)] rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface)] p-5 text-left text-[var(--fg-primary)] shadow-2xl shadow-black/60 backdrop:bg-[var(--bg-overlay)] focus:outline-none"
       >
         <div className="space-y-5">
-          <div className="rounded-xl border border-[var(--accent-primary)]/20 bg-[var(--bg-soft-contrast)] p-4">
+          <div className="rounded-xl border border-[var(--accent-primary)]/20 bg-[var(--bg-elevated)] p-4">
             <p className="text-xs uppercase tracking-wider text-[var(--accent-primary-hover)]">
               Phone Shortcut
             </p>
@@ -383,7 +383,7 @@ export function RecoverySection() {
             </div>
             <div className="space-y-3">
               {activeLinkCode && (
-                <div className="rounded-lg border border-[var(--border-default)] bg-[var(--bg-soft-contrast)] p-3">
+                <div className="rounded-lg border border-[var(--border-default)] bg-[var(--bg-elevated)] p-3">
                   <p className="text-xs uppercase tracking-wider text-[var(--fg-subtle)]">
                     One-time code
                   </p>

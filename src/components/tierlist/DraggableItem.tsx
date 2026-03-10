@@ -101,7 +101,7 @@ export function DraggableItem({
             e.preventDefault();
             e.stopPropagation();
           }}
-          className={`absolute right-1 top-1 z-10 flex h-6 w-6 items-center justify-center rounded-full border border-[var(--border-default)] bg-[var(--bg-overlay)] text-[var(--fg-secondary)] transition-all hover:border-[var(--action-danger-bg)] hover:bg-[var(--action-danger-bg)] hover:text-[var(--action-danger-fg)] ${
+          className={`absolute right-1 top-1 z-10 flex h-6 w-6 items-center justify-center rounded-full border border-[var(--border-default)] bg-[var(--bg-media-overlay)] text-[var(--fg-on-media-overlay)] transition-all hover:border-[var(--action-danger-bg)] hover:bg-[var(--action-danger-bg)] hover:text-[var(--action-danger-fg)] ${
             expanded
               ? "opacity-100"
               : "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100"
@@ -123,10 +123,10 @@ export function DraggableItem({
             e.preventDefault();
             e.stopPropagation();
           }}
-          className={`absolute left-1 top-1 z-10 flex h-6 w-6 items-center justify-center rounded-full border bg-[var(--bg-overlay)] transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] ${
+          className={`absolute left-1 top-1 z-10 flex h-6 w-6 items-center justify-center rounded-full border shadow-sm transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] ${
             sourceUrl
-              ? "border-[var(--accent-primary)] text-[var(--accent-primary-hover)] hover:border-[var(--accent-primary-hover)] hover:text-[var(--fg-primary)]"
-              : "border-[var(--border-default)] text-[var(--fg-secondary)] hover:border-[var(--accent-primary)] hover:text-[var(--accent-primary-hover)]"
+              ? "border-[var(--source-control-linked-border)] bg-[var(--source-control-linked-bg)] text-[var(--source-control-linked-fg)] hover:border-[var(--source-control-linked-border-hover)] hover:bg-[var(--source-control-linked-bg-hover)] hover:text-[var(--source-control-linked-fg-hover)]"
+              : "border-[var(--source-control-unlinked-border)] bg-[var(--source-control-unlinked-bg)] text-[var(--source-control-unlinked-fg)] hover:border-[var(--source-control-unlinked-border-hover)] hover:bg-[var(--source-control-unlinked-bg-hover)] hover:text-[var(--source-control-unlinked-fg-hover)]"
           } ${sourceControlVisibilityClass}`}
           aria-label={
             sourceUrl
@@ -143,7 +143,7 @@ export function DraggableItem({
                 : "No source link"
           }
         >
-          <Link2 className="h-3.5 w-3.5" aria-hidden="true" />
+          <Link2 className="h-4 w-4" aria-hidden="true" />
         </button>
       )}
       <button
@@ -185,7 +185,7 @@ export function DraggableItem({
           showAnimatedHint
         />
         <span
-          className={`pointer-events-none absolute inset-x-0 bottom-0 truncate bg-[var(--bg-overlay)] px-1 py-0.5 text-center text-[11px] leading-tight text-[var(--fg-secondary)] transition-opacity ${
+          className={`pointer-events-none absolute inset-x-0 bottom-0 truncate bg-[var(--bg-media-overlay)] px-1 py-0.5 text-center text-[11px] leading-tight text-[var(--fg-on-media-overlay)] transition-opacity ${
             expanded
               ? "opacity-100"
               : "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100"

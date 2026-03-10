@@ -35,12 +35,12 @@ export function BrowsePanel({
   const router = useRouter();
 
   return (
-    <div className="mb-6 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-soft-contrast)]">
+    <div className="mb-6 rounded-2xl border border-[var(--border-default)] bg-[var(--bg-surface)]">
       <div className="border-b border-[var(--border-subtle)]">
         <button
           type="button"
           onClick={onToggleOpen}
-          className="flex w-full items-center justify-between gap-3 px-4 py-4 text-left transition-colors hover:bg-[var(--bg-surface)]"
+          className="flex w-full items-center justify-between gap-3 px-4 py-4 text-left transition-colors hover:bg-[var(--bg-surface-hover)]"
         >
           <h2 className="text-lg font-semibold text-[var(--fg-primary)]">{title}</h2>
           {isOpen ? (
@@ -60,7 +60,7 @@ export function BrowsePanel({
       {isOpen && (
         <div className="px-4 py-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <div className="flex flex-1 items-center gap-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-elevated)] px-3 py-2">
+            <div className="flex flex-1 items-center gap-2 rounded-xl border border-[var(--border-default)] bg-[var(--bg-elevated)] px-3 py-2 transition-colors focus-within:border-[var(--accent-primary)]/65 focus-within:ring-2 focus-within:ring-[var(--focus-ring)]">
               <input
                 type="text"
                 value={searchQuery}
@@ -111,7 +111,7 @@ export function BrowsePanel({
                   className={`relative flex cursor-pointer items-center justify-between gap-3 rounded-xl border px-3 py-3 transition-colors ${
                     row.isFocused
                       ? "border-[var(--accent-primary)]/70 bg-[var(--accent-primary)]/10"
-                      : "border-[var(--border-subtle)] bg-[var(--bg-elevated)] hover:border-[var(--border-default)]"
+                      : "border-[var(--border-default)] bg-[var(--bg-surface)] hover:border-[var(--border-strong)]"
                   }`}
                 >
                   <button

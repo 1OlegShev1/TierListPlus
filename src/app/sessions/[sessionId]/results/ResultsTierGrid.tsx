@@ -67,14 +67,14 @@ export function ResultsTierGrid({
     : "h-[60px] px-2 text-xs sm:h-[70px] sm:px-2.5 md:h-[84px] md:px-3 lg:h-[96px] lg:px-4 lg:text-sm";
 
   return (
-    <div className="overflow-hidden rounded-lg border border-[var(--border-subtle)] touch-pan-y">
+    <div className="overflow-hidden rounded-lg border border-[var(--border-grid)] bg-[var(--bg-surface)] touch-pan-y">
       {tiers.map((tier, tierIndex) => {
         const expandedTransformOrigin = getExpandedTransformOrigin(tierIndex, tiers.length);
 
         return (
           <div
             key={tier.key}
-            className={`flex border-b border-[var(--border-subtle)] last:border-b-0 ${rowHeightClass}`}
+            className={`flex border-b border-[var(--border-grid)] last:border-b-0 ${rowHeightClass}`}
           >
             <div
               className={`flex flex-shrink-0 items-center justify-center py-2 text-center font-bold ${labelWidthClass}`}
@@ -87,7 +87,9 @@ export function ResultsTierGrid({
                 {tier.label}
               </span>
             </div>
-            <div className={`flex flex-1 touch-pan-y flex-wrap items-start ${lanePaddingClass}`}>
+            <div
+              className={`flex flex-1 touch-pan-y flex-wrap items-start bg-[var(--bg-surface)] ${lanePaddingClass}`}
+            >
               {tier.items.map((item) =>
                 individualView ? (
                   <DraggableItem
@@ -127,7 +129,7 @@ export function ResultsTierGrid({
                         className="h-full w-full"
                         presentation="ambient"
                       />
-                      <span className="absolute inset-x-0 bottom-0 truncate bg-[var(--bg-overlay)] px-1 py-0.5 text-center text-[11px] leading-tight text-[var(--fg-secondary)] opacity-0 transition-opacity group-hover:opacity-100">
+                      <span className="absolute inset-x-0 bottom-0 truncate bg-[var(--bg-media-overlay)] px-1 py-0.5 text-center text-[11px] leading-tight text-[var(--fg-on-media-overlay)] opacity-0 transition-opacity group-hover:opacity-100">
                         {item.label}
                       </span>
                     </button>
@@ -147,9 +149,9 @@ export function ResultsTierGrid({
                         }}
                         aria-label={`Open source for ${item.label || "item"}`}
                         title="Open source link"
-                        className="absolute left-1 top-1 z-10 flex h-6 w-6 items-center justify-center rounded-full border border-[var(--accent-primary)]/80 bg-[var(--bg-overlay)] text-[var(--accent-primary-hover)] transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] hover:border-[var(--accent-primary-hover)] hover:text-[var(--fg-primary)]"
+                        className="absolute left-1 top-1 z-10 flex h-6 w-6 items-center justify-center rounded-full border border-[var(--source-control-linked-border)] bg-[var(--source-control-linked-bg)] text-[var(--source-control-linked-fg)] shadow-sm transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] hover:border-[var(--source-control-linked-border-hover)] hover:bg-[var(--source-control-linked-bg-hover)] hover:text-[var(--source-control-linked-fg-hover)]"
                       >
-                        <Link2 className="h-3.5 w-3.5" aria-hidden="true" />
+                        <Link2 className="h-4 w-4" aria-hidden="true" />
                       </button>
                     )}
                   </div>

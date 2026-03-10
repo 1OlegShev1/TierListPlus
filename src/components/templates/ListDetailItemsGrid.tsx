@@ -79,10 +79,10 @@ export function ListDetailItemsGrid({ items }: { items: ListDetailGridItem[] }) 
                 event.stopPropagation();
                 setSourceModalItemId(item.id);
               }}
-              className="absolute left-3 top-3 z-10 flex h-6 w-6 items-center justify-center rounded-full border border-[var(--accent-primary)]/80 bg-[var(--bg-overlay)] text-[var(--accent-primary-hover)] transition-colors hover:border-[var(--accent-primary-hover)] hover:text-[var(--fg-primary)]"
+              className="absolute left-3 top-3 z-10 flex h-6 w-6 items-center justify-center rounded-full border border-[var(--source-control-linked-border)] bg-[var(--source-control-linked-bg)] text-[var(--source-control-linked-fg)] shadow-sm transition-colors hover:border-[var(--source-control-linked-border-hover)] hover:bg-[var(--source-control-linked-bg-hover)] hover:text-[var(--source-control-linked-fg-hover)]"
               aria-label={`Open source for ${item.label || "item"}`}
             >
-              <Link2 className="h-3.5 w-3.5" aria-hidden="true" />
+              <Link2 className="h-4 w-4" aria-hidden="true" />
             </button>
           )}
           <button

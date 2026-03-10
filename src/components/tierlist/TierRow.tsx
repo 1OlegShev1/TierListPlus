@@ -93,7 +93,7 @@ export function TierRow({
   return (
     <div>
       <div
-        className={`flex min-h-[72px] border-b border-[var(--border-subtle)] sm:min-h-[80px] md:min-h-[90px] lg:min-h-[104px] ${isFirst ? "rounded-t-lg" : ""} ${isLast ? "rounded-b-lg border-b-0" : ""}`}
+        className={`flex min-h-[72px] border-b border-[var(--border-grid)] sm:min-h-[80px] md:min-h-[90px] lg:min-h-[104px] ${isFirst ? "rounded-t-lg" : ""} ${isLast ? "rounded-b-lg border-b-0" : ""}`}
       >
         {/* Color Strip (leftmost) */}
         <TierColorPicker
@@ -182,7 +182,7 @@ export function TierRow({
 
         {/* Rank button */}
         {items.length >= 2 && (
-          <div className="flex flex-shrink-0 items-center border-l border-[var(--border-subtle)] px-1 sm:px-1.5 md:px-2">
+          <div className="flex flex-shrink-0 items-center border-l border-[var(--border-grid)] px-1 sm:px-1.5 md:px-2">
             <button
               type="button"
               onClick={() => setShowBracket(true)}
@@ -198,7 +198,7 @@ export function TierRow({
         {/* Row edit controls (right side) */}
         {canEditTier && (
           <div
-            className={`flex w-10 flex-shrink-0 flex-col items-center justify-center gap-1 border-l border-[var(--border-subtle)] bg-[var(--bg-elevated)] sm:w-11 md:w-12 lg:w-12 ${isFirst ? "rounded-tr-lg" : ""} ${isLast ? "rounded-br-lg" : ""}`}
+            className={`flex w-10 flex-shrink-0 flex-col items-center justify-center gap-1 border-l border-[var(--border-grid)] bg-[var(--bg-elevated)] sm:w-11 md:w-12 lg:w-12 ${isFirst ? "rounded-tr-lg" : ""} ${isLast ? "rounded-br-lg" : ""}`}
           >
             <button
               type="button"

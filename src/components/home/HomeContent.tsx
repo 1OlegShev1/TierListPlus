@@ -89,9 +89,9 @@ export function HomeContent({ initialData = null }: { initialData?: HomeData | n
         )}
 
         {hasResolvedData && isEmpty && (
-          <div className="rounded-3xl border border-dashed border-[var(--border-subtle)] bg-[var(--bg-soft-contrast)] px-6 py-10 text-center">
+          <div className="rounded-3xl border border-[var(--border-default)] bg-[var(--bg-surface)] px-6 py-10 text-center">
             <p className="text-xl font-medium text-[var(--fg-primary)]">Nothing cooking yet</p>
-            <p className="mt-3 text-base text-[var(--fg-subtle)]">
+            <p className="mt-3 text-base text-[var(--fg-muted)]">
               Make a list or jump into a vote to get things moving.
             </p>
           </div>

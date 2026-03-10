@@ -29,7 +29,7 @@ function findConsensusItemById(tiers: ConsensusTier[] | null, itemId: string | n
 
 function ContextCard({ title, description }: { title: string; description: string }) {
   return (
-    <div className="mb-6 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-soft-contrast)] px-4 py-4 sm:px-5">
+    <div className="mb-6 rounded-2xl border border-[var(--border-default)] bg-[var(--bg-surface)] px-4 py-4 sm:px-5">
       <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--fg-subtle)]">
         Showing
       </p>
@@ -263,7 +263,7 @@ export function ResultsPageClient({
       {canViewIndividualBallots ? (
         <ViewToggle sessionId={sessionId} activeView={viewState.activeView} />
       ) : (
-        <div className="mb-6 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-soft-contrast)] px-3 py-2 text-xs text-[var(--fg-muted)]">
+        <div className="mb-6 rounded-lg border border-[var(--border-default)] bg-[var(--bg-surface)] px-3 py-2 text-xs text-[var(--fg-muted)]">
           Shared results view. Individual ballots are hidden.
         </div>
       )}

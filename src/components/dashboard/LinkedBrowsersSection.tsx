@@ -159,7 +159,7 @@ export function LinkedBrowsersSection({
   };
 
   return (
-    <section className="group mt-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-soft-contrast)] p-4 transition-colors hover:border-[var(--border-default)] sm:p-5">
+    <section className="group mt-4 rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface)] p-4 transition-colors hover:border-[var(--border-strong)] sm:p-5">
       <button
         type="button"
         onClick={() => setShowLinkedBrowsers((prev) => !prev)}
@@ -201,7 +201,7 @@ export function LinkedBrowsersSection({
                 return (
                   <div
                     key={device.id}
-                    className="flex flex-col gap-3 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-soft-contrast)] p-3 sm:flex-row sm:items-center sm:justify-between"
+                    className="flex flex-col gap-3 rounded-lg border border-[var(--border-default)] bg-[var(--bg-elevated)] p-3 sm:flex-row sm:items-center sm:justify-between"
                   >
                     <div>
                       <div className="flex flex-wrap items-center gap-2">
@@ -229,7 +229,7 @@ export function LinkedBrowsersSection({
                           </p>
                         )}
                         {device.isCurrent && (
-                          <span className="rounded-full border border-[var(--accent-primary)]/50 bg-[var(--bg-soft-contrast)] px-2 py-0.5 text-xs font-medium text-[var(--accent-primary-hover)]">
+                          <span className="rounded-full border border-[var(--accent-primary)]/50 bg-[var(--accent-primary)]/12 px-2 py-0.5 text-xs font-medium text-[var(--accent-primary-hover)]">
                             Current
                           </span>
                         )}

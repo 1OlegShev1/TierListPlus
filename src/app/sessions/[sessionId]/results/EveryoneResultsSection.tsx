@@ -65,7 +65,7 @@ export function EveryoneResultsSection({
       {detailsItem && (
         <div
           ref={detailsPanelRef}
-          className={`mt-6 overflow-hidden rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-soft-contrast)] transition-[opacity,transform,max-height,margin] duration-200 ease-out ${
+          className={`mt-6 overflow-hidden rounded-2xl border border-[var(--border-default)] bg-[var(--bg-surface)] transition-[opacity,transform,max-height,margin] duration-200 ease-out ${
             detailsOpen
               ? "max-h-[32rem] translate-y-0 opacity-100"
               : "pointer-events-none max-h-0 -translate-y-2 opacity-0"
@@ -95,7 +95,7 @@ export function EveryoneResultsSection({
                 <button
                   type="button"
                   onClick={() => onOpenSource(detailsItem)}
-                  className="ml-2 inline-flex items-center gap-1.5 rounded-md border border-[var(--accent-primary)]/70 bg-[var(--bg-soft-contrast)] px-2 py-1 text-xs font-medium text-[var(--accent-primary-hover)] transition-colors hover:border-[var(--accent-primary-hover)] hover:bg-[var(--bg-surface-hover)] hover:text-[var(--fg-primary)] sm:ml-auto"
+                  className="ml-2 inline-flex items-center gap-1.5 rounded-md border border-[var(--source-control-linked-border)] bg-[var(--source-control-linked-bg)] px-2 py-1 text-xs font-medium text-[var(--source-control-linked-fg)] transition-colors hover:border-[var(--source-control-linked-border-hover)] hover:bg-[var(--source-control-linked-bg-hover)] hover:text-[var(--source-control-linked-fg-hover)] sm:ml-auto"
                 >
                   <Link2 className="h-3.5 w-3.5" aria-hidden="true" />
                   Source

@@ -23,8 +23,12 @@ Root token definitions live in `src/app/globals.css`.
 ## Semantic Token Groups
 
 - Surfaces: `--bg-canvas`, `--bg-surface`, `--bg-surface-hover`, `--bg-elevated`, `--bg-overlay`
+- Media: `--bg-media-overlay`, `--bg-media-ambient`, `--fg-on-media-overlay`
+- Source controls:
+  - `--source-control-linked-*`
+  - `--source-control-unlinked-*`
 - Foreground: `--fg-primary`, `--fg-secondary`, `--fg-muted`, `--fg-subtle`, `--fg-on-accent`
-- Borders: `--border-default`, `--border-strong`, `--border-subtle`
+- Borders: `--border-default`, `--border-strong`, `--border-subtle`, `--border-grid`
 - Actions: `--action-primary-*`, `--action-secondary-bg-hover`, `--action-danger-*`
 - States: `--state-success-*`, `--state-danger-*`, `--state-muted-*`
 - Focus/elevation: `--focus-ring`, `--shadow-card-hover`, `--shadow-card-hover-reduced`
