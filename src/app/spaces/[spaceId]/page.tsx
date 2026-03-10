@@ -160,7 +160,7 @@ export default async function SpaceDetailPage({
   const totalLists = counts?._count.templates ?? 0;
   const showVotesSeeAll = !votesExpanded && totalVotes > SPACE_LANDING_SECTION_LIMIT;
   const showListsSeeAll = !listsExpanded && totalLists > SPACE_LANDING_SECTION_LIMIT;
-  const sectionSecondaryActionClassName = `${buttonVariants.secondary} !h-9 !min-w-[7rem] !self-start !px-3 !py-0 !text-sm !font-medium`;
+  const sectionSecondaryActionClassName = `${buttonVariants.secondary} !h-9 !min-w-[7rem] !self-start !px-3 !py-0 !text-sm !font-medium hover:border-[var(--border-strong)] hover:text-[var(--fg-primary)]`;
   const sectionPrimaryActionClassName = `${buttonVariants.primary} !h-9 !min-w-[7rem] !self-start !px-3 !py-0 !text-sm !font-medium`;
 
   return (
@@ -468,7 +468,7 @@ export default async function SpaceDetailPage({
         </section>
 
         {space.isOwner ? (
-          <details className="group rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-soft-contrast)] p-4 transition-colors hover:border-[var(--border-default)] hover:bg-[var(--bg-soft-contrast)]">
+          <details className="group rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface)] p-4 transition-colors hover:border-[var(--border-strong)]">
             <summary className="flex w-full cursor-pointer list-none items-center justify-between gap-3 rounded-lg p-2 text-left text-sm font-medium text-[var(--fg-secondary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] [&::-webkit-details-marker]:hidden">
               <span>Owner access controls</span>
               <span aria-hidden="true" className="inline-flex shrink-0 items-center justify-center">

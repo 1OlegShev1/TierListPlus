@@ -1,4 +1,5 @@
 export const THEME_PREFERENCE_STORAGE_KEY = "tierlist-theme-preference";
+export const THEME_PREFERENCE_CHANGE_EVENT = "tierlist-theme-preference-change";
 
 export type ThemePreference = "dark" | "light" | "system";
 
@@ -28,6 +29,15 @@ export function applyThemePreference(preference: ThemePreference) {
 export function persistThemePreference(preference: ThemePreference) {
   if (typeof window === "undefined") return;
   window.localStorage.setItem(THEME_PREFERENCE_STORAGE_KEY, preference);
+}
+
+export function notifyThemePreferenceChanged(preference: ThemePreference) {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(
+    new CustomEvent<ThemePreference>(THEME_PREFERENCE_CHANGE_EVENT, {
+      detail: preference,
+    }),
+  );
 }
 
 export function resolveThemePreference(defaultTheme: ThemePreference = "dark"): ThemePreference {

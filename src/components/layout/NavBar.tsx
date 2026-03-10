@@ -39,10 +39,10 @@ export function NavBar() {
               <Link
                 key={link.href}
                 href={link.href}
-                className={`inline-flex h-11 shrink-0 items-center rounded-lg px-3 text-[0.95rem] font-medium transition-colors sm:px-4.5 sm:text-[1.05rem] ${
+                className={`inline-flex h-11 shrink-0 items-center rounded-lg border px-3 text-[0.95rem] font-medium transition-colors sm:px-4.5 sm:text-[1.05rem] ${
                   isActive
-                    ? "bg-[var(--bg-surface-hover)] text-[var(--fg-primary)]"
-                    : "text-[var(--fg-muted)] hover:bg-[var(--bg-surface-hover)] hover:text-[var(--fg-primary)]"
+                    ? "border-[var(--border-default)] bg-[var(--bg-surface)] text-[var(--fg-primary)]"
+                    : "border-transparent text-[var(--fg-muted)] hover:border-[var(--border-default)] hover:bg-[var(--bg-surface)] hover:text-[var(--fg-primary)]"
                 }`}
               >
                 {link.label}
@@ -59,10 +59,10 @@ export function NavBar() {
         <Link
           href="/devices"
           aria-label="Devices"
-          className={`inline-flex h-11 w-9 shrink-0 items-center justify-center p-0 text-[var(--fg-muted)] transition-colors sm:h-11 sm:w-auto sm:gap-2.5 sm:rounded-lg sm:px-4.5 sm:py-2.5 ${
+          className={`inline-flex h-11 w-9 shrink-0 items-center justify-center border border-transparent p-0 text-[var(--fg-muted)] transition-colors sm:h-11 sm:w-auto sm:gap-2.5 sm:rounded-lg sm:px-4.5 sm:py-2.5 ${
             devicesActive
-              ? "text-[var(--fg-primary)] sm:bg-[var(--bg-surface-hover)]"
-              : "hover:text-[var(--fg-primary)] sm:hover:bg-[var(--bg-surface-hover)]"
+              ? "text-[var(--fg-primary)] sm:border-[var(--border-default)] sm:bg-[var(--bg-surface)]"
+              : "hover:text-[var(--fg-primary)] sm:hover:border-[var(--border-default)] sm:hover:bg-[var(--bg-surface)]"
           }`}
         >
           <GearIcon className="h-[1.375rem] w-[1.375rem]" />

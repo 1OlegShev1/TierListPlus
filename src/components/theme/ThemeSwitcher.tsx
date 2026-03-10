@@ -5,9 +5,10 @@ import { type ComponentType, useEffect, useState } from "react";
 import {
   applyThemePreference,
   isThemePreference,
+  notifyThemePreferenceChanged,
   persistThemePreference,
-  readStoredThemePreference,
   resolveThemePreference,
+  THEME_PREFERENCE_CHANGE_EVENT,
   THEME_PREFERENCE_STORAGE_KEY,
   type ThemePreference,
 } from "@/lib/theme-preference";
@@ -55,18 +56,29 @@ export function ThemeSwitcher({
       setPreference(event.newValue);
       applyThemePreference(event.newValue);
     };
+    const onPreferenceChange = (event: Event) => {
+      const next = (event as CustomEvent<ThemePreference>).detail;
+      if (!isThemePreference(next)) return;
+      setPreference(next);
+      applyThemePreference(next);
+    };
     window.addEventListener("storage", onStorage);
-    return () => window.removeEventListener("storage", onStorage);
+    window.addEventListener(THEME_PREFERENCE_CHANGE_EVENT, onPreferenceChange);
+    return () => {
+      window.removeEventListener("storage", onStorage);
+      window.removeEventListener(THEME_PREFERENCE_CHANGE_EVENT, onPreferenceChange);
+    };
   }, []);
 
   const updatePreference = (next: ThemePreference) => {
     setPreference(next);
     applyThemePreference(next);
     persistThemePreference(next);
+    notifyThemePreferenceChanged(next);
   };
 
   if (variant === "cycle") {
-    const activePreference = ready ? preference : (readStoredThemePreference() ?? "dark");
+    const activePreference = preference;
     const activeOption =
       THEME_OPTIONS.find((option) => option.value === activePreference) ?? THEME_OPTIONS[0];
     const nextPreference = getNextThemePreference(activePreference);
@@ -101,9 +113,7 @@ export function ThemeSwitcher({
       <legend className="sr-only">Theme mode</legend>
       {THEME_OPTIONS.map((option) => {
         const Icon = option.icon;
-        const active = ready
-          ? preference === option.value
-          : (readStoredThemePreference() ?? "dark") === option.value;
+        const active = preference === option.value;
 
         return (
           <button

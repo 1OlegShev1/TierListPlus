@@ -25,7 +25,7 @@ export function SpaceActionPanel({
   return (
     <section
       id="space-actions"
-      className="group rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-soft-contrast)] p-4 transition-colors hover:border-[var(--border-default)] hover:bg-[var(--bg-surface)] sm:p-5"
+      className="group rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface)] p-4 transition-colors hover:border-[var(--border-strong)] sm:p-5"
     >
       <button
         type="button"
