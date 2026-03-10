@@ -176,7 +176,7 @@ export function SpaceSettingsPanel({
   return (
     <div
       className={cn(
-        "relative overflow-visible rounded-xl border border-neutral-800 bg-neutral-900 p-4 sm:p-5",
+        "relative overflow-visible rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-4 sm:p-5",
         className,
       )}
     >
@@ -186,7 +186,7 @@ export function SpaceSettingsPanel({
       <div className="relative">
         {showHeader ? (
           <div className="flex items-center justify-between gap-3">
-            <h3 className="text-sm font-semibold text-neutral-100">Space Settings</h3>
+            <h3 className="text-sm font-semibold text-[var(--fg-primary)]">Space Settings</h3>
             {mode === "view" ? (
               <Button
                 variant="secondary"
@@ -202,7 +202,7 @@ export function SpaceSettingsPanel({
         {mode === "view" ? (
           <div className={`${contentSpacingClass} space-y-3 text-sm`}>
             <div className="flex items-center gap-3">
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-neutral-700 bg-neutral-950">
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-[var(--border-default)] bg-[var(--bg-elevated)]">
                 {logoUrl ? (
                   <img
                     src={logoUrl}
@@ -210,27 +210,31 @@ export function SpaceSettingsPanel({
                     className="h-full w-full object-cover"
                   />
                 ) : (
-                  <span className="text-sm font-semibold text-neutral-400">{nameInitial}</span>
+                  <span className="text-sm font-semibold text-[var(--fg-muted)]">
+                    {nameInitial}
+                  </span>
                 )}
               </div>
               <div className="min-w-0">
-                <p className="truncate text-base font-medium text-neutral-100">{initialName}</p>
-                <p className="mt-1 inline-flex rounded-full border border-neutral-700 px-2 py-0.5 text-[0.67rem] uppercase tracking-[0.11em] text-neutral-300">
+                <p className="truncate text-base font-medium text-[var(--fg-primary)]">
+                  {initialName}
+                </p>
+                <p className="mt-1 inline-flex rounded-full border border-[var(--border-default)] px-2 py-0.5 text-[0.67rem] uppercase tracking-[0.11em] text-[var(--fg-secondary)]">
                   {initialVisibility === "OPEN" ? "Open" : "Private"}
                 </p>
               </div>
             </div>
             {initialDescription ? (
-              <p className="text-neutral-300">{initialDescription}</p>
+              <p className="text-[var(--fg-secondary)]">{initialDescription}</p>
             ) : (
-              <p className="text-neutral-500">No description yet.</p>
+              <p className="text-[var(--fg-subtle)]">No description yet.</p>
             )}
           </div>
         ) : (
           <div className={`${contentSpacingClass} space-y-4`}>
             <div className="grid gap-4 md:grid-cols-[12rem_minmax(0,1fr)] md:items-start">
               <div className="flex flex-col items-center space-y-2.5">
-                <div className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-neutral-700 bg-neutral-950">
+                <div className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-[var(--border-default)] bg-[var(--bg-elevated)]">
                   {logoUrl ? (
                     <img
                       src={logoUrl}
@@ -238,7 +242,9 @@ export function SpaceSettingsPanel({
                       className="h-full w-full object-cover"
                     />
                   ) : (
-                    <span className="text-sm font-semibold text-neutral-400">{nameInitial}</span>
+                    <span className="text-sm font-semibold text-[var(--fg-muted)]">
+                      {nameInitial}
+                    </span>
                   )}
                 </div>
                 <div className="flex flex-wrap items-center justify-center gap-2">
@@ -283,28 +289,28 @@ export function SpaceSettingsPanel({
 
             <div className="grid gap-4 md:grid-cols-2 md:items-start">
               <div className="space-y-2">
-                <p className="text-xs font-medium uppercase tracking-[0.12em] text-neutral-500">
+                <p className="text-xs font-medium uppercase tracking-[0.12em] text-[var(--fg-subtle)]">
                   Card accent
                 </p>
                 <div ref={accentPickerRef} className="relative inline-flex">
                   <button
                     type="button"
                     onClick={() => setAccentPickerOpen((prev) => !prev)}
-                    className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-neutral-700 bg-neutral-950/70 hover:border-neutral-500"
+                    className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[var(--border-default)] bg-[var(--bg-elevated)] hover:border-[var(--border-strong)]"
                     aria-label="Pick card accent color"
                     aria-expanded={accentPickerOpen}
                     aria-controls={accentPickerOpen ? accentPickerId : undefined}
                   >
                     <span
-                      className={`h-6 w-6 rounded-full ${selectedAccentOption?.colorClassName ?? "bg-neutral-400"}`}
+                      className={`h-6 w-6 rounded-full ${selectedAccentOption?.colorClassName ?? "bg-[var(--fg-muted)]"}`}
                     />
                   </button>
                   {accentPickerOpen ? (
                     <div
                       id={accentPickerId}
-                      className="absolute bottom-full left-0 z-[70] mb-2 w-[13.5rem] rounded-lg border border-neutral-700 bg-neutral-900 p-2 shadow-lg"
+                      className="absolute bottom-full left-0 z-[70] mb-2 w-[13.5rem] rounded-lg border border-[var(--border-default)] bg-[var(--bg-surface)] p-2 shadow-lg"
                     >
-                      <p className="mb-2 text-xs text-neutral-500">Choose accent</p>
+                      <p className="mb-2 text-xs text-[var(--fg-subtle)]">Choose accent</p>
                       <div className="grid grid-cols-5 gap-2">
                         {SPACE_ACCENT_OPTIONS.map((swatch) => (
                           <button
@@ -316,8 +322,8 @@ export function SpaceSettingsPanel({
                             }}
                             className={`inline-flex h-8 w-8 items-center justify-center rounded-full border transition-colors ${
                               accentColor === swatch.value
-                                ? "border-neutral-200"
-                                : "border-neutral-700 hover:border-neutral-500"
+                                ? "border-[var(--fg-primary)]"
+                                : "border-[var(--border-default)] hover:border-[var(--border-strong)]"
                             }`}
                             aria-label={`Set accent to ${swatch.label}`}
                             title={swatch.label}
@@ -332,16 +338,16 @@ export function SpaceSettingsPanel({
               </div>
 
               <div className="space-y-2">
-                <p className="text-xs font-medium uppercase tracking-[0.12em] text-neutral-500">
+                <p className="text-xs font-medium uppercase tracking-[0.12em] text-[var(--fg-subtle)]">
                   Visibility
                 </p>
-                <fieldset className="inline-flex h-11 rounded-lg border border-neutral-700 bg-neutral-950/60 p-1">
+                <fieldset className="inline-flex h-11 rounded-lg border border-[var(--border-default)] bg-[var(--bg-elevated)] p-1">
                   <legend className="sr-only">Space visibility</legend>
                   <label
                     className={`flex min-w-[5.25rem] cursor-pointer items-center justify-center rounded-md px-3 text-sm font-medium transition-colors ${
                       visibility === "PRIVATE"
-                        ? "bg-amber-500/15 text-amber-300"
-                        : "text-neutral-300 hover:bg-neutral-800 hover:text-neutral-100"
+                        ? "bg-[var(--bg-surface-hover)] text-[var(--accent-primary)]"
+                        : "text-[var(--fg-secondary)] hover:bg-[var(--bg-surface-hover)] hover:text-[var(--fg-primary)]"
                     }`}
                   >
                     <input
@@ -357,8 +363,8 @@ export function SpaceSettingsPanel({
                   <label
                     className={`flex min-w-[5.25rem] cursor-pointer items-center justify-center rounded-md px-3 text-sm font-medium transition-colors ${
                       visibility === "OPEN"
-                        ? "bg-amber-500/15 text-amber-300"
-                        : "text-neutral-300 hover:bg-neutral-800 hover:text-neutral-100"
+                        ? "bg-[var(--bg-surface-hover)] text-[var(--accent-primary)]"
+                        : "text-[var(--fg-secondary)] hover:bg-[var(--bg-surface-hover)] hover:text-[var(--fg-primary)]"
                     }`}
                   >
                     <input
@@ -372,7 +378,7 @@ export function SpaceSettingsPanel({
                     Open
                   </label>
                 </fieldset>
-                <p className="text-xs text-neutral-500">
+                <p className="text-xs text-[var(--fg-subtle)]">
                   Open spaces are discoverable and allow voting from non-members.
                 </p>
               </div>
