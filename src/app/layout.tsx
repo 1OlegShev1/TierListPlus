@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import Link from "next/link";
 import { NavBar } from "@/components/layout/NavBar";
 import "./globals.css";
 
@@ -23,6 +24,24 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             {children}
           </div>
         </main>
+        <footer className="border-t border-neutral-800 bg-neutral-950 px-3 py-3 sm:px-4">
+          <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-end gap-2 text-xs text-neutral-500">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+              <Link href="/terms" className="hover:text-neutral-300">
+                Terms
+              </Link>
+              <Link href="/privacy" className="hover:text-neutral-300">
+                Privacy
+              </Link>
+              <Link href="/cookies" className="hover:text-neutral-300">
+                Cookies
+              </Link>
+              <Link href="/copyright" className="hover:text-neutral-300">
+                Copyright
+              </Link>
+            </div>
+          </div>
+        </footer>
       </body>
     </html>
   );
