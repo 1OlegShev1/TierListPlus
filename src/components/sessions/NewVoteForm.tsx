@@ -186,15 +186,17 @@ export function NewVoteForm({
       </Link>
       <h1 className="mb-6 text-2xl font-bold">Start a Vote</h1>
       {spaceId && (
-        <p className="-mt-4 mb-5 text-sm text-neutral-500">
+        <p className="-mt-4 mb-5 text-sm text-[var(--fg-subtle)]">
           {`Publishing inside ${spaceName ?? "this space"} only.`}
         </p>
       )}
 
       <form className="space-y-6" onSubmit={handleSubmit}>
         <label className="block">
-          <span className="mb-2 block text-sm font-medium text-neutral-300">Vote Name</span>
-          <span className="mb-2 block text-xs text-neutral-500">
+          <span className="mb-2 block text-sm font-medium text-[var(--fg-secondary)]">
+            Vote Name
+          </span>
+          <span className="mb-2 block text-xs text-[var(--fg-subtle)]">
             This is the title people will see when they join.
           </span>
           <Input
@@ -208,8 +210,10 @@ export function NewVoteForm({
         </label>
 
         <label className="block">
-          <span className="mb-2 block text-sm font-medium text-neutral-300">Your Nickname</span>
-          <span className="mb-2 block text-xs text-neutral-500">
+          <span className="mb-2 block text-sm font-medium text-[var(--fg-secondary)]">
+            Your Nickname
+          </span>
+          <span className="mb-2 block text-xs text-[var(--fg-subtle)]">
             You will join this vote with this display name.
           </span>
           <Input
@@ -225,30 +229,30 @@ export function NewVoteForm({
         <div>
           <div className="mb-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="text-sm font-medium text-neutral-300">List Template</p>
-              <p className="text-xs text-neutral-500">
+              <p className="text-sm font-medium text-[var(--fg-secondary)]">List Template</p>
+              <p className="text-xs text-[var(--fg-subtle)]">
                 Pick the starting list for this vote. You can still edit it afterward.
               </p>
             </div>
             <button
               type="button"
               onClick={() => setStep("pick")}
-              className="self-start text-sm text-amber-400 transition-colors hover:text-amber-300 sm:self-auto"
+              className="self-start text-sm text-[var(--accent-primary)] transition-colors hover:text-[var(--accent-primary-hover)] sm:self-auto"
             >
               Change list
             </button>
           </div>
 
-          <div className="rounded-lg border border-neutral-800 bg-neutral-900 px-4 py-3">
+          <div className="rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-4 py-3">
             <div className="min-w-0">
               {selectedListDetails ? (
                 <>
                   <p className="truncate font-medium">{selectedListDetails.name}</p>
-                  <p className="text-sm text-neutral-500">
+                  <p className="text-sm text-[var(--fg-subtle)]">
                     {selectedListDetails.items.length} picks ready to use
                   </p>
                   {selectedListSummary?.origin ? (
-                    <p className="mt-1 text-xs uppercase tracking-[0.12em] text-neutral-500">
+                    <p className="mt-1 text-xs uppercase tracking-[0.12em] text-[var(--fg-subtle)]">
                       {selectedListSummary.origin === "SPACE"
                         ? "Space list"
                         : selectedListSummary.origin === "PERSONAL"
@@ -262,19 +266,19 @@ export function NewVoteForm({
                   <p className="truncate font-medium">
                     {selectedListSummary?.name ?? "Loading this list..."}
                   </p>
-                  <p className="text-sm text-neutral-500">Loading the full preview...</p>
+                  <p className="text-sm text-[var(--fg-subtle)]">Loading the full preview...</p>
                 </>
               ) : selectedListUnavailable ? (
                 <>
                   <p className="font-medium">That list is not available</p>
-                  <p className="text-sm text-neutral-500">
+                  <p className="text-sm text-[var(--fg-subtle)]">
                     Pick another list before you start the vote
                   </p>
                 </>
               ) : (
                 <>
                   <p className="font-medium">Start from scratch</p>
-                  <p className="text-sm text-neutral-500">
+                  <p className="text-sm text-[var(--fg-subtle)]">
                     You will add the picks after you start the vote
                   </p>
                 </>
@@ -282,8 +286,8 @@ export function NewVoteForm({
             </div>
 
             {selectedListDetails && selectedListDetails.items.length > 0 && (
-              <div className="mt-4 border-t border-neutral-800 pt-4">
-                <p className="mb-2 text-xs font-medium uppercase tracking-wide text-neutral-500">
+              <div className="mt-4 border-t border-[var(--border-subtle)] pt-4">
+                <p className="mb-2 text-xs font-medium uppercase tracking-wide text-[var(--fg-subtle)]">
                   Preview
                 </p>
                 <div className="grid grid-cols-4 gap-2 sm:grid-cols-6">
@@ -304,19 +308,19 @@ export function NewVoteForm({
         </div>
 
         {!spaceId && (
-          <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-neutral-800 bg-neutral-900 p-4 transition-colors hover:border-neutral-700 hover:bg-neutral-800">
+          <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-4 transition-colors hover:border-[var(--border-default)] hover:bg-[var(--bg-surface-hover)]">
             <input
               type="checkbox"
               checked={!isPrivate}
               onChange={(e) => setIsPrivate(!e.target.checked)}
-              className="h-4 w-4 accent-amber-500"
+              className="h-4 w-4 accent-[var(--accent-primary)]"
             />
             <div>
               <p className="font-medium">Show in public Votes list</p>
-              <p className="text-sm text-neutral-500">
+              <p className="text-sm text-[var(--fg-subtle)]">
                 Off by default. People can still join private votes with the code.
               </p>
-              <p className="text-xs text-neutral-500">
+              <p className="text-xs text-[var(--fg-subtle)]">
                 Share only content you are allowed to publish and distribute.
               </p>
             </div>
@@ -391,14 +395,14 @@ function ListPicker({
       <button
         type="button"
         onClick={() => onPick(null)}
-        className="mb-6 flex w-full items-center gap-3 rounded-lg border border-dashed border-neutral-700 px-4 py-3 text-left transition-colors hover:border-neutral-500 hover:bg-neutral-900"
+        className="mb-6 flex w-full items-center gap-3 rounded-lg border border-dashed border-[var(--border-default)] px-4 py-3 text-left transition-colors hover:border-[var(--border-strong)] hover:bg-[var(--bg-surface)]"
       >
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-neutral-800 text-neutral-400">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-[var(--bg-surface-hover)] text-[var(--fg-muted)]">
           +
         </div>
         <div className="min-w-0">
-          <p className="font-medium text-neutral-200">Start blank</p>
-          <p className="text-sm text-neutral-500">Add the picks after you start the vote</p>
+          <p className="font-medium text-[var(--fg-secondary)]">Start blank</p>
+          <p className="text-sm text-[var(--fg-subtle)]">Add the picks after you start the vote</p>
         </div>
       </button>
 
@@ -415,7 +419,7 @@ function ListPicker({
 
           {!isSearching && featured.length > 0 ? (
             <>
-              <p className="mb-3 text-sm font-medium text-neutral-400">
+              <p className="mb-3 text-sm font-medium text-[var(--fg-muted)]">
                 {spaceMode ? "Recommended lists" : "Popular lists"}
               </p>
               <div className="mb-5 space-y-3">
@@ -430,7 +434,7 @@ function ListPicker({
             <button
               type="button"
               onClick={() => setShowAll((current) => !current)}
-              className="mt-3 text-sm text-amber-400 transition-colors hover:text-amber-300"
+              className="mt-3 text-sm text-[var(--accent-primary)] transition-colors hover:text-[var(--accent-primary-hover)]"
             >
               {showAll ? "Show fewer" : "Show all lists"}
             </button>
@@ -439,7 +443,9 @@ function ListPicker({
           {shouldShowList && (
             <div className="mt-2 space-y-1">
               {filtered.length === 0 && (
-                <p className="px-1 py-4 text-sm text-neutral-500">No lists match that search.</p>
+                <p className="px-1 py-4 text-sm text-[var(--fg-subtle)]">
+                  No lists match that search.
+                </p>
               )}
 
               {groupedResults.map((group) => {
@@ -447,7 +453,7 @@ function ListPicker({
                 return (
                   <div key={group.label} className="space-y-1">
                     {shouldRenderGroupHeadings ? (
-                      <p className="px-1 pt-2 pb-1 text-xs font-medium text-neutral-500">
+                      <p className="px-1 pt-2 pb-1 text-xs font-medium text-[var(--fg-subtle)]">
                         {group.label}
                       </p>
                     ) : null}
@@ -479,15 +485,17 @@ function ListPickerRow({ list, onSelect }: { list: ListSummary; onSelect: () => 
     <button
       type="button"
       onClick={onSelect}
-      className="flex w-full items-center gap-3 rounded-xl border border-neutral-800 bg-neutral-900 px-4 py-3 text-left transition-colors hover:border-neutral-600"
+      className="flex w-full items-center gap-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-4 py-3 text-left transition-colors hover:border-[var(--border-strong)]"
     >
       <ItemPreview items={list.items} variant="stack" />
       <span className="min-w-0 flex-1">
-        <span className="block truncate text-base font-medium text-neutral-100">{list.name}</span>
-        <span className="block text-sm text-neutral-500">{list._count.items} picks</span>
+        <span className="block truncate text-base font-medium text-[var(--fg-primary)]">
+          {list.name}
+        </span>
+        <span className="block text-sm text-[var(--fg-subtle)]">{list._count.items} picks</span>
       </span>
       {listBadge ? (
-        <span className="shrink-0 rounded-full border border-neutral-700 px-2 py-0.5 text-[11px] text-neutral-400">
+        <span className="shrink-0 rounded-full border border-[var(--border-default)] px-2 py-0.5 text-[11px] text-[var(--fg-muted)]">
           {listBadge}
         </span>
       ) : null}
