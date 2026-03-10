@@ -37,13 +37,13 @@ export function JoinCodeBanner({ joinCode, hideCodeByDefault = false }: JoinCode
 
   return (
     <span className="inline-flex flex-wrap items-center gap-2 text-sm">
-      <span className="text-neutral-500">Invite code:</span>
+      <span className="text-[var(--fg-subtle)]">Invite code:</span>
       <button
         type="button"
         onClick={() => setIsCodeVisible((prev) => !prev)}
         aria-label={isCodeVisible ? "Hide invite code" : "Reveal invite code"}
         title={isCodeVisible ? "Hide invite code" : "Reveal invite code"}
-        className="inline-flex h-8 cursor-pointer items-center justify-center rounded-md border border-neutral-700 bg-neutral-950 px-2 text-neutral-200 transition-colors hover:border-neutral-500 hover:bg-neutral-900"
+        className="inline-flex h-8 cursor-pointer items-center justify-center rounded-md border border-[var(--border-default)] bg-[var(--bg-elevated)] px-2 text-[var(--fg-secondary)] transition-colors hover:border-[var(--border-strong)] hover:bg-[var(--bg-surface)]"
       >
         {isCodeVisible ? <EyeSlashIcon className="h-4 w-4" /> : <EyeIcon className="h-4 w-4" />}
       </button>
@@ -51,7 +51,7 @@ export function JoinCodeBanner({ joinCode, hideCodeByDefault = false }: JoinCode
         type="button"
         onClick={copyCode}
         title={isCodeVisible ? "Click to copy invite code" : "Invite code hidden. Click to copy."}
-        className="inline-flex h-8 cursor-pointer items-center justify-center rounded-md border border-neutral-700 bg-neutral-950 px-2 font-mono text-sm font-semibold tracking-[0.14em] text-amber-300 transition-colors hover:border-amber-400/60 hover:bg-amber-500/10 hover:text-amber-200"
+        className="inline-flex h-8 cursor-pointer items-center justify-center rounded-md border border-[var(--border-default)] bg-[var(--bg-elevated)] px-2 font-mono text-sm font-semibold tracking-[0.14em] text-[var(--accent-primary-hover)] transition-colors hover:border-[var(--accent-primary)]/60 hover:bg-[var(--bg-soft-contrast)] hover:text-[var(--accent-primary)]"
       >
         {isCodeVisible ? joinCode : maskedJoinCode}
       </button>
@@ -59,18 +59,18 @@ export function JoinCodeBanner({ joinCode, hideCodeByDefault = false }: JoinCode
         type="button"
         onClick={copyLink}
         title="Copy full invite link"
-        className="inline-flex h-8 cursor-pointer items-center justify-center rounded-md border border-neutral-700 bg-neutral-950 px-3 text-xs font-medium text-neutral-200 transition-colors hover:border-neutral-500 hover:bg-neutral-900"
+        className="inline-flex h-8 cursor-pointer items-center justify-center rounded-md border border-[var(--border-default)] bg-[var(--bg-elevated)] px-3 text-xs font-medium text-[var(--fg-secondary)] transition-colors hover:border-[var(--border-strong)] hover:bg-[var(--bg-surface)]"
       >
         Copy invite link
       </button>
       {copyError ? (
-        <span className="text-xs text-red-400">{copyError}</span>
+        <span className="text-xs text-[var(--state-danger-fg)]">{copyError}</span>
       ) : copiedTarget === "link" ? (
-        <span className="text-xs text-neutral-500">Invite link copied</span>
+        <span className="text-xs text-[var(--fg-subtle)]">Invite link copied</span>
       ) : copiedTarget === "code" ? (
-        <span className="text-xs text-neutral-500">Code copied</span>
+        <span className="text-xs text-[var(--fg-subtle)]">Code copied</span>
       ) : (
-        <span className="text-xs text-neutral-600">Share code or full link</span>
+        <span className="text-xs text-[var(--fg-muted)]">Share code or full link</span>
       )}
     </span>
   );
