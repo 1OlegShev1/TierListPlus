@@ -108,7 +108,7 @@ export function TierRow({
         {/* Tier Label */}
         <div
           className="flex w-16 flex-shrink-0 items-center justify-center sm:w-20 md:w-24 lg:w-28"
-          style={{ backgroundColor: color, color: "#000" }}
+          style={{ backgroundColor: color, color: "var(--fg-on-accent)" }}
         >
           {editingLabel ? (
             <input

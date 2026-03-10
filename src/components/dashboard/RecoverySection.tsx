@@ -119,8 +119,8 @@ export function RecoverySection() {
       width: 320,
       margin: 1,
       color: {
-        dark: "#111111",
-        light: "#ffffff",
+        dark: "rgb(17 17 17)",
+        light: "rgb(255 255 255)",
       },
     });
 
@@ -305,7 +305,7 @@ export function RecoverySection() {
           Enter a one-time code manually, or open this page from a QR link to pre-fill it.
         </p>
         {codePrefilledFromLink && linkCode.trim() ? (
-          <p className="mt-3 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-200">
+          <p className="mt-3 rounded-lg border border-[var(--state-success-fg)]/40 bg-[var(--state-success-bg)] px-3 py-2 text-xs text-[var(--state-success-fg)]">
             Code pre-filled from QR link. Add a browser label and finish linking.
           </p>
         ) : null}
@@ -357,8 +357,10 @@ export function RecoverySection() {
         className="fixed inset-0 m-auto w-[min(calc(100vw-2rem),42rem)] rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface)] p-5 text-left text-[var(--fg-primary)] shadow-2xl shadow-black/60 backdrop:bg-[var(--bg-overlay)] focus:outline-none"
       >
         <div className="space-y-5">
-          <div className="rounded-xl border border-amber-500/20 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent p-4">
-            <p className="text-xs uppercase tracking-wider text-amber-200">Phone Shortcut</p>
+          <div className="rounded-xl border border-[var(--accent-primary)]/20 bg-[var(--bg-soft-contrast)] p-4">
+            <p className="text-xs uppercase tracking-wider text-[var(--accent-primary-hover)]">
+              Phone Shortcut
+            </p>
             <h3 className="mt-1 text-xl font-semibold text-[var(--fg-primary)]">
               Open on phone browser
             </h3>
@@ -368,7 +370,7 @@ export function RecoverySection() {
             </p>
           </div>
           <div className="grid gap-4 sm:grid-cols-[minmax(0,16rem)_minmax(0,1fr)] sm:items-start">
-            <div className="rounded-lg border border-neutral-700 bg-white p-3 shadow-lg shadow-black/30">
+            <div className="rounded-lg border border-[var(--border-default)] bg-[var(--bg-surface)] p-3 shadow-lg shadow-black/30">
               {qrCodeDataUrl ? (
                 <img
                   src={qrCodeDataUrl}
@@ -376,7 +378,7 @@ export function RecoverySection() {
                   className="w-full rounded"
                 />
               ) : (
-                <p className="text-sm text-neutral-700">QR code unavailable.</p>
+                <p className="text-sm text-[var(--fg-secondary)]">QR code unavailable.</p>
               )}
             </div>
             <div className="space-y-3">

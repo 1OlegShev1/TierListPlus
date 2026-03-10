@@ -84,7 +84,7 @@ export function MatchupVoter({
         setPreviewingItemId((current) => (current === item.id ? null : current));
       }}
       disabled={disabled}
-      className={`group flex ${s.card} flex-col items-center rounded-2xl border-2 border-neutral-700 bg-neutral-900 transition-all hover:border-amber-400 hover:bg-neutral-800 disabled:opacity-50`}
+      className={`group flex ${s.card} flex-col items-center rounded-2xl border-2 border-[var(--border-default)] bg-[var(--bg-surface)] transition-all hover:border-[var(--accent-primary-hover)] hover:bg-[var(--bg-surface-hover)] disabled:opacity-50`}
     >
       <ItemArtwork
         src={item.imageUrl}
@@ -103,7 +103,7 @@ export function MatchupVoter({
   return (
     <div className={`flex items-center justify-center ${s.container}`}>
       {renderItem(itemA)}
-      <span className={`shrink-0 ${s.vs} font-bold text-neutral-600`}>VS</span>
+      <span className={`shrink-0 ${s.vs} font-bold text-[var(--fg-muted)]`}>VS</span>
       {renderItem(itemB)}
     </div>
   );

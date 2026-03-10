@@ -799,9 +799,9 @@ export function ItemSourceModal({
                 )}
               </div>
               {youtubeEmbedUrl && (
-                <div className="overflow-hidden rounded-lg border border-[var(--border-subtle)] bg-black">
+                <div className="overflow-hidden rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-canvas)]">
                   {isPortraitYouTubeEmbed ? (
-                    <div className="bg-black p-2">
+                    <div className="bg-[var(--bg-canvas)] p-2">
                       <iframe
                         src={youtubeEmbedUrl}
                         title={`${previewItemLabel} YouTube Shorts preview`}
@@ -823,7 +823,7 @@ export function ItemSourceModal({
                 </div>
               )}
               {spotifyEmbedUrl && (
-                <div className="overflow-hidden rounded-lg border border-[var(--border-subtle)] bg-black">
+                <div className="overflow-hidden rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-canvas)]">
                   <iframe
                     src={spotifyEmbedUrl}
                     title={`${previewItemLabel} Spotify preview`}
@@ -835,7 +835,7 @@ export function ItemSourceModal({
                 </div>
               )}
               {activeProvider === null && externalEmbedUrl && (
-                <div className="overflow-hidden rounded-lg border border-[var(--border-subtle)] bg-black">
+                <div className="overflow-hidden rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-canvas)]">
                   {externalEmbedType === "image" ? (
                     <img
                       src={externalEmbedUrl}
@@ -862,7 +862,7 @@ export function ItemSourceModal({
                       referrerPolicy="no-referrer"
                     />
                   ) : (
-                    <div className="bg-black p-2">
+                    <div className="bg-[var(--bg-canvas)] p-2">
                       <iframe
                         src={externalEmbedUrl}
                         title={`${previewItemLabel} source preview`}
@@ -927,7 +927,7 @@ export function ItemSourceModal({
                 Close preview
               </Button>
             </div>
-            <div className="overflow-hidden rounded-lg border border-[var(--border-subtle)] bg-black p-1">
+            <div className="overflow-hidden rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-canvas)] p-1">
               <iframe
                 src={expandedPreviewUrl}
                 title={`${previewItemLabel} large source preview`}

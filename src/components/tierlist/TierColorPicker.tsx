@@ -94,12 +94,12 @@ export function TierColorPicker({
         aria-expanded={canEdit ? open : undefined}
         aria-controls={canEdit && open ? pickerId : undefined}
       />
-      <div className="w-px self-stretch bg-neutral-800" />
+      <div className="w-px self-stretch bg-[var(--border-subtle)]" />
 
       {canEdit && open && (
         <div
           id={pickerId}
-          className="absolute top-full left-0 z-20 mt-1 w-44 rounded-lg border border-neutral-700 bg-neutral-800 p-2.5 shadow-lg"
+          className="absolute top-full left-0 z-20 mt-1 w-44 rounded-lg border border-[var(--border-default)] bg-[var(--bg-elevated)] p-2.5 shadow-lg"
         >
           <div className="grid gap-1.5" style={{ gridTemplateColumns: "repeat(4, 32px)" }}>
             {TIER_COLORS.map((c, index) => (
@@ -111,7 +111,7 @@ export function TierColorPicker({
                   onColorChange(c);
                   closePicker(true);
                 }}
-                className={`h-8 w-8 cursor-pointer rounded transition-transform hover:scale-110 ${c === color ? "ring-2 ring-white ring-offset-2 ring-offset-neutral-800" : ""}`}
+                className={`h-8 w-8 cursor-pointer rounded transition-transform hover:scale-110 ${c === color ? "ring-2 ring-[var(--fg-primary)] ring-offset-2 ring-offset-[var(--bg-elevated)]" : ""}`}
                 style={{ backgroundColor: c }}
                 aria-label={c === color ? `Current color ${c}` : `Set color to ${c}`}
               />

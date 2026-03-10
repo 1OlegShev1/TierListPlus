@@ -45,7 +45,7 @@ export function DeleteListButton({
       <Button
         variant="ghost"
         onClick={() => setOpen(true)}
-        className="text-red-400 hover:text-red-300"
+        className="text-[var(--state-danger-fg)] hover:text-[var(--fg-primary)]"
       >
         <TrashIcon className="h-5 w-5" />
       </Button>

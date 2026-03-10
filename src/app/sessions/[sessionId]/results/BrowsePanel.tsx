@@ -110,7 +110,7 @@ export function BrowsePanel({
                   data-testid={`browse-row-${row.id}`}
                   className={`relative flex cursor-pointer items-center justify-between gap-3 rounded-xl border px-3 py-3 transition-colors ${
                     row.isFocused
-                      ? "border-amber-500/70 bg-amber-500/10"
+                      ? "border-[var(--accent-primary)]/70 bg-[var(--accent-primary)]/10"
                       : "border-[var(--border-subtle)] bg-[var(--bg-elevated)] hover:border-[var(--border-default)]"
                   }`}
                 >
@@ -132,7 +132,7 @@ export function BrowsePanel({
                     <div className="flex flex-wrap items-center gap-2 text-sm font-medium text-[var(--fg-primary)]">
                       <span className="truncate">{row.nickname}</span>
                       {row.isCurrentParticipant && (
-                        <span className="rounded-full border border-amber-500/50 bg-amber-500/10 px-2 py-0.5 text-[11px] font-medium text-amber-200">
+                        <span className="rounded-full border border-[var(--accent-primary)]/50 bg-[var(--accent-primary)]/10 px-2 py-0.5 text-[11px] font-medium text-[var(--accent-primary-hover)]">
                           You
                         </span>
                       )}

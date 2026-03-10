@@ -127,7 +127,7 @@ export function EveryoneResultsSection({
                     >
                       <span
                         className="inline-flex h-7 w-full items-center justify-center overflow-hidden rounded px-2 py-1 text-xs font-bold"
-                        style={{ backgroundColor: tier.color, color: "#000" }}
+                        style={{ backgroundColor: tier.color, color: "var(--fg-on-accent)" }}
                         title={tier.label}
                       >
                         <span className="block w-full truncate text-center leading-none">

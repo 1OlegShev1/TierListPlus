@@ -54,13 +54,14 @@ Root token definitions live in `src/app/globals.css`.
   - `src/components/layout/NavBar.tsx`
   - `src/components/sessions/NewVoteForm.tsx`
 
-3. Hotspot screens (next)
+3. Hotspot screens (completed)
 - Migrate highest-usage files first:
   - `src/components/items/ItemSourceModal.tsx` (completed)
   - `src/components/dashboard/RecoverySection.tsx` (completed)
   - `src/components/sessions/ShareVoteButton.tsx` (completed)
   - `src/components/spaces/SpaceSettingsPanel.tsx` (completed)
   - `src/components/spaces/SpaceInvitePanel.tsx` (completed)
+  - `src/app/spaces/page.tsx` (completed)
   - `src/app/spaces/[spaceId]/page.tsx` (completed)
   - `src/app/sessions/[sessionId]/results/BrowsePanel.tsx` (completed)
   - `src/components/dashboard/LinkedBrowsersSection.tsx` (completed)
@@ -83,9 +84,33 @@ Root token definitions live in `src/app/globals.css`.
   - `src/components/home/HomeContent.tsx` (completed)
   - `src/app/sessions/join/JoinVotePageClient.tsx` (completed)
   - `src/components/ui/VotePreviewSummary.tsx` (completed)
+  - `src/components/ui/ErrorMessage.tsx` (completed)
+  - `src/components/ui/Loading.tsx` (completed)
+  - `src/components/ui/EmptyState.tsx` (completed)
+  - `src/components/ui/PageHeader.tsx` (completed)
+  - `src/components/ui/SectionHeader.tsx` (completed)
+  - `src/components/ui/ItemArtwork.tsx` (completed)
+  - `src/components/ui/ItemPreview.tsx` (completed)
+  - `src/components/sessions/CloseVoteButton.tsx` (completed)
+  - `src/components/sessions/ReopenVoteButton.tsx` (completed)
+  - `src/components/sessions/DeleteVoteButton.tsx` (completed)
+  - `src/components/spaces/SpaceActionPanel.tsx` (completed)
+  - `src/components/spaces/JoinSpaceByCodeForm.tsx` (completed)
+  - `src/components/spaces/RemoveSpaceMemberButton.tsx` (completed)
+  - `src/components/templates/ListDetailItemsGrid.tsx` (completed)
+  - `src/components/templates/DeleteListButton.tsx` (completed)
+  - `src/components/bracket/MatchupVoter.tsx` (completed)
+  - `src/components/tierlist/TierColorPicker.tsx` (completed)
+  - `src/app/sessions/[sessionId]/vote/VotePageClient.tsx` (completed)
+  - `src/app/sessions/[sessionId]/vote/page.tsx` (completed)
+  - `src/app/sessions/[sessionId]/results/BrowseResultsSection.tsx` (completed)
+  - `src/app/templates/page.tsx` (completed)
+  - `src/app/templates/[templateId]/page.tsx` (completed)
+  - `src/app/sessions/page.tsx` (completed)
+  - `src/app/spaces/[spaceId]/templates/import/page.tsx` (completed)
 
-4. Accent layer (next)
-- Refactor `src/lib/space-theme.ts` so accent output composes cleanly with semantic base tokens in both light and dark themes.
+4. Accent layer (completed)
+- Refactored `src/lib/space-theme.ts` accent output to avoid raw palette utility classes and compose with the semantic base surface/foreground tokens.
 
 5. Enforcement (next)
 - Add a lightweight lint/check script to flag new raw palette utilities and unapproved hardcoded colors in frontend components.

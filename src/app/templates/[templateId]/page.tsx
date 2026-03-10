@@ -72,8 +72,10 @@ export default async function ListDetailPage({
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold">{list.name}</h1>
-          {list.description && <p className="mt-1 text-sm text-neutral-400">{list.description}</p>}
-          <p className="mt-1 text-xs text-neutral-500">
+          {list.description && (
+            <p className="mt-1 text-sm text-[var(--fg-muted)]">{list.description}</p>
+          )}
+          <p className="mt-1 text-xs text-[var(--fg-subtle)]">
             {list.space
               ? `${list.space.visibility === "OPEN" ? "Open" : "Private"} space list`
               : list.isPublic

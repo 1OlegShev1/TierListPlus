@@ -78,7 +78,7 @@ export function ResultsTierGrid({
           >
             <div
               className={`flex flex-shrink-0 items-center justify-center py-2 text-center font-bold ${labelWidthClass}`}
-              style={{ backgroundColor: tier.color, color: "#000" }}
+              style={{ backgroundColor: tier.color, color: "var(--fg-on-accent)" }}
               title={tier.label}
             >
               <span

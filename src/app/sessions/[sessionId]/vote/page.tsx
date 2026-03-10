@@ -11,7 +11,7 @@ import { VotePageClient } from "./VotePageClient";
 export const dynamic = "force-dynamic";
 
 const resultsLinkClassName =
-  "inline-flex h-10 items-center justify-center rounded-lg border border-amber-500/60 bg-amber-500/10 px-4 text-sm font-medium text-amber-300 transition-colors hover:border-amber-400 hover:bg-amber-500/15 hover:text-amber-200";
+  "inline-flex h-10 items-center justify-center rounded-lg border border-[var(--accent-primary)]/60 bg-[var(--accent-primary)]/10 px-4 text-sm font-medium text-[var(--accent-primary-hover)] transition-colors hover:border-[var(--accent-primary-hover)] hover:bg-[var(--accent-primary)]/15 hover:text-[var(--fg-primary)]";
 
 interface ExistingVoteRow {
   tierKey: string;
@@ -116,7 +116,7 @@ export default async function VotePage({ params }: { params: Promise<{ sessionId
   if (session.status !== "OPEN") {
     return (
       <div className="flex flex-col items-center gap-3 py-20">
-        <p className="text-lg text-neutral-400">This session is no longer accepting votes</p>
+        <p className="text-lg text-[var(--fg-muted)]">This session is no longer accepting votes</p>
         <Link href={`/sessions/${sessionId}/results`} className={resultsLinkClassName}>
           View Results
         </Link>

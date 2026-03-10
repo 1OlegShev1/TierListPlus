@@ -213,7 +213,7 @@ function VotesSection({
           ))}
         </div>
       ) : (
-        <div className="rounded-2xl border border-dashed border-neutral-800 bg-neutral-950/40 px-5 py-4 text-sm text-neutral-500">
+        <div className="rounded-2xl border border-dashed border-[var(--border-subtle)] bg-[var(--bg-soft-contrast)] px-5 py-4 text-sm text-[var(--fg-muted)]">
           Nothing else here right now.
         </div>
       )}
@@ -235,7 +235,7 @@ function VotesSection({
               More
             </Link>
           )}
-          <p className="text-sm text-neutral-500">{pagination.pageLabel}</p>
+          <p className="text-sm text-[var(--fg-muted)]">{pagination.pageLabel}</p>
         </div>
       )}
     </section>
@@ -264,7 +264,7 @@ function VoteRow({ vote, viewer }: { vote: VoteListItem; viewer: VoteViewer }) {
   const showStatusBadge = vote.status !== "OPEN";
 
   return (
-    <div className="card-hover-lift flex flex-col gap-3 rounded-xl border border-neutral-800 bg-neutral-900 p-4 transition-colors hover:border-neutral-600 sm:flex-row sm:items-center sm:gap-5">
+    <div className="card-hover-lift flex flex-col gap-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-4 transition-colors hover:border-[var(--border-strong)] sm:flex-row sm:items-center sm:gap-5">
       <Link href={`/sessions/${vote.id}`} className="min-w-0 flex-1">
         <VotePreviewSummary
           title={vote.name}

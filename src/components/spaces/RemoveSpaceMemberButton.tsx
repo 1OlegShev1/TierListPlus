@@ -28,7 +28,7 @@ export function RemoveSpaceMemberButton({ spaceId, userId }: { spaceId: string; 
       <Button variant="secondary" onClick={remove} disabled={busy} className="!px-3 !py-1 text-xs">
         {busy ? "Removing..." : "Remove"}
       </Button>
-      {error && <p className="text-xs text-red-400">{error}</p>}
+      {error && <p className="text-xs text-[var(--state-danger-fg)]">{error}</p>}
     </div>
   );
 }
