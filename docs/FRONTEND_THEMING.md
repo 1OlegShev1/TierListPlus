@@ -63,6 +63,9 @@ Root token definitions live in `src/app/globals.css`.
   - `src/components/spaces/SpaceInvitePanel.tsx` (completed)
   - `src/app/spaces/[spaceId]/page.tsx` (completed)
   - `src/app/sessions/[sessionId]/results/BrowsePanel.tsx` (completed)
+  - `src/components/tierlist/TierListBoard.tsx` (completed)
+  - `src/components/shared/ImageUploader.tsx` (completed)
+  - `src/components/templates/ListEditor.tsx` (completed)
 
 4. Accent layer (next)
 - Refactor `src/lib/space-theme.ts` so accent output composes cleanly with semantic base tokens in both light and dark themes.

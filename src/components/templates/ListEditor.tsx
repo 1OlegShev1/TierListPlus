@@ -263,7 +263,7 @@ export function ListEditor({
   return (
     <form className="space-y-6" onSubmit={handleSubmit}>
       {spaceId && (
-        <p className="text-sm text-neutral-500">{`Publishing inside ${spaceName ?? "this space"} only.`}</p>
+        <p className="text-sm text-[var(--fg-subtle)]">{`Publishing inside ${spaceName ?? "this space"} only.`}</p>
       )}
       <div className="space-y-4">
         <Input
@@ -286,19 +286,19 @@ export function ListEditor({
 
       <div>
         {!spaceId && (
-          <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-neutral-800 bg-neutral-900 p-4 transition-colors hover:border-neutral-700 hover:bg-neutral-800">
+          <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-4 transition-colors hover:border-[var(--border-default)] hover:bg-[var(--bg-surface-hover)]">
             <input
               type="checkbox"
               checked={isPublic}
               onChange={(e) => setIsPublic(e.target.checked)}
-              className="h-4 w-4 accent-amber-500"
+              className="h-4 w-4 accent-[var(--accent-primary)]"
             />
             <div>
               <p className="font-medium">Show in public Lists</p>
-              <p className="text-sm text-neutral-500">
+              <p className="text-sm text-[var(--fg-subtle)]">
                 Off by default. Private lists are only visible to you.
               </p>
-              <p className="text-xs text-neutral-500">
+              <p className="text-xs text-[var(--fg-subtle)]">
                 If you publish, you confirm you have rights to the content and links you share.
               </p>
             </div>
@@ -333,7 +333,7 @@ export function ListEditor({
       </div>
 
       <div>
-        <h3 className="mb-3 text-sm font-medium text-neutral-400">Picks ({items.length})</h3>
+        <h3 className="mb-3 text-sm font-medium text-[var(--fg-muted)]">Picks ({items.length})</h3>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
           {items.map((item, index) => (
             <div
@@ -341,12 +341,12 @@ export function ListEditor({
               ref={(node) => {
                 itemCardRefs.current[index] = node;
               }}
-              className="group relative rounded-lg border border-neutral-800 bg-neutral-900 p-2"
+              className="group relative rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-2"
             >
               <button
                 type="button"
                 onClick={() => removeItem(index)}
-                className="absolute right-1 top-1 z-10 flex h-7 w-7 items-center justify-center rounded-full border border-neutral-700 bg-black/70 text-neutral-200 opacity-0 transition-all hover:border-red-500 hover:bg-red-600 hover:text-white focus-visible:opacity-100 group-hover:opacity-100 group-focus-within:opacity-100"
+                className="absolute right-1 top-1 z-10 flex h-7 w-7 items-center justify-center rounded-full border border-[var(--border-default)] bg-[var(--bg-overlay)] text-[var(--fg-secondary)] opacity-0 transition-all hover:border-[var(--action-danger-bg)] hover:bg-[var(--action-danger-bg)] hover:text-[var(--action-danger-fg)] focus-visible:opacity-100 group-hover:opacity-100 group-focus-within:opacity-100"
                 aria-label={`Remove ${item.label || "pick"}`}
               >
                 <CloseIcon className="h-4 w-4" />
@@ -354,10 +354,10 @@ export function ListEditor({
               <button
                 type="button"
                 onClick={() => setEditingSourceIndex(index)}
-                className={`absolute left-1 top-1 z-10 flex h-7 min-w-7 items-center justify-center gap-1 rounded-full border bg-black/70 px-2 text-xs font-medium transition-all focus-visible:outline-none focus-visible:ring-2 ${
+                className={`absolute left-1 top-1 z-10 flex h-7 min-w-7 items-center justify-center gap-1 rounded-full border bg-[var(--bg-overlay)] px-2 text-xs font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] ${
                   item.sourceUrl
-                    ? "border-sky-400/80 text-sky-200 hover:border-sky-300 hover:text-sky-100 focus-visible:ring-sky-400/70"
-                    : "border-neutral-700 text-neutral-100 hover:border-amber-400 hover:text-amber-300 focus-visible:ring-neutral-500/60"
+                    ? "border-[var(--accent-primary)] text-[var(--accent-primary-hover)] hover:border-[var(--accent-primary-hover)] hover:text-[var(--fg-primary)]"
+                    : "border-[var(--border-default)] text-[var(--fg-secondary)] hover:border-[var(--accent-primary)] hover:text-[var(--accent-primary-hover)]"
                 } ${
                   item.sourceUrl
                     ? "opacity-100"
@@ -384,7 +384,7 @@ export function ListEditor({
                   if (card && nextFocused instanceof Node && card.contains(nextFocused)) return;
                   setPreviewingItemIndex((current) => (current === index ? null : current));
                 }}
-                className="block w-full overflow-hidden rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-2 focus-visible:ring-offset-neutral-900"
+                className="block w-full overflow-hidden rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-surface)]"
                 aria-label={`Preview animation for ${item.label || "pick"}`}
               >
                 <ItemArtwork
@@ -412,7 +412,7 @@ export function ListEditor({
                   e.preventDefault();
                   focusNextItemControl(index, e.currentTarget);
                 }}
-                className="mt-2 w-full rounded border border-neutral-700 bg-neutral-800 px-2 py-1.5 text-sm text-white placeholder:text-neutral-500 focus:border-amber-500 focus:outline-none"
+                className="mt-2 w-full rounded border border-[var(--border-default)] bg-[var(--bg-elevated)] px-2 py-1.5 text-sm text-[var(--fg-primary)] placeholder:text-[var(--fg-subtle)] focus:border-[var(--accent-primary)] focus:outline-none"
               />
             </div>
           ))}
@@ -424,11 +424,11 @@ export function ListEditor({
               setShowAddByUrlSourceModal(true);
             }}
             disabled={uploadsDisabled}
-            className="group flex aspect-square w-full flex-col items-center justify-center rounded-lg border border-dashed border-neutral-700 bg-neutral-900/70 p-3 text-center transition-colors hover:border-amber-400 hover:bg-neutral-900 disabled:cursor-not-allowed disabled:opacity-60"
+            className="group flex aspect-square w-full flex-col items-center justify-center rounded-lg border border-dashed border-[var(--border-default)] bg-[var(--bg-surface)] p-3 text-center transition-colors hover:border-[var(--accent-primary)] hover:bg-[var(--bg-surface-hover)] disabled:cursor-not-allowed disabled:opacity-60"
             aria-label="Add item via URL"
           >
-            <LinkIcon className="h-6 w-6 text-neutral-300 transition-colors group-hover:text-amber-300" />
-            <span className="mt-2 text-xs font-medium text-neutral-300">Add via URL</span>
+            <LinkIcon className="h-6 w-6 text-[var(--fg-secondary)] transition-colors group-hover:text-[var(--accent-primary-hover)]" />
+            <span className="mt-2 text-xs font-medium text-[var(--fg-secondary)]">Add via URL</span>
           </button>
           <ImageUploader
             onUploaded={addItem}

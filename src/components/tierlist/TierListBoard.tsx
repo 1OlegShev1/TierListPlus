@@ -66,16 +66,16 @@ function StatusNotice({
 }) {
   const toneClassName =
     tone === "emerald"
-      ? "border-emerald-500/40 text-emerald-100 shadow-[0_12px_36px_-22px_rgba(16,185,129,0.9)]"
-      : "border-amber-500/40 text-amber-100 shadow-[0_12px_36px_-22px_rgba(245,158,11,0.95)]";
+      ? "border-[var(--state-success-fg)] text-[var(--state-success-fg)]"
+      : "border-[var(--accent-primary)] text-[var(--accent-primary-hover)]";
   const toneButtonClassName =
     tone === "emerald"
-      ? "text-emerald-200/70 hover:bg-emerald-500/10 hover:text-emerald-100"
-      : "text-amber-200/70 hover:bg-amber-500/10 hover:text-amber-100";
+      ? "text-[var(--state-success-fg)] hover:bg-[var(--state-success-bg)] hover:text-[var(--state-success-fg)]"
+      : "text-[var(--accent-primary)] hover:bg-[var(--bg-surface-hover)] hover:text-[var(--accent-primary-hover)]";
 
   return (
     <div
-      className={`pointer-events-auto flex w-full items-start gap-3 rounded-xl border bg-neutral-950/90 px-3 py-2 text-sm leading-5 backdrop-blur-sm sm:w-[22rem] ${toneClassName}`}
+      className={`pointer-events-auto flex w-full items-start gap-3 rounded-xl border bg-[var(--bg-elevated)] px-3 py-2 text-sm leading-5 backdrop-blur-sm sm:w-[22rem] ${toneClassName}`}
     >
       <div className="min-w-0 flex-1">{children}</div>
       <button
@@ -340,7 +340,7 @@ export function TierListBoard({
       : "All items ranked!";
   const uploadCard = canManageItems ? (
     <>
-      <div className="w-[112px] flex-shrink-0 rounded-lg border border-neutral-700 bg-neutral-950 p-1.5 sm:w-[120px] md:w-[128px]">
+      <div className="w-[112px] flex-shrink-0 rounded-lg border border-[var(--border-default)] bg-[var(--bg-elevated)] p-1.5 sm:w-[120px] md:w-[128px]">
         <button
           type="button"
           onClick={() => {
@@ -348,19 +348,19 @@ export function TierListBoard({
             setShowAddByUrlSourceModal(true);
           }}
           disabled={uploadsDisabled || hasPendingItemMutations}
-          className="flex aspect-square w-full flex-col items-center justify-center rounded border border-dashed border-neutral-700 bg-neutral-900/70 text-neutral-300 transition-colors hover:border-amber-400 hover:text-amber-300 disabled:cursor-not-allowed disabled:opacity-60"
+          className="flex aspect-square w-full flex-col items-center justify-center rounded border border-dashed border-[var(--border-default)] bg-[var(--bg-surface)] text-[var(--fg-secondary)] transition-colors hover:border-[var(--accent-primary)] hover:text-[var(--accent-primary-hover)] disabled:cursor-not-allowed disabled:opacity-60"
         >
           <LinkIcon className="h-5 w-5" />
           <span className="mt-2 text-xs font-medium">Add via URL</span>
         </button>
         <div
           aria-hidden="true"
-          className="mt-1 flex h-[30px] items-center justify-center text-[11px] text-neutral-500"
+          className="mt-1 flex h-[30px] items-center justify-center text-[11px] text-[var(--fg-subtle)]"
         >
           Link item
         </div>
       </div>
-      <div className="w-[112px] flex-shrink-0 rounded-lg border border-neutral-700 bg-neutral-950 p-1.5 sm:w-[120px] md:w-[128px]">
+      <div className="w-[112px] flex-shrink-0 rounded-lg border border-[var(--border-default)] bg-[var(--bg-elevated)] p-1.5 sm:w-[120px] md:w-[128px]">
         <ImageUploader
           onUploaded={handleUploadedImage}
           onUploadStateChange={handleUploadStateChange}
@@ -417,7 +417,7 @@ export function TierListBoard({
               {savesWorkingTemplate ? "List published." : "List saved."}{" "}
               <Link
                 href={`/templates/${savedTemplateId}`}
-                className="font-medium underline underline-offset-2 hover:text-white"
+                className="font-medium underline underline-offset-2 hover:text-[var(--fg-primary)]"
               >
                 Open it
               </Link>
@@ -439,7 +439,7 @@ export function TierListBoard({
                 setShowSessionBracket(true);
               }}
               disabled={submitting || hasPendingItemMutations}
-              className="rounded-lg border border-neutral-700 px-3 py-2 text-sm font-medium text-neutral-200 transition-colors hover:border-amber-400 hover:text-amber-300 disabled:opacity-50 sm:px-4 sm:py-1.5"
+              className="rounded-lg border border-[var(--border-default)] px-3 py-2 text-sm font-medium text-[var(--fg-secondary)] transition-colors hover:border-[var(--accent-primary)] hover:text-[var(--accent-primary-hover)] disabled:opacity-50 sm:px-4 sm:py-1.5"
             >
               <span className="sm:hidden">Bracket</span>
               <span className="hidden sm:inline">Quick Bracket</span>
@@ -449,7 +449,7 @@ export function TierListBoard({
             (savedTemplateId ? (
               <Link
                 href={`/templates/${savedTemplateId}`}
-                className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-sm font-medium text-emerald-200 transition-colors hover:border-emerald-400 hover:text-emerald-100 sm:px-4 sm:py-1.5"
+                className="rounded-lg border border-[var(--state-success-fg)] bg-[var(--state-success-bg)] px-3 py-2 text-sm font-medium text-[var(--state-success-fg)] transition-colors hover:brightness-110 sm:px-4 sm:py-1.5"
               >
                 <span className="sm:hidden">{openSavedTemplateMobileLabel}</span>
                 <span className="hidden sm:inline">{openSavedTemplateLabel}</span>
@@ -459,7 +459,7 @@ export function TierListBoard({
                 type="button"
                 onClick={handleSaveTemplate}
                 disabled={saveTemplateActionLocked || hasPendingItemMutations}
-                className="rounded-lg border border-neutral-700 px-3 py-2 text-sm font-medium text-neutral-200 transition-colors hover:border-emerald-400 hover:text-emerald-300 disabled:opacity-50 sm:px-4 sm:py-1.5"
+                className="rounded-lg border border-[var(--border-default)] px-3 py-2 text-sm font-medium text-[var(--fg-secondary)] transition-colors hover:border-[var(--accent-primary)] hover:text-[var(--accent-primary-hover)] disabled:opacity-50 sm:px-4 sm:py-1.5"
               >
                 <span className="sm:hidden">
                   {showSaveTemplateBusyState ? "Saving" : saveTemplateMobileLabel}
@@ -478,21 +478,23 @@ export function TierListBoard({
               totalItems === 0 ||
               rankedCount !== totalItems
             }
-            className="rounded-lg bg-amber-500 px-3 py-2 text-sm font-medium text-black transition-colors hover:bg-amber-400 disabled:opacity-50 sm:px-5 sm:py-1.5"
+            className="rounded-lg bg-[var(--action-primary-bg)] px-3 py-2 text-sm font-medium text-[var(--action-primary-fg)] transition-colors hover:bg-[var(--action-primary-bg-hover)] disabled:opacity-50 sm:px-5 sm:py-1.5"
           >
             <span className="sm:hidden">Save</span>
             <span className="hidden sm:inline">Lock In Ranking</span>
           </button>
         </div>
         {saveTemplateError && (
-          <p className="text-right text-sm text-red-400">{saveTemplateError}</p>
+          <p className="text-right text-sm text-[var(--state-danger-fg)]">{saveTemplateError}</p>
         )}
-        {submitError && <p className="text-right text-sm text-red-400">{submitError}</p>}
+        {submitError && (
+          <p className="text-right text-sm text-[var(--state-danger-fg)]">{submitError}</p>
+        )}
         {userError && canManageItems && (
-          <p className="text-right text-sm text-red-400">{userError}</p>
+          <p className="text-right text-sm text-[var(--state-danger-fg)]">{userError}</p>
         )}
         {itemMutationError && (
-          <p className="text-right text-sm text-red-400">{itemMutationError}</p>
+          <p className="text-right text-sm text-[var(--state-danger-fg)]">{itemMutationError}</p>
         )}
       </div>
       <DndContext
@@ -505,7 +507,7 @@ export function TierListBoard({
       >
         <div
           ref={containerRef}
-          className="relative rounded-lg border border-neutral-800 touch-pan-y"
+          className="relative rounded-lg border border-[var(--border-subtle)] touch-pan-y"
         >
           {tierConfig.map((tier, index) => (
             <div key={tier.key} data-tier-key={tier.key}>
@@ -542,7 +544,7 @@ export function TierListBoard({
         <div className="flex-shrink-0 pt-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] sm:pb-0">
           <div className="mb-2 flex items-center justify-between">
             <UnrankedHeader />
-            <span className="text-xs text-neutral-500 sm:text-sm">
+            <span className="text-xs text-[var(--fg-subtle)] sm:text-sm">
               {rankedCount}/{totalItems} ranked
             </span>
           </div>

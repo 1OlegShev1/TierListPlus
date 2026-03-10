@@ -352,17 +352,17 @@ export function ImageUploader({
         type="button"
         className={`flex h-full w-full items-center justify-center rounded-lg transition-colors ${
           disabled
-            ? "cursor-not-allowed border-neutral-800 bg-neutral-900/60 opacity-70"
+            ? "cursor-not-allowed border-[var(--border-subtle)] bg-[var(--bg-surface)] opacity-70"
             : uploadInteractionLocked
-              ? "cursor-progress border-neutral-700 bg-neutral-900/60"
+              ? "cursor-progress border-[var(--border-default)] bg-[var(--bg-surface)]"
               : "cursor-pointer"
         } ${
           dragOver && !pickerDisabled
-            ? "border-amber-400 bg-amber-400/10"
+            ? "border-[var(--accent-primary)] bg-[var(--bg-soft-contrast)]"
             : compact
-              ? "border-neutral-700 bg-neutral-950/80 hover:border-neutral-500"
-              : "border-neutral-700 hover:border-neutral-500"
-        } ${compact ? "min-h-10 gap-2 border px-3 py-2" : "flex-col border-2 border-dashed"} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-2 focus-visible:ring-offset-black`}
+              ? "border-[var(--border-default)] bg-[var(--bg-elevated)] hover:border-[var(--border-strong)]"
+              : "border-[var(--border-default)] hover:border-[var(--border-strong)]"
+        } ${compact ? "min-h-10 gap-2 border px-3 py-2" : "flex-col border-2 border-dashed"} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-canvas)]`}
         onClick={openFilePicker}
         onDragOver={(e) => {
           e.preventDefault();
@@ -378,24 +378,28 @@ export function ImageUploader({
         aria-busy={uploadInteractionLocked || undefined}
       >
         {disabled ? (
-          <span className="text-sm text-neutral-500">{idleLabel ?? "Upload unavailable"}</span>
+          <span className="text-sm text-[var(--fg-subtle)]">
+            {idleLabel ?? "Upload unavailable"}
+          </span>
         ) : showUploadingState && progress ? (
-          <span className="text-sm text-neutral-400">
+          <span className="text-sm text-[var(--fg-muted)]">
             Uploading {progress.completed}/{progress.total}...
           </span>
         ) : showUploadingState ? (
-          <span className="text-sm text-neutral-400">Uploading...</span>
+          <span className="text-sm text-[var(--fg-muted)]">Uploading...</span>
         ) : (
           <>
             <span
               className={
-                compact ? "text-sm font-semibold text-neutral-400" : "text-2xl text-neutral-500"
+                compact
+                  ? "text-sm font-semibold text-[var(--fg-muted)]"
+                  : "text-2xl text-[var(--fg-subtle)]"
               }
             >
               +
             </span>
             <span
-              className={`${compact ? "text-sm font-medium text-neutral-300" : "text-xs text-neutral-500"}`}
+              className={`${compact ? "text-sm font-medium text-[var(--fg-secondary)]" : "text-xs text-[var(--fg-subtle)]"}`}
             >
               {idleLabel ?? (multiple ? "Drop images or click" : "Drop image or click")}
             </span>
@@ -404,14 +408,21 @@ export function ImageUploader({
       </button>
 
       {failures.length > 0 && (
-        <div className="absolute left-0 top-full z-20 mt-3 w-[min(32rem,calc(100vw-2rem))] max-w-[calc(100vw-2rem)] rounded-xl border border-red-900/80 bg-neutral-950/95 p-4 shadow-2xl shadow-black/50 backdrop-blur-sm">
+        <div className="absolute left-0 top-full z-20 mt-3 w-[min(32rem,calc(100vw-2rem))] max-w-[calc(100vw-2rem)] rounded-xl border border-[var(--state-danger-fg)] bg-[var(--bg-elevated)] p-4 shadow-2xl backdrop-blur-sm">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold leading-5 text-red-200">{error}</p>
-              <p className="mt-1 text-xs text-neutral-500">Review the files below and try again.</p>
-              <ul className="mt-3 max-h-48 space-y-2 overflow-y-auto rounded-lg border border-red-950/60 bg-black/20 p-3 pr-2">
+              <p className="text-sm font-semibold leading-5 text-[var(--state-danger-fg)]">
+                {error}
+              </p>
+              <p className="mt-1 text-xs text-[var(--fg-subtle)]">
+                Review the files below and try again.
+              </p>
+              <ul className="mt-3 max-h-48 space-y-2 overflow-y-auto rounded-lg border border-[var(--state-danger-fg)]/60 bg-[var(--bg-soft-contrast)] p-3 pr-2">
                 {failures.map((msg) => (
-                  <li key={msg} className="break-words text-xs leading-5 text-red-100/85">
+                  <li
+                    key={msg}
+                    className="break-words text-xs leading-5 text-[var(--state-danger-fg)]"
+                  >
                     {msg}
                   </li>
                 ))}
@@ -420,7 +431,7 @@ export function ImageUploader({
             <button
               type="button"
               onClick={dismissErrors}
-              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-neutral-800 bg-neutral-900 text-neutral-400 transition-colors hover:border-neutral-700 hover:text-neutral-100"
+              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-[var(--border-default)] bg-[var(--bg-surface)] text-[var(--fg-muted)] transition-colors hover:border-[var(--border-strong)] hover:text-[var(--fg-primary)]"
               aria-label="Dismiss errors"
             >
               <CloseIcon className="h-3.5 w-3.5" />
@@ -431,7 +442,7 @@ export function ImageUploader({
 
       {error && failures.length === 0 && (
         <div className="mt-2 text-center">
-          <span className="text-xs text-red-400">{error}</span>
+          <span className="text-xs text-[var(--state-danger-fg)]">{error}</span>
         </div>
       )}
     </div>
