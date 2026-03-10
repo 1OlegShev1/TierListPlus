@@ -217,24 +217,26 @@ export function RecoverySection() {
   };
 
   return (
-    <div className="rounded-xl border border-neutral-800 bg-neutral-900 p-4 sm:p-6">
-      <h2 className="mb-3 text-base font-semibold text-neutral-300 sm:mb-4 sm:text-lg">
+    <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-4 sm:p-6">
+      <h2 className="mb-3 text-base font-semibold text-[var(--fg-secondary)] sm:mb-4 sm:text-lg">
         Link Another Browser
       </h2>
 
-      <section className="rounded-xl border border-neutral-800 bg-black/20 p-4 sm:p-5">
-        <h3 className="text-sm font-semibold text-neutral-200">
+      <section className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-soft-contrast)] p-4 sm:p-5">
+        <h3 className="text-sm font-semibold text-[var(--fg-secondary)]">
           1. Generate Code (Current Browser)
         </h3>
-        <p className="mt-1 text-sm text-neutral-400">
+        <p className="mt-1 text-sm text-[var(--fg-muted)]">
           Create a one-time code here, then use it in another browser within 15 minutes.
         </p>
         <div className="mt-3">
           {activeLinkCode ? (
-            <div className="space-y-3 rounded-xl border border-neutral-800 bg-black/25 p-4">
+            <div className="space-y-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-soft-contrast)] p-4">
               <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                <p className="text-xs uppercase tracking-wider text-neutral-500">One-time code</p>
-                <p className="text-xs text-neutral-500">
+                <p className="text-xs uppercase tracking-wider text-[var(--fg-subtle)]">
+                  One-time code
+                </p>
+                <p className="text-xs text-[var(--fg-subtle)]">
                   Expires{" "}
                   {new Date(activeLinkCode.expiresAt).toLocaleTimeString([], {
                     hour: "2-digit",
@@ -242,7 +244,7 @@ export function RecoverySection() {
                   })}
                 </p>
               </div>
-              <code className="block rounded-lg bg-neutral-800 px-3 py-2 text-center font-mono text-sm tracking-wide text-amber-400 sm:px-4 sm:py-2.5 sm:text-lg sm:tracking-wider sm:text-left">
+              <code className="block rounded-lg bg-[var(--bg-surface-hover)] px-3 py-2 text-center font-mono text-sm tracking-wide text-[var(--accent-primary)] sm:px-4 sm:py-2.5 sm:text-lg sm:tracking-wider sm:text-left">
                 {activeLinkCode.linkCode}
               </code>
               <div className="flex flex-wrap gap-2">
@@ -266,7 +268,7 @@ export function RecoverySection() {
                   {qrLoading ? "Preparing QR..." : "Show QR for Phone"}
                 </Button>
               </div>
-              <p className="text-xs text-neutral-500">
+              <p className="text-xs text-[var(--fg-subtle)]">
                 Phone shortcut: scan QR with your camera. It opens TierList+ in your phone&apos;s
                 default browser and links that browser profile only.
               </p>
@@ -297,9 +299,9 @@ export function RecoverySection() {
         {qrError && <ErrorMessage message={qrError} />}
       </section>
 
-      <section className="mt-4 rounded-xl border border-neutral-800 bg-black/20 p-4 sm:p-5">
-        <h3 className="text-sm font-semibold text-neutral-200">2. Link This Browser</h3>
-        <p className="mt-1 text-sm text-neutral-400">
+      <section className="mt-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-soft-contrast)] p-4 sm:p-5">
+        <h3 className="text-sm font-semibold text-[var(--fg-secondary)]">2. Link This Browser</h3>
+        <p className="mt-1 text-sm text-[var(--fg-muted)]">
           Enter a one-time code manually, or open this page from a QR link to pre-fill it.
         </p>
         {codePrefilledFromLink && linkCode.trim() ? (
@@ -309,7 +311,9 @@ export function RecoverySection() {
         ) : null}
         <div className="mt-3">
           {linked ? (
-            <p className="text-sm text-green-400">Browser linked successfully! Reloading...</p>
+            <p className="text-sm text-[var(--state-success-fg)]">
+              Browser linked successfully! Reloading...
+            </p>
           ) : (
             <div className="space-y-3">
               <Input
@@ -350,13 +354,15 @@ export function RecoverySection() {
       <dialog
         ref={qrDialogRef}
         onClose={() => setShowQrModal(false)}
-        className="fixed inset-0 m-auto w-[min(calc(100vw-2rem),42rem)] rounded-xl border border-neutral-700 bg-neutral-900 p-5 text-left text-white shadow-2xl shadow-black/60 backdrop:bg-black/70 focus:outline-none"
+        className="fixed inset-0 m-auto w-[min(calc(100vw-2rem),42rem)] rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface)] p-5 text-left text-[var(--fg-primary)] shadow-2xl shadow-black/60 backdrop:bg-[var(--bg-overlay)] focus:outline-none"
       >
         <div className="space-y-5">
           <div className="rounded-xl border border-amber-500/20 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent p-4">
             <p className="text-xs uppercase tracking-wider text-amber-200">Phone Shortcut</p>
-            <h3 className="mt-1 text-xl font-semibold text-neutral-100">Open on phone browser</h3>
-            <p className="mt-1 text-sm text-neutral-400">
+            <h3 className="mt-1 text-xl font-semibold text-[var(--fg-primary)]">
+              Open on phone browser
+            </h3>
+            <p className="mt-1 text-sm text-[var(--fg-muted)]">
               Scan with your phone camera. This opens TierList+ in your phone&apos;s default browser
               with the one-time code pre-filled. It links that browser profile only.
             </p>
@@ -375,12 +381,14 @@ export function RecoverySection() {
             </div>
             <div className="space-y-3">
               {activeLinkCode && (
-                <div className="rounded-lg border border-neutral-700 bg-black/30 p-3">
-                  <p className="text-xs uppercase tracking-wider text-neutral-500">One-time code</p>
-                  <p className="mt-1 font-mono text-sm tracking-widest text-amber-300">
+                <div className="rounded-lg border border-[var(--border-default)] bg-[var(--bg-soft-contrast)] p-3">
+                  <p className="text-xs uppercase tracking-wider text-[var(--fg-subtle)]">
+                    One-time code
+                  </p>
+                  <p className="mt-1 font-mono text-sm tracking-widest text-[var(--accent-primary)]">
                     {activeLinkCode.linkCode}
                   </p>
-                  <p className="mt-2 text-xs text-neutral-500">
+                  <p className="mt-2 text-xs text-[var(--fg-subtle)]">
                     Expires{" "}
                     {new Date(activeLinkCode.expiresAt).toLocaleTimeString([], {
                       hour: "2-digit",

@@ -201,8 +201,8 @@ export function ShareVoteButton({
         title={label}
         className={cn(
           iconOnly
-            ? "inline-flex h-10 w-10 items-center justify-center rounded-lg border border-neutral-700 text-neutral-300 transition-colors hover:bg-neutral-800"
-            : "inline-flex h-10 items-center justify-center gap-1.5 rounded-lg border border-neutral-700 px-3 text-sm text-neutral-300 transition-colors hover:bg-neutral-800",
+            ? "inline-flex h-10 w-10 items-center justify-center rounded-lg border border-[var(--border-default)] text-[var(--fg-secondary)] transition-colors hover:bg-[var(--bg-surface-hover)]"
+            : "inline-flex h-10 items-center justify-center gap-1.5 rounded-lg border border-[var(--border-default)] px-3 text-sm text-[var(--fg-secondary)] transition-colors hover:bg-[var(--bg-surface-hover)]",
           className,
         )}
       >
@@ -213,20 +213,20 @@ export function ShareVoteButton({
       <dialog
         ref={dialogRef}
         onClose={() => setOpen(false)}
-        className="fixed inset-0 m-auto w-[min(calc(100vw-2rem),42rem)] rounded-xl border border-neutral-700 bg-neutral-900 p-5 text-left text-white shadow-2xl shadow-black/60 backdrop:bg-black/70 focus:outline-none"
+        className="fixed inset-0 m-auto w-[min(calc(100vw-2rem),42rem)] rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface)] p-5 text-left text-[var(--fg-primary)] shadow-2xl shadow-black/60 backdrop:bg-[var(--bg-overlay)] focus:outline-none"
       >
         <div className="space-y-5">
           <div className="rounded-xl border border-amber-500/20 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent p-4">
             <p className="text-xs uppercase tracking-wider text-amber-200">Invite People</p>
-            <h3 className="mt-1 text-xl font-semibold text-neutral-100">Share this vote</h3>
-            <p className="mt-1 text-sm text-neutral-400">{statusMessage}</p>
+            <h3 className="mt-1 text-xl font-semibold text-[var(--fg-primary)]">Share this vote</h3>
+            <p className="mt-1 text-sm text-[var(--fg-muted)]">{statusMessage}</p>
           </div>
           {isPrivateSpaceVote && (
             <div className="rounded-lg border border-sky-500/30 bg-sky-500/10 p-3">
               <p className="text-xs uppercase tracking-wider text-sky-200">Private Space Access</p>
               <p className="mt-1 text-sm text-sky-100">{privateSpacePrompt}</p>
               {canIncludeSpaceInvite ? (
-                <div className="mt-3 rounded-lg border border-sky-400/20 bg-black/20 p-3">
+                <div className="mt-3 rounded-lg border border-sky-400/20 bg-[var(--bg-soft-contrast)] p-3">
                   <div className="flex items-start justify-between gap-3">
                     <div className="space-y-1">
                       <p className="text-sm font-medium text-sky-100">
@@ -250,7 +250,7 @@ export function ShareVoteButton({
                     <input
                       type="checkbox"
                       aria-label="Include space invite"
-                      className="mt-0.5 h-4 w-4 accent-amber-400"
+                      className="mt-0.5 h-4 w-4 accent-[var(--accent-primary)]"
                       checked={includeSpaceInvite}
                       onChange={(event) => {
                         setIncludeSpaceInvite(event.target.checked);
@@ -282,9 +282,11 @@ export function ShareVoteButton({
           )}
 
           <div className="space-y-4">
-            <div className="rounded-lg border border-neutral-700 bg-black/30 p-3">
-              <p className="text-xs uppercase tracking-wider text-neutral-500">Join code</p>
-              <p className="mt-1 font-mono text-lg tracking-widest text-amber-300">{joinCode}</p>
+            <div className="rounded-lg border border-[var(--border-default)] bg-[var(--bg-soft-contrast)] p-3">
+              <p className="text-xs uppercase tracking-wider text-[var(--fg-subtle)]">Join code</p>
+              <p className="mt-1 font-mono text-lg tracking-widest text-[var(--accent-primary)]">
+                {joinCode}
+              </p>
             </div>
 
             <div className="grid gap-4 sm:grid-cols-[minmax(0,16rem)_minmax(0,1fr)] sm:items-start">
@@ -311,7 +313,7 @@ export function ShareVoteButton({
                     {linkCopied ? "Link copied" : "Copy full link"}
                   </Button>
                 </div>
-                <p className="text-xs text-neutral-500">
+                <p className="text-xs text-[var(--fg-subtle)]">
                   Share the link directly, or let people scan the QR code on mobile. Anyone with a
                   valid link/code can access this vote based on its visibility settings.
                 </p>
