@@ -29,7 +29,7 @@ export function VotePreviewSummary({
       <div className="flex min-w-0 flex-1 flex-col justify-center">
         <h3
           title={title}
-          className="line-clamp-2 break-words text-lg font-semibold leading-tight text-neutral-100"
+          className="line-clamp-2 break-words text-lg font-semibold leading-tight text-[var(--fg-primary)]"
         >
           {title}
         </h3>
@@ -40,12 +40,18 @@ export function VotePreviewSummary({
                 key={`${chip.tone}-${chip.label}`}
                 className={cn(
                   "rounded-full border px-2 py-0.5 text-[0.68rem] font-medium uppercase tracking-[0.08em]",
-                  chip.tone === "accent" && "border-amber-500/30 text-amber-300",
-                  chip.tone === "success" && "border-emerald-500/30 text-emerald-300",
-                  chip.tone === "public" && "border-cyan-500/35 text-cyan-300",
-                  chip.tone === "private" && "border-rose-500/35 text-rose-300",
-                  chip.tone === "warning" && "border-red-500/30 text-red-300",
-                  chip.tone === "neutral" && "border-neutral-700 text-neutral-400",
+                  chip.tone === "accent" &&
+                    "border-[var(--accent-primary)]/35 text-[var(--accent-primary-hover)]",
+                  chip.tone === "success" &&
+                    "border-[var(--state-success-fg)]/35 text-[var(--state-success-fg)]",
+                  chip.tone === "public" &&
+                    "border-[var(--state-muted-fg)]/35 text-[var(--state-muted-fg)]",
+                  chip.tone === "private" &&
+                    "border-[var(--state-danger-fg)]/35 text-[var(--state-danger-fg)]",
+                  chip.tone === "warning" &&
+                    "border-[var(--state-danger-fg)]/35 text-[var(--state-danger-fg)]",
+                  chip.tone === "neutral" &&
+                    "border-[var(--border-default)] text-[var(--fg-muted)]",
                 )}
               >
                 {chip.label}
@@ -57,7 +63,7 @@ export function VotePreviewSummary({
           <p
             title={sourceLabel}
             className={cn(
-              "line-clamp-2 break-words text-sm leading-snug text-neutral-400",
+              "line-clamp-2 break-words text-sm leading-snug text-[var(--fg-muted)]",
               chips.length > 0 ? "mt-3" : "mt-2.5",
             )}
           >
@@ -72,12 +78,12 @@ export function VotePreviewSummary({
             )}
           >
             {detailsLabel && (
-              <p title={detailsLabel} className="break-words text-neutral-500">
+              <p title={detailsLabel} className="break-words text-[var(--fg-subtle)]">
                 {detailsLabel}
               </p>
             )}
             {secondaryLabel && (
-              <p title={secondaryLabel} className="whitespace-nowrap text-neutral-600">
+              <p title={secondaryLabel} className="whitespace-nowrap text-[var(--fg-subtle)]">
                 {secondaryLabel}
               </p>
             )}

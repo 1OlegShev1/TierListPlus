@@ -68,6 +68,9 @@ Root token definitions live in `src/app/globals.css`.
   - `src/components/tierlist/TierListBoard.tsx` (completed)
   - `src/components/shared/ImageUploader.tsx` (completed)
   - `src/components/templates/ListEditor.tsx` (completed)
+  - `src/components/home/HomeContent.tsx` (completed)
+  - `src/app/sessions/join/JoinVotePageClient.tsx` (completed)
+  - `src/components/ui/VotePreviewSummary.tsx` (completed)
 
 4. Accent layer (next)
 - Refactor `src/lib/space-theme.ts` so accent output composes cleanly with semantic base tokens in both light and dark themes.

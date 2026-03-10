@@ -56,14 +56,14 @@ export function HomeContent({ initialData = null }: { initialData?: HomeData | n
 
   return (
     <div className="space-y-10 pt-2 sm:pt-3">
-      <section className="rounded-3xl border border-neutral-800 bg-gradient-to-br from-neutral-900 via-neutral-950 to-neutral-950 p-5 sm:p-8">
-        <p className="text-sm font-semibold uppercase tracking-[0.24em] text-amber-400/80">
+      <section className="rounded-3xl border border-[var(--border-subtle)] bg-[linear-gradient(135deg,var(--bg-surface),var(--bg-elevated),var(--bg-elevated))] p-5 sm:p-8">
+        <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[var(--accent-primary)]">
           TierList+
         </p>
         <h1 className="mt-3 text-3xl font-bold tracking-tight sm:text-5xl">
           Rank anything with your friends
         </h1>
-        <p className="mt-3 max-w-2xl text-sm text-neutral-400 sm:text-lg">
+        <p className="mt-3 max-w-2xl text-sm text-[var(--fg-muted)] sm:text-lg">
           Make a tier list, start a vote, and jump back into the latest chaos.
         </p>
         <div className="mt-6 flex flex-col items-start gap-3 sm:flex-row sm:items-center">
@@ -89,9 +89,9 @@ export function HomeContent({ initialData = null }: { initialData?: HomeData | n
         )}
 
         {hasResolvedData && isEmpty && (
-          <div className="rounded-3xl border border-dashed border-neutral-800 bg-neutral-950/50 px-6 py-10 text-center">
-            <p className="text-xl font-medium text-neutral-200">Nothing cooking yet</p>
-            <p className="mt-3 text-base text-neutral-500">
+          <div className="rounded-3xl border border-dashed border-[var(--border-subtle)] bg-[var(--bg-soft-contrast)] px-6 py-10 text-center">
+            <p className="text-xl font-medium text-[var(--fg-primary)]">Nothing cooking yet</p>
+            <p className="mt-3 text-base text-[var(--fg-subtle)]">
               Make a list or jump into a vote to get things moving.
             </p>
           </div>
@@ -125,7 +125,7 @@ export function HomeContent({ initialData = null }: { initialData?: HomeData | n
                     detailsLabel={`${t._count.items} picks`}
                     secondaryLabel={formatDate(t.createdAt)}
                     items={t.items}
-                    className="transition-colors hover:border-neutral-600"
+                    className="transition-colors hover:border-[var(--border-strong)]"
                   />
                 </Link>
               ))}
@@ -154,9 +154,9 @@ export function HomeContent({ initialData = null }: { initialData?: HomeData | n
         )}
 
         {hasResolvedData && !isEmpty && keepGoingSessions.length === 0 && (
-          <div className="rounded-3xl border border-neutral-800 bg-neutral-900 px-6 py-5">
-            <p className="text-lg font-medium text-neutral-200">No live votes right now</p>
-            <p className="mt-2 text-base text-neutral-500">
+          <div className="rounded-3xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-6 py-5">
+            <p className="text-lg font-medium text-[var(--fg-primary)]">No live votes right now</p>
+            <p className="mt-2 text-base text-[var(--fg-subtle)]">
               Start a new one or browse your older battles in Votes.
             </p>
           </div>
@@ -190,7 +190,7 @@ function VoteRow({ vote, contextLabel }: { vote: HomeVoteSummary; contextLabel?:
       : detailsLabel;
 
   return (
-    <div className="card-hover-lift flex items-start justify-between gap-3 rounded-xl border border-neutral-800 bg-neutral-900 p-4 transition-colors hover:border-neutral-600">
+    <div className="card-hover-lift flex items-start justify-between gap-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-4 transition-colors hover:border-[var(--border-strong)]">
       <Link href={`/sessions/${vote.id}`} className="min-w-0 flex-1">
         <VotePreviewSummary
           title={vote.name}
