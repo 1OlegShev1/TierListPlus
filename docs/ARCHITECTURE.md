@@ -235,6 +235,7 @@ No bracket trees or bracket votes are persisted server-side; bracket assist is l
 - `POST /api/users/recover`
 - `POST /api/users/[userId]/recovery`
 - `GET /api/users/devices`
+- `PATCH /api/users/devices/[deviceId]`
 - `DELETE /api/users/devices/[deviceId]`
 - `GET /api/dashboard`
 

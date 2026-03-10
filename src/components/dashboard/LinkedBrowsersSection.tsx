@@ -1,0 +1,290 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import { Button } from "@/components/ui/Button";
+import { ErrorMessage } from "@/components/ui/ErrorMessage";
+import { Input } from "@/components/ui/Input";
+import { ChevronDownIcon } from "@/components/ui/icons";
+import { apiDelete, apiFetch, apiPatch, getErrorMessage } from "@/lib/api-client";
+import { formatDate } from "@/lib/utils";
+
+interface DeviceSummary {
+  id: string;
+  displayName: string;
+  createdAt: string;
+  lastSeenAt: string;
+  revokedAt: string | null;
+  isCurrent: boolean;
+}
+
+export interface ActiveLinkCodeSummary {
+  linkCode: string;
+  expiresAt: string;
+}
+
+interface DevicesResponse {
+  currentDeviceId: string;
+  devices: DeviceSummary[];
+  activeLinkCode: ActiveLinkCodeSummary | null;
+}
+
+interface RenameDeviceResponse {
+  id: string;
+  displayName: string;
+}
+
+interface LinkedBrowsersSectionProps {
+  userId: string | null;
+  userLoading: boolean;
+  onActiveLinkCodeChange: (activeLinkCode: ActiveLinkCodeSummary | null) => void;
+}
+
+export function LinkedBrowsersSection({
+  userId,
+  userLoading,
+  onActiveLinkCodeChange,
+}: LinkedBrowsersSectionProps) {
+  const [showLinkedBrowsers, setShowLinkedBrowsers] = useState(false);
+  const [devices, setDevices] = useState<DeviceSummary[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+  const [revokingDeviceId, setRevokingDeviceId] = useState<string | null>(null);
+  const [revokeError, setRevokeError] = useState("");
+  const [editingDeviceId, setEditingDeviceId] = useState<string | null>(null);
+  const [editingDeviceName, setEditingDeviceName] = useState("");
+  const [renamingDeviceId, setRenamingDeviceId] = useState<string | null>(null);
+  const [renameError, setRenameError] = useState("");
+  const renameInFlightRef = useRef(false);
+
+  useEffect(() => {
+    if (userLoading) return;
+    if (!userId) {
+      setDevices([]);
+      setLoadError("");
+      onActiveLinkCodeChange(null);
+      setLoading(false);
+      return;
+    }
+
+    let stale = false;
+    setLoading(true);
+    setLoadError("");
+
+    apiFetch<DevicesResponse>("/api/users/devices")
+      .then((data) => {
+        if (stale) return;
+        setDevices(data.devices);
+        onActiveLinkCodeChange(data.activeLinkCode);
+      })
+      .catch((err) => {
+        if (stale) return;
+        setLoadError(getErrorMessage(err, "Failed to load linked devices"));
+      })
+      .finally(() => {
+        if (!stale) setLoading(false);
+      });
+
+    return () => {
+      stale = true;
+    };
+  }, [onActiveLinkCodeChange, userId, userLoading]);
+
+  const revokeDevice = async (deviceId: string) => {
+    setRevokingDeviceId(deviceId);
+    setRevokeError("");
+    setRenameError("");
+
+    try {
+      await apiDelete(`/api/users/devices/${deviceId}`);
+      setDevices((prev) => prev.filter((device) => device.id !== deviceId));
+      if (editingDeviceId === deviceId) {
+        setEditingDeviceId(null);
+        setEditingDeviceName("");
+      }
+    } catch (err) {
+      setRevokeError(getErrorMessage(err, "Failed to revoke device"));
+    } finally {
+      setRevokingDeviceId(null);
+    }
+  };
+
+  const startRenamingDevice = (device: DeviceSummary) => {
+    if (renamingDeviceId) return;
+    setEditingDeviceId(device.id);
+    setEditingDeviceName(device.displayName);
+    setRenameError("");
+  };
+
+  const cancelRenamingDevice = () => {
+    if (renamingDeviceId) return;
+    setEditingDeviceId(null);
+    setEditingDeviceName("");
+    setRenameError("");
+  };
+
+  const renameDevice = async (deviceId: string) => {
+    if (renameInFlightRef.current) return;
+
+    const nextDisplayName = editingDeviceName.trim();
+    if (!nextDisplayName) return;
+
+    const currentDevice = devices.find((device) => device.id === deviceId);
+    if (currentDevice && currentDevice.displayName === nextDisplayName) {
+      setEditingDeviceId(null);
+      setEditingDeviceName("");
+      return;
+    }
+
+    renameInFlightRef.current = true;
+    setRenamingDeviceId(deviceId);
+    setRenameError("");
+    setRevokeError("");
+    try {
+      const updated = await apiPatch<RenameDeviceResponse>(`/api/users/devices/${deviceId}`, {
+        displayName: nextDisplayName,
+      });
+      setDevices((prev) =>
+        prev.map((device) =>
+          device.id === updated.id ? { ...device, displayName: updated.displayName } : device,
+        ),
+      );
+      setEditingDeviceId(null);
+      setEditingDeviceName("");
+    } catch (err) {
+      setRenameError(getErrorMessage(err, "Failed to rename device"));
+    } finally {
+      renameInFlightRef.current = false;
+      setRenamingDeviceId(null);
+    }
+  };
+
+  return (
+    <section className="group mt-4 rounded-xl border border-neutral-800 bg-black/20 p-4 transition-colors hover:border-neutral-700 sm:p-5">
+      <button
+        type="button"
+        onClick={() => setShowLinkedBrowsers((prev) => !prev)}
+        className="flex w-full items-center justify-between rounded-lg text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/60"
+        aria-expanded={showLinkedBrowsers}
+        aria-controls="linked-browsers-content"
+      >
+        <div>
+          <h3 className="text-sm font-semibold text-neutral-200">3. Linked Browsers & Access</h3>
+          <p className="mt-1 text-sm text-neutral-400">
+            Review linked browsers, check last activity, and revoke access when needed.
+          </p>
+        </div>
+        <ChevronDownIcon
+          className={`h-6 w-6 text-neutral-500 transition-all group-hover:text-neutral-300 ${showLinkedBrowsers ? "rotate-180" : ""}`}
+        />
+      </button>
+
+      {showLinkedBrowsers ? (
+        <div id="linked-browsers-content" className="mt-4">
+          <div className="mb-3 flex items-center justify-between">
+            <p className="text-sm text-neutral-400">Linked browsers</p>
+            {loading && <span className="text-xs text-neutral-500">Loading...</span>}
+          </div>
+          {loadError && <ErrorMessage message={loadError} />}
+          {revokeError && <ErrorMessage message={revokeError} />}
+          {renameError && <ErrorMessage message={renameError} />}
+          {!loading && devices.length === 0 ? (
+            <p className="text-sm text-neutral-500">No other browsers linked yet.</p>
+          ) : (
+            <div className="space-y-3">
+              {devices.map((device) => {
+                const isEditing = editingDeviceId === device.id;
+                const isRenaming = renamingDeviceId === device.id;
+                const disableRenameSave = !editingDeviceName.trim();
+
+                return (
+                  <div
+                    key={device.id}
+                    className="flex flex-col gap-3 rounded-lg border border-neutral-800 bg-black/20 p-3 sm:flex-row sm:items-center sm:justify-between"
+                  >
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        {isEditing ? (
+                          <Input
+                            type="text"
+                            value={editingDeviceName}
+                            onChange={(e) => setEditingDeviceName(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                e.preventDefault();
+                                void renameDevice(device.id);
+                              }
+                              if (e.key === "Escape") {
+                                e.preventDefault();
+                                cancelRenamingDevice();
+                              }
+                            }}
+                            maxLength={50}
+                            className="h-9 w-full sm:w-80"
+                          />
+                        ) : (
+                          <p className="font-medium text-neutral-200">{device.displayName}</p>
+                        )}
+                        {device.isCurrent && (
+                          <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-xs font-medium text-amber-300">
+                            Current
+                          </span>
+                        )}
+                      </div>
+                      <p className="mt-1 text-xs text-neutral-500">
+                        Created {formatDate(device.createdAt)} &middot; Last activity{" "}
+                        {formatDate(device.lastSeenAt)}
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+                      {isEditing ? (
+                        <>
+                          <Button
+                            variant="secondary"
+                            onClick={() => renameDevice(device.id)}
+                            disabled={isRenaming || disableRenameSave}
+                            className="!px-3 !py-1.5 !text-xs"
+                          >
+                            {isRenaming ? "Saving..." : "Save"}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            onClick={cancelRenamingDevice}
+                            disabled={isRenaming}
+                            className="text-neutral-400 hover:text-neutral-300"
+                          >
+                            Cancel
+                          </Button>
+                        </>
+                      ) : (
+                        <>
+                          <Button
+                            variant="ghost"
+                            onClick={() => startRenamingDevice(device)}
+                            disabled={Boolean(renamingDeviceId)}
+                            className="text-neutral-400 hover:text-neutral-300"
+                          >
+                            Rename
+                          </Button>
+                          {!device.isCurrent && (
+                            <Button
+                              variant="ghost"
+                              onClick={() => revokeDevice(device.id)}
+                              disabled={revokingDeviceId === device.id}
+                              className="text-red-400 hover:text-red-300"
+                            >
+                              {revokingDeviceId === device.id ? "Revoking..." : "Revoke"}
+                            </Button>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      ) : null}
+    </section>
+  );
+}

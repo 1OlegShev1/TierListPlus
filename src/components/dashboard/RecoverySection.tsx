@@ -1,30 +1,17 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import {
+  type ActiveLinkCodeSummary,
+  LinkedBrowsersSection,
+} from "@/components/dashboard/LinkedBrowsersSection";
 import { Button } from "@/components/ui/Button";
 import { ErrorMessage } from "@/components/ui/ErrorMessage";
 import { Input } from "@/components/ui/Input";
-import { ChevronDownIcon } from "@/components/ui/icons";
 import { clearAllParticipants } from "@/hooks/useParticipant";
 import { useUser } from "@/hooks/useUser";
-import { apiDelete, apiFetch, apiPost, getErrorMessage } from "@/lib/api-client";
+import { apiPost, getErrorMessage } from "@/lib/api-client";
 import { saveLocalIdentity } from "@/lib/device-identity";
-import { formatDate } from "@/lib/utils";
-
-interface DeviceSummary {
-  id: string;
-  displayName: string;
-  createdAt: string;
-  lastSeenAt: string;
-  revokedAt: string | null;
-  isCurrent: boolean;
-}
-
-interface DevicesResponse {
-  currentDeviceId: string;
-  devices: DeviceSummary[];
-  activeLinkCode: { linkCode: string; expiresAt: string } | null;
-}
 
 interface LinkCodePayload {
   linkCode: string;
@@ -33,10 +20,7 @@ interface LinkCodePayload {
 
 export function RecoverySection() {
   const { userId, isLoading: userLoading } = useUser();
-  const [devices, setDevices] = useState<DeviceSummary[]>([]);
-  const [activeLinkCode, setActiveLinkCode] = useState<DevicesResponse["activeLinkCode"]>(null);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState("");
+  const [activeLinkCode, setActiveLinkCode] = useState<ActiveLinkCodeSummary | null>(null);
 
   const [generating, setGenerating] = useState(false);
   const [generateError, setGenerateError] = useState("");
@@ -57,40 +41,6 @@ export function RecoverySection() {
   const [linking, setLinking] = useState(false);
   const [linkError, setLinkError] = useState("");
   const [linked, setLinked] = useState(false);
-  const [showLinkedBrowsers, setShowLinkedBrowsers] = useState(false);
-
-  const [revokingDeviceId, setRevokingDeviceId] = useState<string | null>(null);
-  const [revokeError, setRevokeError] = useState("");
-
-  useEffect(() => {
-    if (userLoading) return;
-    if (!userId) {
-      setLoading(false);
-      return;
-    }
-
-    let stale = false;
-    setLoading(true);
-    setLoadError("");
-
-    apiFetch<DevicesResponse>("/api/users/devices")
-      .then((data) => {
-        if (stale) return;
-        setDevices(data.devices);
-        setActiveLinkCode(data.activeLinkCode);
-      })
-      .catch((err) => {
-        if (stale) return;
-        setLoadError(getErrorMessage(err, "Failed to load linked devices"));
-      })
-      .finally(() => {
-        if (!stale) setLoading(false);
-      });
-
-    return () => {
-      stale = true;
-    };
-  }, [userId, userLoading]);
 
   useEffect(() => {
     const rawLinkCode = new URLSearchParams(window.location.search).get("linkCode");
@@ -266,20 +216,6 @@ export function RecoverySection() {
     }
   };
 
-  const revokeDevice = async (deviceId: string) => {
-    setRevokingDeviceId(deviceId);
-    setRevokeError("");
-
-    try {
-      await apiDelete(`/api/users/devices/${deviceId}`);
-      setDevices((prev) => prev.filter((device) => device.id !== deviceId));
-    } catch (err) {
-      setRevokeError(getErrorMessage(err, "Failed to revoke device"));
-    } finally {
-      setRevokingDeviceId(null);
-    }
-  };
-
   return (
     <div className="rounded-xl border border-neutral-800 bg-neutral-900 p-4 sm:p-6">
       <h2 className="mb-3 text-base font-semibold text-neutral-300 sm:mb-4 sm:text-lg">
@@ -405,73 +341,11 @@ export function RecoverySection() {
         {linkError && <ErrorMessage message={linkError} />}
       </section>
 
-      <section className="group mt-4 rounded-xl border border-neutral-800 bg-black/20 p-4 transition-colors hover:border-neutral-700 sm:p-5">
-        <button
-          type="button"
-          onClick={() => setShowLinkedBrowsers((prev) => !prev)}
-          className="flex w-full items-center justify-between rounded-lg text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/60"
-          aria-expanded={showLinkedBrowsers}
-          aria-controls="linked-browsers-content"
-        >
-          <div>
-            <h3 className="text-sm font-semibold text-neutral-200">3. Linked Browsers & Access</h3>
-            <p className="mt-1 text-sm text-neutral-400">
-              Review linked browsers, check last activity, and revoke access when needed.
-            </p>
-          </div>
-          <ChevronDownIcon
-            className={`h-6 w-6 text-neutral-500 transition-all group-hover:text-neutral-300 ${showLinkedBrowsers ? "rotate-180" : ""}`}
-          />
-        </button>
-
-        {showLinkedBrowsers ? (
-          <div id="linked-browsers-content" className="mt-4">
-            <div className="mb-3 flex items-center justify-between">
-              <p className="text-sm text-neutral-400">Linked browsers</p>
-              {loading && <span className="text-xs text-neutral-500">Loading...</span>}
-            </div>
-            {loadError && <ErrorMessage message={loadError} />}
-            {revokeError && <ErrorMessage message={revokeError} />}
-            {!loading && devices.length === 0 ? (
-              <p className="text-sm text-neutral-500">No other browsers linked yet.</p>
-            ) : (
-              <div className="space-y-3">
-                {devices.map((device) => (
-                  <div
-                    key={device.id}
-                    className="flex flex-col gap-3 rounded-lg border border-neutral-800 bg-black/20 p-3 sm:flex-row sm:items-center sm:justify-between"
-                  >
-                    <div>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <p className="font-medium text-neutral-200">{device.displayName}</p>
-                        {device.isCurrent && (
-                          <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-xs font-medium text-amber-300">
-                            Current
-                          </span>
-                        )}
-                      </div>
-                      <p className="mt-1 text-xs text-neutral-500">
-                        Created {formatDate(device.createdAt)} &middot; Last activity{" "}
-                        {formatDate(device.lastSeenAt)}
-                      </p>
-                    </div>
-                    {!device.isCurrent && (
-                      <Button
-                        variant="ghost"
-                        onClick={() => revokeDevice(device.id)}
-                        disabled={revokingDeviceId === device.id}
-                        className="self-start text-red-400 hover:text-red-300 sm:self-auto"
-                      >
-                        {revokingDeviceId === device.id ? "Revoking..." : "Revoke"}
-                      </Button>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        ) : null}
-      </section>
+      <LinkedBrowsersSection
+        userId={userId}
+        userLoading={userLoading}
+        onActiveLinkCodeChange={setActiveLinkCode}
+      />
 
       <dialog
         ref={qrDialogRef}
