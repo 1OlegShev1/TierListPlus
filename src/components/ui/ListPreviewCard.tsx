@@ -27,7 +27,10 @@ export function ListPreviewCard({
 }) {
   return (
     <div
-      className={cn("h-full rounded-xl border border-neutral-800 bg-neutral-900 p-4", className)}
+      className={cn(
+        "card-hover-lift h-full rounded-xl border border-neutral-800 bg-neutral-900 p-4",
+        className,
+      )}
     >
       <div className="flex h-full items-center gap-4">
         <ItemPreview items={items} variant="grid" />

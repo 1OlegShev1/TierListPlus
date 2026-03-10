@@ -264,7 +264,7 @@ function VoteRow({ vote, viewer }: { vote: VoteListItem; viewer: VoteViewer }) {
   const showStatusBadge = vote.status !== "OPEN";
 
   return (
-    <div className="flex flex-col gap-3 rounded-xl border border-neutral-800 bg-neutral-900 p-4 transition-colors hover:border-neutral-600 sm:flex-row sm:items-center sm:gap-5">
+    <div className="card-hover-lift flex flex-col gap-3 rounded-xl border border-neutral-800 bg-neutral-900 p-4 transition-colors hover:border-neutral-600 sm:flex-row sm:items-center sm:gap-5">
       <Link href={`/sessions/${vote.id}`} className="min-w-0 flex-1">
         <VotePreviewSummary
           title={vote.name}

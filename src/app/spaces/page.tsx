@@ -169,7 +169,7 @@ function SpaceCard({
   return (
     <Link
       href={`/spaces/${id}`}
-      className={`relative overflow-hidden rounded-xl border border-neutral-800 bg-neutral-900 p-4 transition-colors ${accent.borderClassName}`}
+      className={`card-hover-lift relative overflow-hidden rounded-xl border border-neutral-800 bg-neutral-900 p-4 transition-colors ${accent.borderClassName}`}
     >
       <div className={`pointer-events-none absolute inset-0 opacity-80 ${accent.glowClassName}`} />
       <div className="relative">

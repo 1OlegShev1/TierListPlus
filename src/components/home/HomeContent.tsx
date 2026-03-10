@@ -190,7 +190,7 @@ function VoteRow({ vote, contextLabel }: { vote: HomeVoteSummary; contextLabel?:
       : detailsLabel;
 
   return (
-    <div className="flex items-start justify-between gap-3 rounded-xl border border-neutral-800 bg-neutral-900 p-4 transition-colors hover:border-neutral-600">
+    <div className="card-hover-lift flex items-start justify-between gap-3 rounded-xl border border-neutral-800 bg-neutral-900 p-4 transition-colors hover:border-neutral-600">
       <Link href={`/sessions/${vote.id}`} className="min-w-0 flex-1">
         <VotePreviewSummary
           title={vote.name}
