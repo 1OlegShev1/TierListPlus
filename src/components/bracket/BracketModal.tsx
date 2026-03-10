@@ -15,83 +15,31 @@ interface BracketModalProps {
 }
 
 export function BracketModal({ items, onComplete, onCancel }: BracketModalProps) {
-  const dialogRef = useRef<HTMLDivElement>(null);
-  const previousFocusRef = useRef<HTMLElement | null>(null);
+  const dialogRef = useRef<HTMLDialogElement>(null);
   const itemMap = useMemo(() => new Map(items.map((i) => [i.id, i])), [items]);
 
   useEffect(() => {
-    const getFocusableElements = () => {
-      if (!dialogRef.current) return [];
-      return Array.from(
-        dialogRef.current.querySelectorAll<HTMLElement>(
-          'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
-        ),
-      );
-    };
+    const dialog = dialogRef.current;
+    if (!dialog) return;
 
-    previousFocusRef.current =
-      document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    if (!dialog.open) {
+      dialog.showModal();
+    }
 
     const frame = window.requestAnimationFrame(() => {
-      const [firstFocusable] = getFocusableElements();
-      (firstFocusable ?? dialogRef.current)?.focus();
+      const firstFocusable = dialog.querySelector<HTMLElement>(
+        'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      );
+      (firstFocusable ?? dialog).focus();
     });
-
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        e.preventDefault();
-        onCancel();
-        return;
-      }
-
-      if (e.key !== "Tab") return;
-
-      const focusableElements = getFocusableElements();
-      if (focusableElements.length === 0) {
-        e.preventDefault();
-        dialogRef.current?.focus();
-        return;
-      }
-
-      const activeElement =
-        document.activeElement instanceof HTMLElement ? document.activeElement : null;
-      const firstFocusable = focusableElements[0];
-      const lastFocusable = focusableElements.at(-1);
-
-      if (!firstFocusable || !lastFocusable) return;
-
-      if (e.shiftKey) {
-        if (
-          !activeElement ||
-          activeElement === firstFocusable ||
-          !dialogRef.current?.contains(activeElement)
-        ) {
-          e.preventDefault();
-          lastFocusable.focus();
-        }
-        return;
-      }
-
-      if (!activeElement || !dialogRef.current?.contains(activeElement)) {
-        e.preventDefault();
-        firstFocusable.focus();
-        return;
-      }
-
-      if (activeElement === lastFocusable) {
-        e.preventDefault();
-        firstFocusable.focus();
-      }
-    };
-
-    document.addEventListener("keydown", handleKey);
 
     return () => {
       window.cancelAnimationFrame(frame);
-      document.removeEventListener("keydown", handleKey);
-      previousFocusRef.current?.focus();
+      if (dialog.open) {
+        dialog.close();
+      }
     };
-  }, [onCancel]);
+  }, []);
 
   const [bracketState, setBracketState] = useState(() => {
     const { rounds, matchups } = generateBracket(items.map((i) => i.id));
@@ -177,99 +125,96 @@ export function BracketModal({ items, onComplete, onCancel }: BracketModalProps)
   const itemB = currentMatchup?.itemBId ? itemMap.get(currentMatchup.itemBId) : null;
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-[var(--bg-overlay)] p-3 backdrop-blur-sm sm:p-6">
-      <div className="flex min-h-[calc(100dvh-1.5rem)] items-center justify-center sm:min-h-[calc(100dvh-3rem)]">
-        <div
-          ref={dialogRef}
-          tabIndex={-1}
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="bracket-modal-title"
-          className="mx-auto flex max-h-[calc(100dvh-1.5rem)] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-elevated)] sm:max-h-[calc(100dvh-3rem)]"
-        >
-          <div className="px-4 pt-4 sm:px-6 sm:pt-6">
-            <div className="mb-4 text-center sm:mb-6">
-              <h2 id="bracket-modal-title" className="text-lg font-bold">
-                Head-to-Head Mode
-              </h2>
-              <p className="mt-1 text-xs text-[var(--fg-subtle)]">
-                {isComplete
-                  ? "Head-to-head run complete!"
-                  : `Round ${currentRound} of ${bracketState.rounds} · ${decidedManualVotes}/${totalManualVotes} face-offs done`}
-              </p>
-              <p className="mt-2 text-[11px] text-[var(--fg-subtle)]">
-                This reshuffles your current placements here. You can still tweak them before you
-                lock them in.
-              </p>
-            </div>
-          </div>
-
-          <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4 sm:px-6 sm:pb-6">
-            {!isComplete && itemA && itemB && (
-              <MatchupVoter itemA={itemA} itemB={itemB} size="sm" onVote={handleVote} />
-            )}
-
-            {isComplete && (
-              <div className="space-y-2">
-                <p className="text-center text-sm text-[var(--fg-muted)]">Your quick ranking:</p>
-                <ol className="space-y-1">
-                  {ranked.map((id, i) => {
-                    const item = itemMap.get(id);
-                    if (!item) return null;
-                    return (
-                      <li
-                        key={id}
-                        className="flex items-center gap-3 rounded-lg bg-[var(--bg-surface)] px-3 py-2"
-                      >
-                        <span className="w-6 text-right text-sm font-bold text-[var(--accent-primary)]">
-                          {i + 1}
-                        </span>
-                        <ItemArtwork
-                          src={item.imageUrl}
-                          alt={item.label}
-                          className="h-8 w-8 rounded"
-                          presentation="ambient"
-                          inset="compact"
-                        />
-                        <span className="text-sm">{item.label}</span>
-                      </li>
-                    );
-                  })}
-                </ol>
-              </div>
-            )}
-          </div>
-
-          <div className="border-t border-[var(--border-subtle)] bg-[var(--bg-elevated)] px-4 py-3 sm:px-6 sm:py-4">
-            {/* Progress bar */}
-            <div className="h-1 overflow-hidden rounded-full bg-[var(--bg-surface-hover)]">
-              <div
-                className="h-1 rounded-full bg-[var(--action-primary-bg)] transition-all"
-                style={{
-                  width: `${totalManualVotes > 0 ? Math.min(100, (decidedManualVotes / totalManualVotes) * 100) : 0}%`,
-                }}
-              />
-            </div>
-
-            {/* Actions */}
-            <div className="mt-3 flex justify-end gap-3">
-              <Button
-                variant="secondary"
-                onClick={onCancel}
-                className="px-4 text-sm text-[var(--fg-muted)]"
-              >
-                Cancel
-              </Button>
-              {isComplete && (
-                <Button onClick={handleFinish} className="px-4 text-sm">
-                  Use This Ranking
-                </Button>
-              )}
-            </div>
-          </div>
+    <dialog
+      ref={dialogRef}
+      onCancel={(event) => {
+        event.preventDefault();
+        onCancel();
+      }}
+      aria-labelledby="bracket-modal-title"
+      className="fixed inset-0 z-50 m-auto flex max-h-[calc(100dvh-2rem)] w-[min(calc(100vw-2rem),32rem)] flex-col overflow-hidden rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-elevated)] p-0 text-[var(--fg-primary)] shadow-2xl shadow-black/60 backdrop:bg-[var(--bg-overlay)] focus:outline-none"
+    >
+      <div className="px-4 pt-4 sm:px-6 sm:pt-6">
+        <div className="mb-4 text-center sm:mb-6">
+          <h2 id="bracket-modal-title" className="text-lg font-bold">
+            Head-to-Head Mode
+          </h2>
+          <p className="mt-1 text-xs text-[var(--fg-subtle)]">
+            {isComplete
+              ? "Head-to-head run complete!"
+              : `Round ${currentRound} of ${bracketState.rounds} · ${decidedManualVotes}/${totalManualVotes} face-offs done`}
+          </p>
+          <p className="mt-2 text-[11px] text-[var(--fg-subtle)]">
+            This reshuffles your current placements here. You can still tweak them before you lock
+            them in.
+          </p>
         </div>
       </div>
-    </div>
+
+      <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4 sm:px-6 sm:pb-6">
+        {!isComplete && itemA && itemB && (
+          <MatchupVoter itemA={itemA} itemB={itemB} size="sm" onVote={handleVote} />
+        )}
+
+        {isComplete && (
+          <div className="space-y-2">
+            <p className="text-center text-sm text-[var(--fg-muted)]">Your quick ranking:</p>
+            <ol className="space-y-1">
+              {ranked.map((id, i) => {
+                const item = itemMap.get(id);
+                if (!item) return null;
+                return (
+                  <li
+                    key={id}
+                    className="flex items-center gap-3 rounded-lg bg-[var(--bg-surface)] px-3 py-2"
+                  >
+                    <span className="w-6 text-right text-sm font-bold text-[var(--accent-primary)]">
+                      {i + 1}
+                    </span>
+                    <ItemArtwork
+                      src={item.imageUrl}
+                      alt={item.label}
+                      className="h-8 w-8 rounded"
+                      presentation="ambient"
+                      inset="compact"
+                    />
+                    <span className="text-sm">{item.label}</span>
+                  </li>
+                );
+              })}
+            </ol>
+          </div>
+        )}
+      </div>
+
+      <div className="border-t border-[var(--border-subtle)] bg-[var(--bg-elevated)] px-4 py-3 sm:px-6 sm:py-4">
+        {/* Progress bar */}
+        <div className="h-1 overflow-hidden rounded-full bg-[var(--bg-surface-hover)]">
+          <div
+            className="h-1 rounded-full bg-[var(--action-primary-bg)] transition-all"
+            style={{
+              width: `${totalManualVotes > 0 ? Math.min(100, (decidedManualVotes / totalManualVotes) * 100) : 0}%`,
+            }}
+          />
+        </div>
+
+        {/* Actions */}
+        <div className="mt-3 flex justify-end gap-3">
+          <Button
+            variant="secondary"
+            onClick={onCancel}
+            className="px-4 text-sm text-[var(--fg-muted)]"
+          >
+            Cancel
+          </Button>
+          {isComplete && (
+            <Button onClick={handleFinish} className="px-4 text-sm">
+              Use This Ranking
+            </Button>
+          )}
+        </div>
+      </div>
+    </dialog>
   );
 }
 

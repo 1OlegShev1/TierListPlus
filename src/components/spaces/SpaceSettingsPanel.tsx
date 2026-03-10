@@ -341,13 +341,19 @@ export function SpaceSettingsPanel({
                 <p className="text-xs font-medium uppercase tracking-[0.12em] text-[var(--fg-subtle)]">
                   Visibility
                 </p>
-                <fieldset className="inline-flex h-11 rounded-lg border border-[var(--border-default)] bg-[var(--bg-elevated)] p-1">
+                <fieldset className="relative inline-grid h-11 min-w-[10.5rem] grid-cols-2 rounded-lg border border-[var(--border-default)] bg-[var(--bg-soft-contrast)] p-1">
                   <legend className="sr-only">Space visibility</legend>
+                  <span
+                    aria-hidden="true"
+                    className={`pointer-events-none absolute bottom-1 left-1 top-1 w-[calc(50%-0.25rem)] rounded-md border border-[var(--border-default)] bg-[var(--bg-surface)] shadow-sm transition-transform duration-200 ${
+                      visibility === "OPEN" ? "translate-x-full" : "translate-x-0"
+                    }`}
+                  />
                   <label
-                    className={`flex min-w-[5.25rem] cursor-pointer items-center justify-center rounded-md px-3 text-sm font-medium transition-colors ${
+                    className={`relative z-10 flex cursor-pointer items-center justify-center rounded-md px-3 text-sm font-medium transition-colors ${
                       visibility === "PRIVATE"
-                        ? "bg-[var(--bg-surface-hover)] text-[var(--accent-primary)]"
-                        : "text-[var(--fg-secondary)] hover:bg-[var(--bg-surface-hover)] hover:text-[var(--fg-primary)]"
+                        ? "text-[var(--fg-primary)]"
+                        : "text-[var(--fg-muted)] hover:text-[var(--fg-secondary)]"
                     }`}
                   >
                     <input
@@ -361,10 +367,10 @@ export function SpaceSettingsPanel({
                     Private
                   </label>
                   <label
-                    className={`flex min-w-[5.25rem] cursor-pointer items-center justify-center rounded-md px-3 text-sm font-medium transition-colors ${
+                    className={`relative z-10 flex cursor-pointer items-center justify-center rounded-md px-3 text-sm font-medium transition-colors ${
                       visibility === "OPEN"
-                        ? "bg-[var(--bg-surface-hover)] text-[var(--accent-primary)]"
-                        : "text-[var(--fg-secondary)] hover:bg-[var(--bg-surface-hover)] hover:text-[var(--fg-primary)]"
+                        ? "text-[var(--fg-primary)]"
+                        : "text-[var(--fg-muted)] hover:text-[var(--fg-secondary)]"
                     }`}
                   >
                     <input

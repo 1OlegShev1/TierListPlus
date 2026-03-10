@@ -5,6 +5,7 @@ import { ShareVoteButton } from "@/components/sessions/ShareVoteButton";
 import { OpenSpaceMembershipControls } from "@/components/spaces/OpenSpaceMembershipControls";
 import { RemoveSpaceMemberButton } from "@/components/spaces/RemoveSpaceMemberButton";
 import { SpaceInvitePanel } from "@/components/spaces/SpaceInvitePanel";
+import { SpaceSettingsDialog } from "@/components/spaces/SpaceSettingsDialog";
 import { SpaceSettingsPanel } from "@/components/spaces/SpaceSettingsPanel";
 import { buttonVariants } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -531,30 +532,20 @@ export default async function SpaceDetailPage({
       </div>
 
       {space.isOwner && panel === "settings" ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--bg-overlay)] p-3 backdrop-blur-sm sm:p-6">
-          <Link
-            href={spaceHref(spaceId)}
-            aria-label="Close settings"
-            className="absolute inset-0 z-0"
+        <SpaceSettingsDialog closeHref={spaceHref(spaceId)}>
+          <SpaceSettingsPanel
+            spaceId={space.id}
+            initialName={space.name}
+            initialDescription={space.description}
+            initialLogoUrl={space.logoUrl}
+            initialAccentColor={space.accentColor}
+            initialVisibility={space.visibility}
+            showHeader={false}
+            defaultMode="edit"
+            closeHref={spaceHref(space.id)}
+            className="border-[var(--border-default)] bg-[var(--bg-elevated)]"
           />
-          <div className="relative z-10 max-h-[calc(100dvh-2rem)] w-full max-w-3xl overflow-y-auto rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface)] p-4 shadow-2xl shadow-black/60 sm:p-6">
-            <div className="mb-4 flex items-center justify-between gap-3">
-              <h2 className="text-lg font-semibold text-[var(--fg-primary)]">Space settings</h2>
-            </div>
-            <SpaceSettingsPanel
-              spaceId={space.id}
-              initialName={space.name}
-              initialDescription={space.description}
-              initialLogoUrl={space.logoUrl}
-              initialAccentColor={space.accentColor}
-              initialVisibility={space.visibility}
-              showHeader={false}
-              defaultMode="edit"
-              closeHref={spaceHref(space.id)}
-              className="border-[var(--border-default)] bg-[var(--bg-elevated)]"
-            />
-          </div>
-        </div>
+        </SpaceSettingsDialog>
       ) : null}
     </>
   );
