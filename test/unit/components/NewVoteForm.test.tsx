@@ -113,8 +113,59 @@ describe("NewVoteForm", () => {
     );
   });
 
+  it("can start blank without sending a template id", async () => {
+    mocks.apiPost.mockResolvedValue({
+      id: "session_1",
+      participantId: "participant_1",
+      participantNickname: "Host",
+    });
+
+    render(<NewVoteForm initialLists={initialLists} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /start blank/i }));
+
+    fireEvent.change(screen.getByPlaceholderText("e.g., Best Burgers in Town"), {
+      target: { value: "Blank Vote" },
+    });
+    fireEvent.change(screen.getByPlaceholderText("e.g., Alex"), {
+      target: { value: "Host" },
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Start Vote" }));
+
+    await waitFor(() => {
+      expect(mocks.apiPost).toHaveBeenCalledWith("/api/sessions", {
+        name: "Blank Vote",
+        nickname: "Host",
+        isPrivate: true,
+      });
+    });
+  });
+
+  it("shows a disabled visibility field for space votes", () => {
+    render(
+      <NewVoteForm
+        spaceId="space_1"
+        spaceName="Space"
+        initialLists={initialLists}
+        initialSelectedListId="template_1"
+        initialSelectedListDetails={initialSelectedListDetails}
+      />,
+    );
+
+    const privateOption = screen.getByRole("radio", { name: "Private" });
+    const publicOption = screen.getByRole("radio", { name: "Public" });
+    expect(privateOption.getAttribute("disabled")).not.toBeNull();
+    expect(publicOption.getAttribute("disabled")).not.toBeNull();
+    expect(
+      screen.getByText("Visibility for space votes is managed in Space Settings."),
+    ).toBeTruthy();
+  });
+
   it("ignores repeated submits while create is already in flight", async () => {
-    let resolveCreate: ((value: { id: string; participantId: string; participantNickname: string }) => void) | undefined;
+    let resolveCreate:
+      | ((value: { id: string; participantId: string; participantNickname: string }) => void)
+      | undefined;
     mocks.apiPost.mockReturnValue(
       new Promise((resolve) => {
         resolveCreate = resolve;

@@ -6,6 +6,7 @@ import { ErrorMessage } from "@/components/ui/ErrorMessage";
 import { GearIcon } from "@/components/ui/GearIcon";
 import { Input } from "@/components/ui/Input";
 import { apiPatch, getErrorMessage } from "@/lib/api-client";
+import { VoteVisibilityField } from "./VoteVisibilityField";
 
 interface VoteSettingsButtonProps {
   sessionId: string;
@@ -53,6 +54,9 @@ export function VoteSettingsButton({
 
   const trimmedNickname = nickname.trim();
   const canEditPrivacy = canManageSession && !isSpaceSession;
+  const privacyHelperText = isSpaceSession
+    ? "Visibility for space votes is managed in Space Settings."
+    : "Off by default. People can still join private votes with the code.";
 
   const nicknameHasChanges = trimmedNickname !== initialNickname;
   const privacyHasChanges = canEditPrivacy && isPrivate !== initialIsPrivate;
@@ -137,23 +141,12 @@ export function VoteSettingsButton({
             />
           </label>
 
-          {!isSpaceSession && (
-            <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elevated)] p-4 transition-colors hover:border-[var(--border-default)] hover:bg-[var(--bg-surface-hover)]">
-              <input
-                type="checkbox"
-                checked={!isPrivate}
-                onChange={(event) => setIsPrivate(!event.target.checked)}
-                disabled={!canEditPrivacy || saving}
-                className="h-4 w-4 accent-[var(--accent-primary)]"
-              />
-              <div>
-                <p className="font-medium">Show in public Votes list</p>
-                <p className="text-sm text-[var(--fg-subtle)]">
-                  Off by default. People can still join private votes with the code.
-                </p>
-              </div>
-            </label>
-          )}
+          <VoteVisibilityField
+            isPrivate={isPrivate}
+            onChange={setIsPrivate}
+            disabled={!canEditPrivacy || saving}
+            helperText={privacyHelperText}
+          />
 
           {error && <ErrorMessage message={error} />}
 

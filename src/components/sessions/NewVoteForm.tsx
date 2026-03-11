@@ -3,17 +3,21 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { VoteVisibilityField } from "@/components/sessions/VoteVisibilityField";
 import { Button, buttonVariants } from "@/components/ui/Button";
 import { ErrorMessage } from "@/components/ui/ErrorMessage";
 import { Input } from "@/components/ui/Input";
 import { ItemArtwork } from "@/components/ui/ItemArtwork";
-import { ItemPreview } from "@/components/ui/ItemPreview";
+import { ListPreviewCard } from "@/components/ui/ListPreviewCard";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { SectionHeader } from "@/components/ui/SectionHeader";
 import { saveParticipant } from "@/hooks/useParticipant";
 import { useUser } from "@/hooks/useUser";
 import { apiFetch, apiPost, getErrorMessage } from "@/lib/api-client";
+import type { ListDisplayChip } from "@/lib/list-display";
 import type { Item, ListSummary } from "@/types";
 
-const FEATURED_COUNT = 8;
+const QUICK_START_LIST_COUNT = 2;
 
 interface SelectedListDetails {
   id: string;
@@ -307,25 +311,19 @@ export function NewVoteForm({
           </div>
         </div>
 
-        {!spaceId && (
-          <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-4 transition-colors hover:border-[var(--border-default)] hover:bg-[var(--bg-surface-hover)]">
-            <input
-              type="checkbox"
-              checked={!isPrivate}
-              onChange={(e) => setIsPrivate(!e.target.checked)}
-              className="h-4 w-4 accent-[var(--accent-primary)]"
-            />
-            <div>
-              <p className="font-medium">Show in public Votes list</p>
-              <p className="text-sm text-[var(--fg-subtle)]">
-                Off by default. People can still join private votes with the code.
-              </p>
-              <p className="text-xs text-[var(--fg-subtle)]">
-                Share only content you are allowed to publish and distribute.
-              </p>
-            </div>
-          </label>
-        )}
+        <VoteVisibilityField
+          isPrivate={isPrivate}
+          onChange={setIsPrivate}
+          disabled={!!spaceId}
+          helperText={
+            spaceId
+              ? "Visibility for space votes is managed in Space Settings."
+              : "Off by default. People can still join private votes with the code."
+          }
+          extraNote={
+            spaceId ? undefined : "Share only content you are allowed to publish and distribute."
+          }
+        />
 
         {(userError || error) && (
           <div className="space-y-2">
@@ -373,133 +371,120 @@ function ListPicker({
   backHref: string;
   backLabel: string;
 }) {
-  const [showAll, setShowAll] = useState(false);
-  const isSearching = query.trim().length > 0;
-  const filtered = lists.filter((list) =>
-    list.name.toLowerCase().includes(query.trim().toLowerCase()),
+  const normalizedQuery = query.trim().toLowerCase();
+  const isSearching = normalizedQuery.length > 0;
+  const filteredLists = lists.filter((list) => list.name.toLowerCase().includes(normalizedQuery));
+  const quickStartLists = lists.slice(0, QUICK_START_LIST_COUNT);
+  const quickStartListIds = new Set(quickStartLists.map((list) => list.id));
+  const browseableLists = lists.filter((list) => !quickStartListIds.has(list.id));
+  const browseSections = groupListsForPicker(browseableLists, spaceMode).filter(
+    (group) => group.items.length > 0,
   );
-  const featured = lists.slice(0, FEATURED_COUNT);
-  const canBrowseMore = lists.length > FEATURED_COUNT;
-  const shouldShowList = isSearching || showAll;
-  const groupedResults = groupListsForPicker(filtered, spaceMode);
-  const shouldRenderGroupHeadings =
-    groupedResults.filter((group) => group.items.length > 0).length > 1;
+  const searchSections = groupListsForPicker(filteredLists, spaceMode).filter(
+    (group) => group.items.length > 0,
+  );
 
   return (
-    <div className="mx-auto max-w-2xl">
+    <div className="mx-auto max-w-6xl">
       <Link href={backHref} className={`${buttonVariants.ghost} mb-3 inline-flex items-center`}>
         {`← ${backLabel}`}
       </Link>
-      <h1 className="mb-6 text-2xl font-bold">Pick a list to start from</h1>
+      <PageHeader
+        title="Start a Vote"
+        subtitle="Pick a starting point for this vote. You can still change the list later."
+      />
 
-      <button
-        type="button"
-        onClick={() => onPick(null)}
-        className="mb-6 flex w-full items-center gap-3 rounded-lg border border-dashed border-[var(--border-default)] px-4 py-3 text-left transition-colors hover:border-[var(--border-strong)] hover:bg-[var(--bg-surface)]"
-      >
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-[var(--bg-surface-hover)] text-[var(--fg-muted)]">
-          +
-        </div>
-        <div className="min-w-0">
-          <p className="font-medium text-[var(--fg-secondary)]">Start blank</p>
-          <p className="text-sm text-[var(--fg-subtle)]">Add the picks after you start the vote</p>
-        </div>
-      </button>
-
-      {lists.length > 0 && (
-        <>
-          <Input
-            type="text"
-            placeholder="Search all lists..."
-            value={query}
-            onChange={(e) => onQueryChange(e.target.value)}
-            autoFocus
-            className="mb-5 w-full"
+      <div className="space-y-10">
+        <section>
+          <SectionHeader
+            title="Choose How to Start"
+            subtitle="Begin blank or jump in from a suggested list."
           />
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            <BlankStartCard onSelect={() => onPick(null)} />
+            {quickStartLists.map((list) => (
+              <ListPickerCard key={list.id} list={list} onSelect={() => onPick(list.id)} />
+            ))}
+          </div>
+        </section>
 
-          {!isSearching && featured.length > 0 ? (
-            <>
-              <p className="mb-3 text-sm font-medium text-[var(--fg-muted)]">
-                {spaceMode ? "Recommended lists" : "Popular lists"}
-              </p>
-              <div className="mb-5 space-y-3">
-                {featured.map((list) => (
-                  <ListPickerRow key={list.id} list={list} onSelect={() => onPick(list.id)} />
-                ))}
-              </div>
-            </>
-          ) : null}
+        {lists.length > 0 ? (
+          <>
+            <section>
+              <SectionHeader
+                title="Browse Lists"
+                subtitle="Search across your lists, space lists, and public lists."
+              />
+              <Input
+                type="text"
+                placeholder="Search lists..."
+                value={query}
+                onChange={(e) => onQueryChange(e.target.value)}
+                autoFocus
+                className="w-full"
+              />
+            </section>
 
-          {!isSearching && canBrowseMore && (
-            <button
-              type="button"
-              onClick={() => setShowAll((current) => !current)}
-              className="mt-3 text-sm text-[var(--accent-primary)] transition-colors hover:text-[var(--accent-primary-hover)]"
-            >
-              {showAll ? "Show fewer" : "Show all lists"}
-            </button>
-          )}
-
-          {shouldShowList && (
-            <div className="mt-2 space-y-1">
-              {filtered.length === 0 && (
-                <p className="px-1 py-4 text-sm text-[var(--fg-subtle)]">
-                  No lists match that search.
-                </p>
-              )}
-
-              {groupedResults.map((group) => {
-                if (group.items.length === 0) return null;
-                return (
-                  <div key={group.label} className="space-y-1">
-                    {shouldRenderGroupHeadings ? (
-                      <p className="px-1 pt-2 pb-1 text-xs font-medium text-[var(--fg-subtle)]">
-                        {group.label}
-                      </p>
-                    ) : null}
-                    {group.items.map((list) => (
-                      <ListPickerRow key={list.id} list={list} onSelect={() => onPick(list.id)} />
+            {isSearching ? (
+              <section>
+                <SectionHeader
+                  title="Search Results"
+                  subtitle={
+                    searchSections.length > 0
+                      ? "Pick a list to use as the starting point."
+                      : "No lists match that search yet."
+                  }
+                />
+                {searchSections.length > 0 ? (
+                  <div className="space-y-8">
+                    {searchSections.map((group) => (
+                      <PickerSection
+                        key={group.label}
+                        title={group.label}
+                        lists={group.items}
+                        onPick={onPick}
+                      />
                     ))}
                   </div>
-                );
-              })}
-            </div>
-          )}
-        </>
-      )}
+                ) : null}
+              </section>
+            ) : (
+              <div className="space-y-10">
+                {browseSections.map((group) => (
+                  <PickerSection
+                    key={group.label}
+                    title={group.label}
+                    lists={group.items}
+                    onPick={onPick}
+                  />
+                ))}
+              </div>
+            )}
+          </>
+        ) : null}
+      </div>
     </div>
   );
 }
 
-function ListPickerRow({ list, onSelect }: { list: ListSummary; onSelect: () => void }) {
-  const listBadge =
-    list.origin === "SPACE"
-      ? "Space"
-      : list.origin === "PERSONAL"
-        ? "Yours"
-        : list.isPublic
-          ? "Public"
-          : null;
-
+function PickerSection({
+  title,
+  lists,
+  onPick,
+}: {
+  title: string;
+  lists: ListSummary[];
+  onPick: (id: string | null) => void;
+}) {
   return (
-    <button
-      type="button"
-      onClick={onSelect}
-      className="flex w-full items-center gap-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-4 py-3 text-left transition-colors hover:border-[var(--border-strong)]"
-    >
-      <ItemPreview items={list.items} variant="stack" />
-      <span className="min-w-0 flex-1">
-        <span className="block truncate text-base font-medium text-[var(--fg-primary)]">
-          {list.name}
-        </span>
-        <span className="block text-sm text-[var(--fg-subtle)]">{list._count.items} picks</span>
-      </span>
-      {listBadge ? (
-        <span className="shrink-0 rounded-full border border-[var(--border-default)] px-2 py-0.5 text-[11px] text-[var(--fg-muted)]">
-          {listBadge}
-        </span>
-      ) : null}
-    </button>
+    <section>
+      <SectionHeader title={title} />
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        {lists.map((list) => (
+          <ListPickerCard key={list.id} list={list} onSelect={() => onPick(list.id)} />
+        ))}
+      </div>
+    </section>
   );
 }
 
@@ -522,7 +507,70 @@ function groupListsForPicker(lists: ListSummary[], spaceMode: boolean) {
   }
 
   return [
-    { label: "Your Lists", items: lists.filter((list) => !list.isPublic) },
-    { label: "Public Lists", items: lists.filter((list) => list.isPublic) },
+    {
+      label: "Your Lists",
+      items: lists.filter((list) => resolveListOrigin(list) === "PERSONAL"),
+    },
+    {
+      label: "Public Lists",
+      items: lists.filter((list) => resolveListOrigin(list) === "PUBLIC"),
+    },
   ];
+}
+
+function BlankStartCard({ onSelect }: { onSelect: () => void }) {
+  return (
+    <button type="button" onClick={onSelect} className="block h-full w-full text-left">
+      <ListPreviewCard
+        title="Start blank"
+        detailsLabel="Add the picks after the vote starts."
+        secondaryLabel="No preset items"
+        items={[]}
+        chips={[{ label: "Quick start", tone: "accent" }]}
+        className="h-full border-dashed transition-colors hover:border-[var(--border-strong)]"
+      />
+    </button>
+  );
+}
+
+function ListPickerCard({ list, onSelect }: { list: ListSummary; onSelect: () => void }) {
+  return (
+    <button type="button" onClick={onSelect} className="block h-full w-full text-left">
+      <ListPreviewCard
+        title={list.name}
+        detailsLabel={`${list._count.items} picks`}
+        secondaryLabel="Ready to use in this vote"
+        items={list.items}
+        chips={buildPickerChips(list)}
+        className="h-full transition-colors hover:border-[var(--border-strong)]"
+      />
+    </button>
+  );
+}
+
+function buildPickerChips(list: ListSummary): ListDisplayChip[] {
+  const origin = resolveListOrigin(list);
+  const originChip: ListDisplayChip =
+    origin === "SPACE"
+      ? { label: "Space list", tone: "neutral" }
+      : origin === "PERSONAL"
+        ? { label: "Your list", tone: "accent" }
+        : { label: "Public list", tone: "public" };
+
+  if (origin === "SPACE") {
+    return [originChip];
+  }
+
+  return [
+    originChip,
+    {
+      label: list.isPublic ? "Public" : "Private",
+      tone: list.isPublic ? "public" : "private",
+    },
+  ];
+}
+
+function resolveListOrigin(list: ListSummary): "SPACE" | "PERSONAL" | "PUBLIC" {
+  if (list.origin) return list.origin;
+  return list.isPublic ? "PUBLIC" : "PERSONAL";
 }
