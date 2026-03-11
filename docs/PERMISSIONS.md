@@ -8,6 +8,7 @@ It is intentionally redundant with code comments so policy changes are easier to
 
 This covers:
 - Read and mutate permissions for spaces, templates (lists), sessions (votes), and ballots
+- Moderator/admin platform moderation and stats access
 - Session state transitions (`OPEN`, `CLOSED`, `ARCHIVED`) and join lock (`isLocked`)
 - How permissions are enforced across layers (policy, resolver, API, page guards, UI)
 - Share-link behavior for open and closed votes
@@ -25,6 +26,8 @@ This does not cover:
 - `Participant`: row exists in `Participant` for `(sessionId, userId)`
 - `Space member`: `SpaceMember` exists
 - `Space owner`: `space.creatorId === requestUserId` OR member role is `OWNER`
+- `Moderator`: `User.role IN (MODERATOR, ADMIN)`
+- `Admin`: `User.role = ADMIN`
 
 ## Enforcement Layers
 
@@ -39,6 +42,7 @@ This does not cover:
 3. API guard helpers
 - `src/lib/api-helpers.ts`
 - `requireSessionAccess`, `requireSessionOwner`, `requireParticipantOwner`, `requireSpaceMember`, `requireOpenSession`
+- `requireRole`, `requireModerator`, `requireAdmin`
 
 4. Page-level guards (server components)
 - `src/app/sessions/[sessionId]/page.tsx`
@@ -73,7 +77,8 @@ Resource: `Template`
 
 Personal templates (`spaceId = null`):
 - Read:
-  - Public + non-hidden: everyone
+  - Public + non-hidden + not moderated-hidden: everyone
+  - Public + moderated-hidden: owner only (and visible in admin moderation APIs)
   - Private + non-hidden: owner only
   - Hidden: never directly readable in browsing flows
 - Mutate/delete:
@@ -103,7 +108,10 @@ Resource: `Session`
 ### Read access (general)
 
 Personal session (`spaceId = null`):
-- Public (`isPrivate = false`): everyone
+- Public (`isPrivate = false`, not moderated-hidden): everyone
+- Public + moderated-hidden:
+  - owner/participants can still read directly
+  - outsiders cannot read
 - Private (`isPrivate = true`): owner or joined participant
 - Exception: closed private results can be shared by join code (see Share section)
 
@@ -134,6 +142,7 @@ Resource: join flow + vote submissions
 - Join requires authenticated device identity
 - Join by code (`POST /api/sessions/join`):
   - Session must be `OPEN`
+  - If session is moderated-hidden, non-participants are blocked (404)
   - If `isLocked`, new participants are blocked
   - Private space sessions require space membership
   - For private-space non-members, API returns `403` with `code=SPACE_MEMBERSHIP_REQUIRED` and space metadata (`spaceId`, `spaceName`)
@@ -146,6 +155,32 @@ Related files:
 - `src/app/api/sessions/join/route.ts`
 - `src/app/api/sessions/[sessionId]/votes/route.ts`
 - `src/lib/api-helpers.ts`
+
+## Admin Permissions
+
+Resource: platform-level moderation and reporting APIs
+
+- `GET /api/admin/stats`
+  - Allowed: admin only
+  - Includes separate totals for publicly available vs moderated-hidden public content
+- `GET /api/admin/public-content`
+  - Allowed: moderator/admin
+  - Includes personal-scope public content (including currently moderated-hidden public content)
+- `PATCH /api/admin/templates/[templateId]/moderation`
+  - Allowed: moderator/admin
+  - Current scope: personal templates only (`spaceId = null`)
+  - Can hide/unhide public templates
+- `PATCH /api/admin/sessions/[sessionId]/moderation`
+  - Allowed: moderator/admin
+  - Current scope: personal sessions only (`spaceId = null`)
+  - Can hide/unhide public sessions
+
+Related files:
+- `src/lib/api-helpers.ts`
+- `src/app/api/admin/stats/route.ts`
+- `src/app/api/admin/public-content/route.ts`
+- `src/app/api/admin/templates/[templateId]/moderation/route.ts`
+- `src/app/api/admin/sessions/[sessionId]/moderation/route.ts`
 
 ## Results and Ballot Visibility
 
@@ -181,6 +216,9 @@ Landing behavior:
 - If target session is open: join page flow
 - If target session is closed/non-open: redirect to `/sessions/{id}/results?code=<JOIN_CODE>`
   - Exception: private-space closed links with `spaceInvite` and a non-member viewer stay on join page for a "join space then continue" flow
+- If target session is moderated-hidden:
+  - Outsiders get a not-found outcome in join flows
+  - Metadata stays generic (no session name/status leakage)
 - If join fails with `SPACE_MEMBERSHIP_REQUIRED` and `spaceInvite` is present:
   - Join page offers “Join space and continue”
   - Client joins space via `/api/spaces/join`, passing `expectedSpaceId` from vote context
@@ -233,6 +271,8 @@ Related files:
 |---|---|---|---|---|---|---|---|
 | Personal | Public | OPEN | Anyone | Yes | Yes (auth required to complete join) | Yes | Yes |
 | Personal | Public | CLOSED | Anyone | Redirect to results | No | Yes | Yes |
+| Personal | Public + moderated-hidden | OPEN/CLOSED | Owner/Participant | Yes | Existing participant only | Yes | Yes |
+| Personal | Public + moderated-hidden | OPEN/CLOSED | Outsider | No | No | No | No |
 | Personal | Private | OPEN | Owner/Participant | Yes | Yes via code (auth required) | Yes (if readable) | Yes |
 | Personal | Private | OPEN | Outsider | No | Yes via code if not locked | No until joined | N/A |
 | Personal | Private | CLOSED | Owner/Participant | Yes (results) | No | Yes | Yes |
@@ -248,6 +288,8 @@ Related files:
 | Scope | Visibility | Actor | Read | Mutate/Delete |
 |---|---|---|---|---|
 | Personal | Public + non-hidden | Anyone | Yes | Owner only |
+| Personal | Public + moderated-hidden | Owner | Yes | Owner only |
+| Personal | Public + moderated-hidden | Non-owner | No | No |
 | Personal | Private + non-hidden | Owner | Yes | Owner only |
 | Personal | Private + non-hidden | Non-owner | No | No |
 | Personal | Hidden | Anyone | No (direct browse) | Internal/owner workflows only |

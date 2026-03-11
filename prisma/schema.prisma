@@ -6,12 +6,19 @@ datasource db {
   provider = "postgresql"
 }
 
+enum UserRole {
+  USER
+  MODERATOR
+  ADMIN
+}
+
 // ─── USERS ──────────────────────────────────────────────────
 
 model User {
   id           String   @id @default(cuid())
   nickname     String?
   recoveryCode String?  @unique
+  role         UserRole @default(USER)
   createdAt    DateTime @default(now())
 
   templates    Template[]
@@ -63,6 +70,10 @@ model Template {
   spaceId     String?
   isPublic    Boolean  @default(false)
   isHidden    Boolean  @default(false)
+  isModeratedHidden Boolean @default(false)
+  moderatedByUserId String?
+  moderationReason  String?
+  moderatedAt       DateTime?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -107,6 +118,10 @@ model Session {
   creatorId        String?
   isPrivate        Boolean       @default(true)
   isLocked         Boolean       @default(false)
+  isModeratedHidden Boolean      @default(false)
+  moderatedByUserId String?
+  moderationReason  String?
+  moderatedAt       DateTime?
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
 

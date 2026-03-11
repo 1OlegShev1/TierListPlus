@@ -90,6 +90,9 @@ export default async function VotePage({ params }: { params: Promise<{ sessionId
 
   const isOwner = !!requestUserId && session.creatorId === requestUserId;
   const isParticipant = !!currentParticipant;
+  if (session.isModeratedHidden && !isOwner && !isParticipant) {
+    notFound();
+  }
   const spaceMember = Array.isArray(session.space?.members) ? session.space.members[0] : null;
   const isSpaceMember = !!spaceMember;
   const isSpaceOwner =

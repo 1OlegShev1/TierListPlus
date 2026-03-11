@@ -23,6 +23,7 @@ export const GET = withHandler(async (request) => {
     userId: auth.userId,
     deviceId: auth.deviceId,
     deviceName: auth.device.displayName,
+    role: auth.role,
   });
 
   if (tokenVersion === 1) {

@@ -145,6 +145,9 @@ export default async function ResultsPage({
     : null;
   const isOwner = !!requestUserId && session.creatorId === requestUserId;
   const isParticipant = !!currentParticipant;
+  if (session.isModeratedHidden && !isOwner && !isParticipant) {
+    notFound();
+  }
   const hasCodeResultsAccess =
     !session.space &&
     session.isPrivate &&

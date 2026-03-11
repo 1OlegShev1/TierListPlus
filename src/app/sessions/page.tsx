@@ -91,11 +91,12 @@ export default async function VotesPage({
             spaceId: null,
             status: "OPEN",
             isPrivate: false,
+            isModeratedHidden: false,
             NOT: {
               OR: [{ creatorId: userId }, { participants: { some: { userId } } }],
             },
           }
-        : { spaceId: null, status: "OPEN", isPrivate: false },
+        : { spaceId: null, status: "OPEN", isPrivate: false, isModeratedHidden: false },
     }),
   ]);
   const showLiveSection =

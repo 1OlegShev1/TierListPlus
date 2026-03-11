@@ -1,13 +1,11 @@
 "use client";
 
 import { DndContext, DragOverlay } from "@dnd-kit/core";
-import { Link as LinkIcon } from "lucide-react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { type ReactNode, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ItemSourceModal } from "@/components/items/ItemSourceModal";
-import { ImageUploader } from "@/components/shared/ImageUploader";
-import { CloseIcon } from "@/components/ui/icons";
+import { CombinedAddItemTile } from "@/components/shared/CombinedAddItemTile";
 import { useDelayedBusy } from "@/hooks/useDelayedBusy";
 import { useTierListStore } from "@/hooks/useTierList";
 import { useUser } from "@/hooks/useUser";
@@ -45,49 +43,13 @@ interface TierListBoardProps {
   canManageItems?: boolean;
   templateIsHidden?: boolean;
   onSubmitted: () => void;
-}
-
-function useAutoDismissFlag(isVisible: boolean, dismiss: () => void, delayMs: number) {
-  useEffect(() => {
-    if (!isVisible) return;
-    const timeout = setTimeout(dismiss, delayMs);
-    return () => clearTimeout(timeout);
-  }, [delayMs, dismiss, isVisible]);
-}
-
-function StatusNotice({
-  tone,
-  children,
-  onDismiss,
-}: {
-  tone: "amber" | "emerald";
-  children: ReactNode;
-  onDismiss: () => void;
-}) {
-  const toneClassName =
-    tone === "emerald"
-      ? "border-[var(--state-success-fg)] text-[var(--state-success-fg)]"
-      : "border-[var(--accent-primary)] text-[var(--accent-primary-hover)]";
-  const toneButtonClassName =
-    tone === "emerald"
-      ? "text-[var(--state-success-fg)] hover:bg-[var(--state-success-bg)] hover:text-[var(--state-success-fg)]"
-      : "text-[var(--accent-primary)] hover:bg-[var(--bg-surface-hover)] hover:text-[var(--accent-primary-hover)]";
-
-  return (
-    <div
-      className={`pointer-events-auto flex w-full items-start gap-3 rounded-xl border bg-[var(--bg-elevated)] px-3 py-2 text-sm leading-5 backdrop-blur-sm sm:w-[22rem] ${toneClassName}`}
-    >
-      <div className="min-w-0 flex-1">{children}</div>
-      <button
-        type="button"
-        onClick={onDismiss}
-        className={`mt-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full transition-colors ${toneButtonClassName}`}
-        aria-label="Dismiss notice"
-      >
-        <CloseIcon className="h-3.5 w-3.5" />
-      </button>
-    </div>
-  );
+  onNotice?: (notice: {
+    tone: "amber" | "emerald";
+    message: string;
+    actionHref?: string;
+    actionLabel?: string;
+    durationMs?: number;
+  }) => void;
 }
 
 export function TierListBoard({
@@ -101,6 +63,7 @@ export function TierListBoard({
   canManageItems = false,
   templateIsHidden = false,
   onSubmitted,
+  onNotice,
 }: TierListBoardProps) {
   const { userId, isLoading: userLoading, error: userError } = useUser();
   const {
@@ -121,13 +84,10 @@ export function TierListBoard({
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [draftRestored, setDraftRestored] = useState(false);
-  const [bracketSeeded, setBracketSeeded] = useState(false);
   const [showSessionBracket, setShowSessionBracket] = useState(false);
   const [savingTemplate, setSavingTemplate] = useState(false);
   const [saveTemplateError, setSaveTemplateError] = useState<string | null>(null);
   const [savedTemplateId, setSavedTemplateId] = useState<string | null>(null);
-  const [showSavedTemplateNotice, setShowSavedTemplateNotice] = useState(false);
   const [sourceModalItemId, setSourceModalItemId] = useState<string | null>(null);
   const [sourceModalReadOnly, setSourceModalReadOnly] = useState(false);
   const [showAddByUrlSourceModal, setShowAddByUrlSourceModal] = useState(false);
@@ -204,8 +164,22 @@ export function TierListBoard({
       draft,
     );
 
-    if (draft) setDraftRestored(true);
-  }, [sessionItems, initialTierConfig, seededTiers, initialize, sessionId, participantId]);
+    if (draft) {
+      onNotice?.({
+        tone: "amber",
+        message: "Draft restored.",
+        durationMs: 3000,
+      });
+    }
+  }, [
+    sessionItems,
+    initialTierConfig,
+    seededTiers,
+    initialize,
+    sessionId,
+    participantId,
+    onNotice,
+  ]);
 
   // Auto-save draft to localStorage on every tier/unranked change
   useEffect(() => {
@@ -312,7 +286,13 @@ export function TierListBoard({
     try {
       const result = await apiPost<{ id: string }>(`/api/sessions/${sessionId}/template`, {});
       setSavedTemplateId(result.id);
-      setShowSavedTemplateNotice(true);
+      onNotice?.({
+        tone: "emerald",
+        message: savesWorkingTemplate ? "List published." : "List saved.",
+        actionHref: `/templates/${result.id}`,
+        actionLabel: "Open it",
+        durationMs: 5000,
+      });
     } catch (err) {
       setSaveTemplateError(getErrorMessage(err, "Could not save this list"));
     } finally {
@@ -339,52 +319,29 @@ export function TierListBoard({
           : "Waiting for the vote host to add items."
       : "All items ranked!";
   const uploadCard = canManageItems ? (
-    <>
-      <div className="w-[112px] flex-shrink-0 rounded-lg border border-[var(--border-default)] bg-[var(--bg-elevated)] p-1.5 sm:w-[120px] md:w-[128px]">
-        <button
-          type="button"
-          onClick={() => {
-            setAddByUrlSourceError(null);
-            setShowAddByUrlSourceModal(true);
-          }}
-          disabled={uploadsDisabled || hasPendingItemMutations}
-          className="flex aspect-square w-full flex-col items-center justify-center rounded border border-dashed border-[var(--border-default)] bg-[var(--bg-surface)] text-[var(--fg-secondary)] transition-colors hover:border-[var(--accent-primary)] hover:text-[var(--accent-primary-hover)] disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          <LinkIcon className="h-5 w-5" />
-          <span className="mt-2 text-xs font-medium">Add via URL</span>
-        </button>
-        <div
-          aria-hidden="true"
-          className="mt-1 flex h-[30px] items-center justify-center text-[11px] text-[var(--fg-subtle)]"
-        >
-          Link item
-        </div>
-      </div>
-      <div className="w-[112px] flex-shrink-0 rounded-lg border border-[var(--border-default)] bg-[var(--bg-elevated)] p-1.5 sm:w-[120px] md:w-[128px]">
-        <ImageUploader
-          onUploaded={handleUploadedImage}
-          onUploadStateChange={handleUploadStateChange}
-          multiple
-          idleLabel={
-            userLoading
-              ? "Getting ready..."
-              : uploadsDisabled
-                ? "Device needed"
-                : showCreatingItemState
-                  ? "Adding..."
-                  : "Upload"
-          }
-          disabled={uploadsDisabled}
-          className="aspect-square w-full"
-        />
-        <div aria-hidden="true" className="mt-1 h-[30px]" />
-      </div>
-    </>
+    <CombinedAddItemTile
+      onAddByUrlClick={() => {
+        setAddByUrlSourceError(null);
+        setShowAddByUrlSourceModal(true);
+      }}
+      addByUrlDisabled={uploadsDisabled || hasPendingItemMutations}
+      addByUrlDescription="Link item"
+      onUploaded={handleUploadedImage}
+      onUploadStateChange={handleUploadStateChange}
+      multiple
+      uploadIdleLabel={
+        userLoading
+          ? "Getting ready..."
+          : uploadsDisabled
+            ? "Device needed"
+            : showCreatingItemState
+              ? "Adding..."
+              : "Upload"
+      }
+      uploadDisabled={uploadsDisabled}
+      className="w-[112px] flex-shrink-0 sm:w-[120px] md:w-[128px]"
+    />
   ) : null;
-
-  useAutoDismissFlag(draftRestored, () => setDraftRestored(false), 3000);
-  useAutoDismissFlag(bracketSeeded, () => setBracketSeeded(false), 3000);
-  useAutoDismissFlag(showSavedTemplateNotice, () => setShowSavedTemplateNotice(false), 5000);
 
   useEffect(() => {
     if (!sourceModalItemId) return;
@@ -395,36 +352,7 @@ export function TierListBoard({
   }, [items, sourceModalItemId]);
 
   return (
-    <div className="relative flex flex-col">
-      <div
-        aria-live="polite"
-        aria-atomic="true"
-        className="pointer-events-none fixed inset-x-3 bottom-[calc(env(safe-area-inset-bottom)+0.75rem)] z-40 flex justify-center sm:absolute sm:inset-x-auto sm:bottom-auto sm:right-0 sm:top-0 sm:z-30 sm:justify-end"
-      >
-        <div className="flex w-full max-w-[22rem] flex-col gap-2">
-          {draftRestored && (
-            <StatusNotice tone="amber" onDismiss={() => setDraftRestored(false)}>
-              Draft restored.
-            </StatusNotice>
-          )}
-          {bracketSeeded && (
-            <StatusNotice tone="emerald" onDismiss={() => setBracketSeeded(false)}>
-              Bracket seed applied. You can still move anything before locking it in.
-            </StatusNotice>
-          )}
-          {savedTemplateId && showSavedTemplateNotice && (
-            <StatusNotice tone="emerald" onDismiss={() => setShowSavedTemplateNotice(false)}>
-              {savesWorkingTemplate ? "List published." : "List saved."}{" "}
-              <Link
-                href={`/templates/${savedTemplateId}`}
-                className="font-medium underline underline-offset-2 hover:text-[var(--fg-primary)]"
-              >
-                Open it
-              </Link>
-            </StatusNotice>
-          )}
-        </div>
-      </div>
+    <div className="flex flex-col">
       <div className="mb-2 space-y-2 sm:mb-3">
         <div className="flex flex-wrap items-center justify-end gap-2">
           {totalItems >= 2 && (
@@ -655,7 +583,11 @@ export function TierListBoard({
               seeded,
               null,
             );
-            setBracketSeeded(true);
+            onNotice?.({
+              tone: "emerald",
+              message: "Bracket seed applied. You can still move anything before locking it in.",
+              durationMs: 3000,
+            });
             setShowSessionBracket(false);
           }}
           onCancel={() => setShowSessionBracket(false)}

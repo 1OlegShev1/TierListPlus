@@ -1,4 +1,4 @@
-import type { Device } from "@prisma/client";
+import type { Device, UserRole } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import {
   parseUserSessionToken,
@@ -20,6 +20,7 @@ export class RequestAuthError extends Error {
 export interface RequestAuth {
   userId: string;
   deviceId: string;
+  role: UserRole;
   device: Device;
 }
 
@@ -37,17 +38,32 @@ async function touchDeviceIfStale(device: Device): Promise<Device> {
 async function resolveDeviceAuth(deviceId: string): Promise<RequestAuth | null> {
   const device = await prisma.device.findUnique({
     where: { id: deviceId },
+    select: {
+      id: true,
+      userId: true,
+      displayName: true,
+      createdAt: true,
+      lastSeenAt: true,
+      revokedAt: true,
+      isMigrationSeed: true,
+      user: {
+        select: { role: true },
+      },
+    },
   });
 
   if (!device || device.revokedAt) {
     return null;
   }
 
-  const hydratedDevice = await touchDeviceIfStale(device);
+  const { user, ...plainDevice } = device;
+  const hydratedDevice = await touchDeviceIfStale(plainDevice);
+  const role = user.role;
 
   return {
     userId: hydratedDevice.userId,
     deviceId: hydratedDevice.id,
+    role,
     device: hydratedDevice,
   };
 }
@@ -60,17 +76,32 @@ async function resolveLegacyUserAuth(userId: string): Promise<RequestAuth | null
       revokedAt: null,
     },
     orderBy: { createdAt: "asc" },
+    select: {
+      id: true,
+      userId: true,
+      displayName: true,
+      createdAt: true,
+      lastSeenAt: true,
+      revokedAt: true,
+      isMigrationSeed: true,
+      user: {
+        select: { role: true },
+      },
+    },
   });
 
   if (!device) {
     return null;
   }
 
-  const hydratedDevice = await touchDeviceIfStale(device);
+  const { user, ...plainDevice } = device;
+  const hydratedDevice = await touchDeviceIfStale(plainDevice);
+  const role: UserRole = user.role;
 
   return {
     userId: hydratedDevice.userId,
     deviceId: hydratedDevice.id,
+    role,
     device: hydratedDevice,
   };
 }

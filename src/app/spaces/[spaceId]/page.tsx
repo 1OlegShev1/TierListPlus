@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { QuickStartVoteButton } from "@/components/sessions/QuickStartVoteButton";
 import { ShareVoteButton } from "@/components/sessions/ShareVoteButton";
 import { OpenSpaceMembershipControls } from "@/components/spaces/OpenSpaceMembershipControls";
 import { RemoveSpaceMemberButton } from "@/components/spaces/RemoveSpaceMemberButton";
@@ -18,6 +19,7 @@ import { StatusBadge } from "@/components/ui/StatusBadge";
 import { VotePreviewSummary } from "@/components/ui/VotePreviewSummary";
 import { getCookieAuth } from "@/lib/auth";
 import { buildListDisplay } from "@/lib/list-display";
+import { getSuggestedNicknameForUser } from "@/lib/nickname-suggestion";
 import { prisma } from "@/lib/prisma";
 import { canReadSpace, getSpaceAccessForUser } from "@/lib/space";
 import { getSpaceAccentClasses } from "@/lib/space-theme";
@@ -151,6 +153,7 @@ export default async function SpaceDetailPage({
   const memberNicknameProfiles = buildMemberNicknameProfiles(memberNicknameSamples);
 
   const canCreateInSpace = !!userId && space.isMember;
+  const suggestedNickname = await getSuggestedNicknameForUser(userId);
   const accent = getSpaceAccentClasses(space.accentColor);
   const nameInitial = space.name.trim().charAt(0).toUpperCase() || "?";
   const votesHasMore = votes.length > votesPageSize;
@@ -163,6 +166,8 @@ export default async function SpaceDetailPage({
   const showListsSeeAll = !listsExpanded && totalLists > SPACE_LANDING_SECTION_LIMIT;
   const sectionSecondaryActionClassName = `${buttonVariants.secondary} !h-9 !min-w-[7rem] !self-start !px-3 !py-0 !text-sm !font-medium hover:border-[var(--border-strong)] hover:text-[var(--fg-primary)]`;
   const sectionPrimaryActionClassName = `${buttonVariants.primary} !h-9 !min-w-[7rem] !self-start !px-3 !py-0 !text-sm !font-medium`;
+  const compactPrimaryButtonClassName =
+    "!h-9 !min-w-[7rem] !self-start !px-3 !py-0 !text-sm !font-medium";
 
   return (
     <>
@@ -237,12 +242,13 @@ export default async function SpaceDetailPage({
             actions={
               <div className="flex items-center gap-2">
                 {canCreateInSpace ? (
-                  <Link
-                    href={`/sessions/new?spaceId=${spaceId}`}
-                    className={sectionPrimaryActionClassName}
-                  >
-                    Start vote
-                  </Link>
+                  <QuickStartVoteButton
+                    spaceId={spaceId}
+                    initialVoteName={`${space.name} Vote`}
+                    initialNickname={suggestedNickname}
+                    label="Start vote"
+                    className={compactPrimaryButtonClassName}
+                  />
                 ) : null}
                 {votesExpanded ? (
                   <Link

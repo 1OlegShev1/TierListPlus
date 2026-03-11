@@ -53,7 +53,7 @@ describe("sessions collection route", () => {
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual([expect.objectContaining({ isPrivate: false })]);
     expect(mocks.prisma.session.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { isPrivate: false, spaceId: null } }),
+      expect.objectContaining({ where: { isPrivate: false, isModeratedHidden: false, spaceId: null } }),
     );
 
     response = await GET(
@@ -84,7 +84,7 @@ describe("sessions collection route", () => {
           OR: [
             { creatorId: "user_1" },
             { participants: { some: { userId: "user_1" } } },
-            { isPrivate: false },
+            { isPrivate: false, isModeratedHidden: false },
           ],
         },
       }),

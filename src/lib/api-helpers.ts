@@ -1,4 +1,4 @@
-import { Prisma } from "@prisma/client";
+import { Prisma, type UserRole } from "@prisma/client";
 import { NextResponse } from "next/server";
 import type { z } from "zod/v4";
 import { canMutateResource, canReadSession, canReadSpace } from "@/domain/policy/access";
@@ -121,6 +121,32 @@ export function badRequest(message: string): never {
 /** Throw a 403 ApiError */
 export function forbidden(message = "Not authorized"): never {
   throw new ApiError(403, message);
+}
+
+const ROLE_RANK: Record<UserRole, number> = {
+  USER: 0,
+  MODERATOR: 1,
+  ADMIN: 2,
+};
+
+export function hasRequiredRole(role: UserRole, minimumRole: UserRole) {
+  return ROLE_RANK[role] >= ROLE_RANK[minimumRole];
+}
+
+export async function requireRole(request: Request, minimumRole: UserRole) {
+  const auth = await requireRequestAuth(request);
+  if (!hasRequiredRole(auth.role, minimumRole)) {
+    forbidden(`${minimumRole.toLowerCase()} role required`);
+  }
+  return auth;
+}
+
+export async function requireModerator(request: Request) {
+  return requireRole(request, "MODERATOR");
+}
+
+export async function requireAdmin(request: Request) {
+  return requireRole(request, "ADMIN");
 }
 
 export function canMutateSpaceResource(
@@ -255,6 +281,7 @@ export async function requireSessionAccess(request: Request, sessionId: string) 
     spaceVisibility: access.spaceVisibility,
     isSpaceMember: access.isSpaceMember,
     isPrivate: access.isPrivate,
+    isModeratedHidden: access.isModeratedHidden,
     isOwner: access.isOwner,
     isParticipant: access.isParticipant,
   });
@@ -271,6 +298,7 @@ export async function requireSessionAccess(request: Request, sessionId: string) 
       id: access.id,
       creatorId: access.creatorId,
       isPrivate: access.isPrivate,
+      isModeratedHidden: access.isModeratedHidden,
       spaceId: access.spaceId,
     },
     requestUserId,

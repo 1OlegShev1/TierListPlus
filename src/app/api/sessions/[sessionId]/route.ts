@@ -71,6 +71,7 @@ export const PATCH = withHandler(async (request, { params }) => {
   const ownedSessionSpaceId = ownedSessionResult?.session?.spaceId ?? null;
 
   const updateData: Record<string, unknown> = {};
+  if (data.name) updateData.name = data.name;
   if (data.status) updateData.status = data.status;
   if (data.isPrivate !== undefined && !ownedSessionSpaceId) updateData.isPrivate = data.isPrivate;
   if (data.isLocked !== undefined) updateData.isLocked = data.isLocked;

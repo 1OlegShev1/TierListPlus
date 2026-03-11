@@ -74,6 +74,7 @@ export async function getTemplateForRead(templateId: string, requestUserId: stri
   const isOwner = !!requestUserId && template.creatorId === requestUserId;
   const canRead = canReadTemplate({
     isHidden: template.isHidden,
+    isModeratedHidden: template.isModeratedHidden,
     isSpaceScoped: !!template.spaceId,
     spaceVisibility: template.space?.visibility ?? null,
     isSpaceMember,

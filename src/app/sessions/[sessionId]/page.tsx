@@ -20,6 +20,7 @@ export default async function VoteEntryPage({
       status: true,
       creatorId: true,
       isPrivate: true,
+      isModeratedHidden: true,
       space: {
         select: {
           visibility: true,
@@ -42,6 +43,9 @@ export default async function VoteEntryPage({
         where: { sessionId, userId: requestUserId },
       })) > 0
     : false;
+  if (vote.isModeratedHidden && !isOwner && !isParticipant) {
+    notFound();
+  }
   if (vote.space) {
     const isSpaceMember = Array.isArray(vote.space.members) && vote.space.members.length > 0;
     if (vote.space.visibility === "PRIVATE" && !isSpaceMember) notFound();

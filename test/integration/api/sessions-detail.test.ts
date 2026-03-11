@@ -138,6 +138,22 @@ describe("session detail route", () => {
     });
   });
 
+  it("allows the owner to rename a session", async () => {
+    mocks.prisma.session.update.mockResolvedValue(makeSession({ name: "Renamed vote" }));
+
+    const response = await PATCH(
+      jsonRequest("PATCH", "https://example.test", { name: "Renamed vote" }),
+      routeCtx({ sessionId: "s1" }),
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual(expect.objectContaining({ name: "Renamed vote" }));
+    expect(mocks.prisma.session.update).toHaveBeenCalledWith({
+      where: { id: "s1" },
+      data: { name: "Renamed vote" },
+    });
+  });
+
   it("deletes the hidden working template when removing its last session", async () => {
     mocks.prisma.session.findUnique.mockResolvedValue({
       items: [{ imageUrl: "/one.webp" }, { imageUrl: "/two.webp" }],

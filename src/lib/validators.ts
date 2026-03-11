@@ -105,10 +105,15 @@ export const submitVotesSchema = z.object({
 });
 
 export const updateSessionSchema = z.object({
+  name: z.string().trim().min(1).max(100).optional(),
   status: z.enum(["OPEN", "CLOSED", "ARCHIVED"]).optional(),
   isPrivate: z.boolean().optional(),
   isLocked: z.boolean().optional(),
   tierConfig: tierConfigSchema.optional(),
+});
+
+export const updateSessionParticipantSchema = z.object({
+  nickname: z.string().trim().min(1).max(30),
 });
 
 export const createSpaceSchema = z.object({
@@ -130,4 +135,16 @@ export const updateSpaceSchema = z.object({
 export const joinSpaceSchema = z.object({
   code: z.string().trim().min(1).max(30),
   expectedSpaceId: z.string().trim().min(1).optional(),
+});
+
+const moderationReasonSchema = z.string().trim().min(1).max(500).optional();
+
+export const adminTemplateModerationSchema = z.object({
+  hidden: z.boolean(),
+  reason: moderationReasonSchema,
+});
+
+export const adminSessionModerationSchema = z.object({
+  hidden: z.boolean(),
+  reason: moderationReasonSchema,
 });

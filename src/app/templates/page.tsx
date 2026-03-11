@@ -66,12 +66,14 @@ export default async function ListsPage({
         ? {
             isPublic: true,
             isHidden: false,
+            isModeratedHidden: false,
             spaceId: null,
             NOT: { creatorId: userId },
           }
         : {
             isPublic: true,
             isHidden: false,
+            isModeratedHidden: false,
             spaceId: null,
           },
     }),

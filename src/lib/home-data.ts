@@ -95,6 +95,7 @@ export async function loadHomeData(userId: string): Promise<HomeData> {
         },
         creatorId: { not: userId },
         isPrivate: false,
+        isModeratedHidden: false,
       },
       include: sessionCardInclude,
       orderBy: { updatedAt: "desc" },

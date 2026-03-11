@@ -107,6 +107,29 @@ describe("session page access guards", () => {
     expect(mocks.prisma.participant.findFirst).not.toHaveBeenCalled();
   });
 
+  it("blocks moderated-hidden sessions for outsider access on vote page", async () => {
+    mocks.getCookieAuth.mockResolvedValue(null);
+    mocks.prisma.session.findUnique.mockResolvedValue({
+      id: "session_1",
+      name: "Vote",
+      joinCode: "JOIN1",
+      status: "OPEN",
+      creatorId: "owner_1",
+      isPrivate: false,
+      isModeratedHidden: true,
+      isLocked: false,
+      tierConfig: [{ key: "S", label: "S", color: "#111111", sortOrder: 0 }],
+      template: { isHidden: true },
+      space: null,
+      items: [],
+    });
+    mocks.prisma.participant.findFirst.mockResolvedValue(null);
+
+    await expect(
+      VotePage({ params: Promise.resolve({ sessionId: "session_1" }) }),
+    ).rejects.toThrow("NOT_FOUND");
+  });
+
   it("blocks private-space non-members on results page", async () => {
     mocks.getCookieAuth.mockResolvedValue(null);
     mocks.prisma.session.findUnique.mockResolvedValue({
@@ -162,6 +185,30 @@ describe("session page access guards", () => {
         where: { sessionItem: { sessionId: "session_1" } },
       }),
     );
+  });
+
+  it("blocks moderated-hidden sessions for outsider access on results page", async () => {
+    mocks.getCookieAuth.mockResolvedValue(null);
+    mocks.prisma.session.findUnique.mockResolvedValue({
+      id: "session_1",
+      name: "Vote",
+      joinCode: "JOIN1",
+      status: "OPEN",
+      creatorId: "owner_1",
+      isPrivate: false,
+      isModeratedHidden: true,
+      tierConfig: [{ key: "S", label: "S", color: "#111111", sortOrder: 0 }],
+      space: null,
+      items: [],
+      participants: [],
+    });
+
+    await expect(
+      ResultsPage({
+        params: Promise.resolve({ sessionId: "session_1" }),
+        searchParams: {},
+      }),
+    ).rejects.toThrow("NOT_FOUND");
   });
 
   it("allows private closed-session results via matching join code for outsiders", async () => {

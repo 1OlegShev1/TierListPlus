@@ -37,7 +37,7 @@ export default async function SpaceImportTemplatePage({
     where: {
       spaceId: null,
       isHidden: false,
-      OR: [{ isPublic: true }, { creatorId: userId }],
+      OR: [{ isPublic: true, isModeratedHidden: false }, { creatorId: userId }],
     },
     include: {
       _count: { select: { items: true } },
