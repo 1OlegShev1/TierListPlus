@@ -58,6 +58,7 @@ describe("domain policy access", () => {
           spaceVisibility: "OPEN",
           isSpaceMember: false,
           isPrivate: true,
+          isModeratedHidden: false,
           isOwner: false,
           isParticipant: false,
         }),
@@ -69,6 +70,7 @@ describe("domain policy access", () => {
           spaceVisibility: "PRIVATE",
           isSpaceMember: false,
           isPrivate: true,
+          isModeratedHidden: false,
           isOwner: false,
           isParticipant: false,
         }),
@@ -80,6 +82,7 @@ describe("domain policy access", () => {
           spaceVisibility: null,
           isSpaceMember: false,
           isPrivate: false,
+          isModeratedHidden: false,
           isOwner: false,
           isParticipant: false,
         }),
@@ -91,6 +94,7 @@ describe("domain policy access", () => {
           spaceVisibility: null,
           isSpaceMember: false,
           isPrivate: true,
+          isModeratedHidden: false,
           isOwner: false,
           isParticipant: false,
         }),
@@ -102,10 +106,23 @@ describe("domain policy access", () => {
           spaceVisibility: null,
           isSpaceMember: false,
           isPrivate: true,
+          isModeratedHidden: false,
           isOwner: true,
           isParticipant: false,
         }),
       ).toBe(true);
+
+      expect(
+        canReadSession({
+          isSpaceScoped: false,
+          spaceVisibility: null,
+          isSpaceMember: false,
+          isPrivate: false,
+          isModeratedHidden: true,
+          isOwner: false,
+          isParticipant: false,
+        }),
+      ).toBe(false);
     });
   });
 
@@ -114,6 +131,7 @@ describe("domain policy access", () => {
       expect(
         canReadTemplate({
           isHidden: true,
+          isModeratedHidden: false,
           isSpaceScoped: false,
           spaceVisibility: null,
           isSpaceMember: false,
@@ -125,6 +143,7 @@ describe("domain policy access", () => {
       expect(
         canReadTemplate({
           isHidden: false,
+          isModeratedHidden: false,
           isSpaceScoped: true,
           spaceVisibility: "OPEN",
           isSpaceMember: false,
@@ -136,6 +155,7 @@ describe("domain policy access", () => {
       expect(
         canReadTemplate({
           isHidden: false,
+          isModeratedHidden: false,
           isSpaceScoped: true,
           spaceVisibility: "PRIVATE",
           isSpaceMember: false,
@@ -147,6 +167,7 @@ describe("domain policy access", () => {
       expect(
         canReadTemplate({
           isHidden: false,
+          isModeratedHidden: false,
           isSpaceScoped: false,
           spaceVisibility: null,
           isSpaceMember: false,
@@ -158,6 +179,7 @@ describe("domain policy access", () => {
       expect(
         canReadTemplate({
           isHidden: false,
+          isModeratedHidden: false,
           isSpaceScoped: false,
           spaceVisibility: null,
           isSpaceMember: false,
@@ -165,6 +187,18 @@ describe("domain policy access", () => {
           isOwner: true,
         }),
       ).toBe(true);
+
+      expect(
+        canReadTemplate({
+          isHidden: false,
+          isModeratedHidden: true,
+          isSpaceScoped: false,
+          spaceVisibility: null,
+          isSpaceMember: false,
+          isPublic: true,
+          isOwner: false,
+        }),
+      ).toBe(false);
     });
   });
 });

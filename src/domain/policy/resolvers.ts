@@ -18,6 +18,7 @@ export interface SessionAccessContext {
   id: string;
   creatorId: string | null;
   isPrivate: boolean;
+  isModeratedHidden: boolean;
   spaceId: string | null;
   spaceVisibility: SpaceVisibility | null;
   spaceCreatorId: string | null;
@@ -33,6 +34,7 @@ export interface TemplateAccessContext {
   creatorId: string | null;
   isPublic: boolean;
   isHidden: boolean;
+  isModeratedHidden: boolean;
   spaceId: string | null;
   spaceVisibility: SpaceVisibility | null;
   spaceCreatorId: string | null;
@@ -92,6 +94,7 @@ export async function resolveSessionAccessContext(sessionId: string, requestUser
       id: true,
       creatorId: true,
       isPrivate: true,
+      isModeratedHidden: true,
       spaceId: true,
       participants: requestUserId
         ? {
@@ -134,6 +137,7 @@ export async function resolveSessionAccessContext(sessionId: string, requestUser
     id: session.id,
     creatorId: session.creatorId,
     isPrivate: session.isPrivate,
+    isModeratedHidden: session.isModeratedHidden,
     spaceId: session.spaceId,
     spaceVisibility: session.space?.visibility ?? null,
     spaceCreatorId: session.space?.creatorId ?? null,
@@ -156,6 +160,7 @@ export async function resolveTemplateAccessContext(
       creatorId: true,
       isPublic: true,
       isHidden: true,
+      isModeratedHidden: true,
       spaceId: true,
       space: {
         select: {
@@ -190,6 +195,7 @@ export async function resolveTemplateAccessContext(
     creatorId: template.creatorId,
     isPublic: template.isPublic,
     isHidden: template.isHidden,
+    isModeratedHidden: template.isModeratedHidden,
     spaceId: template.spaceId,
     spaceVisibility: template.space?.visibility ?? null,
     spaceCreatorId: template.space?.creatorId ?? null,

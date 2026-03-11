@@ -2,19 +2,54 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import { ThemeSwitcher } from "@/components/theme/ThemeSwitcher";
 import { GearIcon } from "@/components/ui/GearIcon";
 
-const links = [
+const BASE_LINKS = [
   { href: "/", label: "Home" },
   { href: "/spaces", label: "Spaces" },
   { href: "/templates", label: "Lists" },
   { href: "/sessions", label: "Votes" },
-];
+] as const;
 
-export function NavBar() {
+export function NavBar({ isAdmin }: { isAdmin?: boolean }) {
   const pathname = usePathname();
   const devicesActive = pathname.startsWith("/devices");
+  const [resolvedIsAdmin, setResolvedIsAdmin] = useState(isAdmin ?? false);
+
+  useEffect(() => {
+    setResolvedIsAdmin(isAdmin ?? false);
+  }, [isAdmin]);
+
+  useEffect(() => {
+    if (isAdmin !== undefined) return;
+
+    let cancelled = false;
+    const controller = new AbortController();
+
+    void fetch("/api/users/session", {
+      cache: "no-store",
+      signal: controller.signal,
+    })
+      .then(async (response) => {
+        if (!response.ok) return;
+        const data = (await response.json()) as { role?: string };
+        if (!cancelled && data.role === "ADMIN") {
+          setResolvedIsAdmin(true);
+        }
+      })
+      .catch(() => {
+        // Best-effort UI affordance only.
+      });
+
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
+  }, [isAdmin]);
+
+  const links = resolvedIsAdmin ? [...BASE_LINKS, { href: "/admin", label: "Admin" }] : BASE_LINKS;
 
   return (
     <nav className="border-b border-[var(--border-subtle)] bg-[var(--bg-canvas)]">

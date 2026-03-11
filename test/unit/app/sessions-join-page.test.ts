@@ -2,7 +2,11 @@ const mocks = vi.hoisted(() => ({
   redirect: vi.fn((target: string) => {
     throw new Error(`REDIRECT:${target}`);
   }),
+  notFound: vi.fn(() => {
+    throw new Error("NOT_FOUND");
+  }),
   cookies: vi.fn(),
+  headers: vi.fn(),
   getCookieAuth: vi.fn(),
   prisma: {
     session: {
@@ -16,10 +20,12 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("next/navigation", () => ({
   redirect: mocks.redirect,
+  notFound: mocks.notFound,
 }));
 
 vi.mock("next/headers", () => ({
   cookies: mocks.cookies,
+  headers: mocks.headers,
 }));
 
 vi.mock("@/lib/auth", () => ({
@@ -30,12 +36,21 @@ vi.mock("@/lib/prisma", () => ({
   prisma: mocks.prisma,
 }));
 
-import JoinVotePage from "@/app/sessions/join/page";
+import JoinVotePage, { generateMetadata } from "@/app/sessions/join/page";
 
 describe("sessions join page", () => {
   beforeEach(() => {
     mocks.redirect.mockClear();
+    mocks.notFound.mockClear();
     mocks.cookies.mockReset().mockResolvedValue({} as never);
+    mocks.headers.mockReset().mockResolvedValue({
+      get(name: string) {
+        if (name === "x-forwarded-host") return "example.test";
+        if (name === "x-forwarded-proto") return "https";
+        if (name === "host") return "example.test";
+        return null;
+      },
+    });
     mocks.getCookieAuth.mockReset().mockResolvedValue(null);
     mocks.prisma.session.findUnique.mockReset();
     mocks.prisma.spaceMember.findUnique.mockReset();
@@ -86,5 +101,38 @@ describe("sessions join page", () => {
 
     expect(result).toBeTruthy();
     expect(mocks.redirect).not.toHaveBeenCalled();
+  });
+
+  it("hides moderated-hidden sessions from outsiders", async () => {
+    mocks.prisma.session.findUnique.mockResolvedValue({
+      id: "session_1",
+      status: "OPEN",
+      creatorId: "owner_1",
+      isModeratedHidden: true,
+      participants: [],
+      space: null,
+    });
+
+    await expect(
+      JoinVotePage({
+        searchParams: Promise.resolve({ code: "join1" }),
+      }),
+    ).rejects.toThrow("NOT_FOUND");
+  });
+
+  it("does not expose moderated-hidden session details in metadata", async () => {
+    mocks.prisma.session.findUnique.mockResolvedValueOnce({
+      name: "Secret Session",
+      status: "OPEN",
+      isModeratedHidden: true,
+    });
+
+    const metadata = await generateMetadata({
+      searchParams: Promise.resolve({ code: "join1" }),
+    });
+
+    expect(metadata.title).toBe("Join this vote | TierList+");
+    expect(metadata.description).toBe("Open invite link for a collaborative tier list vote.");
+    expect(metadata.openGraph?.title).toBe("Join this vote | TierList+");
   });
 });

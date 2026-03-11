@@ -50,6 +50,16 @@ describe("sessions join route", () => {
     );
     expect(response.status).toBe(400);
 
+    mocks.prisma.session.findUnique.mockResolvedValueOnce(
+      makeSession({ status: "CLOSED", isModeratedHidden: true }),
+    );
+    mocks.prisma.participant.findFirst.mockResolvedValueOnce(null);
+    response = await POST(
+      jsonRequest("POST", "https://example.test", { joinCode: "join1", nickname: "Nick" }),
+      { params: Promise.resolve({}) },
+    );
+    expect(response.status).toBe(404);
+
     mocks.prisma.session.findUnique.mockResolvedValueOnce(makeSession({ isLocked: true }));
     mocks.prisma.participant.findFirst.mockResolvedValue(null);
     mocks.prisma.participant.findUnique.mockResolvedValue(null);
@@ -58,9 +68,36 @@ describe("sessions join route", () => {
       { params: Promise.resolve({}) },
     );
     expect(response.status).toBe(400);
+
+    mocks.prisma.session.findUnique.mockResolvedValueOnce(makeSession({ isModeratedHidden: true }));
+    mocks.prisma.participant.findFirst.mockResolvedValueOnce(null);
+    response = await POST(
+      jsonRequest("POST", "https://example.test", { joinCode: "join1", nickname: "Nick" }),
+      { params: Promise.resolve({}) },
+    );
+    expect(response.status).toBe(404);
   });
 
   it("enforces private-space membership and allows open-space non-members", async () => {
+    mocks.prisma.session.findUnique.mockResolvedValueOnce(
+      makeSession({
+        isModeratedHidden: true,
+        space: {
+          id: "space_private_hidden_1",
+          name: "Hidden Space",
+          visibility: "PRIVATE",
+          members: [],
+        },
+      }),
+    );
+    mocks.prisma.participant.findFirst.mockResolvedValueOnce(null);
+
+    let response = await POST(
+      jsonRequest("POST", "https://example.test", { joinCode: "join1", nickname: "Nick" }),
+      { params: Promise.resolve({}) },
+    );
+    expect(response.status).toBe(404);
+
     mocks.prisma.session.findUnique.mockResolvedValueOnce(
       makeSession({
         space: {
@@ -72,7 +109,7 @@ describe("sessions join route", () => {
       }),
     );
 
-    let response = await POST(
+    response = await POST(
       jsonRequest("POST", "https://example.test", { joinCode: "join1", nickname: "Nick" }),
       { params: Promise.resolve({}) },
     );

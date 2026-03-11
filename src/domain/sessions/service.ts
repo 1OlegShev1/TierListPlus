@@ -43,12 +43,17 @@ export async function listPersonalSessions(
       ? {
           spaceId: null,
           ...(status ? { status } : {}),
-          OR: [{ creatorId: userId }, { participants: { some: { userId } } }, { isPrivate: false }],
+          OR: [
+            { creatorId: userId },
+            { participants: { some: { userId } } },
+            { isPrivate: false, isModeratedHidden: false },
+          ],
         }
       : {
           spaceId: null,
           ...(status ? { status } : {}),
           isPrivate: false,
+          isModeratedHidden: false,
         },
     include: {
       template: { select: SESSION_TEMPLATE_SELECT },

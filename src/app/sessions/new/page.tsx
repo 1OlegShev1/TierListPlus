@@ -5,7 +5,7 @@ import { getCookieAuth } from "@/lib/auth";
 import { getSuggestedNicknameForUser } from "@/lib/nickname-suggestion";
 import { prisma } from "@/lib/prisma";
 import { canReadSpace, getSpaceAccessForUser } from "@/lib/space";
-import { getTemplateVisibilityWhere } from "@/lib/template-access";
+import { canAccessTemplate, getTemplateVisibilityWhere } from "@/lib/template-access";
 import type { Item, ListSummary } from "@/types";
 
 export const dynamic = "force-dynamic";
@@ -114,9 +114,7 @@ export default async function NewVotePage({
     if (
       selected &&
       !selected.isHidden &&
-      (selected.spaceId
-        ? selected.spaceId === accessSpaceId
-        : selected.isPublic || (userId && selected.creatorId === userId))
+      (selected.spaceId ? selected.spaceId === accessSpaceId : canAccessTemplate(selected, userId))
     ) {
       initialSelectedListDetails = {
         id: selected.id,

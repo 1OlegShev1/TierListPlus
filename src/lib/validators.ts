@@ -131,3 +131,15 @@ export const joinSpaceSchema = z.object({
   code: z.string().trim().min(1).max(30),
   expectedSpaceId: z.string().trim().min(1).optional(),
 });
+
+const moderationReasonSchema = z.string().trim().min(1).max(500).optional();
+
+export const adminTemplateModerationSchema = z.object({
+  hidden: z.boolean(),
+  reason: moderationReasonSchema,
+});
+
+export const adminSessionModerationSchema = z.object({
+  hidden: z.boolean(),
+  reason: moderationReasonSchema,
+});

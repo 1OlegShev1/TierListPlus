@@ -76,6 +76,7 @@ export function resetPrismaMock(prismaMock: ReturnType<typeof createPrismaMock>)
 export function makeUser(overrides: Record<string, unknown> = {}) {
   return {
     id: "user_1",
+    role: "USER",
     createdAt: FIXED_DATE,
     updatedAt: FIXED_DATE,
     ...overrides,
@@ -105,6 +106,10 @@ export function makeSession(overrides: Record<string, unknown> = {}) {
     creatorId: "user_1",
     isPrivate: true,
     isLocked: false,
+    isModeratedHidden: false,
+    moderatedByUserId: null,
+    moderationReason: null,
+    moderatedAt: null,
     createdAt: FIXED_DATE,
     updatedAt: FIXED_DATE,
     tierConfig: [
@@ -136,6 +141,10 @@ export function makeTemplate(overrides: Record<string, unknown> = {}) {
     creatorId: "user_1",
     isPublic: false,
     isHidden: false,
+    isModeratedHidden: false,
+    moderatedByUserId: null,
+    moderationReason: null,
+    moderatedAt: null,
     createdAt: FIXED_DATE,
     updatedAt: FIXED_DATE,
     items: [],

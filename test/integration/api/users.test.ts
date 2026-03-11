@@ -58,6 +58,7 @@ describe("user routes", () => {
     mocks.getRequestAuth.mockResolvedValue({
       userId: "user_1",
       deviceId: "device_1",
+      role: "USER",
       device: makeDevice(),
     });
     response = await getSession(new Request("https://example.test"), {
@@ -69,6 +70,7 @@ describe("user routes", () => {
       userId: "user_1",
       deviceId: "device_1",
       deviceName: "Device 1",
+      role: "USER",
     });
     expect(response.headers.get("set-cookie")).toContain("tierlistplus_session=");
   });

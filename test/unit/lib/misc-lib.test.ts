@@ -34,17 +34,21 @@ describe("template helpers and constants", () => {
       spaceId: null,
       isPublic: true,
       isHidden: false,
+      isModeratedHidden: false,
     });
     expect(getTemplateVisibilityWhere("user_1")).toEqual({
       spaceId: null,
       isHidden: false,
-      OR: [{ isPublic: true }, { creatorId: "user_1" }],
+      OR: [{ isPublic: true, isModeratedHidden: false }, { creatorId: "user_1" }],
     });
     expect(isTemplateOwner({ creatorId: "user_1" }, "user_1")).toBe(true);
     expect(canAccessTemplate({ creatorId: "user_2", isPublic: true }, null)).toBe(true);
     expect(canAccessTemplate({ creatorId: "user_1", isPublic: false }, "user_1")).toBe(true);
     expect(
       canAccessTemplate({ creatorId: "user_1", isPublic: true, isHidden: true }, "user_1"),
+    ).toBe(false);
+    expect(
+      canAccessTemplate({ creatorId: "user_2", isPublic: true, isModeratedHidden: true }, null),
     ).toBe(false);
     expect(DEFAULT_TIER_CONFIG).toHaveLength(5);
   });

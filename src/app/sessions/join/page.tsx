@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { cookies, headers } from "next/headers";
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { Suspense } from "react";
 import { Loading } from "@/components/ui/Loading";
 import { getCookieAuth } from "@/lib/auth";
@@ -100,10 +100,10 @@ export async function generateMetadata({
 
   const vote = await prisma.session.findUnique({
     where: { joinCode },
-    select: { name: true, status: true },
+    select: { name: true, status: true, isModeratedHidden: true },
   });
 
-  if (!vote) {
+  if (!vote || vote.isModeratedHidden) {
     const title = "Join this vote | TierList+";
     const description = "Open invite link for a collaborative tier list vote.";
     const ogImageUrl = new URL("/api/og/vote", origin).toString();
@@ -140,6 +140,15 @@ export default async function JoinVotePage({
       select: {
         id: true,
         status: true,
+        creatorId: true,
+        isModeratedHidden: true,
+        participants: requestUserId
+          ? {
+              where: { userId: requestUserId },
+              select: { id: true },
+              take: 1,
+            }
+          : false,
         space: {
           select: {
             id: true,
@@ -149,6 +158,12 @@ export default async function JoinVotePage({
         },
       },
     });
+
+    const isOwner = !!requestUserId && vote?.creatorId === requestUserId;
+    const isParticipant = Array.isArray(vote?.participants) && vote.participants.length > 0;
+    if (vote?.isModeratedHidden && !isOwner && !isParticipant) {
+      notFound();
+    }
 
     if (vote) {
       initialSession = {

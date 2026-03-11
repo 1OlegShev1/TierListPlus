@@ -17,6 +17,7 @@ export const POST = withHandler(async (request) => {
       id: true,
       status: true,
       isLocked: true,
+      isModeratedHidden: true,
       space: {
         select: {
           id: true,
@@ -33,7 +34,20 @@ export const POST = withHandler(async (request) => {
   });
 
   if (!session) notFound("Session not found");
+
+  const existingForUser = await prisma.participant.findFirst({
+    where: {
+      sessionId: session.id,
+      userId,
+    },
+    orderBy: { createdAt: "asc" },
+  });
+
+  if (session.isModeratedHidden && !existingForUser) {
+    notFound("Session not found");
+  }
   if (session.status !== "OPEN") badRequest("Session is no longer accepting votes");
+
   if (
     session.space?.visibility === "PRIVATE" &&
     (!Array.isArray(session.space.members) || session.space.members.length === 0)
@@ -49,14 +63,6 @@ export const POST = withHandler(async (request) => {
       { status: 403 },
     );
   }
-
-  const existingForUser = await prisma.participant.findFirst({
-    where: {
-      sessionId: session.id,
-      userId,
-    },
-    orderBy: { createdAt: "asc" },
-  });
 
   if (existingForUser) {
     try {
