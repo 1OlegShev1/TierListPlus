@@ -58,7 +58,7 @@ export function ItemArtwork({
   const placeholderKind = parseSourceArtworkPlaceholderImageUrl(src);
   if (placeholderKind) {
     return (
-      <div className={cn("relative overflow-hidden bg-[var(--bg-canvas)]", className)}>
+      <div className={cn("relative overflow-hidden bg-[var(--bg-artwork-frame)]", className)}>
         <div
           className="absolute inset-0"
           style={{ background: "var(--bg-media-ambient)" }}
@@ -83,7 +83,7 @@ export function ItemArtwork({
 
   if (presentation === "cover") {
     return (
-      <div className={cn("relative overflow-hidden bg-[var(--bg-canvas)]", className)}>
+      <div className={cn("relative overflow-hidden bg-[var(--bg-artwork-frame)]", className)}>
         <img
           src={displaySrc}
           alt={alt}
@@ -102,7 +102,7 @@ export function ItemArtwork({
   }
 
   return (
-    <div className={cn("relative overflow-hidden bg-[var(--bg-canvas)]", className)}>
+    <div className={cn("relative overflow-hidden bg-[var(--bg-artwork-frame)]", className)}>
       <img
         src={staticSrc}
         alt=""
@@ -124,7 +124,7 @@ export function ItemArtwork({
         decoding={decoding}
         draggable={draggable}
         className={cn(
-          "pointer-events-none relative h-full w-full object-contain [filter:drop-shadow(0_0_4px_rgba(255,255,255,0.2))_drop-shadow(0_6px_14px_rgba(0,0,0,0.48))]",
+          "pointer-events-none relative h-full w-full object-contain [filter:var(--fx-artwork-ambient-item)]",
           insetClasses[inset],
           imageClassName,
         )}

@@ -12,9 +12,12 @@
   --bg-overlay: rgb(0 0 0 / 0.7);
   --bg-soft-contrast: rgb(0 0 0 / 0.2);
   --bg-media-overlay: rgb(0 0 0 / 0.62);
+  --bg-artwork-frame: #0a0a0a;
   --bg-media-ambient:
     radial-gradient(circle at top, rgb(255 255 255 / 0.12), transparent 38%),
     linear-gradient(to bottom, rgb(38 38 38 / 0.18), rgb(10 10 10 / 0.64));
+  --fx-artwork-ambient-item: drop-shadow(0 0 4px rgb(255 255 255 / 0.2))
+    drop-shadow(0 6px 14px rgb(0 0 0 / 0.48));
 
   /* Foreground tokens */
   --fg-primary: #f5f5f5;
@@ -82,9 +85,12 @@
   --bg-overlay: rgb(15 23 42 / 0.45);
   --bg-soft-contrast: rgb(15 23 42 / 0.08);
   --bg-media-overlay: rgb(15 23 42 / 0.3);
+  --bg-artwork-frame: #ffffff;
   --bg-media-ambient:
-    radial-gradient(circle at top, rgb(255 255 255 / 0.78), transparent 44%),
-    linear-gradient(to bottom, rgb(148 163 184 / 0.18), rgb(15 23 42 / 0.22));
+    radial-gradient(circle at top, rgb(255 255 255 / 0.92), transparent 52%),
+    linear-gradient(to bottom, rgb(191 219 254 / 0.14), rgb(255 255 255 / 0.82));
+  --fx-artwork-ambient-item: drop-shadow(0 0 2px rgb(255 255 255 / 0.7))
+    drop-shadow(0 4px 10px rgb(15 23 42 / 0.2));
 
   --fg-primary: #111827;
   --fg-secondary: #374151;
@@ -152,9 +158,12 @@
     --bg-overlay: rgb(15 23 42 / 0.45);
     --bg-soft-contrast: rgb(15 23 42 / 0.08);
     --bg-media-overlay: rgb(15 23 42 / 0.3);
+    --bg-artwork-frame: #ffffff;
     --bg-media-ambient:
-      radial-gradient(circle at top, rgb(255 255 255 / 0.78), transparent 44%),
-      linear-gradient(to bottom, rgb(148 163 184 / 0.18), rgb(15 23 42 / 0.22));
+      radial-gradient(circle at top, rgb(255 255 255 / 0.92), transparent 52%),
+      linear-gradient(to bottom, rgb(191 219 254 / 0.14), rgb(255 255 255 / 0.82));
+    --fx-artwork-ambient-item: drop-shadow(0 0 2px rgb(255 255 255 / 0.7))
+      drop-shadow(0 4px 10px rgb(15 23 42 / 0.2));
 
     --fg-primary: #111827;
     --fg-secondary: #374151;
