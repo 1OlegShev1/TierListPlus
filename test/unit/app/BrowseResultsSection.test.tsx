@@ -48,12 +48,12 @@ function makeTier(key: string, items: string[]): ConsensusTier {
 }
 
 function buildProps({
-  highlightDifferences,
-  onToggleHighlightDifferences = () => undefined,
+  compareHighlightMode,
+  onChangeCompareHighlightMode,
   hasCompareSelection = true,
 }: {
-  highlightDifferences: boolean;
-  onToggleHighlightDifferences?: () => void;
+  compareHighlightMode: "off" | "differences" | "similarities";
+  onChangeCompareHighlightMode?: (mode: "off" | "differences" | "similarities") => void;
   hasCompareSelection?: boolean;
 }) {
   return {
@@ -69,8 +69,8 @@ function buildProps({
     compareLeftSelectedItem: null,
     compareRightSelectedItem: null,
     selectedItem: null,
-    highlightDifferences,
-    onToggleHighlightDifferences,
+    compareHighlightMode,
+    onChangeCompareHighlightMode: onChangeCompareHighlightMode ?? (() => undefined),
     onCompareLeftToggle: () => undefined,
     onCompareRightToggle: () => undefined,
     onItemToggle: () => undefined,
@@ -84,8 +84,8 @@ describe("BrowseResultsSection", () => {
     resultsTierGridSpy.mockClear();
   });
 
-  it("keeps compare columns neutral when highlight toggle is off", () => {
-    render(<BrowseResultsSection {...buildProps({ highlightDifferences: false })} />);
+  it("keeps compare columns neutral when highlight mode is off", () => {
+    render(<BrowseResultsSection {...buildProps({ compareHighlightMode: "off" })} />);
 
     expect(compareColumnSpy).toHaveBeenCalledTimes(2);
     const leftProps = compareColumnSpy.mock.calls[0]?.[0] as {
@@ -99,8 +99,8 @@ describe("BrowseResultsSection", () => {
     expect(rightProps.compareDifferenceStateByItemId).toEqual({});
   });
 
-  it("applies compare difference maps to both columns when highlight toggle is on", () => {
-    render(<BrowseResultsSection {...buildProps({ highlightDifferences: true })} />);
+  it("applies compare difference maps when mode is differences", () => {
+    render(<BrowseResultsSection {...buildProps({ compareHighlightMode: "differences" })} />);
 
     expect(compareColumnSpy).toHaveBeenCalledTimes(2);
     const leftProps = compareColumnSpy.mock.calls[0]?.[0] as {
@@ -120,33 +120,67 @@ describe("BrowseResultsSection", () => {
     });
   });
 
-  it("toggles highlight state from compare header control", () => {
-    const onToggle = vi.fn();
+  it("flips compare states when mode is similarities", () => {
+    render(<BrowseResultsSection {...buildProps({ compareHighlightMode: "similarities" })} />);
+
+    expect(compareColumnSpy).toHaveBeenCalledTimes(2);
+    const leftProps = compareColumnSpy.mock.calls[0]?.[0] as {
+      compareDifferenceStateByItemId: Record<string, string>;
+    };
+    const rightProps = compareColumnSpy.mock.calls[1]?.[0] as {
+      compareDifferenceStateByItemId: Record<string, string>;
+    };
+
+    // Flipped: "same" items now marked "changed" (highlighted), "changed" items marked "same" (dimmed)
+    expect(leftProps.compareDifferenceStateByItemId).toEqual({
+      a: "changed",
+      b: "same",
+    });
+    expect(rightProps.compareDifferenceStateByItemId).toEqual({
+      a: "changed",
+      c: "same",
+    });
+  });
+
+  it("calls onChangeCompareHighlightMode when clicking a segment", () => {
+    const onChange = vi.fn();
 
     render(
       <BrowseResultsSection
         {...buildProps({
-          highlightDifferences: false,
-          onToggleHighlightDifferences: onToggle,
+          compareHighlightMode: "off",
+          onChangeCompareHighlightMode: onChange,
         })}
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: /Highlight differences Off/i }));
-    expect(onToggle).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByRole("button", { name: /Differences/i }));
+    expect(onChange).toHaveBeenCalledWith("differences");
+  });
+
+  it("exposes pressed state and grouped label for compare highlight controls", () => {
+    render(<BrowseResultsSection {...buildProps({ compareHighlightMode: "similarities" })} />);
+
+    const group = screen.getByRole("group", { name: /Compare highlight mode/i });
+    const differencesButton = screen.getByRole("button", { name: "Differences" });
+    const similaritiesButton = screen.getByRole("button", { name: "Similarities" });
+
+    expect(group).toBeTruthy();
+    expect(differencesButton.getAttribute("aria-pressed")).toBe("false");
+    expect(similaritiesButton.getAttribute("aria-pressed")).toBe("true");
   });
 
   it("renders single-grid mode without compare controls when compare is not active", () => {
     render(
       <BrowseResultsSection
         {...buildProps({
-          highlightDifferences: true,
+          compareHighlightMode: "differences",
           hasCompareSelection: false,
         })}
       />,
     );
 
-    expect(screen.queryByRole("button", { name: /Highlight differences/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: /Differences/i })).toBeNull();
     expect(resultsTierGridSpy).toHaveBeenCalledTimes(1);
     expect(compareColumnSpy).not.toHaveBeenCalled();
   });

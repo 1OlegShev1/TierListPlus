@@ -107,7 +107,9 @@ export function ResultsPageClient({
   const { save: saveParticipant, clear: clearParticipant } = useParticipant(sessionId);
   const [session, setSession] = useState(initialSession);
   const [sourceModalItem, setSourceModalItem] = useState<ConsensusItem | null>(null);
-  const [highlightDifferences, setHighlightDifferences] = useState(false);
+  const [compareHighlightMode, setCompareHighlightMode] = useState<
+    "off" | "differences" | "similarities"
+  >("off");
   const [compareLeftExpandedItemId, setCompareLeftExpandedItemId] = useState<string | null>(null);
   const [compareRightExpandedItemId, setCompareRightExpandedItemId] = useState<string | null>(null);
   const resultsRef = useRef<HTMLDivElement | null>(null);
@@ -150,7 +152,7 @@ export function ResultsPageClient({
     compareSelectionKeyRef.current = nextKey;
     setCompareLeftExpandedItemId(null);
     setCompareRightExpandedItemId(null);
-    setHighlightDifferences(false);
+    setCompareHighlightMode("off");
   }, [participantId, compareParticipantId, compareEveryone]);
 
   const {
@@ -336,8 +338,8 @@ export function ResultsPageClient({
             compareLeftSelectedItem={compareLeftSelectedItem}
             compareRightSelectedItem={compareRightSelectedItem}
             selectedItem={selectedItem}
-            highlightDifferences={highlightDifferences}
-            onToggleHighlightDifferences={() => setHighlightDifferences((current) => !current)}
+            compareHighlightMode={compareHighlightMode}
+            onChangeCompareHighlightMode={setCompareHighlightMode}
             onCompareLeftToggle={handleCompareLeftToggle}
             onCompareRightToggle={handleCompareRightToggle}
             onItemToggle={handleItemToggle}

@@ -1,9 +1,21 @@
 "use client";
 
-import type { RefObject } from "react";
+import { type RefObject, useId } from "react";
 import type { ConsensusItem, ConsensusTier } from "@/lib/consensus";
 import { CompareColumn, ResultsTierGrid } from "./ResultsTierGrid";
 import { buildCompareDifferenceStates } from "./resultsCompareDiff";
+
+export type CompareHighlightMode = "off" | "differences" | "similarities";
+
+function flipDiffStates(
+  states: Record<string, "none" | "same" | "changed">,
+): Record<string, "none" | "same" | "changed"> {
+  const flipped: Record<string, "none" | "same" | "changed"> = {};
+  for (const [id, state] of Object.entries(states)) {
+    flipped[id] = state === "same" ? "changed" : state === "changed" ? "same" : state;
+  }
+  return flipped;
+}
 
 export function BrowseResultsSection({
   resultsRef,
@@ -18,8 +30,8 @@ export function BrowseResultsSection({
   compareLeftSelectedItem,
   compareRightSelectedItem,
   selectedItem,
-  highlightDifferences,
-  onToggleHighlightDifferences,
+  compareHighlightMode,
+  onChangeCompareHighlightMode,
   onCompareLeftToggle,
   onCompareRightToggle,
   onItemToggle,
@@ -37,37 +49,65 @@ export function BrowseResultsSection({
   compareLeftSelectedItem: ConsensusItem | null;
   compareRightSelectedItem: ConsensusItem | null;
   selectedItem: ConsensusItem | null;
-  highlightDifferences: boolean;
-  onToggleHighlightDifferences: () => void;
+  compareHighlightMode: CompareHighlightMode;
+  onChangeCompareHighlightMode: (mode: CompareHighlightMode) => void;
   onCompareLeftToggle: (item: ConsensusItem) => void;
   onCompareRightToggle: (item: ConsensusItem) => void;
   onItemToggle: (item: ConsensusItem) => void;
   onOpenSource: (item: ConsensusItem) => void;
 }) {
-  const diffStates =
-    highlightDifferences && hasCompareSelection && compareRightTiers
+  const compareHighlightModeHintId = useId();
+  const isHighlightActive = compareHighlightMode !== "off";
+  const rawDiffStates =
+    isHighlightActive && hasCompareSelection && compareRightTiers
       ? buildCompareDifferenceStates({
           leftTiers: initialParticipantTiers,
           rightTiers: compareRightTiers,
         })
       : null;
+  const diffStates =
+    rawDiffStates && compareHighlightMode === "similarities"
+      ? { left: flipDiffStates(rawDiffStates.left), right: flipDiffStates(rawDiffStates.right) }
+      : rawDiffStates;
 
   return (
     <div id="results" ref={resultsRef} className="space-y-6">
       {hasCompareSelection && compareRightTiers ? (
         <div className="space-y-4">
           <div className="flex justify-end">
-            <button
-              type="button"
-              onClick={onToggleHighlightDifferences}
-              className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
-                highlightDifferences
-                  ? "border-[var(--accent-primary)]/80 bg-[var(--accent-primary)]/15 text-[var(--accent-primary-hover)]"
-                  : "border-[var(--border-default)] text-[var(--fg-secondary)] hover:border-[var(--border-strong)] hover:text-[var(--fg-primary)]"
-              }`}
+            <fieldset
+              aria-describedby={compareHighlightModeHintId}
+              className="inline-flex overflow-hidden rounded-full border border-[var(--border-default)]"
             >
-              Highlight differences {highlightDifferences ? "On" : "Off"}
-            </button>
+              <legend className="sr-only">Compare highlight mode</legend>
+              {(
+                [
+                  { value: "differences", label: "Differences" },
+                  { value: "similarities", label: "Similarities" },
+                ] as const
+              ).map((option) => {
+                const active = compareHighlightMode === option.value;
+                return (
+                  <button
+                    key={option.value}
+                    type="button"
+                    aria-pressed={active}
+                    onClick={() => onChangeCompareHighlightMode(active ? "off" : option.value)}
+                    className={`px-3 py-1.5 text-xs font-medium transition-colors ${
+                      active
+                        ? "bg-[var(--accent-primary)]/15 text-[var(--accent-primary-hover)]"
+                        : "text-[var(--fg-secondary)] hover:bg-[var(--bg-soft-contrast)] hover:text-[var(--fg-primary)]"
+                    }`}
+                  >
+                    {option.label}
+                  </button>
+                );
+              })}
+            </fieldset>
+            <span id={compareHighlightModeHintId} className="sr-only">
+              Select Differences or Similarities. Press the active option again to turn highlighting
+              off.
+            </span>
           </div>
           <div className="grid gap-6 xl:grid-cols-2">
             <CompareColumn
@@ -77,7 +117,7 @@ export function BrowseResultsSection({
               onItemToggle={onCompareLeftToggle}
               onOpenSource={onOpenSource}
               compact
-              compareDifferenceStateByItemId={highlightDifferences ? (diffStates?.left ?? {}) : {}}
+              compareDifferenceStateByItemId={isHighlightActive ? (diffStates?.left ?? {}) : {}}
             />
             <CompareColumn
               title={
@@ -90,7 +130,7 @@ export function BrowseResultsSection({
               onItemToggle={onCompareRightToggle}
               onOpenSource={onOpenSource}
               compact
-              compareDifferenceStateByItemId={highlightDifferences ? (diffStates?.right ?? {}) : {}}
+              compareDifferenceStateByItemId={isHighlightActive ? (diffStates?.right ?? {}) : {}}
             />
           </div>
         </div>
