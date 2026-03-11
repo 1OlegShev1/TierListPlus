@@ -105,10 +105,15 @@ export const submitVotesSchema = z.object({
 });
 
 export const updateSessionSchema = z.object({
+  name: z.string().trim().min(1).max(100).optional(),
   status: z.enum(["OPEN", "CLOSED", "ARCHIVED"]).optional(),
   isPrivate: z.boolean().optional(),
   isLocked: z.boolean().optional(),
   tierConfig: tierConfigSchema.optional(),
+});
+
+export const updateSessionParticipantSchema = z.object({
+  nickname: z.string().trim().min(1).max(30),
 });
 
 export const createSpaceSchema = z.object({
