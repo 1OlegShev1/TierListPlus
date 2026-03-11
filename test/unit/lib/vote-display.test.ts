@@ -66,11 +66,9 @@ describe("buildVoteDisplay", () => {
 
     expect(openSpaceDisplay.chips.some((chip) => chip.label === "Open space")).toBe(true);
     expect(privateSpaceDisplay.chips.some((chip) => chip.label === "Private space")).toBe(true);
-    expect(openSpaceDisplay.chips.find((chip) => chip.label === "Open space")?.tone).toBe(
-      "public",
-    );
+    expect(openSpaceDisplay.chips.find((chip) => chip.label === "Open space")?.tone).toBe("space");
     expect(privateSpaceDisplay.chips.find((chip) => chip.label === "Private space")?.tone).toBe(
-      "private",
+      "space",
     );
   });
 

@@ -45,9 +45,11 @@ export function VotePreviewSummary({
                   chip.tone === "success" &&
                     "border-[var(--state-success-fg)]/35 text-[var(--state-success-fg)]",
                   chip.tone === "public" &&
-                    "border-[var(--state-muted-fg)]/35 text-[var(--state-muted-fg)]",
+                    "border-[var(--source-control-linked-border)] text-[var(--source-control-linked-fg)]",
                   chip.tone === "private" &&
                     "border-[var(--state-danger-fg)]/35 text-[var(--state-danger-fg)]",
+                  chip.tone === "space" &&
+                    "border-[var(--state-muted-fg)]/35 text-[var(--state-muted-fg)]",
                   chip.tone === "warning" &&
                     "border-[var(--state-danger-fg)]/35 text-[var(--state-danger-fg)]",
                   chip.tone === "neutral" &&

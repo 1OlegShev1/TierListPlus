@@ -5,19 +5,13 @@ import { getCookieAuth } from "@/lib/auth";
 import { getSuggestedNicknameForUser } from "@/lib/nickname-suggestion";
 import { prisma } from "@/lib/prisma";
 import { canReadSpace, getSpaceAccessForUser } from "@/lib/space";
-import { canAccessTemplate, getTemplateVisibilityWhere } from "@/lib/template-access";
-import type { Item, ListSummary } from "@/types";
+import { getTemplateVisibilityWhere } from "@/lib/template-access";
+import type { ListSummary } from "@/types";
 
 export const dynamic = "force-dynamic";
 
 const FEATURED_COUNT = 8;
 const PREVIEW_ITEM_COUNT = 4;
-
-interface SelectedListDetails {
-  id: string;
-  name: string;
-  items: Item[];
-}
 
 type SearchParams = Record<string, string | string[] | undefined>;
 
@@ -27,8 +21,6 @@ export default async function NewVotePage({
   searchParams?: Promise<SearchParams> | SearchParams;
 }) {
   const resolvedSearchParams = (await searchParams) ?? {};
-  const preselectedListId =
-    typeof resolvedSearchParams.templateId === "string" ? resolvedSearchParams.templateId : null;
   const spaceId =
     typeof resolvedSearchParams.spaceId === "string" ? resolvedSearchParams.spaceId : null;
 
@@ -37,7 +29,6 @@ export default async function NewVotePage({
   const userId = auth?.userId ?? null;
 
   let accessSpaceId: string | null = null;
-  let accessSpaceName: string | null = null;
   if (spaceId) {
     const spaceAccess = await getSpaceAccessForUser(spaceId, userId);
     if (!spaceAccess) notFound();
@@ -46,7 +37,6 @@ export default async function NewVotePage({
       redirect(`/spaces/${spaceAccess.id}`);
     }
     accessSpaceId = spaceAccess.id;
-    accessSpaceName = spaceAccess.name;
   }
   const suggestedNickname = await getSuggestedNicknameForUser(userId);
 
@@ -97,44 +87,11 @@ export default async function NewVotePage({
     items: previewsByTemplateId.get(template.id) ?? [],
   }));
 
-  let initialSelectedListDetails: SelectedListDetails | null = null;
-  let initialSelectedListUnavailable = false;
-
-  if (preselectedListId) {
-    const selected = await prisma.template.findUnique({
-      where: { id: preselectedListId },
-      include: {
-        items: {
-          orderBy: { sortOrder: "asc" },
-          select: { id: true, label: true, imageUrl: true },
-        },
-      },
-    });
-
-    if (
-      selected &&
-      !selected.isHidden &&
-      (selected.spaceId ? selected.spaceId === accessSpaceId : canAccessTemplate(selected, userId))
-    ) {
-      initialSelectedListDetails = {
-        id: selected.id,
-        name: selected.name,
-        items: selected.items,
-      };
-    } else {
-      initialSelectedListUnavailable = true;
-    }
-  }
-
   return (
     <NewVoteForm
       spaceId={accessSpaceId}
-      spaceName={accessSpaceName}
       initialNickname={suggestedNickname}
       initialLists={initialLists}
-      initialSelectedListId={preselectedListId}
-      initialSelectedListDetails={initialSelectedListDetails}
-      initialSelectedListUnavailable={initialSelectedListUnavailable}
     />
   );
 }

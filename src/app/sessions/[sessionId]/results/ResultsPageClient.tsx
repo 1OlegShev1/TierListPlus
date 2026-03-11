@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { ItemSourceModal } from "@/components/items/ItemSourceModal";
 import { CloseVoteButton } from "@/components/sessions/CloseVoteButton";
+import { DeleteVoteButton } from "@/components/sessions/DeleteVoteButton";
 import { ReopenVoteButton } from "@/components/sessions/ReopenVoteButton";
 import { buttonSizes, buttonVariants } from "@/components/ui/Button";
 import { ErrorMessage } from "@/components/ui/ErrorMessage";
@@ -245,16 +246,24 @@ export function ResultsPageClient({
               </>
             )}
             {session.status !== "OPEN" && (
-              <ReopenVoteButton
-                sessionId={sessionId}
-                creatorId={session.creatorId}
-                status={session.status}
-                canManageOverride={session.canManageSession}
-                label="Reopen"
-                onReopened={() =>
-                  setSession((current) => (current ? { ...current, status: "OPEN" } : current))
-                }
-              />
+              <>
+                <ReopenVoteButton
+                  sessionId={sessionId}
+                  creatorId={session.creatorId}
+                  status={session.status}
+                  canManageOverride={session.canManageSession}
+                  label="Reopen"
+                  onReopened={() =>
+                    setSession((current) => (current ? { ...current, status: "OPEN" } : current))
+                  }
+                />
+                <DeleteVoteButton
+                  sessionId={sessionId}
+                  creatorId={session.creatorId}
+                  label="Delete"
+                  className={`${buttonSizes.equalAction} min-w-0`}
+                />
+              </>
             )}
           </div>
         }

@@ -2,7 +2,7 @@
 
 import { Pencil } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { CloseVoteButton } from "@/components/sessions/CloseVoteButton";
 import { VoteSettingsButton } from "@/components/sessions/VoteSettingsButton";
@@ -68,6 +68,7 @@ export function VotePageClient({
   currentUserId: string | null;
 }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { save: saveParticipant, clear: clearParticipant } = useParticipant(sessionId);
   const [sessionName, setSessionName] = useState(session.name);
   const [participantNickname, setParticipantNickname] = useState(
@@ -94,6 +95,7 @@ export function VotePageClient({
   >([]);
   const noticeIdRef = useRef(0);
   const noticeTimeoutsRef = useRef<Map<number, ReturnType<typeof setTimeout>>>(new Map());
+  const autoEditNameHandledRef = useRef(false);
   const canEditTierConfig = session.canManageSession;
   const isOwner = session.canManageSession;
 
@@ -172,6 +174,24 @@ export function VotePageClient({
   const JoinStatusIcon = isLocked ? LockClosedIcon : LockOpenIcon;
   const backHref = session.spaceId ? `/spaces/${session.spaceId}#votes` : "/sessions";
   const backLabel = session.spaceId ? "Back to Space Votes" : "Back to Votes";
+  const visibilityBadge = session.spaceId
+    ? {
+        label: "Space",
+        className: "border-[var(--state-muted-fg)]/35 text-[var(--state-muted-fg)]",
+      }
+    : isPrivate
+      ? {
+          label: "Private",
+          className: "border-[var(--state-danger-fg)]/35 text-[var(--state-danger-fg)]",
+        }
+      : {
+          label: "Public",
+          className:
+            "border-[var(--source-control-linked-border)] text-[var(--source-control-linked-fg)]",
+        };
+  const visibilityTooltip = session.spaceId
+    ? "Space vote visibility is controlled by Space settings."
+    : "Vote visibility. Change this in Vote settings.";
 
   const startEditingName = () => {
     nameCommittingRef.current = false;
@@ -216,6 +236,22 @@ export function VotePageClient({
     setIsEditingName(false);
   };
 
+  useEffect(() => {
+    if (autoEditNameHandledRef.current) return;
+    if (!session.canManageSession) return;
+    if (searchParams.get("editName") !== "1") return;
+    autoEditNameHandledRef.current = true;
+    nameCommittingRef.current = false;
+    setNameDraft(session.name);
+    setNameError(null);
+    setIsEditingName(true);
+    requestAnimationFrame(() => {
+      nameInputRef.current?.focus();
+      nameInputRef.current?.select();
+    });
+    router.replace(`/sessions/${sessionId}/vote`, { scroll: false });
+  }, [router, searchParams, session.canManageSession, session.name, sessionId]);
+
   return (
     <div className="-mt-2 relative flex flex-col pb-3 sm:-mt-4 sm:pb-4">
       <div
@@ -243,12 +279,24 @@ export function VotePageClient({
           ))}
         </div>
       </div>
-      <Link
-        href={backHref}
-        className={`${buttonVariants.ghost} mb-2 inline-flex items-center sm:mb-3`}
-      >
-        {`← ${backLabel}`}
-      </Link>
+      <div className="mb-2 flex items-center justify-between sm:mb-3">
+        <Link href={backHref} className={`${buttonVariants.ghost} inline-flex items-center`}>
+          {`← ${backLabel}`}
+        </Link>
+        <span className="group relative inline-flex">
+          <span
+            className={`inline-flex cursor-default rounded-full border px-2 py-0.5 text-[0.68rem] font-medium uppercase tracking-[0.08em] transition-colors hover:border-[var(--border-strong)] ${visibilityBadge.className}`}
+          >
+            {visibilityBadge.label}
+          </span>
+          <span
+            role="tooltip"
+            className="pointer-events-none absolute right-0 top-[calc(100%+0.4rem)] z-20 min-w-[16rem] max-w-[22rem] rounded-md border border-[var(--border-default)] bg-[var(--bg-elevated)] px-2.5 py-2 text-[0.72rem] normal-case tracking-normal text-[var(--fg-secondary)] opacity-0 shadow-lg transition-opacity duration-100 group-hover:opacity-100"
+          >
+            {`${visibilityTooltip} Current: ${visibilityBadge.label}.`}
+          </span>
+        </span>
+      </div>
 
       <div className="mb-1.5 flex flex-shrink-0 flex-col gap-2 md:flex-row md:items-start md:justify-between sm:mb-2 sm:gap-3">
         <div className="min-w-0">

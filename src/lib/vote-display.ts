@@ -4,7 +4,7 @@ export type VoteViewer = "owner" | "participant" | "browser";
 
 export interface VoteDisplayChip {
   label: string;
-  tone: "neutral" | "accent" | "success" | "warning" | "public" | "private";
+  tone: "neutral" | "accent" | "success" | "warning" | "public" | "private" | "space";
 }
 
 export function buildVoteDisplay({
@@ -50,11 +50,15 @@ export function buildVoteDisplay({
         ? "Private"
         : "Public");
   const visibilityTone =
-    visibilityLabel === "Public" || visibilityLabel === "Open space"
-      ? "public"
-      : visibilityLabel === "Private" || visibilityLabel === "Private space"
-        ? "private"
-        : "neutral";
+    visibilityLabel === "Space" ||
+    visibilityLabel === "Open space" ||
+    visibilityLabel === "Private space"
+      ? "space"
+      : visibilityLabel === "Public"
+        ? "public"
+        : visibilityLabel === "Private"
+          ? "private"
+          : "neutral";
   chips.push({ label: visibilityLabel, tone: visibilityTone });
 
   if (status === "OPEN") {
