@@ -431,7 +431,9 @@ export function ListEditor({
               }
             }}
             multiple
-            className="aspect-square w-full"
+            className="w-full"
+            matchUploadedItemCardHeight
+            labelPlaceholder="Name this pick"
             uploadDisabled={uploadsDisabled}
             uploadTriggerRef={uploadTriggerRef}
             uploadIdleLabel={

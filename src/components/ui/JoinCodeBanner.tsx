@@ -12,7 +12,9 @@ export function JoinCodeBanner({ joinCode, hideCodeByDefault = false }: JoinCode
   const [copiedTarget, setCopiedTarget] = useState<"code" | "link" | null>(null);
   const [copyError, setCopyError] = useState<string | null>(null);
   const [isCodeVisible, setIsCodeVisible] = useState(!hideCodeByDefault);
-  const maskedJoinCode = "**** ****";
+  const normalizedJoinCode = joinCode.replace(/\s+/g, "").toUpperCase();
+  const displayJoinCode = normalizedJoinCode.replace(/(.{4})(?=.)/g, "$1 ");
+  const maskedJoinCode = displayJoinCode.replace(/[^\s]/g, "*");
 
   const copyText = async (value: string, target: "code" | "link") => {
     try {
@@ -27,11 +29,11 @@ export function JoinCodeBanner({ joinCode, hideCodeByDefault = false }: JoinCode
   };
 
   const copyCode = () => {
-    void copyText(joinCode, "code");
+    void copyText(normalizedJoinCode, "code");
   };
 
   const copyLink = () => {
-    const inviteUrl = `${window.location.origin}/sessions/join?code=${encodeURIComponent(joinCode)}`;
+    const inviteUrl = `${window.location.origin}/sessions/join?code=${encodeURIComponent(normalizedJoinCode)}`;
     void copyText(inviteUrl, "link");
   };
 
@@ -51,9 +53,9 @@ export function JoinCodeBanner({ joinCode, hideCodeByDefault = false }: JoinCode
         type="button"
         onClick={copyCode}
         title={isCodeVisible ? "Click to copy invite code" : "Invite code hidden. Click to copy."}
-        className="inline-flex h-8 cursor-pointer items-center justify-center rounded-md border border-[var(--border-default)] bg-[var(--bg-elevated)] px-2 font-mono text-sm font-semibold tracking-[0.14em] text-[var(--accent-primary-hover)] transition-colors hover:border-[var(--accent-primary)]/60 hover:bg-[var(--bg-soft-contrast)] hover:text-[var(--accent-primary)]"
+        className="inline-flex h-8 min-w-[10ch] cursor-pointer items-center justify-center rounded-md border border-[var(--border-default)] bg-[var(--bg-elevated)] px-2 font-mono text-sm font-semibold tracking-[0.14em] tabular-nums text-[var(--accent-primary-hover)] transition-colors hover:border-[var(--accent-primary)]/60 hover:bg-[var(--bg-soft-contrast)] hover:text-[var(--accent-primary)]"
       >
-        {isCodeVisible ? joinCode : maskedJoinCode}
+        {isCodeVisible ? displayJoinCode : maskedJoinCode}
       </button>
       <button
         type="button"

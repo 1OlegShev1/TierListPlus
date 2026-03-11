@@ -18,11 +18,11 @@ describe("JoinCodeBanner", () => {
     render(<JoinCodeBanner joinCode="ABCD1234" hideCodeByDefault />);
 
     expect(screen.getByText("**** ****")).toBeTruthy();
-    expect(screen.queryByText("ABCD1234")).toBeNull();
+    expect(screen.queryByText("ABCD 1234")).toBeNull();
 
     fireEvent.click(screen.getByRole("button", { name: "Reveal invite code" }));
 
-    expect(screen.getByText("ABCD1234")).toBeTruthy();
+    expect(screen.getByText("ABCD 1234")).toBeTruthy();
   });
 
   it("copies invite link while code remains hidden", async () => {
@@ -37,6 +37,22 @@ describe("JoinCodeBanner", () => {
     });
 
     expect(screen.getByText("**** ****")).toBeTruthy();
-    expect(screen.queryByText("ABCD1234")).toBeNull();
+    expect(screen.queryByText("ABCD 1234")).toBeNull();
+  });
+
+  it("normalizes copied code and link values", async () => {
+    render(<JoinCodeBanner joinCode="ab cd1234" hideCodeByDefault />);
+
+    fireEvent.click(screen.getByTitle("Invite code hidden. Click to copy."));
+    await waitFor(() => {
+      expect(writeText).toHaveBeenCalledWith("ABCD1234");
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Copy invite link" }));
+    await waitFor(() => {
+      expect(writeText).toHaveBeenCalledWith(
+        `${window.location.origin}/sessions/join?code=ABCD1234`,
+      );
+    });
   });
 });
