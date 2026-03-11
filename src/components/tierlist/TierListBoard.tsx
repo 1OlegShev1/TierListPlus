@@ -1,12 +1,11 @@
 "use client";
 
 import { DndContext, DragOverlay } from "@dnd-kit/core";
-import { Link as LinkIcon } from "lucide-react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { ItemSourceModal } from "@/components/items/ItemSourceModal";
-import { ImageUploader } from "@/components/shared/ImageUploader";
+import { CombinedAddItemTile } from "@/components/shared/CombinedAddItemTile";
 import { useDelayedBusy } from "@/hooks/useDelayedBusy";
 import { useTierListStore } from "@/hooks/useTierList";
 import { useUser } from "@/hooks/useUser";
@@ -320,47 +319,28 @@ export function TierListBoard({
           : "Waiting for the vote host to add items."
       : "All items ranked!";
   const uploadCard = canManageItems ? (
-    <>
-      <div className="w-[112px] flex-shrink-0 rounded-lg border border-[var(--border-default)] bg-[var(--bg-elevated)] p-1.5 sm:w-[120px] md:w-[128px]">
-        <button
-          type="button"
-          onClick={() => {
-            setAddByUrlSourceError(null);
-            setShowAddByUrlSourceModal(true);
-          }}
-          disabled={uploadsDisabled || hasPendingItemMutations}
-          className="flex aspect-square w-full flex-col items-center justify-center rounded border border-dashed border-[var(--border-default)] bg-[var(--bg-surface)] text-[var(--fg-secondary)] transition-colors hover:border-[var(--accent-primary)] hover:text-[var(--accent-primary-hover)] disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          <LinkIcon className="h-5 w-5" />
-          <span className="mt-2 text-xs font-medium">Add via URL</span>
-        </button>
-        <div
-          aria-hidden="true"
-          className="mt-1 flex h-[30px] items-center justify-center text-[11px] text-[var(--fg-subtle)]"
-        >
-          Link item
-        </div>
-      </div>
-      <div className="w-[112px] flex-shrink-0 rounded-lg border border-[var(--border-default)] bg-[var(--bg-elevated)] p-1.5 sm:w-[120px] md:w-[128px]">
-        <ImageUploader
-          onUploaded={handleUploadedImage}
-          onUploadStateChange={handleUploadStateChange}
-          multiple
-          idleLabel={
-            userLoading
-              ? "Getting ready..."
-              : uploadsDisabled
-                ? "Device needed"
-                : showCreatingItemState
-                  ? "Adding..."
-                  : "Upload"
-          }
-          disabled={uploadsDisabled}
-          className="aspect-square w-full"
-        />
-        <div aria-hidden="true" className="mt-1 h-[30px]" />
-      </div>
-    </>
+    <CombinedAddItemTile
+      onAddByUrlClick={() => {
+        setAddByUrlSourceError(null);
+        setShowAddByUrlSourceModal(true);
+      }}
+      addByUrlDisabled={uploadsDisabled || hasPendingItemMutations}
+      addByUrlDescription="Link item"
+      onUploaded={handleUploadedImage}
+      onUploadStateChange={handleUploadStateChange}
+      multiple
+      uploadIdleLabel={
+        userLoading
+          ? "Getting ready..."
+          : uploadsDisabled
+            ? "Device needed"
+            : showCreatingItemState
+              ? "Adding..."
+              : "Upload"
+      }
+      uploadDisabled={uploadsDisabled}
+      className="w-[112px] flex-shrink-0 sm:w-[120px] md:w-[128px]"
+    />
   ) : null;
 
   useEffect(() => {

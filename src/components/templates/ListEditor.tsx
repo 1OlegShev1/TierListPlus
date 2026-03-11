@@ -1,10 +1,11 @@
 "use client";
 
-import { Link2, Link as LinkIcon } from "lucide-react";
+import { Link2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { ItemSourceModal } from "@/components/items/ItemSourceModal";
-import { ImageUploader, type UploadedImage } from "@/components/shared/ImageUploader";
+import { CombinedAddItemTile } from "@/components/shared/CombinedAddItemTile";
+import type { UploadedImage } from "@/components/shared/ImageUploader";
 import { Button } from "@/components/ui/Button";
 import { ErrorMessage } from "@/components/ui/ErrorMessage";
 import { Input } from "@/components/ui/Input";
@@ -416,21 +417,13 @@ export function ListEditor({
               />
             </div>
           ))}
-          <button
-            ref={addByUrlTriggerRef}
-            type="button"
-            onClick={() => {
+          <CombinedAddItemTile
+            onAddByUrlClick={() => {
               setAddByUrlSourceError(null);
               setShowAddByUrlSourceModal(true);
             }}
-            disabled={uploadsDisabled}
-            className="group flex aspect-square w-full flex-col items-center justify-center rounded-lg border border-dashed border-[var(--border-default)] bg-[var(--bg-surface)] p-3 text-center transition-colors hover:border-[var(--accent-primary)] hover:bg-[var(--bg-surface-hover)] disabled:cursor-not-allowed disabled:opacity-60"
-            aria-label="Add item via URL"
-          >
-            <LinkIcon className="h-6 w-6 text-[var(--fg-secondary)] transition-colors group-hover:text-[var(--accent-primary-hover)]" />
-            <span className="mt-2 text-xs font-medium text-[var(--fg-secondary)]">Add via URL</span>
-          </button>
-          <ImageUploader
+            addByUrlDisabled={uploadsDisabled}
+            addByUrlTriggerRef={addByUrlTriggerRef}
             onUploaded={addItem}
             onUploadStateChange={(uploading) => {
               if (!uploading) {
@@ -439,9 +432,9 @@ export function ListEditor({
             }}
             multiple
             className="aspect-square w-full"
-            disabled={uploadsDisabled}
-            triggerRef={uploadTriggerRef}
-            idleLabel={
+            uploadDisabled={uploadsDisabled}
+            uploadTriggerRef={uploadTriggerRef}
+            uploadIdleLabel={
               userLoading ? "Getting ready..." : uploadsDisabled ? "Device needed" : undefined
             }
           />
