@@ -5,6 +5,7 @@ import { DeleteListButton } from "@/components/templates/DeleteListButton";
 import { DuplicateListButton } from "@/components/templates/DuplicateListButton";
 import { ListDetailItemsGrid } from "@/components/templates/ListDetailItemsGrid";
 import { StartVoteFromTemplateButton } from "@/components/templates/StartVoteFromTemplateButton";
+import { TemplateBackLink } from "@/components/templates/TemplateBackLink";
 import { buttonVariants } from "@/components/ui/Button";
 import { canMutateSpaceResource } from "@/lib/api-helpers";
 import { getCookieAuth } from "@/lib/auth";
@@ -12,12 +13,17 @@ import { getSuggestedNicknameForUser } from "@/lib/nickname-suggestion";
 import { prisma } from "@/lib/prisma";
 import { canAccessTemplate, isTemplateOwner } from "@/lib/template-access";
 
+type SearchParams = Record<string, string | string[] | undefined>;
+
 export default async function ListDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ templateId: string }>;
+  searchParams?: Promise<SearchParams> | SearchParams;
 }) {
   const { templateId } = await params;
+  const resolvedSearchParams = (await searchParams) ?? {};
   const cookieStore = await cookies();
   const auth = await getCookieAuth(cookieStore);
   const userId = auth?.userId ?? null;
@@ -60,14 +66,31 @@ export default async function ListDetailPage({
     (list.space.creatorId === userId ||
       (Array.isArray(list.space.members) && list.space.members[0]?.role === "OWNER"));
   const canManage = canMutateSpaceResource(list.creatorId, userId, isSpaceOwner);
+  const from = typeof resolvedSearchParams.from === "string" ? resolvedSearchParams.from : null;
+  const returnSpaceId =
+    typeof resolvedSearchParams.returnSpaceId === "string"
+      ? resolvedSearchParams.returnSpaceId
+      : null;
+  const fromSessionsNew = from === "sessions-new";
+  const fallbackBackHref = returnSpaceId
+    ? `/sessions/new?spaceId=${encodeURIComponent(returnSpaceId)}`
+    : "/sessions/new";
   const backHref = list.space ? `/spaces/${list.space.id}#lists` : "/templates";
   const backLabel = list.space ? "Back to Space" : "Back to Lists";
 
   return (
     <div className="space-y-4">
-      <Link href={backHref} className={`${buttonVariants.ghost} inline-flex items-center`}>
-        {`← ${backLabel}`}
-      </Link>
+      {fromSessionsNew ? (
+        <TemplateBackLink
+          fallbackHref={fallbackBackHref}
+          label="Back to Start Vote"
+          className={`${buttonVariants.ghost} inline-flex items-center`}
+        />
+      ) : (
+        <Link href={backHref} className={`${buttonVariants.ghost} inline-flex items-center`}>
+          {`← ${backLabel}`}
+        </Link>
+      )}
 
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>

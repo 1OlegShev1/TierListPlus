@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { ItemPreview } from "@/components/ui/ItemPreview";
 import type { ListDisplayChip } from "@/lib/list-display";
 import { cn } from "@/lib/utils";
@@ -15,6 +16,7 @@ export function ListPreviewCard({
   items,
   chips = [],
   note,
+  action,
   className,
 }: {
   title: string;
@@ -23,12 +25,13 @@ export function ListPreviewCard({
   items: PreviewItem[];
   chips?: ListDisplayChip[];
   note?: string;
+  action?: ReactNode;
   className?: string;
 }) {
   return (
     <div
       className={cn(
-        "card-hover-lift h-full rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-4",
+        "relative card-hover-lift h-full rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-4",
         className,
       )}
     >
@@ -82,6 +85,7 @@ export function ListPreviewCard({
           {note && <p className="mt-1 text-xs font-medium text-[var(--accent-primary)]">{note}</p>}
         </div>
       </div>
+      {action && <div className="absolute bottom-3 right-3">{action}</div>}
     </div>
   );
 }

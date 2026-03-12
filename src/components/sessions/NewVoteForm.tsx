@@ -6,6 +6,7 @@ import { useRef, useState } from "react";
 import { Button, buttonVariants } from "@/components/ui/Button";
 import { ErrorMessage } from "@/components/ui/ErrorMessage";
 import { Input } from "@/components/ui/Input";
+import { EyeIcon } from "@/components/ui/icons";
 import { ListPreviewCard } from "@/components/ui/ListPreviewCard";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import { saveParticipant } from "@/hooks/useParticipant";
@@ -82,6 +83,7 @@ export function NewVoteForm({
       onPick={(list) => {
         void createVote(list);
       }}
+      spaceId={spaceId}
       spaceMode={!!spaceId}
       backHref={backHref}
       backLabel={backLabel}
@@ -99,6 +101,7 @@ function ListPicker({
   query,
   onQueryChange,
   onPick,
+  spaceId,
   spaceMode,
   backHref,
   backLabel,
@@ -112,6 +115,7 @@ function ListPicker({
   query: string;
   onQueryChange: (q: string) => void;
   onPick: (list: ListSummary | null) => void;
+  spaceId: string | null;
   spaceMode: boolean;
   backHref: string;
   backLabel: string;
@@ -169,6 +173,7 @@ function ListPicker({
                 key={list.id}
                 list={list}
                 onSelect={() => onPick(list)}
+                spaceId={spaceId}
                 disabled={!canPick}
                 isStarting={creatingSelectionKey === list.id}
               />
@@ -211,6 +216,7 @@ function ListPicker({
                         title={group.label}
                         lists={group.items}
                         onPick={onPick}
+                        spaceId={spaceId}
                         canPick={canPick}
                         creatingSelectionKey={creatingSelectionKey}
                       />
@@ -226,6 +232,7 @@ function ListPicker({
                     title={group.label}
                     lists={group.items}
                     onPick={onPick}
+                    spaceId={spaceId}
                     canPick={canPick}
                     creatingSelectionKey={creatingSelectionKey}
                   />
@@ -243,12 +250,14 @@ function PickerSection({
   title,
   lists,
   onPick,
+  spaceId,
   canPick,
   creatingSelectionKey,
 }: {
   title: string;
   lists: ListSummary[];
   onPick: (list: ListSummary | null) => void;
+  spaceId: string | null;
   canPick: boolean;
   creatingSelectionKey: string | null;
 }) {
@@ -261,6 +270,7 @@ function PickerSection({
             key={list.id}
             list={list}
             onSelect={() => onPick(list)}
+            spaceId={spaceId}
             disabled={!canPick}
             isStarting={creatingSelectionKey === list.id}
           />
@@ -334,32 +344,69 @@ function BlankStartCard({
 function ListPickerCard({
   list,
   onSelect,
+  spaceId,
   disabled,
   isStarting,
 }: {
   list: ListSummary;
   onSelect: () => void;
+  spaceId: string | null;
   disabled: boolean;
   isStarting: boolean;
 }) {
+  const openHref = buildListDetailsHref(list.id, spaceId);
+
   return (
-    <button
-      type="button"
-      onClick={onSelect}
-      disabled={disabled}
+    <div
+      role="button"
+      tabIndex={disabled ? -1 : 0}
       aria-busy={isStarting || undefined}
-      className={`block h-full w-full text-left ${disabled ? "cursor-not-allowed opacity-75" : ""}`}
+      aria-disabled={disabled || undefined}
+      aria-label={`Start vote with ${list.name}`}
+      onClick={(e) => {
+        if (disabled || (e.target as HTMLElement).closest("a")) return;
+        onSelect();
+      }}
+      onKeyDown={(e) => {
+        if ((e.key === "Enter" || e.key === " ") && !disabled) {
+          if ((e.target as HTMLElement).closest("a")) return;
+          e.preventDefault();
+          onSelect();
+        }
+      }}
+      className={`h-full cursor-pointer rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-canvas)] ${disabled ? "cursor-not-allowed opacity-75" : ""}`}
     >
       <ListPreviewCard
         title={list.name}
         detailsLabel={isStarting ? "Starting vote..." : `${list._count.items} picks`}
-        secondaryLabel="Ready to use in this vote"
         items={list.items}
         chips={buildPickerChips(list)}
-        className={`h-full transition-colors ${disabled ? "" : "hover:border-[var(--border-strong)]"}`}
+        action={
+          !isStarting ? (
+            <Link
+              href={openHref}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-[var(--border-default)] px-3 py-1 text-xs font-medium text-[var(--fg-secondary)] transition-colors hover:border-[var(--border-strong)] hover:bg-[var(--action-secondary-bg-hover)] hover:text-[var(--fg-primary)]"
+            >
+              <EyeIcon className="h-3.5 w-3.5" />
+              View list
+            </Link>
+          ) : null
+        }
+        className={`h-full transition-colors ${
+          disabled ? "" : "hover:border-[var(--border-strong)]"
+        }`}
       />
-    </button>
+    </div>
   );
+}
+
+function buildListDetailsHref(listId: string, spaceId: string | null): string {
+  const params = new URLSearchParams({ from: "sessions-new" });
+  if (spaceId) {
+    params.set("returnSpaceId", spaceId);
+  }
+
+  return `/templates/${listId}?${params.toString()}`;
 }
 
 function buildPickerChips(list: ListSummary): ListDisplayChip[] {
