@@ -357,6 +357,7 @@ function ListPickerCard({
   const openHref = buildListDetailsHref(list.id, spaceId);
 
   return (
+    // biome-ignore lint/a11y/useSemanticElements: The card must remain a non-button container because it includes an internal "View list" link action.
     <div
       role="button"
       tabIndex={disabled ? -1 : 0}
