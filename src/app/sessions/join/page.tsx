@@ -4,6 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { Suspense } from "react";
 import { Loading } from "@/components/ui/Loading";
 import { getCookieAuth } from "@/lib/auth";
+import { getSuggestedNicknameForUser } from "@/lib/nickname-suggestion";
 import { prisma } from "@/lib/prisma";
 import { JoinVotePageClient } from "./JoinVotePageClient";
 
@@ -129,12 +130,12 @@ export default async function JoinVotePage({
   const joinCode = normalizeJoinCode(firstParamValue(resolvedSearchParams.code));
   const spaceInviteCode = normalizeJoinCode(firstParamValue(resolvedSearchParams.spaceInvite));
   let initialSession: JoinSessionContext | null = null;
+  const cookieStore = await cookies();
+  const auth = await getCookieAuth(cookieStore);
+  const requestUserId = auth?.userId ?? null;
+  const suggestedNickname = await getSuggestedNicknameForUser(requestUserId);
 
   if (joinCode) {
-    const cookieStore = await cookies();
-    const auth = await getCookieAuth(cookieStore);
-    const requestUserId = auth?.userId ?? null;
-
     const vote = await prisma.session.findUnique({
       where: { joinCode },
       select: {
@@ -195,7 +196,7 @@ export default async function JoinVotePage({
 
   return (
     <Suspense fallback={<Loading />}>
-      <JoinVotePageClient initialSession={initialSession} />
+      <JoinVotePageClient initialSession={initialSession} initialNickname={suggestedNickname} />
     </Suspense>
   );
 }

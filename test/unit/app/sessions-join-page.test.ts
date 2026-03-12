@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
   cookies: vi.fn(),
   headers: vi.fn(),
   getCookieAuth: vi.fn(),
+  getSuggestedNicknameForUser: vi.fn(),
   prisma: {
     session: {
       findUnique: vi.fn(),
@@ -32,6 +33,10 @@ vi.mock("@/lib/auth", () => ({
   getCookieAuth: mocks.getCookieAuth,
 }));
 
+vi.mock("@/lib/nickname-suggestion", () => ({
+  getSuggestedNicknameForUser: mocks.getSuggestedNicknameForUser,
+}));
+
 vi.mock("@/lib/prisma", () => ({
   prisma: mocks.prisma,
 }));
@@ -52,6 +57,7 @@ describe("sessions join page", () => {
       },
     });
     mocks.getCookieAuth.mockReset().mockResolvedValue(null);
+    mocks.getSuggestedNicknameForUser.mockReset().mockResolvedValue(null);
     mocks.prisma.session.findUnique.mockReset();
     mocks.prisma.spaceMember.findUnique.mockReset();
   });
@@ -82,6 +88,23 @@ describe("sessions join page", () => {
 
     expect(result).toBeTruthy();
     expect(mocks.redirect).not.toHaveBeenCalled();
+  });
+
+  it("loads nickname suggestion for signed-in viewers", async () => {
+    mocks.getCookieAuth.mockResolvedValue({ userId: "user_1" });
+    mocks.getSuggestedNicknameForUser.mockResolvedValue("Nick");
+    mocks.prisma.session.findUnique.mockResolvedValue({
+      id: "session_1",
+      status: "OPEN",
+      space: null,
+    });
+
+    const result = await JoinVotePage({
+      searchParams: Promise.resolve({ code: "join1" }),
+    });
+
+    expect(result).toBeTruthy();
+    expect(mocks.getSuggestedNicknameForUser).toHaveBeenCalledWith("user_1");
   });
 
   it("keeps closed private-space links on join page when invite is provided and viewer is not a member", async () => {

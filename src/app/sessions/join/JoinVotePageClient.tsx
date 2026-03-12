@@ -27,9 +27,13 @@ interface JoinSessionContext {
 
 interface JoinVotePageClientProps {
   initialSession?: JoinSessionContext | null;
+  initialNickname?: string | null;
 }
 
-export function JoinVotePageClient({ initialSession = null }: JoinVotePageClientProps) {
+export function JoinVotePageClient({
+  initialSession = null,
+  initialNickname = null,
+}: JoinVotePageClientProps) {
   const router = useRouter();
   const { userId, isLoading: userLoading, error: userError, retry: retryUser } = useUser();
   const searchParams = useSearchParams();
@@ -37,7 +41,7 @@ export function JoinVotePageClient({ initialSession = null }: JoinVotePageClient
   const inviteCodeFromUrl = (searchParams.get("spaceInvite") ?? "").trim().toUpperCase();
 
   const [joinCode, setJoinCode] = useState(codeFromUrl.toUpperCase());
-  const [nickname, setNickname] = useState("");
+  const [nickname, setNickname] = useState((initialNickname?.trim() ?? "").slice(0, 30));
   const [error, setError] = useState<JoinErrorState | null>(null);
   const [joining, setJoining] = useState(false);
   const [joiningSpace, setJoiningSpace] = useState(false);

@@ -44,6 +44,13 @@ describe("JoinVotePageClient", () => {
     globalThis.fetch = originalFetch;
   });
 
+  it("prefills nickname when provided", () => {
+    render(<JoinVotePageClient initialNickname="KnownNick" />);
+
+    const nicknameInput = screen.getByPlaceholderText("e.g., Alex") as HTMLInputElement;
+    expect(nicknameInput.value).toBe("KnownNick");
+  });
+
   it("shows private-space guidance when join requires space membership", async () => {
     globalThis.fetch = vi.fn().mockResolvedValue({
       ok: false,
