@@ -1,12 +1,18 @@
 "use client";
 
 import { ExternalLink, Maximize2 } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  ImageUploader,
+  type ImageUploaderHandle,
+  type UploadedImage,
+} from "@/components/shared/ImageUploader";
 import { Button } from "@/components/ui/Button";
 import { ErrorMessage } from "@/components/ui/ErrorMessage";
 import { Input } from "@/components/ui/Input";
 import { ItemArtwork } from "@/components/ui/ItemArtwork";
 import { Textarea } from "@/components/ui/Textarea";
+import { tryCleanupUnattachedUpload } from "@/lib/api-client";
 import {
   buildExternalSourceEmbedUrl,
   buildYouTubeEmbedUrl,
@@ -23,6 +29,7 @@ import {
   resolveItemImageUrlForWrite,
   suggestItemLabelFromSourceUrl,
 } from "@/lib/item-source";
+import { extractManagedUploadFilename } from "@/lib/uploads";
 import type { ItemSourceProvider } from "@/types";
 
 type ItemSourceModalMode = "EDIT_SOURCE" | "CREATE_FROM_URL";
@@ -139,6 +146,8 @@ type SourcePreviewResolutionPayload = ResolvedExternalPreview & {
   title: string | null;
 };
 
+const FILE_PICKER_CANCEL_GUARD_MS = 500;
+
 export function ItemSourceModal({
   open,
   mode = "EDIT_SOURCE",
@@ -157,14 +166,21 @@ export function ItemSourceModal({
 }: ItemSourceModalProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const sourceInputRef = useRef<HTMLInputElement>(null);
+  const cardImageUploaderRef = useRef<ImageUploaderHandle>(null);
+  const isSelectingImageRef = useRef(false);
+  const imagePickerCancelGuardUntilRef = useRef(0);
+  const imagePickerSafetyResetTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const previewResolveRequestIdRef = useRef(0);
   const durationResolveRequestIdRef = useRef(0);
+  const pendingUploadedImageUrlsRef = useRef<Set<string>>(new Set());
   const [draftUrl, setDraftUrl] = useState(sourceUrl ?? "");
   const [draftLabel, setDraftLabel] = useState(itemLabel);
   const [draftLabelTouched, setDraftLabelTouched] = useState(false);
   const [draftNote, setDraftNote] = useState(sourceNote ?? "");
   const [draftStartSec, setDraftStartSec] = useState(formatIntervalInputValue(sourceStartSec));
   const [draftEndSec, setDraftEndSec] = useState(formatIntervalInputValue(sourceEndSec));
+  const [draftReplacementImageUrl, setDraftReplacementImageUrl] = useState<string | null>(null);
+  const [isUploadingCustomImage, setIsUploadingCustomImage] = useState(false);
   const [embedParentHostname, setEmbedParentHostname] = useState("");
   const [resolvedExternalPreview, setResolvedExternalPreview] =
     useState<ResolvedExternalPreview | null>(null);
@@ -179,6 +195,22 @@ export function ItemSourceModal({
   const [hasDurationResolutionAttempted, setHasDurationResolutionAttempted] = useState(false);
   const [showExpandedPreview, setShowExpandedPreview] = useState(false);
 
+  const cleanupPendingUploadedImage = useCallback((imageUrl: string, context: string) => {
+    if (!extractManagedUploadFilename(imageUrl)) return;
+    void tryCleanupUnattachedUpload(imageUrl, context);
+  }, []);
+
+  const cleanupPendingUploadedImages = useCallback(
+    (context: string) => {
+      const pendingUrls = [...pendingUploadedImageUrlsRef.current];
+      pendingUploadedImageUrlsRef.current.clear();
+      for (const imageUrl of pendingUrls) {
+        cleanupPendingUploadedImage(imageUrl, context);
+      }
+    },
+    [cleanupPendingUploadedImage],
+  );
+
   useEffect(() => {
     if (typeof window === "undefined") return;
     setEmbedParentHostname(window.location.hostname);
@@ -192,8 +224,25 @@ export function ItemSourceModal({
     setDraftNote(sourceNote ?? "");
     setDraftStartSec(formatIntervalInputValue(sourceStartSec));
     setDraftEndSec(formatIntervalInputValue(sourceEndSec));
+    setDraftReplacementImageUrl(null);
+    setIsUploadingCustomImage(false);
+    isSelectingImageRef.current = false;
+    imagePickerCancelGuardUntilRef.current = 0;
+    if (imagePickerSafetyResetTimeoutRef.current) {
+      clearTimeout(imagePickerSafetyResetTimeoutRef.current);
+      imagePickerSafetyResetTimeoutRef.current = null;
+    }
     setShowExpandedPreview(false);
   }, [itemLabel, open, sourceEndSec, sourceNote, sourceStartSec, sourceUrl]);
+
+  useEffect(() => {
+    return () => {
+      if (imagePickerSafetyResetTimeoutRef.current) {
+        clearTimeout(imagePickerSafetyResetTimeoutRef.current);
+      }
+      cleanupPendingUploadedImages("item source modal unmount");
+    };
+  }, [cleanupPendingUploadedImages]);
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -382,7 +431,7 @@ export function ItemSourceModal({
   const previewItemLabel = isCreateFromUrlMode
     ? resolvedDraftLabel || fallbackCreateLabel
     : itemLabel;
-  const previewImageUrl = (() => {
+  const autoResolvedImageUrl = (() => {
     if (!isCreateFromUrlMode && itemImageUrl) return itemImageUrl;
     if (resolvedThumbnailUrl) return resolvedThumbnailUrl;
     if (!activeSourceUrl) return activeParsedSource?.thumbnailUrl ?? null;
@@ -392,6 +441,8 @@ export function ItemSourceModal({
       return activeParsedSource?.thumbnailUrl ?? null;
     }
   })();
+  const selectedImageUrl = draftReplacementImageUrl ?? autoResolvedImageUrl;
+  const previewImageUrl = selectedImageUrl ?? autoResolvedImageUrl;
 
   useEffect(() => {
     const requestId = ++previewResolveRequestIdRef.current;
@@ -547,17 +598,33 @@ export function ItemSourceModal({
       : null;
   const durationResolvingHint =
     shouldResolveDurationMetadata && isResolvingDurationMetadata ? "Checking clip length..." : null;
+  const imageUploadingHint = isUploadingCustomImage ? "Uploading image..." : null;
   const inlineHintMessage =
     !inlineValidationMessage &&
-    (createResolvingHint ?? durationResolvingHint ?? durationResolutionUnavailableMessage);
+    (createResolvingHint ??
+      durationResolvingHint ??
+      imageUploadingHint ??
+      durationResolutionUnavailableMessage);
+  const normalizedCurrentLabel = normalizeItemLabel(itemLabel);
+  const hasLabelChange = resolvedDraftLabel !== normalizedCurrentLabel;
+  const normalizedCurrentImageUrl = (itemImageUrl ?? "").trim();
+  const normalizedSelectedImageUrl = (selectedImageUrl ?? "").trim();
+  const hasImageChange =
+    !isCreateFromUrlMode &&
+    draftReplacementImageUrl !== null &&
+    normalizedSelectedImageUrl.length > 0 &&
+    normalizedSelectedImageUrl !== normalizedCurrentImageUrl;
   const hasChanges =
+    hasLabelChange ||
     trimmedDraftUrl !== normalizedCurrentUrl ||
     trimmedDraftNote !== normalizedCurrentNote ||
     normalizedDraftStartSec !== normalizedCurrentStartSec ||
-    normalizedDraftEndSec !== normalizedCurrentEndSec;
+    normalizedDraftEndSec !== normalizedCurrentEndSec ||
+    hasImageChange;
   const canSave =
     editable &&
     !saving &&
+    !isUploadingCustomImage &&
     !!onSave &&
     (isCreateFromUrlMode ? hasValidSourceForCreate && !isResolvingSourcePreview : hasChanges) &&
     !hasInvalidDraftSource &&
@@ -570,8 +637,65 @@ export function ItemSourceModal({
     setDraftLabel(fallbackCreateLabel);
   }, [draftLabelTouched, fallbackCreateLabel, isCreateFromUrlMode]);
 
+  const releasePendingUploadedImage = useCallback(
+    (imageUrl: string | null, context: string) => {
+      if (!imageUrl) return;
+      if (!pendingUploadedImageUrlsRef.current.delete(imageUrl)) return;
+      cleanupPendingUploadedImage(imageUrl, context);
+    },
+    [cleanupPendingUploadedImage],
+  );
+
+  const handleCustomImageUploaded = ({ url }: UploadedImage) => {
+    isSelectingImageRef.current = false;
+    imagePickerCancelGuardUntilRef.current = 0;
+    if (imagePickerSafetyResetTimeoutRef.current) {
+      clearTimeout(imagePickerSafetyResetTimeoutRef.current);
+      imagePickerSafetyResetTimeoutRef.current = null;
+    }
+    if (draftReplacementImageUrl && draftReplacementImageUrl !== url) {
+      releasePendingUploadedImage(draftReplacementImageUrl, "item source custom image replaced");
+    }
+    pendingUploadedImageUrlsRef.current.add(url);
+    setDraftReplacementImageUrl(url);
+  };
+
+  const openImageFilePicker = () => {
+    if (saving || isUploadingCustomImage) return;
+    isSelectingImageRef.current = true;
+    imagePickerCancelGuardUntilRef.current = Date.now() + FILE_PICKER_CANCEL_GUARD_MS;
+    if (typeof window !== "undefined") {
+      const handleWindowFocus = () => {
+        imagePickerCancelGuardUntilRef.current = Date.now() + FILE_PICKER_CANCEL_GUARD_MS;
+        setTimeout(() => {
+          isSelectingImageRef.current = false;
+        }, FILE_PICKER_CANCEL_GUARD_MS);
+      };
+      window.addEventListener("focus", handleWindowFocus, { once: true, capture: true });
+    }
+    if (imagePickerSafetyResetTimeoutRef.current) {
+      clearTimeout(imagePickerSafetyResetTimeoutRef.current);
+    }
+    imagePickerSafetyResetTimeoutRef.current = setTimeout(() => {
+      isSelectingImageRef.current = false;
+      imagePickerCancelGuardUntilRef.current = 0;
+      imagePickerSafetyResetTimeoutRef.current = null;
+    }, 15_000);
+    cardImageUploaderRef.current?.openFilePicker();
+  };
+
+  const isWithinImagePickerCancelGuard = () =>
+    isSelectingImageRef.current || Date.now() < imagePickerCancelGuardUntilRef.current;
+
+  const reopenDialogIfNeeded = () => {
+    const dialog = dialogRef.current;
+    if (!dialog || dialog.open || !open) return;
+    dialog.showModal();
+  };
+
   const close = () => {
-    if (saving) return;
+    if (saving || isUploadingCustomImage) return;
+    cleanupPendingUploadedImages("item source modal close");
     onClose();
   };
 
@@ -588,14 +712,26 @@ export function ItemSourceModal({
       sourceEndSec:
         shouldValidateIntervals && typeof parsedDraftEndSec === "number" ? parsedDraftEndSec : null,
     };
+    const nextResolvedImageUrl = normalizedSelectedImageUrl || null;
     if (isCreateFromUrlMode) {
       payload.itemLabel = resolvedDraftLabel || fallbackCreateLabel;
-      payload.resolvedImageUrl = previewImageUrl ?? null;
+      payload.resolvedImageUrl = nextResolvedImageUrl;
       payload.resolvedTitle = resolvedPreviewTitle || null;
+    } else {
+      if (hasLabelChange) {
+        payload.itemLabel = resolvedDraftLabel;
+      }
+      if (hasImageChange && nextResolvedImageUrl) {
+        payload.resolvedImageUrl = nextResolvedImageUrl;
+      }
     }
     const succeeded = await onSave(payload);
 
     if (succeeded) {
+      if (payload.resolvedImageUrl) {
+        pendingUploadedImageUrlsRef.current.delete(payload.resolvedImageUrl);
+      }
+      cleanupPendingUploadedImages("item source modal save");
       onClose();
     }
   };
@@ -604,15 +740,25 @@ export function ItemSourceModal({
     <dialog
       ref={dialogRef}
       onCancel={(event) => {
-        if (saving) {
+        if (isWithinImagePickerCancelGuard()) {
+          event.preventDefault();
+          reopenDialogIfNeeded();
+          return;
+        }
+        if (saving || isUploadingCustomImage) {
           event.preventDefault();
           return;
         }
-        onClose();
+        close();
       }}
       onClose={() => {
-        if (!saving) {
-          onClose();
+        if (isWithinImagePickerCancelGuard()) {
+          reopenDialogIfNeeded();
+          return;
+        }
+        if (!open) return;
+        if (!saving && !isUploadingCustomImage) {
+          close();
         }
       }}
       className="fixed inset-0 m-auto max-h-[calc(100dvh-2rem)] w-[min(calc(100vw-2rem),34rem)] overflow-y-auto rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface)] p-4 text-left text-[var(--fg-primary)] shadow-2xl shadow-black/60 backdrop:bg-[var(--bg-overlay)] focus:outline-none sm:p-6"
@@ -625,7 +771,8 @@ export function ItemSourceModal({
           <>
             Paste a URL to create{" "}
             <span className="font-medium text-[var(--fg-secondary)]">{itemLabel}</span>. The
-            resolved thumbnail (or media fallback) will be used as item image.
+            resolved thumbnail (or media fallback) is the default item image, and you can override
+            it.
           </>
         ) : (
           <>
@@ -660,23 +807,59 @@ export function ItemSourceModal({
               privacy policies.
             </p>
 
-            {isCreateFromUrlMode && (
-              <label className="block space-y-2">
-                <span className="text-sm font-medium text-[var(--fg-secondary)]">Item label</span>
-                <Input
-                  type="text"
-                  placeholder="e.g. The Miracle"
-                  value={draftLabel}
-                  onChange={(event) => {
-                    setDraftLabel(event.target.value);
-                    setDraftLabelTouched(true);
-                  }}
-                  maxLength={MAX_ITEM_LABEL_LENGTH}
-                  disabled={saving}
-                  className="w-full"
-                />
-              </label>
-            )}
+            <div className="rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elevated)] p-3">
+              <div className="flex items-start gap-3">
+                <div className="group relative h-24 w-24 flex-shrink-0 overflow-hidden rounded border border-[var(--border-default)] bg-[var(--bg-surface)]">
+                  {previewImageUrl ? (
+                    <ItemArtwork
+                      src={previewImageUrl}
+                      alt={previewItemLabel || "Item image"}
+                      className="h-full w-full"
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center text-xs text-[var(--fg-subtle)]">
+                      No image
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    onClick={openImageFilePicker}
+                    disabled={saving || isUploadingCustomImage}
+                    aria-label="Replace"
+                    className="absolute inset-x-1 bottom-1 rounded border border-[var(--border-default)] bg-[var(--bg-elevated)] px-2 py-1 text-[9px] font-medium leading-tight text-[var(--fg-secondary)] opacity-100 transition-all hover:border-[var(--border-strong)] hover:bg-[var(--bg-surface-hover)] hover:text-[var(--fg-primary)] sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100 disabled:cursor-default disabled:opacity-60"
+                  >
+                    Replace
+                  </button>
+                </div>
+
+                <div className="min-w-0 flex-1 space-y-2">
+                  <label className="block space-y-1.5">
+                    <span className="text-xs font-medium text-[var(--fg-secondary)]">
+                      Item label
+                    </span>
+                    <Input
+                      type="text"
+                      placeholder="e.g. The Miracle"
+                      value={draftLabel}
+                      onChange={(event) => {
+                        setDraftLabel(event.target.value);
+                        setDraftLabelTouched(true);
+                      }}
+                      maxLength={MAX_ITEM_LABEL_LENGTH}
+                      disabled={saving}
+                      className="w-full"
+                    />
+                  </label>
+                </div>
+              </div>
+              <ImageUploader
+                ref={cardImageUploaderRef}
+                onUploaded={handleCustomImageUploaded}
+                onUploadStateChange={setIsUploadingCustomImage}
+                disabled={saving}
+                className="hidden"
+              />
+            </div>
 
             <label className="block space-y-2">
               <span className="text-sm font-medium text-[var(--fg-secondary)]">
@@ -896,7 +1079,12 @@ export function ItemSourceModal({
       </div>
 
       <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:justify-end">
-        <Button variant="secondary" onClick={close} disabled={saving} className="w-full sm:w-auto">
+        <Button
+          variant="secondary"
+          onClick={close}
+          disabled={saving || isUploadingCustomImage}
+          className="w-full sm:w-auto"
+        >
           {isCreateFromUrlMode ? "Cancel" : "Close"}
         </Button>
         {editable && (

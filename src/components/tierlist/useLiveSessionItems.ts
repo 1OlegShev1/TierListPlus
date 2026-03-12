@@ -238,6 +238,8 @@ export function useLiveSessionItems({
       sourceNote: string | null,
       sourceStartSec: number | null,
       sourceEndSec: number | null,
+      imageUrl?: string | null,
+      itemLabel?: string | null,
     ) => {
       const requestSessionId = sessionId;
       if (!canMutateLiveItems(requestSessionId)) return false;
@@ -246,6 +248,8 @@ export function useLiveSessionItems({
       setItemMutationError(null);
       try {
         const item = await apiPatch<Item>(`/api/sessions/${sessionId}/items/${itemId}`, {
+          ...(itemLabel !== undefined ? { label: normalizeItemLabel(itemLabel) } : {}),
+          ...(imageUrl ? { imageUrl } : {}),
           sourceUrl,
           sourceNote,
           sourceStartSec,

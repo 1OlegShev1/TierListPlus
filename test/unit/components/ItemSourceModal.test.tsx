@@ -467,6 +467,176 @@ describe("ItemSourceModal", () => {
     }
   });
 
+  it("allows overriding auto-resolved image in create-from-url mode", async () => {
+    const onSave = vi.fn().mockResolvedValue(true);
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = vi.fn().mockImplementation((input: RequestInfo | URL) => {
+      const url = typeof input === "string" ? input : input.toString();
+      if (url.includes("/api/upload")) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({ url: "/uploads/override.webp" }),
+        } as Response);
+      }
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({
+          provider: null,
+          youtubeContentKind: null,
+          kind: "GENERIC",
+          label: "External link",
+          embedUrl: null,
+          embedType: null,
+          thumbnailUrl: "https://cdn.example.com/auto.webp",
+          title: "Resolved title",
+          note: null,
+        }),
+      } as Response);
+    });
+
+    try {
+      const { container } = render(
+        <ItemSourceModal
+          open
+          mode="CREATE_FROM_URL"
+          editable
+          itemLabel="New item"
+          onClose={vi.fn()}
+          onSave={onSave}
+        />,
+      );
+
+      fireEvent.change(screen.getByLabelText("Item URL"), { target: { value: GENERIC_URL } });
+      await waitFor(() => {
+        expect(
+          (screen.getByRole("button", { name: "Add item" }) as HTMLButtonElement).disabled,
+        ).toBe(false);
+      });
+
+      const fileInput = container.querySelector('input[type="file"]');
+      expect(fileInput).toBeTruthy();
+      const file = new File(["cover"], "cover.png", { type: "image/png" });
+      fireEvent.change(fileInput as HTMLInputElement, { target: { files: [file] } });
+      await waitFor(() => {
+        expect(globalThis.fetch).toHaveBeenCalledWith(
+          "/api/upload",
+          expect.objectContaining({ method: "POST" }),
+        );
+      });
+      fireEvent.click(screen.getByRole("button", { name: "Add item" }));
+
+      await waitFor(() => {
+        expect(onSave).toHaveBeenCalledWith(
+          expect.objectContaining({
+            sourceUrl: GENERIC_URL,
+            resolvedImageUrl: "/uploads/override.webp",
+          }),
+        );
+      });
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it("includes resolvedImageUrl when replacing image in edit mode", async () => {
+    const onSave = vi.fn().mockResolvedValue(true);
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = vi.fn().mockImplementation((input: RequestInfo | URL) => {
+      const url = typeof input === "string" ? input : input.toString();
+      if (url.includes("/api/upload")) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({ url: "/uploads/new.webp" }),
+        } as Response);
+      }
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({
+          provider: "YOUTUBE",
+          youtubeContentKind: "VIDEO",
+          kind: null,
+          label: "YouTube",
+          embedUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ",
+          embedType: "iframe",
+          thumbnailUrl: "https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg",
+          title: "Clip",
+          note: null,
+        }),
+      } as Response);
+    });
+
+    try {
+      const { container } = render(
+        <ItemSourceModal
+          open
+          editable
+          itemLabel="Song"
+          itemImageUrl="/uploads/current.webp"
+          sourceUrl={YOUTUBE_URL}
+          onClose={vi.fn()}
+          onSave={onSave}
+        />,
+      );
+
+      const fileInput = container.querySelector('input[type="file"]');
+      expect(fileInput).toBeTruthy();
+      const file = new File(["cover"], "cover.png", { type: "image/png" });
+      fireEvent.change(fileInput as HTMLInputElement, { target: { files: [file] } });
+      await waitFor(() => {
+        expect(globalThis.fetch).toHaveBeenCalledWith(
+          "/api/upload",
+          expect.objectContaining({ method: "POST" }),
+        );
+      });
+
+      fireEvent.click(screen.getByRole("button", { name: "Save Source" }));
+
+      await waitFor(() => {
+        expect(onSave).toHaveBeenCalledWith(
+          expect.objectContaining({
+            sourceUrl: YOUTUBE_URL,
+            resolvedImageUrl: "/uploads/new.webp",
+          }),
+        );
+      });
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it("does not close modal when file-picker dismiss triggers dialog cancel/close", async () => {
+    const onClose = vi.fn();
+    const { container } = render(
+      <ItemSourceModal
+        open
+        editable
+        itemLabel="Song"
+        itemImageUrl="/uploads/current.webp"
+        sourceUrl={YOUTUBE_URL}
+        onClose={onClose}
+        onSave={vi.fn().mockResolvedValue(true)}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Replace" }));
+    const dialog = container.querySelector("dialog");
+    expect(dialog).toBeTruthy();
+
+    (dialog as HTMLDialogElement).open = false;
+    fireEvent(dialog as HTMLDialogElement, new Event("close"));
+    expect((dialog as HTMLDialogElement).open).toBe(true);
+    expect(onClose).not.toHaveBeenCalled();
+
+    fireEvent(dialog as HTMLDialogElement, new Event("cancel", { cancelable: true }));
+    expect(onClose).not.toHaveBeenCalled();
+
+    fireEvent(window, new Event("focus"));
+    await new Promise((resolve) => setTimeout(resolve, 550));
+
+    fireEvent(dialog as HTMLDialogElement, new Event("cancel", { cancelable: true }));
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
   it("disables add while create-from-url preview is resolving", async () => {
     const onSave = vi.fn().mockResolvedValue(true);
     const deferred = createDeferred<Response>();

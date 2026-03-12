@@ -101,14 +101,27 @@ export function ListEditor({
     sourceNote: string | null,
     sourceStartSec: number | null,
     sourceEndSec: number | null,
+    imageUrl?: string | null,
+    label?: string | null,
   ) => {
     const sourceProvider = sourceUrl
       ? (parseSupportedItemSource(sourceUrl)?.provider ?? null)
       : null;
+    const normalizedLabel =
+      label !== undefined && label !== null ? normalizeItemLabel(label) : null;
     setItems((prev) =>
       prev.map((item, i) =>
         i === index
-          ? { ...item, sourceUrl, sourceNote, sourceProvider, sourceStartSec, sourceEndSec }
+          ? {
+              ...item,
+              ...(imageUrl ? { imageUrl } : {}),
+              ...(normalizedLabel !== null ? { label: normalizedLabel } : {}),
+              sourceUrl,
+              sourceNote,
+              sourceProvider,
+              sourceStartSec,
+              sourceEndSec,
+            }
           : item,
       ),
     );
@@ -229,6 +242,7 @@ export function ListEditor({
         if (item.id && existingIds.has(item.id)) {
           await apiPatch(`/api/templates/${id}/items/${item.id}`, {
             label: item.label,
+            imageUrl: item.imageUrl,
             sourceUrl: item.sourceUrl ?? null,
             sourceNote: item.sourceNote ?? null,
             sourceStartSec: item.sourceStartSec ?? null,
@@ -455,13 +469,22 @@ export function ListEditor({
           sourceEndSec={items[editingSourceIndex].sourceEndSec}
           editable
           onClose={() => setEditingSourceIndex(null)}
-          onSave={async ({ sourceUrl, sourceNote, sourceStartSec, sourceEndSec }) => {
+          onSave={async ({
+            sourceUrl,
+            sourceNote,
+            sourceStartSec,
+            sourceEndSec,
+            itemLabel,
+            resolvedImageUrl,
+          }) => {
             updateItemSource(
               editingSourceIndex,
               sourceUrl,
               sourceNote,
               sourceStartSec,
               sourceEndSec,
+              resolvedImageUrl,
+              itemLabel,
             );
             return true;
           }}

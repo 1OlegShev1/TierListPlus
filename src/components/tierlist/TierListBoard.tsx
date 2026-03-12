@@ -503,6 +503,8 @@ export function TierListBoard({
                           next.sourceNote,
                           next.sourceStartSec,
                           next.sourceEndSec,
+                          next.resolvedImageUrl,
+                          next.itemLabel,
                         )
                       }
                       onRemove={() => {
@@ -566,6 +568,8 @@ export function TierListBoard({
                     next.sourceNote,
                     next.sourceStartSec,
                     next.sourceEndSec,
+                    next.resolvedImageUrl,
+                    next.itemLabel,
                   )
               : undefined
           }

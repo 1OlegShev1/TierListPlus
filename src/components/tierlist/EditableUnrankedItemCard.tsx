@@ -27,6 +27,8 @@ interface EditableUnrankedItemCardProps {
       sourceNote: string | null;
       sourceStartSec: number | null;
       sourceEndSec: number | null;
+      itemLabel?: string | null;
+      resolvedImageUrl?: string | null;
     },
   ) => Promise<boolean>;
   onRemove: () => void;

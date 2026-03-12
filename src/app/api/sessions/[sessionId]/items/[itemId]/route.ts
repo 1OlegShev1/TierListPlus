@@ -39,6 +39,7 @@ export const PATCH = withHandler(async (request, { params }) => {
     where: { id: itemId, sessionId },
     select: {
       id: true,
+      imageUrl: true,
       templateItemId: true,
       sourceUrl: true,
       sourceProvider: true,
@@ -136,6 +137,10 @@ export const PATCH = withHandler(async (request, { params }) => {
       data: updateData,
     });
   });
+
+  if (data.imageUrl && data.imageUrl !== sessionItem.imageUrl) {
+    await tryDeleteManagedUploadIfUnreferenced(sessionItem.imageUrl, "session item image update");
+  }
 
   return Response.json(updated);
 });

@@ -252,6 +252,53 @@ describe("session item delete route", () => {
     });
   });
 
+  it("cleans up replaced managed images when patching session items", async () => {
+    mocks.prisma.sessionItem.findFirst.mockResolvedValue({
+      id: "item_1",
+      imageUrl: "/uploads/old.webp",
+      templateItemId: "template_item_1",
+      sourceUrl: null,
+      sourceProvider: null,
+      sourceStartSec: null,
+      sourceEndSec: null,
+    });
+    const tx = {
+      sessionItem: {
+        update: vi.fn().mockResolvedValue({
+          id: "item_1",
+          label: "Item",
+          imageUrl: "/uploads/new.webp",
+          sortOrder: 0,
+        }),
+      },
+      templateItem: {
+        update: vi.fn().mockResolvedValue(undefined),
+      },
+    };
+    mocks.prisma.$transaction.mockImplementation(
+      async (fn: (client: typeof tx) => Promise<unknown>) => fn(tx),
+    );
+
+    const response = await PATCH(
+      jsonRequest("PATCH", "https://example.test", { imageUrl: "/uploads/new.webp" }),
+      routeCtx({ sessionId: "session_1", itemId: "item_1" }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(tx.templateItem.update).toHaveBeenCalledWith({
+      where: { id: "template_item_1" },
+      data: { imageUrl: "/uploads/new.webp" },
+    });
+    expect(tx.sessionItem.update).toHaveBeenCalledWith({
+      where: { id: "item_1" },
+      data: { imageUrl: "/uploads/new.webp" },
+    });
+    expect(mocks.tryDeleteManagedUploadIfUnreferenced).toHaveBeenCalledWith(
+      "/uploads/old.webp",
+      "session item image update",
+    );
+  });
+
   it("rejects session item updates with no changes", async () => {
     mocks.prisma.sessionItem.findFirst.mockResolvedValue({
       id: "item_1",
