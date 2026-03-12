@@ -181,4 +181,41 @@ describe("sessions join route", () => {
       expect.objectContaining({ participantId: "participant_new", nickname: "Nick" }),
     );
   });
+
+  it("blocks rejoin to moderated-hidden vote after participant record is removed", async () => {
+    mocks.prisma.session.findUnique.mockResolvedValue(
+      makeSession({
+        id: "session_hidden_rejoin",
+        isModeratedHidden: true,
+      }),
+    );
+    mocks.prisma.participant.findFirst
+      .mockResolvedValueOnce(makeParticipant({ id: "participant_existing", userId: "user_1" }))
+      .mockResolvedValueOnce(null);
+
+    let response = await POST(
+      jsonRequest("POST", "https://example.test", { joinCode: "join1", nickname: "Nick" }),
+      { params: Promise.resolve({}) },
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual(
+      expect.objectContaining({
+        sessionId: "session_hidden_rejoin",
+        participantId: "participant_existing",
+      }),
+    );
+
+    response = await POST(
+      jsonRequest("POST", "https://example.test", { joinCode: "join1", nickname: "Nick" }),
+      { params: Promise.resolve({}) },
+    );
+
+    expect(response.status).toBe(404);
+    await expect(response.json()).resolves.toEqual(
+      expect.objectContaining({
+        error: "Session not found",
+      }),
+    );
+  });
 });

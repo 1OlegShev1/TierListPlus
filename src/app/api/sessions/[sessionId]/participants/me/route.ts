@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import {
   badRequest,
   forbidden,
+  notFound,
   requireSessionAccess,
   validateBody,
   withHandler,
@@ -81,4 +82,36 @@ export const PATCH = withHandler(async (request, { params }) => {
     participantId: updated.id,
     nickname: updated.nickname,
   });
+});
+
+export const DELETE = withHandler(async (request, { params }) => {
+  const { sessionId } = await params;
+  const { requestUserId, isOwner } = await requireSessionAccess(request, sessionId);
+
+  if (!requestUserId) {
+    forbidden("Sign in to leave this vote");
+  }
+  if (isOwner) {
+    forbidden("Vote owners cannot leave this vote");
+  }
+
+  const session = await prisma.session.findUnique({
+    where: { id: sessionId },
+    select: { status: true },
+  });
+  if (!session) {
+    notFound("Session not found");
+  }
+  if (session.status !== "OPEN") {
+    badRequest("This vote is closed. Leaving is only available while voting is open.");
+  }
+
+  const deleted = await prisma.participant.deleteMany({
+    where: { sessionId, userId: requestUserId },
+  });
+  if (deleted.count === 0) {
+    badRequest("Join this vote before leaving");
+  }
+
+  return new Response(null, { status: 204 });
 });

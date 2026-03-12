@@ -83,7 +83,9 @@ export interface SessionResult {
   spaceId: string | null;
   spaceName: string | null;
   joinCode: string;
+  isLocked?: boolean;
   canManageSession: boolean;
+  canLeaveVote?: boolean;
   currentParticipantId: string | null;
   currentParticipantNickname: string | null;
   tierConfig: TierConfig[];

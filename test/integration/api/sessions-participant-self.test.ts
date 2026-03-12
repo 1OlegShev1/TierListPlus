@@ -1,8 +1,12 @@
 const mocks = vi.hoisted(() => ({
   prisma: {
+    session: {
+      findUnique: vi.fn(),
+    },
     participant: {
       findFirst: vi.fn(),
       findUnique: vi.fn(),
+      deleteMany: vi.fn(),
       update: vi.fn(),
     },
     user: {
@@ -21,15 +25,21 @@ vi.mock("@/lib/api-helpers", async () => {
   };
 });
 
-import { PATCH } from "@/app/api/sessions/[sessionId]/participants/me/route";
+import { DELETE, PATCH } from "@/app/api/sessions/[sessionId]/participants/me/route";
 import { makeKnownRequestError, makeParticipant } from "../../helpers/mocks";
 import { jsonRequest, routeCtx } from "../../helpers/request";
 
 describe("sessions participant self route", () => {
   beforeEach(() => {
-    mocks.requireSessionAccess.mockReset().mockResolvedValue({ requestUserId: "user_1" });
+    mocks.requireSessionAccess.mockReset().mockResolvedValue({
+      requestUserId: "user_1",
+      isOwner: false,
+      isSpaceOwner: false,
+    });
+    mocks.prisma.session.findUnique.mockReset().mockResolvedValue({ status: "OPEN" });
     mocks.prisma.participant.findFirst.mockReset();
     mocks.prisma.participant.findUnique.mockReset();
+    mocks.prisma.participant.deleteMany.mockReset();
     mocks.prisma.participant.update.mockReset();
     mocks.prisma.user.updateMany.mockReset();
   });
@@ -108,5 +118,92 @@ describe("sessions participant self route", () => {
         error: "Nickname is already taken in this session",
       }),
     );
+  });
+
+  it("deletes the signed-in participant while vote is open", async () => {
+    mocks.prisma.participant.deleteMany.mockResolvedValue({ count: 1 });
+
+    const response = await DELETE(
+      new Request("https://example.test", { method: "DELETE" }),
+      routeCtx({ sessionId: "session_1" }),
+    );
+
+    expect(response.status).toBe(204);
+    expect(mocks.prisma.participant.deleteMany).toHaveBeenCalledWith({
+      where: { sessionId: "session_1", userId: "user_1" },
+    });
+  });
+
+  it("allows non-host space managers to leave", async () => {
+    mocks.requireSessionAccess.mockResolvedValue({
+      requestUserId: "user_1",
+      isOwner: false,
+      isSpaceOwner: true,
+    });
+    mocks.prisma.participant.deleteMany.mockResolvedValue({ count: 1 });
+
+    const response = await DELETE(
+      new Request("https://example.test", { method: "DELETE" }),
+      routeCtx({ sessionId: "session_1" }),
+    );
+
+    expect(response.status).toBe(204);
+    expect(mocks.prisma.participant.deleteMany).toHaveBeenCalledWith({
+      where: { sessionId: "session_1", userId: "user_1" },
+    });
+  });
+
+  it("rejects leave when vote is closed", async () => {
+    mocks.prisma.session.findUnique.mockResolvedValue({ status: "CLOSED" });
+
+    const response = await DELETE(
+      new Request("https://example.test", { method: "DELETE" }),
+      routeCtx({ sessionId: "session_1" }),
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual(
+      expect.objectContaining({
+        error: "This vote is closed. Leaving is only available while voting is open.",
+      }),
+    );
+    expect(mocks.prisma.participant.deleteMany).not.toHaveBeenCalled();
+  });
+
+  it("rejects leave when user is not currently joined", async () => {
+    mocks.prisma.participant.deleteMany.mockResolvedValue({ count: 0 });
+
+    const response = await DELETE(
+      new Request("https://example.test", { method: "DELETE" }),
+      routeCtx({ sessionId: "session_1" }),
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual(
+      expect.objectContaining({
+        error: "Join this vote before leaving",
+      }),
+    );
+  });
+
+  it("rejects vote owners trying to leave", async () => {
+    mocks.requireSessionAccess.mockResolvedValue({
+      requestUserId: "user_1",
+      isOwner: true,
+      isSpaceOwner: false,
+    });
+
+    const response = await DELETE(
+      new Request("https://example.test", { method: "DELETE" }),
+      routeCtx({ sessionId: "session_1" }),
+    );
+
+    expect(response.status).toBe(403);
+    await expect(response.json()).resolves.toEqual(
+      expect.objectContaining({
+        error: "Vote owners cannot leave this vote",
+      }),
+    );
+    expect(mocks.prisma.session.findUnique).not.toHaveBeenCalled();
   });
 });

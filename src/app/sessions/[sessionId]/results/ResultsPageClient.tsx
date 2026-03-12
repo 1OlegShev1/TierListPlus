@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { ItemSourceModal } from "@/components/items/ItemSourceModal";
 import { CloseVoteButton } from "@/components/sessions/CloseVoteButton";
 import { DeleteVoteButton } from "@/components/sessions/DeleteVoteButton";
+import { LeaveVoteButton } from "@/components/sessions/LeaveVoteButton";
 import { ReopenVoteButton } from "@/components/sessions/ReopenVoteButton";
 import { buttonSizes, buttonVariants } from "@/components/ui/Button";
 import { ErrorMessage } from "@/components/ui/ErrorMessage";
@@ -190,6 +191,8 @@ export function ResultsPageClient({
     ? `/sessions/${sessionId}/vote`
     : `/sessions/join?code=${encodeURIComponent(session.joinCode)}`;
   const primaryVoteActionLabel = currentParticipantId ? "Resume" : "Join vote";
+  const canLeaveVote =
+    session.status === "OPEN" && !!currentParticipantId && !!session.canLeaveVote;
   const backToVotesHref = session.spaceId ? `/spaces/${session.spaceId}` : "/sessions";
   const backToVotesLabel = session.spaceId ? "Back to Space Votes" : "Back to Votes";
 
@@ -234,6 +237,14 @@ export function ResultsPageClient({
                 >
                   {primaryVoteActionLabel}
                 </Link>
+                {canLeaveVote && (
+                  <LeaveVoteButton
+                    sessionId={sessionId}
+                    joinCode={session.joinCode}
+                    isLocked={session.isLocked}
+                    className={`${buttonSizes.equalAction} min-w-0`}
+                  />
+                )}
                 <CloseVoteButton
                   sessionId={sessionId}
                   creatorId={session.creatorId}
