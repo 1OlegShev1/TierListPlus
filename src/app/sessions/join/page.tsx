@@ -10,8 +10,8 @@ import { JoinVotePageClient } from "./JoinVotePageClient";
 
 type SearchParams = Record<string, string | string[] | undefined>;
 
-const DEFAULT_TITLE = "Join a Vote | TierList+";
-const DEFAULT_DESCRIPTION = "Join a collaborative tier list vote.";
+const DEFAULT_TITLE = "You're invited to a tier list | TierList+";
+const DEFAULT_DESCRIPTION = "Join in, place your picks, and see where everyone lands.";
 
 function firstParamValue(value: string | string[] | undefined): string | null {
   if (Array.isArray(value)) {
@@ -105,15 +105,18 @@ export async function generateMetadata({
   });
 
   if (!vote || vote.isModeratedHidden) {
-    const title = "Join this vote | TierList+";
-    const description = "Open invite link for a collaborative tier list vote.";
+    const title = "Tier list invite | TierList+";
+    const description = "Open this invite to join the shared ranking.";
     const ogImageUrl = new URL("/api/og/vote", origin).toString();
     return buildJoinMetadata(title, description, ogImageUrl, "TierList+ vote invite");
   }
 
-  const statusLabel = vote.status === "OPEN" ? "Now Open" : "View Results";
-  const title = `Join "${vote.name}" | TierList+`;
-  const description = `${statusLabel} on TierList+.`;
+  const isOpen = vote.status === "OPEN";
+  const statusLabel = isOpen ? "Open now" : "Results ready";
+  const title = `${isOpen ? "Join" : "View results for"} "${vote.name}" | TierList+`;
+  const description = isOpen
+    ? "Set your tiers and compare picks with the group."
+    : "Voting is closed. See where the final list landed.";
   const ogImageUrl = new URL(
     `/api/og/vote?title=${encodeURIComponent(vote.name)}&status=${encodeURIComponent(statusLabel)}`,
     origin,

@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { buttonVariants } from "@/components/ui/Button";
 import { canManageSessionItems } from "@/lib/api-helpers";
 import { getCookieAuth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -10,8 +11,7 @@ import { VotePageClient } from "./VotePageClient";
 
 export const dynamic = "force-dynamic";
 
-const resultsLinkClassName =
-  "inline-flex h-10 items-center justify-center rounded-lg border border-[var(--accent-primary)]/60 bg-[var(--accent-primary)]/10 px-4 text-sm font-medium text-[var(--accent-primary-hover)] transition-colors hover:border-[var(--accent-primary-hover)] hover:bg-[var(--accent-primary)]/15 hover:text-[var(--fg-primary)]";
+const resultsLinkClassName = `${buttonVariants.secondary} !h-10 !px-4 !py-0 !text-sm !font-medium`;
 
 interface ExistingVoteRow {
   tierKey: string;

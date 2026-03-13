@@ -154,8 +154,27 @@ describe("sessions join page", () => {
       searchParams: Promise.resolve({ code: "join1" }),
     });
 
-    expect(metadata.title).toBe("Join this vote | TierList+");
-    expect(metadata.description).toBe("Open invite link for a collaborative tier list vote.");
-    expect(metadata.openGraph?.title).toBe("Join this vote | TierList+");
+    expect(metadata.title).toBe("Tier list invite | TierList+");
+    expect(metadata.description).toBe("Open this invite to join the shared ranking.");
+    expect(metadata.openGraph?.title).toBe("Tier list invite | TierList+");
+  });
+
+  it("uses playful metadata for open invites", async () => {
+    mocks.prisma.session.findUnique.mockResolvedValueOnce({
+      name: "Best Pizza Toppings",
+      status: "OPEN",
+      isModeratedHidden: false,
+    });
+
+    const metadata = await generateMetadata({
+      searchParams: Promise.resolve({ code: "join1" }),
+    });
+
+    expect(metadata.title).toBe('Join "Best Pizza Toppings" | TierList+');
+    expect(metadata.description).toBe("Set your tiers and compare picks with the group.");
+    expect(metadata.openGraph?.images?.[0]?.url).toContain(
+      "/api/og/vote?title=Best%20Pizza%20Toppings",
+    );
+    expect(metadata.openGraph?.images?.[0]?.url).toContain("status=Open%20now");
   });
 });

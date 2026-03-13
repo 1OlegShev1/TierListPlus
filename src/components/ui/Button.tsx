@@ -13,7 +13,7 @@ export const buttonVariants: Record<ButtonVariant, string> = {
   primary:
     "inline-flex items-center justify-center rounded-lg bg-[var(--action-primary-bg)] px-4 py-2 text-sm font-medium text-[var(--action-primary-fg)] transition-colors hover:bg-[var(--action-primary-bg-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] disabled:opacity-50 sm:px-8 sm:py-2.5 sm:text-base",
   secondary:
-    "inline-flex items-center justify-center rounded-lg border border-[var(--border-default)] px-4 py-2 text-sm text-[var(--fg-secondary)] transition-colors hover:bg-[var(--action-secondary-bg-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] sm:px-8 sm:py-2.5 sm:text-base",
+    "inline-flex items-center justify-center rounded-lg border border-[var(--border-default)] bg-[var(--bg-surface)] px-4 py-2 text-sm text-[var(--fg-secondary)] transition-colors hover:border-[var(--border-strong)] hover:bg-[var(--action-secondary-bg-hover)] hover:text-[var(--fg-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] sm:px-8 sm:py-2.5 sm:text-base",
   ghost:
     "text-sm text-[var(--fg-muted)] transition-colors hover:text-[var(--fg-secondary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]",
 };
