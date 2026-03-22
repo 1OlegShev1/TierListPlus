@@ -29,8 +29,8 @@ export const dynamic = "force-dynamic";
 const ACTIVE_VOTES_PAGE_SIZE = 20;
 const HISTORY_VOTES_PAGE_SIZE = 20;
 const PUBLIC_VOTES_PAGE_SIZE = 12;
-const COMPACT_ACTION_BUTTON_CLASS =
-  "!h-9 !justify-center !px-2.5 !py-0 !text-xs sm:!h-10 sm:!px-4 sm:!text-sm";
+const MOBILE_ACTION_BUTTON_CLASS = "!h-9 !justify-center !px-2.5 !py-0 !text-xs";
+const DESKTOP_ACTION_BUTTON_CLASS = "!h-10 !justify-center !px-4 !py-0 !text-sm";
 
 type SearchParams = Record<string, string | string[] | undefined>;
 
@@ -287,57 +287,102 @@ function VoteRow({ vote, viewer }: { vote: VoteListItem; viewer: VoteViewer }) {
           : action.label;
 
   return (
-    <div className={VOTE_CARD_SHELL_CLASS}>
-      <div className={VOTE_CARD_HEADER_CLASS}>
-        <Link href={`/sessions/${vote.id}`} className={VOTE_CARD_SUMMARY_LINK_CLASS}>
+    <>
+      <div className={`${VOTE_CARD_SHELL_CLASS} sm:hidden`}>
+        <div className={VOTE_CARD_HEADER_CLASS}>
+          <Link href={`/sessions/${vote.id}`} className={VOTE_CARD_SUMMARY_LINK_CLASS}>
+            <VotePreviewSummary
+              title={vote.name}
+              detailsLabel={detailsLabel}
+              secondaryLabel={secondaryLabel}
+              mobileMetaLabel={mobileMetaLabel}
+              items={vote.items}
+              chips={chips}
+              sourceLabel={sourceLabel}
+            />
+          </Link>
+          <div className={VOTE_CARD_TOP_ACTIONS_CLASS}>
+            <StatusBadge status={vote.status} />
+          </div>
+        </div>
+        <div className={VOTE_CARD_BOTTOM_ACTIONS_CLASS}>
+          <ShareVoteButton
+            joinCode={vote.joinCode}
+            creatorId={vote.creatorId}
+            status={vote.status}
+            isLocked={vote.isLocked}
+            label="Share"
+            iconOnly
+            className={MOBILE_ACTION_BUTTON_CLASS}
+          />
+          <Link
+            href={action.href}
+            className={`${buttonVariants.secondary} ${MOBILE_ACTION_BUTTON_CLASS}`}
+          >
+            {mobileActionLabel}
+          </Link>
+          <CloseVoteButton
+            sessionId={vote.id}
+            creatorId={vote.creatorId}
+            status={vote.status}
+            label="End"
+            className={MOBILE_ACTION_BUTTON_CLASS}
+          />
+          <ReopenVoteButton
+            sessionId={vote.id}
+            creatorId={vote.creatorId}
+            status={vote.status}
+            label="Reopen"
+            className={MOBILE_ACTION_BUTTON_CLASS}
+          />
+          <DeleteVoteButton sessionId={vote.id} creatorId={vote.creatorId} className="shrink-0" />
+        </div>
+      </div>
+
+      <div className={`${VOTE_CARD_SHELL_CLASS} hidden sm:flex sm:items-center sm:gap-5`}>
+        <Link href={`/sessions/${vote.id}`} className="min-w-0 flex-1">
           <VotePreviewSummary
             title={vote.name}
             detailsLabel={detailsLabel}
             secondaryLabel={secondaryLabel}
-            mobileMetaLabel={mobileMetaLabel}
             items={vote.items}
             chips={chips}
             sourceLabel={sourceLabel}
           />
         </Link>
-        <div className={VOTE_CARD_TOP_ACTIONS_CLASS}>
+        <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
           <StatusBadge status={vote.status} />
+          <ShareVoteButton
+            joinCode={vote.joinCode}
+            creatorId={vote.creatorId}
+            status={vote.status}
+            isLocked={vote.isLocked}
+            className={DESKTOP_ACTION_BUTTON_CLASS}
+          />
+          <Link
+            href={action.href}
+            className={`${buttonVariants.secondary} ${DESKTOP_ACTION_BUTTON_CLASS}`}
+          >
+            {action.label}
+          </Link>
+          <CloseVoteButton
+            sessionId={vote.id}
+            creatorId={vote.creatorId}
+            status={vote.status}
+            label="End vote"
+            className={DESKTOP_ACTION_BUTTON_CLASS}
+          />
+          <ReopenVoteButton
+            sessionId={vote.id}
+            creatorId={vote.creatorId}
+            status={vote.status}
+            label="Reopen vote"
+            className={DESKTOP_ACTION_BUTTON_CLASS}
+          />
+          <DeleteVoteButton sessionId={vote.id} creatorId={vote.creatorId} className="shrink-0" />
         </div>
       </div>
-      <div className={VOTE_CARD_BOTTOM_ACTIONS_CLASS}>
-        <ShareVoteButton
-          joinCode={vote.joinCode}
-          creatorId={vote.creatorId}
-          status={vote.status}
-          isLocked={vote.isLocked}
-          label="Share"
-          iconOnly
-          className={COMPACT_ACTION_BUTTON_CLASS}
-        />
-        <Link
-          href={action.href}
-          className={`${buttonVariants.secondary} ${COMPACT_ACTION_BUTTON_CLASS}`}
-        >
-          <span className="sm:hidden">{mobileActionLabel}</span>
-          <span className="hidden sm:inline">{action.label}</span>
-        </Link>
-        <CloseVoteButton
-          sessionId={vote.id}
-          creatorId={vote.creatorId}
-          status={vote.status}
-          label="End"
-          className={COMPACT_ACTION_BUTTON_CLASS}
-        />
-        <ReopenVoteButton
-          sessionId={vote.id}
-          creatorId={vote.creatorId}
-          status={vote.status}
-          label="Reopen"
-          className={COMPACT_ACTION_BUTTON_CLASS}
-        />
-        <DeleteVoteButton sessionId={vote.id} creatorId={vote.creatorId} className="shrink-0" />
-      </div>
-    </div>
+    </>
   );
 }
 
