@@ -107,7 +107,7 @@ export function TierRow({
 
         {/* Tier Label */}
         <div
-          className="flex w-16 flex-shrink-0 items-center justify-center sm:w-20 md:w-24 lg:w-28"
+          className="flex w-14 flex-shrink-0 items-center justify-center sm:w-20 md:w-24 lg:w-28"
           style={{ backgroundColor: color, color: "var(--fg-on-accent)" }}
         >
           {editingLabel ? (
@@ -148,7 +148,7 @@ export function TierRow({
         {/* Items Area */}
         <div
           ref={setNodeRef}
-          className={`flex flex-1 flex-wrap items-start gap-1 p-1 transition-colors sm:gap-1.5 sm:p-1.5 md:gap-2 md:p-2 ${
+          className={`flex flex-1 flex-wrap items-start gap-0.5 p-0.5 transition-colors sm:gap-1.5 sm:p-1.5 md:gap-2 md:p-2 ${
             isOver ? "bg-[var(--bg-surface-hover)]" : ""
           }`}
         >
@@ -182,11 +182,11 @@ export function TierRow({
 
         {/* Rank button */}
         {items.length >= 2 && (
-          <div className="flex flex-shrink-0 items-center border-l border-[var(--border-grid)] px-1 sm:px-1.5 md:px-2">
+          <div className="flex flex-shrink-0 items-center border-l border-[var(--border-grid)] px-0.5 sm:px-1.5 md:px-2">
             <button
               type="button"
               onClick={() => setShowBracket(true)}
-              className="cursor-pointer rounded px-1 py-0.5 text-[11px] font-medium text-[var(--fg-subtle)] transition-colors hover:bg-[var(--bg-surface-hover)] hover:text-[var(--accent-primary-hover)] sm:px-1.5 sm:py-1 sm:text-xs md:px-2 md:py-1.5 md:text-sm"
+              className="cursor-pointer rounded px-1 py-0.5 text-[10px] font-medium text-[var(--fg-subtle)] transition-colors hover:bg-[var(--bg-surface-hover)] hover:text-[var(--accent-primary-hover)] sm:px-1.5 sm:py-1 sm:text-xs md:px-2 md:py-1.5 md:text-sm"
               title="Rank items with 1v1 bracket"
               aria-label={`Rank items in ${label} tier using bracket`}
             >
@@ -198,7 +198,7 @@ export function TierRow({
         {/* Row edit controls (right side) */}
         {canEditTier && (
           <div
-            className={`flex w-10 flex-shrink-0 flex-col items-center justify-center gap-1 border-l border-[var(--border-grid)] bg-[var(--bg-elevated)] sm:w-11 md:w-12 lg:w-12 ${isFirst ? "rounded-tr-lg" : ""} ${isLast ? "rounded-br-lg" : ""}`}
+            className={`flex w-9 flex-shrink-0 flex-col items-center justify-center gap-1 border-l border-[var(--border-grid)] bg-[var(--bg-elevated)] sm:w-11 md:w-12 lg:w-12 ${isFirst ? "rounded-tr-lg" : ""} ${isLast ? "rounded-br-lg" : ""}`}
           >
             <button
               type="button"

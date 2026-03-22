@@ -5,7 +5,15 @@ import { CloseVoteButton } from "@/components/sessions/CloseVoteButton";
 import { DeleteVoteButton } from "@/components/sessions/DeleteVoteButton";
 import { ReopenVoteButton } from "@/components/sessions/ReopenVoteButton";
 import { ShareVoteButton } from "@/components/sessions/ShareVoteButton";
-import { buttonSizes, buttonVariants } from "@/components/ui/Button";
+import {
+  VOTE_CARD_BOTTOM_ACTIONS_CLASS,
+  VOTE_CARD_HEADER_CLASS,
+  VOTE_CARD_SHELL_CLASS,
+  VOTE_CARD_SUMMARY_LINK_CLASS,
+  VOTE_CARD_TOP_ACTIONS_CLASS,
+} from "@/components/sessions/voteCardClasses";
+import { buildMobileVoteMetaLine } from "@/components/sessions/voteCardPresentation";
+import { buttonVariants } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { SectionHeader } from "@/components/ui/SectionHeader";
@@ -21,6 +29,8 @@ export const dynamic = "force-dynamic";
 const ACTIVE_VOTES_PAGE_SIZE = 20;
 const HISTORY_VOTES_PAGE_SIZE = 20;
 const PUBLIC_VOTES_PAGE_SIZE = 12;
+const COMPACT_ACTION_BUTTON_CLASS =
+  "!h-9 !justify-center !px-2.5 !py-0 !text-xs sm:!h-10 sm:!px-4 sm:!text-sm";
 
 type SearchParams = Record<string, string | string[] | undefined>;
 
@@ -262,49 +272,70 @@ function VoteRow({ vote, viewer }: { vote: VoteListItem; viewer: VoteViewer }) {
     isLocked: vote.isLocked,
     sessionId: vote.id,
   });
-  const showStatusBadge = vote.status !== "OPEN";
+  const mobileMetaLabel = buildMobileVoteMetaLine({
+    itemCount: vote._count.items,
+    participantCount: vote._count.participants,
+    updatedAt: vote.updatedAt,
+  });
+  const mobileActionLabel =
+    action.label === "Resume"
+      ? "Go"
+      : action.label === "Results"
+        ? "Result"
+        : action.label === "Join"
+          ? "Join"
+          : action.label;
 
   return (
-    <div className="card-hover-lift flex flex-col gap-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-4 transition-colors hover:border-[var(--border-strong)] sm:flex-row sm:items-center sm:gap-5">
-      <Link href={`/sessions/${vote.id}`} className="min-w-0 flex-1">
-        <VotePreviewSummary
-          title={vote.name}
-          detailsLabel={detailsLabel}
-          secondaryLabel={secondaryLabel}
-          items={vote.items}
-          chips={chips}
-          sourceLabel={sourceLabel}
-        />
-      </Link>
-      <div className="flex flex-wrap items-center gap-2 sm:shrink-0">
-        {showStatusBadge && <StatusBadge status={vote.status} />}
+    <div className={VOTE_CARD_SHELL_CLASS}>
+      <div className={VOTE_CARD_HEADER_CLASS}>
+        <Link href={`/sessions/${vote.id}`} className={VOTE_CARD_SUMMARY_LINK_CLASS}>
+          <VotePreviewSummary
+            title={vote.name}
+            detailsLabel={detailsLabel}
+            secondaryLabel={secondaryLabel}
+            mobileMetaLabel={mobileMetaLabel}
+            items={vote.items}
+            chips={chips}
+            sourceLabel={sourceLabel}
+          />
+        </Link>
+        <div className={VOTE_CARD_TOP_ACTIONS_CLASS}>
+          <StatusBadge status={vote.status} />
+        </div>
+      </div>
+      <div className={VOTE_CARD_BOTTOM_ACTIONS_CLASS}>
         <ShareVoteButton
           joinCode={vote.joinCode}
           creatorId={vote.creatorId}
           status={vote.status}
           isLocked={vote.isLocked}
-          className={buttonSizes.equalAction}
+          label="Share"
+          iconOnly
+          className={COMPACT_ACTION_BUTTON_CLASS}
         />
         <Link
           href={action.href}
-          className={`${buttonVariants.secondary} ${buttonSizes.equalAction}`}
+          className={`${buttonVariants.secondary} ${COMPACT_ACTION_BUTTON_CLASS}`}
         >
-          {action.label}
+          <span className="sm:hidden">{mobileActionLabel}</span>
+          <span className="hidden sm:inline">{action.label}</span>
         </Link>
         <CloseVoteButton
           sessionId={vote.id}
           creatorId={vote.creatorId}
           status={vote.status}
-          label="End vote"
-          className={buttonSizes.equalAction}
+          label="End"
+          className={COMPACT_ACTION_BUTTON_CLASS}
         />
         <ReopenVoteButton
           sessionId={vote.id}
           creatorId={vote.creatorId}
           status={vote.status}
           label="Reopen"
+          className={COMPACT_ACTION_BUTTON_CLASS}
         />
-        <DeleteVoteButton sessionId={vote.id} creatorId={vote.creatorId} />
+        <DeleteVoteButton sessionId={vote.id} creatorId={vote.creatorId} className="shrink-0" />
       </div>
     </div>
   );

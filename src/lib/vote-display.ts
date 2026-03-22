@@ -4,6 +4,7 @@ export type VoteViewer = "owner" | "participant" | "browser";
 
 export interface VoteDisplayChip {
   label: string;
+  shortLabel?: string;
   tone: "neutral" | "accent" | "success" | "warning" | "public" | "private" | "space";
 }
 
@@ -35,9 +36,9 @@ export function buildVoteDisplay({
   const chips: VoteDisplayChip[] = [];
 
   if (viewer === "owner") {
-    chips.push({ label: "Your vote", tone: "accent" });
+    chips.push({ label: "Your vote", shortLabel: "Yours", tone: "accent" });
   } else if (viewer === "participant") {
-    chips.push({ label: "You joined", tone: "accent" });
+    chips.push({ label: "You joined", shortLabel: "Joined", tone: "accent" });
   }
 
   const visibilityLabel =
@@ -59,11 +60,23 @@ export function buildVoteDisplay({
         : visibilityLabel === "Private"
           ? "private"
           : "neutral";
-  chips.push({ label: visibilityLabel, tone: visibilityTone });
+  chips.push({
+    label: visibilityLabel,
+    shortLabel:
+      visibilityLabel === "Public"
+        ? "Pub"
+        : visibilityLabel === "Private"
+          ? "Priv"
+          : visibilityLabel === "Open space" || visibilityLabel === "Private space"
+            ? "Space"
+            : visibilityLabel,
+    tone: visibilityTone,
+  });
 
   if (status === "OPEN") {
     chips.push({
       label: isLocked ? "Locked" : "Open to join",
+      shortLabel: isLocked ? "Locked" : "Open",
       tone: isLocked ? "warning" : "success",
     });
   }

@@ -21,6 +21,14 @@ find_command() {
   return 1
 }
 
+require_command() {
+  local cmd="${1:-}"
+  if [[ -z "${cmd}" ]] || ! command -v "${cmd}" >/dev/null 2>&1; then
+    echo "Missing required command: ${cmd:-<unspecified>}" >&2
+    exit 1
+  fi
+}
+
 SSH_BIN="${SSH_BIN:-$(find_command ssh ssh.exe || true)}"
 if [[ -z "${SSH_BIN}" ]]; then
   echo "Missing required command: ssh (or ssh.exe)" >&2

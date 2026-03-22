@@ -3,6 +3,13 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ShareVoteButton } from "@/components/sessions/ShareVoteButton";
+import {
+  VOTE_CARD_HEADER_CLASS,
+  VOTE_CARD_SHELL_CLASS,
+  VOTE_CARD_SUMMARY_LINK_CLASS,
+  VOTE_CARD_TOP_ACTIONS_CLASS,
+} from "@/components/sessions/voteCardClasses";
+import { buildMobileVoteMetaLine } from "@/components/sessions/voteCardPresentation";
 import { buttonVariants } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ListPreviewCard } from "@/components/ui/ListPreviewCard";
@@ -53,34 +60,34 @@ export function HomeContent({ initialData = null }: { initialData?: HomeData | n
   const keepGoingPreview = keepGoingSessions.slice(0, 4);
   const listPreview = myLists;
   const fromMyListsPreview = votesFromMyLists;
+  const heroCtaClass =
+    "min-w-0 w-full whitespace-nowrap !px-2 !py-2 !text-[0.72rem] sm:w-auto sm:!px-8 sm:!py-2.5 sm:!text-base max-[380px]:!px-1.5 max-[380px]:!py-1.5 max-[380px]:!text-[0.68rem]";
 
   return (
-    <div className="space-y-10 pt-2 sm:pt-3">
-      <section className="rounded-3xl border border-[var(--border-subtle)] bg-[linear-gradient(135deg,var(--bg-surface),var(--bg-elevated),var(--bg-elevated))] p-5 sm:p-8">
+    <div className="space-y-8 pt-2 sm:space-y-10 sm:pt-3">
+      <section className="rounded-3xl border border-[var(--border-subtle)] bg-[linear-gradient(135deg,var(--bg-surface),var(--bg-elevated),var(--bg-elevated))] p-4 sm:p-8">
         <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[var(--accent-primary)]">
           TierList+
         </p>
-        <h1 className="mt-3 text-3xl font-bold tracking-tight sm:text-5xl">
+        <h1 className="mt-2.5 text-[1.95rem] font-bold leading-[1.05] tracking-tight sm:mt-3 sm:text-5xl">
           Rank anything with your friends
         </h1>
-        <p className="mt-3 max-w-2xl text-sm text-[var(--fg-muted)] sm:text-lg">
+        <p className="mt-2.5 max-w-2xl text-sm text-[var(--fg-muted)] sm:mt-3 sm:text-lg">
           Make a tier list, start a vote, and jump back into the latest chaos.
         </p>
-        <div className="mt-6 flex flex-col items-start gap-3 sm:flex-row sm:items-center">
-          <Link
-            href="/sessions/new"
-            className={`${buttonVariants.primary} inline-flex items-center justify-center`}
-          >
-            Start a Vote
+        <div className="mt-6 grid w-full grid-cols-3 gap-2 sm:flex sm:w-auto sm:items-center sm:gap-3">
+          <Link href="/sessions/new" className={`${buttonVariants.primary} ${heroCtaClass}`}>
+            <span className="sm:hidden">Start</span>
+            <span className="hidden sm:inline">Start a Vote</span>
           </Link>
-          <div className="flex flex-wrap items-center gap-3">
-            <Link href="/sessions/join" className={buttonVariants.secondary}>
-              Join a Vote
-            </Link>
-            <Link href="/templates/new" className={buttonVariants.secondary}>
-              Make a Tier List
-            </Link>
-          </div>
+          <Link href="/sessions/join" className={`${buttonVariants.secondary} ${heroCtaClass}`}>
+            <span className="sm:hidden">Join</span>
+            <span className="hidden sm:inline">Join a Vote</span>
+          </Link>
+          <Link href="/templates/new" className={`${buttonVariants.secondary} ${heroCtaClass}`}>
+            <span className="sm:hidden">New List</span>
+            <span className="hidden sm:inline">Make a Tier List</span>
+          </Link>
         </div>
       </section>
       <div className="space-y-10 px-5 sm:px-8">
@@ -100,7 +107,7 @@ export function HomeContent({ initialData = null }: { initialData?: HomeData | n
         {keepGoingPreview.length > 0 && (
           <section>
             <SectionHeader title="Keep Going" actionHref="/sessions" actionLabel="See all votes" />
-            <div className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-2">
               {keepGoingPreview.map((vote) => (
                 <VoteRow
                   key={`${vote.involvement}-${vote.id}`}
@@ -141,7 +148,7 @@ export function HomeContent({ initialData = null }: { initialData?: HomeData | n
               actionHref="/sessions"
               actionLabel="See all votes"
             />
-            <div className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-2">
               {fromMyListsPreview.map((vote) => (
                 <VoteRow
                   key={`from-your-lists-${vote.id}`}
@@ -188,31 +195,39 @@ function VoteRow({ vote, contextLabel }: { vote: HomeVoteSummary; contextLabel?:
     contextLabel && contextLabel !== "You started this" && contextLabel !== "You're already in"
       ? `${contextLabel} · ${detailsLabel}`
       : detailsLabel;
+  const mobileMetaLabel = buildMobileVoteMetaLine({
+    itemCount: vote._count.items,
+    participantCount: vote._count.participants,
+    updatedAt: vote.updatedAt,
+  });
 
   return (
-    <div className="card-hover-lift flex items-start justify-between gap-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-4 transition-colors hover:border-[var(--border-strong)]">
-      <Link href={`/sessions/${vote.id}`} className="min-w-0 flex-1">
-        <VotePreviewSummary
-          title={vote.name}
-          detailsLabel={displayDetailsLabel}
-          secondaryLabel={secondaryLabel}
-          items={vote.items}
-          chips={chips}
-          sourceLabel={sourceLabel}
-        />
-      </Link>
-      <div className="flex shrink-0 items-center gap-2 pt-0.5">
-        {viewer === "owner" && (
-          <ShareVoteButton
-            joinCode={vote.joinCode}
-            creatorId={null}
-            status={vote.status}
-            isLocked={vote.isLocked}
-            canShareOverride
-            iconOnly
+    <div className={VOTE_CARD_SHELL_CLASS}>
+      <div className={VOTE_CARD_HEADER_CLASS}>
+        <Link href={`/sessions/${vote.id}`} className={VOTE_CARD_SUMMARY_LINK_CLASS}>
+          <VotePreviewSummary
+            title={vote.name}
+            detailsLabel={displayDetailsLabel}
+            secondaryLabel={secondaryLabel}
+            mobileMetaLabel={mobileMetaLabel}
+            items={vote.items}
+            chips={chips}
+            sourceLabel={sourceLabel}
           />
-        )}
-        <StatusBadge status={vote.status} />
+        </Link>
+        <div className={VOTE_CARD_TOP_ACTIONS_CLASS}>
+          {viewer === "owner" && (
+            <ShareVoteButton
+              joinCode={vote.joinCode}
+              creatorId={null}
+              status={vote.status}
+              isLocked={vote.isLocked}
+              canShareOverride
+              iconOnly
+            />
+          )}
+          <StatusBadge status={vote.status} />
+        </div>
       </div>
     </div>
   );

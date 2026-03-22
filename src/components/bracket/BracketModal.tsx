@@ -132,9 +132,9 @@ export function BracketModal({ items, onComplete, onCancel }: BracketModalProps)
         onCancel();
       }}
       aria-labelledby="bracket-modal-title"
-      className="fixed inset-0 z-50 m-auto flex max-h-[calc(100dvh-2rem)] w-[min(calc(100vw-2rem),32rem)] flex-col overflow-hidden rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-elevated)] p-0 text-[var(--fg-primary)] shadow-2xl shadow-black/60 backdrop:bg-[var(--bg-overlay)] focus:outline-none"
+      className="fixed inset-0 z-50 m-auto flex max-h-[calc(100dvh-1rem)] w-[min(calc(100vw-1rem),32rem)] flex-col overflow-hidden rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-elevated)] p-0 text-[var(--fg-primary)] shadow-2xl shadow-black/60 backdrop:bg-[var(--bg-overlay)] focus:outline-none"
     >
-      <div className="px-4 pt-4 sm:px-6 sm:pt-6">
+      <div className="px-3 pt-4 sm:px-6 sm:pt-6">
         <div className="mb-4 text-center sm:mb-6">
           <h2 id="bracket-modal-title" className="text-lg font-bold">
             Head-to-Head Mode
@@ -151,7 +151,7 @@ export function BracketModal({ items, onComplete, onCancel }: BracketModalProps)
         </div>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4 sm:px-6 sm:pb-6">
+      <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-4 sm:px-6 sm:pb-6">
         {!isComplete && itemA && itemB && (
           <MatchupVoter itemA={itemA} itemB={itemB} size="sm" onVote={handleVote} />
         )}
@@ -187,7 +187,7 @@ export function BracketModal({ items, onComplete, onCancel }: BracketModalProps)
         )}
       </div>
 
-      <div className="border-t border-[var(--border-subtle)] bg-[var(--bg-elevated)] px-4 py-3 sm:px-6 sm:py-4">
+      <div className="border-t border-[var(--border-subtle)] bg-[var(--bg-elevated)] px-3 py-3 sm:px-6 sm:py-4">
         {/* Progress bar */}
         <div className="h-1 overflow-hidden rounded-full bg-[var(--bg-surface-hover)]">
           <div

@@ -6,11 +6,12 @@ import type { Item } from "@/types";
 
 const sizeConfig = {
   sm: {
-    container: "w-full gap-3",
-    card: "min-w-0 flex-1 gap-2.5 p-2.5 sm:w-44 sm:flex-none sm:gap-2 sm:p-4",
-    img: "mx-auto aspect-square w-full max-w-[8.25rem] sm:h-24 sm:w-24 sm:max-w-none",
-    vs: "text-lg sm:text-xl",
-    label: "w-full text-sm font-medium leading-tight",
+    container: "w-full gap-2",
+    card: "min-w-0 flex-1 gap-2 p-2 sm:w-44 sm:flex-none sm:gap-2 sm:p-4",
+    img: "mx-auto aspect-square w-full max-w-[6.75rem] sm:h-24 sm:w-24 sm:max-w-none",
+    vs: "text-base sm:text-xl",
+    label:
+      "w-full text-center text-[0.78rem] font-medium leading-tight [overflow-wrap:anywhere] sm:text-sm",
   },
   lg: {
     container: "gap-8",

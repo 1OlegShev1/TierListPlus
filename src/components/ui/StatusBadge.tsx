@@ -13,7 +13,7 @@ const statusLabels: Record<string, string> = {
 export function StatusBadge({ status }: { status: string }) {
   return (
     <span
-      className={`rounded-full px-4 py-1.5 text-sm font-medium ${
+      className={`rounded-full px-3 py-1 text-xs font-medium sm:px-4 sm:py-1.5 sm:text-sm ${
         statusStyles[status] ?? statusStyles.ARCHIVED
       }`}
     >
