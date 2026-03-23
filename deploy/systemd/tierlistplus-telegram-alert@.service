@@ -1,0 +1,9 @@
+[Unit]
+Description=Send Telegram alert for failed unit %I
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+EnvironmentFile=-/etc/tierlistplus/telegram-alert.env
+ExecStart=/usr/local/bin/tierlistplus-telegram-alert %i

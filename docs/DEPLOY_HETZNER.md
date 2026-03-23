@@ -175,6 +175,23 @@ Healthcheck verifies:
 - public HTTPS response from `https://tierlistplus.com`
 - `app`, `db`, and `caddy` container state
 - root filesystem usage stays below `85%`
+- optional CPU pressure threshold (`90%` by default)
+
+You can tune healthcheck thresholds without editing service units by creating
+`/etc/tierlistplus/healthcheck.env` on the VPS, for example:
+
+```dotenv
+DISK_MAX_USAGE=90
+CPU_CHECK_ENABLED=true
+CPU_MAX_USAGE=95
+CPU_SAMPLE_COUNT=4
+CPU_REQUIRED_BREACHES=4
+```
+
+The Telegram failure alert now sends a concise summary with:
+- failing check reasons (for example `cpu`)
+- current app/db/caddy state
+- disk usage and CPU sample summary
 
 Inspect the latest result:
 

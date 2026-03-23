@@ -12,6 +12,8 @@ TIMER_FILE="${REPO_ROOT}/deploy/systemd/tierlistplus-healthcheck.timer"
 UPLOAD_GC="${REPO_ROOT}/deploy/systemd/tierlistplus-upload-gc.sh"
 UPLOAD_GC_SERVICE="${REPO_ROOT}/deploy/systemd/tierlistplus-upload-gc.service"
 UPLOAD_GC_TIMER="${REPO_ROOT}/deploy/systemd/tierlistplus-upload-gc.timer"
+TELEGRAM_ALERT="${REPO_ROOT}/deploy/systemd/tierlistplus-telegram-alert.sh"
+TELEGRAM_ALERT_SERVICE="${REPO_ROOT}/deploy/systemd/tierlistplus-telegram-alert@.service"
 
 find_command() {
   local cmd
@@ -64,6 +66,8 @@ copy_file "${TIMER_FILE}" "${REMOTE_HOST}:/tmp/tierlistplus-healthcheck.timer"
 copy_file "${UPLOAD_GC}" "${REMOTE_HOST}:/tmp/tierlistplus-upload-gc"
 copy_file "${UPLOAD_GC_SERVICE}" "${REMOTE_HOST}:/tmp/tierlistplus-upload-gc.service"
 copy_file "${UPLOAD_GC_TIMER}" "${REMOTE_HOST}:/tmp/tierlistplus-upload-gc.timer"
+copy_file "${TELEGRAM_ALERT}" "${REMOTE_HOST}:/tmp/tierlistplus-telegram-alert"
+copy_file "${TELEGRAM_ALERT_SERVICE}" "${REMOTE_HOST}:/tmp/tierlistplus-telegram-alert@.service"
 
 "${SSH_BIN}" "${REMOTE_HOST}" "
   sudo install -m 755 /tmp/tierlistplus-healthcheck /usr/local/bin/tierlistplus-healthcheck
@@ -72,17 +76,18 @@ copy_file "${UPLOAD_GC_TIMER}" "${REMOTE_HOST}:/tmp/tierlistplus-upload-gc.timer
   sudo install -m 755 /tmp/tierlistplus-upload-gc /usr/local/bin/tierlistplus-upload-gc
   sudo install -m 644 /tmp/tierlistplus-upload-gc.service /etc/systemd/system/tierlistplus-upload-gc.service
   sudo install -m 644 /tmp/tierlistplus-upload-gc.timer /etc/systemd/system/tierlistplus-upload-gc.timer
+  sudo install -m 755 /tmp/tierlistplus-telegram-alert /usr/local/bin/tierlistplus-telegram-alert
+  sudo install -m 644 /tmp/tierlistplus-telegram-alert@.service /etc/systemd/system/tierlistplus-telegram-alert@.service
   rm -f /tmp/tierlistplus-healthcheck /tmp/tierlistplus-healthcheck.service /tmp/tierlistplus-healthcheck.timer
   rm -f /tmp/tierlistplus-upload-gc /tmp/tierlistplus-upload-gc.service /tmp/tierlistplus-upload-gc.timer
-  if sudo systemctl list-unit-files | grep -q '^tierlistplus-telegram-alert@.service'; then
-    sudo mkdir -p /etc/systemd/system/tierlistplus-healthcheck.service.d
-    printf '[Unit]\nOnFailure=tierlistplus-telegram-alert@%%n\n' | sudo tee /etc/systemd/system/tierlistplus-healthcheck.service.d/alert.conf >/dev/null
-    if sudo systemctl list-unit-files | grep -q '^tierlistplus-db-backup.service'; then
-      sudo mkdir -p /etc/systemd/system/tierlistplus-db-backup.service.d
-      printf '[Unit]\nOnFailure=tierlistplus-telegram-alert@%%n\n' | sudo tee /etc/systemd/system/tierlistplus-db-backup.service.d/alert.conf >/dev/null
-      if sudo systemctl list-unit-files | grep -q '^tierlistplus-telegram-success@.service'; then
-        printf '[Unit]\nOnSuccess=tierlistplus-telegram-success@%%n\n' | sudo tee /etc/systemd/system/tierlistplus-db-backup.service.d/success.conf >/dev/null
-      fi
+  rm -f /tmp/tierlistplus-telegram-alert /tmp/tierlistplus-telegram-alert@.service
+  sudo mkdir -p /etc/systemd/system/tierlistplus-healthcheck.service.d
+  printf '[Unit]\nOnFailure=tierlistplus-telegram-alert@%%n\n' | sudo tee /etc/systemd/system/tierlistplus-healthcheck.service.d/alert.conf >/dev/null
+  if sudo systemctl list-unit-files | grep -q '^tierlistplus-db-backup.service'; then
+    sudo mkdir -p /etc/systemd/system/tierlistplus-db-backup.service.d
+    printf '[Unit]\nOnFailure=tierlistplus-telegram-alert@%%n\n' | sudo tee /etc/systemd/system/tierlistplus-db-backup.service.d/alert.conf >/dev/null
+    if sudo systemctl list-unit-files | grep -q '^tierlistplus-telegram-success@.service'; then
+      printf '[Unit]\nOnSuccess=tierlistplus-telegram-success@%%n\n' | sudo tee /etc/systemd/system/tierlistplus-db-backup.service.d/success.conf >/dev/null
     fi
   fi
   sudo systemctl daemon-reload
