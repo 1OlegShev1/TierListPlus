@@ -202,9 +202,14 @@ function VoteRow({ vote, contextLabel }: { vote: HomeVoteSummary; contextLabel?:
   });
 
   return (
-    <div className={VOTE_CARD_SHELL_CLASS}>
+    <div className={`${VOTE_CARD_SHELL_CLASS} relative`}>
+      <Link
+        href={`/sessions/${vote.id}`}
+        aria-label={`Open vote ${vote.name}`}
+        className="absolute inset-0 z-10 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"
+      />
       <div className={VOTE_CARD_HEADER_CLASS}>
-        <Link href={`/sessions/${vote.id}`} className={VOTE_CARD_SUMMARY_LINK_CLASS}>
+        <div className={VOTE_CARD_SUMMARY_LINK_CLASS}>
           <VotePreviewSummary
             title={vote.name}
             detailsLabel={displayDetailsLabel}
@@ -214,8 +219,8 @@ function VoteRow({ vote, contextLabel }: { vote: HomeVoteSummary; contextLabel?:
             chips={chips}
             sourceLabel={sourceLabel}
           />
-        </Link>
-        <div className={VOTE_CARD_TOP_ACTIONS_CLASS}>
+        </div>
+        <div className={`${VOTE_CARD_TOP_ACTIONS_CLASS} relative z-20`}>
           {viewer === "owner" && (
             <ShareVoteButton
               joinCode={vote.joinCode}
