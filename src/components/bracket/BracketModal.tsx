@@ -132,7 +132,7 @@ export function BracketModal({ items, onComplete, onCancel }: BracketModalProps)
         onCancel();
       }}
       aria-labelledby="bracket-modal-title"
-      className="fixed inset-0 z-50 m-auto flex max-h-[calc(100dvh-1rem)] w-[min(calc(100vw-1rem),32rem)] flex-col overflow-hidden rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-elevated)] p-0 text-[var(--fg-primary)] shadow-2xl shadow-black/60 backdrop:bg-[var(--bg-overlay)] focus:outline-none"
+      className="fixed inset-0 z-50 m-auto max-h-[calc(100dvh-1rem)] w-[min(calc(100vw-1rem),32rem)] overflow-y-auto rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-elevated)] p-0 text-[var(--fg-primary)] shadow-2xl shadow-black/60 backdrop:bg-[var(--bg-overlay)] focus:outline-none"
     >
       <div className="px-3 pt-4 sm:px-6 sm:pt-6">
         <div className="mb-4 text-center sm:mb-6">
@@ -151,7 +151,7 @@ export function BracketModal({ items, onComplete, onCancel }: BracketModalProps)
         </div>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-4 sm:px-6 sm:pb-6">
+      <div className="px-3 pb-4 sm:px-6 sm:pb-6">
         {!isComplete && itemA && itemB && (
           <MatchupVoter itemA={itemA} itemB={itemB} size="sm" onVote={handleVote} />
         )}

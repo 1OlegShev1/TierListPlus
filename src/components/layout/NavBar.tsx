@@ -66,7 +66,7 @@ export function NavBar({ isAdmin }: { isAdmin?: boolean }) {
             TierList<span className="text-[var(--accent-primary)]">+</span>
           </span>
         </Link>
-        <div className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto sm:gap-4 sm:overflow-visible">
+        <div className="scrollbar-hidden flex min-w-0 flex-1 items-center gap-1 overflow-x-auto sm:gap-4 sm:overflow-visible">
           {links.map((link) => {
             const isActive = link.href === "/" ? pathname === "/" : pathname.startsWith(link.href);
 
