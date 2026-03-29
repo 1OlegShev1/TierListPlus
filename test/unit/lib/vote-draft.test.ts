@@ -1,10 +1,13 @@
 // @vitest-environment jsdom
 
 import { clearDraft, getDraft, saveDraft } from "@/lib/vote-draft";
+import { ensureLocalStorageApi } from "../../helpers/local-storage";
 
 describe("vote-draft in the browser", () => {
   beforeEach(() => {
-    localStorage.clear();
+    ensureLocalStorageApi();
+    localStorage.removeItem("tierlistplus_draft_s1_p1");
+    localStorage.removeItem("tierlistplus_draft_s2_p2");
   });
 
   it("returns null for missing or malformed drafts", () => {
@@ -35,7 +38,7 @@ describe("vote-draft in the browser", () => {
     saveDraft("s1", "p1", { tiers: { S: ["i1"] }, unranked: [] });
     expect(localStorage.getItem("tierlistplus_draft_s1_p1")).toContain("i1");
 
-    const setItemSpy = vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+    const setItemSpy = vi.spyOn(localStorage, "setItem").mockImplementation(() => {
       throw new Error("full");
     });
     expect(() => saveDraft("s1", "p1", { tiers: {}, unranked: [] })).not.toThrow();

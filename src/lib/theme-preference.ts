@@ -9,10 +9,24 @@ export function isThemePreference(value: unknown): value is ThemePreference {
   return typeof value === "string" && (THEME_PREFERENCES as readonly string[]).includes(value);
 }
 
-export function readStoredThemePreference(): ThemePreference | null {
+function getLocalStorage(): Storage | null {
   if (typeof window === "undefined") return null;
-  const stored = window.localStorage.getItem(THEME_PREFERENCE_STORAGE_KEY);
-  return isThemePreference(stored) ? stored : null;
+  const storage = window.localStorage as Partial<Storage> | undefined;
+  if (!storage || typeof storage !== "object") return null;
+  if (typeof storage.getItem !== "function" || typeof storage.setItem !== "function") return null;
+  return storage as Storage;
+}
+
+export function readStoredThemePreference(): ThemePreference | null {
+  const storage = getLocalStorage();
+  if (!storage) return null;
+
+  try {
+    const stored = storage.getItem(THEME_PREFERENCE_STORAGE_KEY);
+    return isThemePreference(stored) ? stored : null;
+  } catch {
+    return null;
+  }
 }
 
 export function readDocumentThemePreference(): ThemePreference | null {
@@ -27,8 +41,14 @@ export function applyThemePreference(preference: ThemePreference) {
 }
 
 export function persistThemePreference(preference: ThemePreference) {
-  if (typeof window === "undefined") return;
-  window.localStorage.setItem(THEME_PREFERENCE_STORAGE_KEY, preference);
+  const storage = getLocalStorage();
+  if (!storage) return;
+
+  try {
+    storage.setItem(THEME_PREFERENCE_STORAGE_KEY, preference);
+  } catch {
+    // ignore unavailable storage (e.g., browser privacy mode)
+  }
 }
 
 export function notifyThemePreferenceChanged(preference: ThemePreference) {

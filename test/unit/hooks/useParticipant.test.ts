@@ -2,6 +2,7 @@
 
 import { renderHook } from "@testing-library/react";
 import { clearAllParticipants, saveParticipant, useParticipant } from "@/hooks/useParticipant";
+import { ensureLocalStorageApi } from "../../helpers/local-storage";
 
 const { getLocalUserId } = vi.hoisted(() => ({
   getLocalUserId: vi.fn<() => string | null>(() => "user_1"),
@@ -13,7 +14,8 @@ vi.mock("@/lib/device-identity", () => ({
 
 describe("useParticipant", () => {
   beforeEach(() => {
-    localStorage.clear();
+    ensureLocalStorageApi();
+    localStorage.removeItem("tierlistplus_participants");
     getLocalUserId.mockReturnValue("user_1");
   });
 
