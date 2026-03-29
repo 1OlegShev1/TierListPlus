@@ -129,7 +129,7 @@ Run this from repo root:
 ./scripts/deploy-hetzner.sh
 ```
 
-Default target host is `tieradmin@46.62.140.254`. You can override:
+Default target host is `tieradmin@100.120.76.1` (Tailscale SSH path). You can override:
 
 ```bash
 ./scripts/deploy-hetzner.sh tieradmin@<new-ip> /opt/tierlistplus
@@ -149,14 +149,14 @@ Important: production uploads are stored in the named `uploads_data` Docker volu
 
 ```bash
 curl -I https://tierlistplus.com
-ssh tieradmin@46.62.140.254 "sudo docker compose --profile with-domain --env-file /opt/tierlistplus/.env.production -f /opt/tierlistplus/docker-compose.prod.yml ps"
+ssh tieradmin@100.120.76.1 "sudo docker compose --profile with-domain --env-file /opt/tierlistplus/.env.production -f /opt/tierlistplus/docker-compose.prod.yml ps"
 ```
 
 ## Logs
 
 ```bash
-ssh tieradmin@46.62.140.254 "sudo docker compose --profile with-domain --env-file /opt/tierlistplus/.env.production -f /opt/tierlistplus/docker-compose.prod.yml logs -f app"
-ssh tieradmin@46.62.140.254 "sudo docker compose --profile with-domain --env-file /opt/tierlistplus/.env.production -f /opt/tierlistplus/docker-compose.prod.yml logs -f caddy"
+ssh tieradmin@100.120.76.1 "sudo docker compose --profile with-domain --env-file /opt/tierlistplus/.env.production -f /opt/tierlistplus/docker-compose.prod.yml logs -f app"
+ssh tieradmin@100.120.76.1 "sudo docker compose --profile with-domain --env-file /opt/tierlistplus/.env.production -f /opt/tierlistplus/docker-compose.prod.yml logs -f caddy"
 ```
 
 ## Monitoring
@@ -196,10 +196,10 @@ The Telegram failure alert now sends a concise summary with:
 Inspect the latest result:
 
 ```bash
-ssh tieradmin@46.62.140.254 "sudo systemctl --no-pager --full status tierlistplus-healthcheck.service"
-ssh tieradmin@46.62.140.254 "sudo journalctl -u tierlistplus-healthcheck.service -n 50 --no-pager"
-ssh tieradmin@46.62.140.254 "sudo journalctl -u tierlistplus-healthcheck.service -f"
-ssh tieradmin@46.62.140.254 "sudo systemctl list-timers tierlistplus-healthcheck.timer --all"
+ssh tieradmin@100.120.76.1 "sudo systemctl --no-pager --full status tierlistplus-healthcheck.service"
+ssh tieradmin@100.120.76.1 "sudo journalctl -u tierlistplus-healthcheck.service -n 50 --no-pager"
+ssh tieradmin@100.120.76.1 "sudo journalctl -u tierlistplus-healthcheck.service -f"
+ssh tieradmin@100.120.76.1 "sudo systemctl list-timers tierlistplus-healthcheck.timer --all"
 ```
 
 ## Cleanup unattached uploads
@@ -207,15 +207,15 @@ ssh tieradmin@46.62.140.254 "sudo systemctl list-timers tierlistplus-healthcheck
 Run the upload cleanup manually:
 
 ```bash
-ssh tieradmin@46.62.140.254 "sudo docker compose --profile with-domain --env-file /opt/tierlistplus/.env.production -f /opt/tierlistplus/docker-compose.prod.yml exec -T app node scripts/cleanup-orphan-uploads.mjs"
+ssh tieradmin@100.120.76.1 "sudo docker compose --profile with-domain --env-file /opt/tierlistplus/.env.production -f /opt/tierlistplus/docker-compose.prod.yml exec -T app node scripts/cleanup-orphan-uploads.mjs"
 ```
 
 The monitoring installer also sets up a daily systemd timer (`tierlistplus-upload-gc.timer`).
 Inspect it:
 
 ```bash
-ssh tieradmin@46.62.140.254 "sudo systemctl --no-pager --full status tierlistplus-upload-gc.timer"
-ssh tieradmin@46.62.140.254 "sudo journalctl -u tierlistplus-upload-gc.service -n 50 --no-pager"
+ssh tieradmin@100.120.76.1 "sudo systemctl --no-pager --full status tierlistplus-upload-gc.timer"
+ssh tieradmin@100.120.76.1 "sudo journalctl -u tierlistplus-upload-gc.service -n 50 --no-pager"
 ```
 
 This cleanup operates on the same `uploads_data` volume mounted into the app container.
@@ -231,14 +231,51 @@ The backup job:
 Inspect latest runs:
 
 ```bash
-ssh tieradmin@46.62.140.254 "sudo systemctl --no-pager --full status tierlistplus-db-backup.timer"
-ssh tieradmin@46.62.140.254 "sudo journalctl -u tierlistplus-db-backup.service -n 50 --no-pager"
+ssh tieradmin@100.120.76.1 "sudo systemctl --no-pager --full status tierlistplus-db-backup.timer"
+ssh tieradmin@100.120.76.1 "sudo journalctl -u tierlistplus-db-backup.service -n 50 --no-pager"
 ```
 
 Manual one-off DB dump command (optional):
 
 ```bash
-ssh tieradmin@46.62.140.254 "sudo sh -lc 'cd /opt/tierlistplus && docker compose --env-file .env.production -f docker-compose.prod.yml exec -T db sh -lc '\\''pg_dump -U \"\$POSTGRES_USER\" \"\$POSTGRES_DB\"'\\'' > /root/tierlistplus-\$(date +%F).sql'"
+ssh tieradmin@100.120.76.1 "sudo sh -lc 'cd /opt/tierlistplus && docker compose --env-file .env.production -f docker-compose.prod.yml exec -T db sh -lc '\\''pg_dump -U \"\$POSTGRES_USER\" \"\$POSTGRES_DB\"'\\'' > /root/tierlistplus-\$(date +%F).sql'"
+```
+
+## System package auto-updates
+
+`unattended-upgrades` is installed and enabled by this setup, but the current default
+rules only apply updates from:
+- `${distro_id}:${distro_codename}`
+- `${distro_id}:${distro_codename}-security`
+- Ubuntu ESM security pockets
+
+That means updates from `noble-updates` and third-party repos (for example Docker CE
+and Tailscale) are typically not auto-installed unless you extend
+`/etc/apt/apt.conf.d/50unattended-upgrades` to include those origins.
+
+To auto-apply `noble-updates` + Docker + Tailscale as well, add a local override:
+
+```bash
+cat >/etc/apt/apt.conf.d/52-tierlistplus-unattended-upgrades <<'EOF'
+Unattended-Upgrade::Origins-Pattern {
+        "o=Ubuntu,a=noble";
+        "o=Ubuntu,a=noble-security";
+        "o=Ubuntu,a=noble-updates";
+        "o=UbuntuESMApps,a=noble-apps-security";
+        "o=UbuntuESM,a=noble-infra-security";
+        "o=Docker,a=noble";
+        "o=Tailscale";
+};
+EOF
+chmod 644 /etc/apt/apt.conf.d/52-tierlistplus-unattended-upgrades
+```
+
+Quick checks:
+
+```bash
+ssh tieradmin@100.120.76.1 "sudo systemctl list-timers --all apt-daily.timer apt-daily-upgrade.timer --no-pager"
+ssh tieradmin@100.120.76.1 "sudo unattended-upgrade --dry-run --debug"
+ssh tieradmin@100.120.76.1 "sudo apt-get update -qq && apt list --upgradable"
 ```
 
 ## Future Roadmap
