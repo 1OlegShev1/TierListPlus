@@ -247,7 +247,7 @@ export async function requireParticipantOwner(
     if (rebound.userId === requestUserId) return rebound;
   }
 
-  forbidden("You are not allowed to submit or view votes for this participant");
+  forbidden("You are not allowed to submit or view rankings for this participant");
 }
 
 /**
@@ -261,7 +261,7 @@ export async function requireOpenSession(sessionId: string) {
   });
   if (!session) notFound("Session not found");
   if (session.status !== "OPEN") {
-    throw new ApiError(409, "Session is not accepting votes");
+    throw new ApiError(409, "Session is not accepting rankings");
   }
   return session;
 }

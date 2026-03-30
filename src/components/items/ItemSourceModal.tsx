@@ -873,7 +873,7 @@ export function ItemSourceModal({
                 disabled={saving}
                 placeholder={
                   isCreateFromUrlMode
-                    ? "Short context for voters (optional)"
+                    ? "Short context for rankers (optional)"
                     : "Official audio, live version, remix, etc."
                 }
                 className="w-full"

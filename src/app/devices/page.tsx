@@ -6,7 +6,7 @@ export default function DevicesPage() {
     <div className="mx-auto max-w-3xl">
       <PageHeader
         title="Devices"
-        subtitle="Link browser profiles across phones, tablets, and computers to keep your votes with you."
+        subtitle="Link browser profiles across phones, tablets, and computers to keep your rankings with you."
       />
       <RecoverySection />
     </div>

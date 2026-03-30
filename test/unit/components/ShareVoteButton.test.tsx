@@ -139,7 +139,7 @@ describe("ShareVoteButton", () => {
     expect(screen.getByText("Private Space Access")).toBeTruthy();
     expect(
       screen.getByText(
-        "People outside the space can open this link, but they will need a space invite before they can vote.",
+        "People outside the space can open this link, but they will need a space invite before they can rank.",
       ),
     ).toBeTruthy();
   });

@@ -23,7 +23,7 @@ export function QuickStartVoteButton({
   templateId,
   spaceId = null,
   initialNickname = null,
-  label = "Start Vote",
+  label = "Start Ranking",
   variant = "primary",
   className,
 }: QuickStartVoteButtonProps) {
@@ -32,7 +32,7 @@ export function QuickStartVoteButton({
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const defaultVoteName = (initialVoteName.trim() || "Untitled Vote").slice(0, 100);
+  const defaultVoteName = (initialVoteName.trim() || "Untitled Ranking").slice(0, 100);
   const defaultNickname = (initialNickname?.trim() || "Host").slice(0, 30);
   const canCreate = !creating && !userLoading && !!userId;
 
@@ -55,7 +55,7 @@ export function QuickStartVoteButton({
       saveParticipant(data.id, data.participantId, data.participantNickname);
       router.push(`/sessions/${data.id}/vote`);
     } catch (err) {
-      setError(getErrorMessage(err, "Could not start this vote"));
+      setError(getErrorMessage(err, "Could not start this ranking"));
     } finally {
       setCreating(false);
     }

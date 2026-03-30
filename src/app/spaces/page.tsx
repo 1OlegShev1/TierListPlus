@@ -73,7 +73,7 @@ export default async function SpacesPage({
     <div className="space-y-8">
       <PageHeader
         title="Spaces"
-        subtitle="Discover communities, track active spaces, and jump into shared votes."
+        subtitle="Discover communities, track active spaces, and jump into shared rankings."
       />
 
       <section>
@@ -106,7 +106,7 @@ export default async function SpacesPage({
       <section>
         <SectionHeader
           title="Discover Open Spaces"
-          subtitle="Open communities you can browse, join, and vote in."
+          subtitle="Open communities you can browse, join, and rank in."
         />
         {discoverOpenSpaces.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-[var(--border-subtle)] bg-[var(--bg-soft-contrast)] px-5 py-4 text-sm text-[var(--fg-subtle)]">
@@ -201,7 +201,7 @@ function SpaceCard({
         <p className="relative mt-3 text-sm text-[var(--fg-muted)]">{description}</p>
       ) : null}
       <p className="mt-3 text-sm text-[var(--fg-muted)]">
-        {memberCount} members · {listCount} lists · {voteCount} votes
+        {memberCount} members · {listCount} lists · {voteCount} rankings
       </p>
     </Link>
   );

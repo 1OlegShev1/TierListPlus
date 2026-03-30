@@ -24,7 +24,7 @@ export function buildListDisplay({
   const visibilityTone =
     visibilityLabel === "Public" ? "public" : visibilityLabel === "Private" ? "private" : "neutral";
   const chips: ListDisplayChip[] = [
-    { label: viewer === "owner" ? "Your list" : "Shared list", tone: "accent" },
+    { label: viewer === "owner" ? "Starter list" : "Shared starter list", tone: "accent" },
     { label: visibilityLabel, tone: visibilityTone },
   ];
 

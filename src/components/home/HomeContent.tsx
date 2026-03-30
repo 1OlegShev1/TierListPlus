@@ -73,20 +73,20 @@ export function HomeContent({ initialData = null }: { initialData?: HomeData | n
           Rank anything with your friends
         </h1>
         <p className="mt-2.5 max-w-2xl text-sm text-[var(--fg-muted)] sm:mt-3 sm:text-lg">
-          Make a tier list, start a vote, and jump back into the latest chaos.
+          Make a list, start a ranking, and jump back into the latest chaos.
         </p>
         <div className="mt-6 grid w-full grid-cols-3 gap-2 sm:flex sm:w-auto sm:items-center sm:gap-3">
           <Link href="/sessions/new" className={`${buttonVariants.primary} ${heroCtaClass}`}>
             <span className="sm:hidden">Start</span>
-            <span className="hidden sm:inline">Start a Vote</span>
+            <span className="hidden sm:inline">Start Ranking</span>
           </Link>
           <Link href="/sessions/join" className={`${buttonVariants.secondary} ${heroCtaClass}`}>
             <span className="sm:hidden">Join</span>
-            <span className="hidden sm:inline">Join a Vote</span>
+            <span className="hidden sm:inline">Join Ranking</span>
           </Link>
           <Link href="/templates/new" className={`${buttonVariants.secondary} ${heroCtaClass}`}>
             <span className="sm:hidden">New List</span>
-            <span className="hidden sm:inline">Make a Tier List</span>
+            <span className="hidden sm:inline">Make a List</span>
           </Link>
         </div>
       </section>
@@ -99,14 +99,18 @@ export function HomeContent({ initialData = null }: { initialData?: HomeData | n
           <div className="rounded-3xl border border-[var(--border-default)] bg-[var(--bg-surface)] px-6 py-10 text-center">
             <p className="text-xl font-medium text-[var(--fg-primary)]">Nothing cooking yet</p>
             <p className="mt-3 text-base text-[var(--fg-muted)]">
-              Make a list or jump into a vote to get things moving.
+              Make a list or jump into a ranking to get things moving.
             </p>
           </div>
         )}
 
         {keepGoingPreview.length > 0 && (
           <section>
-            <SectionHeader title="Keep Going" actionHref="/sessions" actionLabel="See all votes" />
+            <SectionHeader
+              title="Keep Going"
+              actionHref="/sessions"
+              actionLabel="See all rankings"
+            />
             <div className="grid gap-4 md:grid-cols-2">
               {keepGoingPreview.map((vote) => (
                 <VoteRow
@@ -144,9 +148,9 @@ export function HomeContent({ initialData = null }: { initialData?: HomeData | n
           <section>
             <SectionHeader
               title="From Your Lists"
-              subtitle="Public votes other people started using your tier lists."
+              subtitle="Public rankings other people started using your lists."
               actionHref="/sessions"
-              actionLabel="See all votes"
+              actionLabel="See all rankings"
             />
             <div className="grid gap-4 md:grid-cols-2">
               {fromMyListsPreview.map((vote) => (
@@ -162,9 +166,11 @@ export function HomeContent({ initialData = null }: { initialData?: HomeData | n
 
         {hasResolvedData && !isEmpty && keepGoingSessions.length === 0 && (
           <div className="rounded-3xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-6 py-5">
-            <p className="text-lg font-medium text-[var(--fg-primary)]">No live votes right now</p>
+            <p className="text-lg font-medium text-[var(--fg-primary)]">
+              No live rankings right now
+            </p>
             <p className="mt-2 text-base text-[var(--fg-subtle)]">
-              Start a new one or browse your older battles in Votes.
+              Start a new one or browse your older battles in Rankings.
             </p>
           </div>
         )}
@@ -205,7 +211,7 @@ function VoteRow({ vote, contextLabel }: { vote: HomeVoteSummary; contextLabel?:
     <div className={`${VOTE_CARD_SHELL_CLASS} relative`}>
       <Link
         href={`/sessions/${vote.id}`}
-        aria-label={`Open vote ${vote.name}`}
+        aria-label={`Open ranking ${vote.name}`}
         className="absolute inset-0 z-10 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"
       />
       <div className={VOTE_CARD_HEADER_CLASS}>

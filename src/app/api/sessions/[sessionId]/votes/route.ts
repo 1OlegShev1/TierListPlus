@@ -33,14 +33,14 @@ export const POST = withHandler(async (request, { params }) => {
   const { participantId, votes } = data;
 
   if (votes.length === 0) {
-    badRequest("At least one vote is required");
+    badRequest("At least one ranking is required");
   }
 
   const participant = await requireParticipantOwner(request, participantId, sessionId);
   const canonicalParticipantId = participant.id;
   const uniqueItemIds = [...new Set(votes.map((vote) => vote.sessionItemId))];
   if (uniqueItemIds.length !== votes.length) {
-    badRequest("Duplicate votes for the same item are not allowed");
+    badRequest("Duplicate rankings for the same item are not allowed");
   }
 
   const sessionItemCount = await prisma.sessionItem.count({ where: { sessionId } });
@@ -52,7 +52,7 @@ export const POST = withHandler(async (request, { params }) => {
     where: { sessionId, id: { in: uniqueItemIds } },
   });
   if (validItemCount !== uniqueItemIds.length) {
-    badRequest("One or more votes reference items outside this session");
+    badRequest("One or more rankings reference items outside this session");
   }
 
   const session = await prisma.session.findUnique({

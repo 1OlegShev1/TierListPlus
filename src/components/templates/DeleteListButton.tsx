@@ -54,7 +54,7 @@ export function DeleteListButton({
         title="Delete List"
         description={
           error ??
-          "This deletes this list and all its items. Votes already started from it will still stay up."
+          "This deletes this list and all its items. Rankings already started from it will still stay up."
         }
         onConfirm={handleDelete}
         onCancel={() => {

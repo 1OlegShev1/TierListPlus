@@ -16,7 +16,7 @@ import { apiPatch, getErrorMessage } from "@/lib/api-client";
 import type { SessionData } from "@/types";
 
 const resultsLinkClassName = `${buttonVariants.secondary} !h-10 !px-4 !py-0 !text-sm !font-medium`;
-const endVoteButtonClassName =
+const closeRankingButtonClassName =
   "!border-[var(--state-danger-fg)]/35 !bg-transparent !text-[var(--state-danger-fg)] hover:!border-[var(--state-danger-fg)]/60 hover:!bg-[var(--state-danger-bg)]/50 hover:!text-[var(--state-danger-fg)]";
 
 function StatusNotice({
@@ -173,7 +173,7 @@ export function VotePageClient({
 
   const JoinStatusIcon = isLocked ? LockClosedIcon : LockOpenIcon;
   const backHref = session.spaceId ? `/spaces/${session.spaceId}#votes` : "/sessions";
-  const backLabel = session.spaceId ? "Back to Space Votes" : "Back to Votes";
+  const backLabel = session.spaceId ? "Back to Space Rankings" : "Back to Rankings";
   const visibilityBadge = session.spaceId
     ? {
         label: "Space",
@@ -190,8 +190,8 @@ export function VotePageClient({
             "border-[var(--source-control-linked-border)] text-[var(--source-control-linked-fg)]",
         };
   const visibilityTooltip = session.spaceId
-    ? "Space vote visibility is controlled by Space settings."
-    : "Vote visibility. Change this in Vote settings.";
+    ? "Space ranking visibility is controlled by Space settings."
+    : "Ranking visibility. Change this in Ranking settings.";
 
   const startEditingName = () => {
     nameCommittingRef.current = false;
@@ -221,7 +221,7 @@ export function VotePageClient({
       setSessionName(trimmed);
       setIsEditingName(false);
     } catch (err) {
-      setNameError(getErrorMessage(err, "Could not rename this vote"));
+      setNameError(getErrorMessage(err, "Could not rename this ranking"));
     } finally {
       setNameSaving(false);
       nameCommittingRef.current = false;
@@ -326,8 +326,8 @@ export function VotePageClient({
               <button
                 type="button"
                 onClick={startEditingName}
-                aria-label="Edit vote name"
-                title="Edit vote name"
+                aria-label="Edit ranking name"
+                title="Edit ranking name"
                 className="inline-flex h-10 w-10 items-center justify-center text-[var(--fg-subtle)] transition-colors hover:text-[var(--fg-secondary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"
               >
                 <Pencil className="h-5 w-5" />
@@ -393,7 +393,7 @@ export function VotePageClient({
               creatorId={session.creatorId}
               status={session.status}
               canManageOverride={session.canManageSession}
-              className={`shrink-0 ${endVoteButtonClassName}`}
+              className={`shrink-0 ${closeRankingButtonClassName}`}
               redirectHref={`/sessions/${sessionId}/results`}
             />
           </div>

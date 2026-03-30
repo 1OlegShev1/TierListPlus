@@ -268,7 +268,7 @@ export function TierListBoard({
       setSubmitted(true);
       onSubmitted();
     } catch (err) {
-      setSubmitError(getErrorMessage(err, "Failed to submit votes. Please try again."));
+      setSubmitError(getErrorMessage(err, "Failed to submit ranking. Please try again."));
     } finally {
       setSubmitting(false);
     }
@@ -315,8 +315,8 @@ export function TierListBoard({
       ? canManageItems
         ? "Upload items, then drag them into tiers."
         : canEditTierConfig
-          ? "This vote can't edit items. Start a new vote to change the lineup."
-          : "Waiting for the vote host to add items."
+          ? "This ranking can't edit items. Start a new ranking to change the lineup."
+          : "Waiting for the ranking host to add items."
       : "All items ranked!";
   const uploadCard = canManageItems ? (
     <CombinedAddItemTile

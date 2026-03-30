@@ -10,7 +10,7 @@ import { JoinVotePageClient } from "./JoinVotePageClient";
 
 type SearchParams = Record<string, string | string[] | undefined>;
 
-const DEFAULT_TITLE = "You're invited to a tier list | TierList+";
+const DEFAULT_TITLE = "You're invited to a ranking | TierList+";
 const DEFAULT_DESCRIPTION = "Join in, place your picks, and see where everyone lands.";
 
 function firstParamValue(value: string | string[] | undefined): string | null {
@@ -108,20 +108,20 @@ export async function generateMetadata({
     const title = "Tier list invite | TierList+";
     const description = "Open this invite to join the shared ranking.";
     const ogImageUrl = new URL("/api/og/vote", origin).toString();
-    return buildJoinMetadata(title, description, ogImageUrl, "TierList+ vote invite");
+    return buildJoinMetadata(title, description, ogImageUrl, "TierList+ ranking invite");
   }
 
   const isOpen = vote.status === "OPEN";
   const statusLabel = isOpen ? "Open now" : "Results ready";
-  const title = `${isOpen ? "Join" : "View results for"} "${vote.name}" | TierList+`;
+  const title = `${isOpen ? "Join ranking" : "View results for"} "${vote.name}" | TierList+`;
   const description = isOpen
     ? "Set your tiers and compare picks with the group."
-    : "Voting is closed. See where the final list landed.";
+    : "Ranking is closed. See where the final list landed.";
   const ogImageUrl = new URL(
     `/api/og/vote?title=${encodeURIComponent(vote.name)}&status=${encodeURIComponent(statusLabel)}`,
     origin,
   ).toString();
-  return buildJoinMetadata(title, description, ogImageUrl, `${vote.name} invite card`);
+  return buildJoinMetadata(title, description, ogImageUrl, `${vote.name} ranking invite card`);
 }
 
 export default async function JoinVotePage({

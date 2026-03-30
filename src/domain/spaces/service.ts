@@ -220,7 +220,7 @@ export async function joinPrivateSpaceByInviteCode(
     badRequest("This invite code is not valid for a private space");
   }
   if (expectedSpaceId && invite.spaceId !== expectedSpaceId) {
-    badRequest("This invite does not match the space for this vote");
+    badRequest("This invite does not match the space for this ranking");
   }
 
   const existing = await prisma.spaceMember.findUnique({

@@ -11,7 +11,7 @@ describe("buildListDisplay", () => {
     });
 
     expect(display.chips).toEqual([
-      { label: "Your list", tone: "accent" },
+      { label: "Starter list", tone: "accent" },
       { label: "Private", tone: "private" },
     ]);
     expect(display.detailsLabel).toBe("19 picks");
@@ -27,7 +27,7 @@ describe("buildListDisplay", () => {
     });
 
     expect(display.chips).toEqual([
-      { label: "Shared list", tone: "accent" },
+      { label: "Shared starter list", tone: "accent" },
       { label: "Public", tone: "public" },
     ]);
     expect(display.detailsLabel).toBe("10 picks");
@@ -44,7 +44,7 @@ describe("buildListDisplay", () => {
     });
 
     expect(display.chips).toEqual([
-      { label: "Shared list", tone: "accent" },
+      { label: "Shared starter list", tone: "accent" },
       { label: "Space", tone: "neutral" },
     ]);
     expect(display.detailsLabel).toBe("7 picks");

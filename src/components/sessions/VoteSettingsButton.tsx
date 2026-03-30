@@ -55,8 +55,8 @@ export function VoteSettingsButton({
   const trimmedNickname = nickname.trim();
   const canEditPrivacy = canManageSession && !isSpaceSession;
   const privacyHelperText = isSpaceSession
-    ? "Visibility for space votes is managed in Space Settings."
-    : "Off by default. People can still join private votes with the code.";
+    ? "Visibility for space rankings is managed in Space Settings."
+    : "Off by default. People can still join private rankings with the code.";
 
   const nicknameHasChanges = trimmedNickname !== initialNickname;
   const privacyHasChanges = canEditPrivacy && isPrivate !== initialIsPrivate;
@@ -90,7 +90,7 @@ export function VoteSettingsButton({
 
       setOpen(false);
     } catch (err) {
-      setError(getErrorMessage(err, "Could not update vote settings"));
+      setError(getErrorMessage(err, "Could not update ranking settings"));
     } finally {
       setSaving(false);
     }
@@ -101,8 +101,8 @@ export function VoteSettingsButton({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        aria-label="Open vote settings"
-        title="Open vote settings"
+        aria-label="Open ranking settings"
+        title="Open ranking settings"
         className="inline-flex h-10 w-10 items-center justify-center text-[var(--fg-subtle)] transition-colors hover:text-[var(--fg-secondary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"
       >
         <GearIcon className="h-5 w-5" />
@@ -124,7 +124,7 @@ export function VoteSettingsButton({
         }}
         className="fixed inset-0 m-auto max-h-[calc(100dvh-2rem)] w-[min(calc(100vw-2rem),32rem)] overflow-y-auto rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface)] p-4 text-left text-[var(--fg-primary)] shadow-2xl shadow-black/60 backdrop:bg-[var(--bg-overlay)] focus:outline-none sm:p-6"
       >
-        <h2 className="text-lg font-bold">Vote settings</h2>
+        <h2 className="text-lg font-bold">Ranking settings</h2>
 
         <div className="mt-6 space-y-5">
           <label className="block">

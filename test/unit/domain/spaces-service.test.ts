@@ -583,7 +583,7 @@ describe("spaces service", () => {
     ).rejects.toEqual(
       expect.objectContaining({
         status: 400,
-        details: "This invite does not match the space for this vote",
+        details: "This invite does not match the space for this ranking",
       }),
     );
 

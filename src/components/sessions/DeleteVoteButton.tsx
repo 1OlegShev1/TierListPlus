@@ -39,7 +39,7 @@ export function DeleteVoteButton({
       router.push("/sessions");
       router.refresh();
     } catch (err) {
-      setError(getErrorMessage(err, "Could not delete this vote"));
+      setError(getErrorMessage(err, "Could not delete this ranking"));
       setDeleting(false);
     }
   };
@@ -49,8 +49,8 @@ export function DeleteVoteButton({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        aria-label={label ?? "Delete vote"}
-        title={label ?? "Delete vote"}
+        aria-label={label ?? "Delete ranking"}
+        title={label ?? "Delete ranking"}
         className={cn(
           label
             ? "inline-flex h-10 cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-[var(--state-danger-fg)]/45 bg-[var(--state-danger-bg)] px-4 text-sm font-medium text-[var(--state-danger-fg)] transition-colors hover:border-[var(--state-danger-fg)]/70 hover:bg-[var(--state-danger-bg)]"
@@ -63,8 +63,8 @@ export function DeleteVoteButton({
       </button>
       <ConfirmDialog
         open={open}
-        title="Delete Vote"
-        description={error ?? "This deletes the whole vote and every ballot. You can't undo it."}
+        title="Delete ranking"
+        description={error ?? "This deletes the whole ranking and every ballot. You can't undo it."}
         onConfirm={handleDelete}
         onCancel={() => {
           setOpen(false);

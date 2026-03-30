@@ -169,7 +169,7 @@ export const DELETE = withHandler(async (request, { params }) => {
   const hasReferences = sessionItem._count.tierVotes > 0;
 
   if (hasReferences) {
-    badRequest("This item already has saved votes and cannot be removed");
+    badRequest("This item already has saved rankings and cannot be removed");
   }
 
   await prisma.$transaction(async (tx) => {

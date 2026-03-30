@@ -21,7 +21,7 @@ export function StartVoteFromTemplateButton({
       initialVoteName={templateName}
       spaceId={spaceId}
       initialNickname={initialNickname}
-      label="Start Vote"
+      label="Start Ranking From List"
     />
   );
 }

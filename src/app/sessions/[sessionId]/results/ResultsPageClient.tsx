@@ -190,11 +190,11 @@ export function ResultsPageClient({
   const voteHref = currentParticipantId
     ? `/sessions/${sessionId}/vote`
     : `/sessions/join?code=${encodeURIComponent(session.joinCode)}`;
-  const primaryVoteActionLabel = currentParticipantId ? "Resume" : "Join vote";
+  const primaryVoteActionLabel = currentParticipantId ? "Resume" : "Join ranking";
   const canLeaveVote =
     session.status === "OPEN" && !!currentParticipantId && !!session.canLeaveVote;
   const backToVotesHref = session.spaceId ? `/spaces/${session.spaceId}` : "/sessions";
-  const backToVotesLabel = session.spaceId ? "Back to Space Votes" : "Back to Votes";
+  const backToVotesLabel = session.spaceId ? "Back to Space Rankings" : "Back to Rankings";
 
   const scrollToResults = () => {
     resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });

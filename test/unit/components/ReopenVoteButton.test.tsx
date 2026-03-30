@@ -79,7 +79,7 @@ describe("ReopenVoteButton", () => {
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Reopen" }));
-    fireEvent.click(screen.getByRole("button", { name: "Reopen vote" }));
+    fireEvent.click(screen.getByRole("button", { name: "Reopen ranking" }));
 
     await waitFor(() => {
       expect(mocks.apiPatch).toHaveBeenCalledWith("/api/sessions/session_1", { status: "OPEN" });

@@ -20,7 +20,7 @@ export function LeaveVoteButton({
   joinCode,
   isLocked = false,
   className,
-  label = "Leave vote",
+  label = "Leave ranking",
 }: LeaveVoteButtonProps) {
   const router = useRouter();
   const { clear: clearParticipant } = useParticipant(sessionId);
@@ -28,8 +28,8 @@ export function LeaveVoteButton({
   const [leaving, setLeaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const description = isLocked
-    ? "This removes your ballot from this vote. Joins are currently locked, so you will not be able to rejoin unless a host unlocks joins."
-    : "This removes your ballot from this vote. You can rejoin while voting is open, but you will start from scratch.";
+    ? "This removes your ballot from this ranking. Joins are currently locked, so you will not be able to rejoin unless a host unlocks joins."
+    : "This removes your ballot from this ranking. You can rejoin while ranking is open, but you will start from scratch.";
 
   const handleLeave = async () => {
     if (leaving) return;
@@ -42,7 +42,7 @@ export function LeaveVoteButton({
       router.push(`/sessions/join?code=${encodeURIComponent(joinCode)}`);
       router.refresh();
     } catch (err) {
-      setError(getErrorMessage(err, "Could not leave this vote"));
+      setError(getErrorMessage(err, "Could not leave this ranking"));
       setLeaving(false);
     }
   };
@@ -63,9 +63,9 @@ export function LeaveVoteButton({
       </button>
       <ConfirmDialog
         open={open}
-        title="Leave vote"
+        title="Leave ranking"
         description={error ?? description}
-        confirmLabel="Leave vote"
+        confirmLabel="Leave ranking"
         loadingLabel="Leaving..."
         preserveLabelWhileLoading
         confirmVariant="danger"

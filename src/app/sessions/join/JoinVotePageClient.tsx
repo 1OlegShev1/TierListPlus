@@ -111,7 +111,8 @@ export function JoinVotePageClient({
             : {};
 
         setError({
-          message: typeof payload.error === "string" ? payload.error : "Could not join this vote",
+          message:
+            typeof payload.error === "string" ? payload.error : "Could not join this ranking",
           code: typeof payload.code === "string" ? payload.code : null,
           spaceName: typeof payload.spaceName === "string" ? payload.spaceName : null,
           spaceId: typeof payload.spaceId === "string" ? payload.spaceId : null,
@@ -125,7 +126,7 @@ export function JoinVotePageClient({
       router.push(`/sessions/${sessionId}/vote`);
     } catch {
       setError({
-        message: "Could not join this vote",
+        message: "Could not join this ranking",
         code: null,
         spaceName: null,
         spaceId: null,
@@ -156,7 +157,7 @@ export function JoinVotePageClient({
 
       if (expectedSpaceId && result.spaceId !== expectedSpaceId) {
         setSpaceJoinError(
-          "This invite does not match the space for this vote. Ask for the correct invite link.",
+          "This invite does not match the space for this ranking. Ask for the correct invite link.",
         );
         return;
       }
@@ -180,11 +181,11 @@ export function JoinVotePageClient({
     return (
       <div className="mx-auto max-w-md pt-10">
         <Link href="/sessions" className={`${buttonVariants.ghost} mb-4 inline-flex items-center`}>
-          &larr; Back to Votes
+          &larr; Back to Rankings
         </Link>
-        <h1 className="mb-3 text-center text-2xl font-bold">View Vote Results</h1>
+        <h1 className="mb-3 text-center text-2xl font-bold">View Ranking Results</h1>
         <p className="mb-4 text-center text-sm text-[var(--fg-muted)]">
-          This shared link points to a closed vote in a private space.
+          This shared link points to a closed ranking in a private space.
         </p>
 
         <div className="space-y-3 rounded-lg border border-[var(--border-default)] bg-[var(--bg-surface)] p-4 text-sm text-[var(--fg-secondary)]">
@@ -232,9 +233,9 @@ export function JoinVotePageClient({
   return (
     <div className="mx-auto max-w-md pt-10">
       <Link href="/sessions" className={`${buttonVariants.ghost} mb-4 inline-flex items-center`}>
-        &larr; Back to Votes
+        &larr; Back to Rankings
       </Link>
-      <h1 className="mb-6 text-center text-2xl font-bold">Join a Vote</h1>
+      <h1 className="mb-6 text-center text-2xl font-bold">Join Ranking</h1>
 
       <form className="space-y-4" onSubmit={handleSubmit}>
         <label className="block">
@@ -271,11 +272,11 @@ export function JoinVotePageClient({
               <div className="rounded-lg border border-[var(--border-default)] bg-[var(--bg-surface)] p-3 text-sm text-[var(--fg-secondary)]">
                 <p className="font-medium text-[var(--fg-primary)]">
                   {privateSpaceName
-                    ? `This vote lives in "${privateSpaceName}", and that space is private.`
-                    : "This vote lives in a private space."}
+                    ? `This ranking lives in "${privateSpaceName}", and that space is private.`
+                    : "This ranking lives in a private space."}
                 </p>
                 <p className="mt-1 text-[var(--fg-muted)]">
-                  Join the space first, then continue to this vote.
+                  Join the space first, then continue to this ranking.
                 </p>
                 <p className="mt-1 text-[var(--fg-subtle)]">
                   If you are not a member yet, ask the space owner for an invite.
@@ -293,7 +294,7 @@ export function JoinVotePageClient({
                       {joiningSpace
                         ? "Joining space..."
                         : joining
-                          ? "Joining vote..."
+                          ? "Joining ranking..."
                           : "Join space and continue"}
                     </Button>
                     {!nickname.trim() ? (
@@ -325,7 +326,7 @@ export function JoinVotePageClient({
           disabled={joining || userLoading || !normalizedJoinCode || !nickname.trim() || !userId}
           className="w-full py-3"
         >
-          {joining ? "Joining..." : "Join Vote"}
+          {joining ? "Joining..." : "Join Ranking"}
         </Button>
       </form>
     </div>

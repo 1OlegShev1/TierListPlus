@@ -170,7 +170,7 @@ describe("sessions join page", () => {
       searchParams: Promise.resolve({ code: "join1" }),
     });
 
-    expect(metadata.title).toBe('Join "Best Pizza Toppings" | TierList+');
+    expect(metadata.title).toBe('Join ranking "Best Pizza Toppings" | TierList+');
     expect(metadata.description).toBe("Set your tiers and compare picks with the group.");
     expect(metadata.openGraph?.images?.[0]?.url).toContain(
       "/api/og/vote?title=Best%20Pizza%20Toppings",

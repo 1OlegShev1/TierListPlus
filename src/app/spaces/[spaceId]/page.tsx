@@ -222,7 +222,7 @@ export default async function SpaceDetailPage({
               ) : null}
               <p className="text-xs text-[var(--fg-subtle)]">
                 {counts?._count.members ?? 0} members · {totalLists} lists ·{" "}
-                {counts?._count.sessions ?? 0} votes
+                {counts?._count.sessions ?? 0} rankings
               </p>
             </div>
           }
@@ -237,16 +237,16 @@ export default async function SpaceDetailPage({
 
         <section id="votes">
           <SectionHeader
-            title="Votes"
-            subtitle="Active and recent voting sessions in this space."
+            title="Rankings"
+            subtitle="Active and recent ranking sessions in this space."
             actions={
               <div className="flex items-center gap-2">
                 {canCreateInSpace ? (
                   <QuickStartVoteButton
                     spaceId={spaceId}
-                    initialVoteName={`${space.name} Vote`}
+                    initialVoteName={`${space.name} Ranking`}
                     initialNickname={suggestedNickname}
-                    label="Start vote"
+                    label="Start ranking"
                     className={compactPrimaryButtonClassName}
                   />
                 ) : null}
@@ -277,7 +277,10 @@ export default async function SpaceDetailPage({
             }
           />
           {visibleVotes.length === 0 ? (
-            <EmptyState title="No votes yet" description="Start the first vote for this space." />
+            <EmptyState
+              title="No rankings yet"
+              description="Start the first ranking for this space."
+            />
           ) : (
             <div className="space-y-4">
               {visibleVotes.map((vote) => {
@@ -369,7 +372,7 @@ export default async function SpaceDetailPage({
         <section id="lists">
           <SectionHeader
             title="Lists"
-            subtitle="Templates this space collaborates on and votes from."
+            subtitle="Starter lists this space collaborates on and ranks from."
             actions={
               <div className="flex items-center gap-2">
                 {canCreateInSpace ? (

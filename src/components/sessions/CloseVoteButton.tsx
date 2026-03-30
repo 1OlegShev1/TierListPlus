@@ -24,7 +24,7 @@ export function CloseVoteButton({
   status,
   canManageOverride = false,
   className,
-  label = "End vote",
+  label = "Close ranking",
   redirectHref,
   onClosed,
 }: CloseVoteButtonProps) {
@@ -53,7 +53,7 @@ export function CloseVoteButton({
       }
       router.refresh();
     } catch (err) {
-      setError(getErrorMessage(err, "Could not end this vote"));
+      setError(getErrorMessage(err, "Could not end this ranking"));
       setClosing(false);
     }
   };
@@ -74,13 +74,13 @@ export function CloseVoteButton({
       </button>
       <ConfirmDialog
         open={open}
-        title="End vote"
+        title="Close ranking"
         description={
           error ??
-          "This ends voting for everyone. No one can join or change rankings after this. Results will stay available."
+          "This closes ranking for everyone. No one can join or change rankings after this. Results will stay available."
         }
-        confirmLabel="End vote"
-        loadingLabel="Ending..."
+        confirmLabel="Close ranking"
+        loadingLabel="Closing..."
         preserveLabelWhileLoading
         confirmVariant="primary"
         onConfirm={handleClose}

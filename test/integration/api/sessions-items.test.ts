@@ -353,7 +353,7 @@ describe("session item delete route", () => {
 
     expect(response.status).toBe(400);
     await expect(response.json()).resolves.toEqual({
-      error: "This item already has saved votes and cannot be removed",
+      error: "This item already has saved rankings and cannot be removed",
     });
   });
 

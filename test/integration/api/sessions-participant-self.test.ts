@@ -164,7 +164,7 @@ describe("sessions participant self route", () => {
     expect(response.status).toBe(400);
     await expect(response.json()).resolves.toEqual(
       expect.objectContaining({
-        error: "This vote is closed. Leaving is only available while voting is open.",
+        error: "This ranking is closed. Leaving is only available while ranking is open.",
       }),
     );
     expect(mocks.prisma.participant.deleteMany).not.toHaveBeenCalled();
@@ -181,7 +181,7 @@ describe("sessions participant self route", () => {
     expect(response.status).toBe(400);
     await expect(response.json()).resolves.toEqual(
       expect.objectContaining({
-        error: "Join this vote before leaving",
+        error: "Join this ranking before leaving",
       }),
     );
   });
@@ -201,7 +201,7 @@ describe("sessions participant self route", () => {
     expect(response.status).toBe(403);
     await expect(response.json()).resolves.toEqual(
       expect.objectContaining({
-        error: "Vote owners cannot leave this vote",
+        error: "Ranking owners cannot leave this ranking",
       }),
     );
     expect(mocks.prisma.session.findUnique).not.toHaveBeenCalled();

@@ -36,7 +36,7 @@ export function buildVoteDisplay({
   const chips: VoteDisplayChip[] = [];
 
   if (viewer === "owner") {
-    chips.push({ label: "Your vote", shortLabel: "Yours", tone: "accent" });
+    chips.push({ label: "Your ranking", shortLabel: "Yours", tone: "accent" });
   } else if (viewer === "participant") {
     chips.push({ label: "You joined", shortLabel: "Joined", tone: "accent" });
   }

@@ -45,15 +45,15 @@ describe("VoteSettingsButton", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: /open vote settings/i }));
+    fireEvent.click(screen.getByRole("button", { name: /open ranking settings/i }));
 
     const privateOption = screen.getByRole("radio", { name: "Private" });
     const publicOption = screen.getByRole("radio", { name: "Public" });
     expect(privateOption.getAttribute("disabled")).not.toBeNull();
     expect(publicOption.getAttribute("disabled")).not.toBeNull();
-    expect(screen.getByText("Show in public Votes list")).toBeTruthy();
+    expect(screen.getByText("Show in public Rankings list")).toBeTruthy();
     expect(
-      screen.getByText("Visibility for space votes is managed in Space Settings."),
+      screen.getByText("Visibility for space rankings is managed in Space Settings."),
     ).toBeTruthy();
   });
 
@@ -70,14 +70,14 @@ describe("VoteSettingsButton", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: /open vote settings/i }));
+    fireEvent.click(screen.getByRole("button", { name: /open ranking settings/i }));
 
     const privateOption = screen.getByRole("radio", { name: "Private" });
     const publicOption = screen.getByRole("radio", { name: "Public" });
     expect(privateOption.getAttribute("disabled")).toBeNull();
     expect(publicOption.getAttribute("disabled")).toBeNull();
     expect(
-      screen.getByText("Off by default. People can still join private votes with the code."),
+      screen.getByText("Off by default. People can still join private rankings with the code."),
     ).toBeTruthy();
   });
 });

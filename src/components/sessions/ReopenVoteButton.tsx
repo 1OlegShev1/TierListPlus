@@ -23,7 +23,7 @@ export function ReopenVoteButton({
   status,
   canManageOverride = false,
   className,
-  label = "Reopen vote",
+  label = "Reopen ranking",
   onReopened,
 }: ReopenVoteButtonProps) {
   const { userId } = useUser();
@@ -47,7 +47,7 @@ export function ReopenVoteButton({
       onReopened?.();
       router.refresh();
     } catch (err) {
-      setError(getErrorMessage(err, "Could not reopen this vote"));
+      setError(getErrorMessage(err, "Could not reopen this ranking"));
       setReopening(false);
     }
   };
@@ -68,12 +68,12 @@ export function ReopenVoteButton({
       </button>
       <ConfirmDialog
         open={open}
-        title="Reopen Vote"
+        title="Reopen ranking"
         description={
           error ??
-          "This reopens voting. People will be able to join again and participants can keep editing rankings."
+          "This reopens ranking. People will be able to join again and participants can keep editing rankings."
         }
-        confirmLabel="Reopen vote"
+        confirmLabel="Reopen ranking"
         loadingLabel="Reopening..."
         preserveLabelWhileLoading
         confirmVariant="primary"

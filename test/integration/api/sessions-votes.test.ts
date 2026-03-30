@@ -64,7 +64,7 @@ describe("sessions votes route", () => {
 
     let response = await POST(baseRequest([]), routeCtx({ sessionId: "s1" }));
     expect(response.status).toBe(400);
-    await expect(response.json()).resolves.toEqual({ error: "At least one vote is required" });
+    await expect(response.json()).resolves.toEqual({ error: "At least one ranking is required" });
 
     const duplicateVotes = [
       { sessionItemId: "i1", tierKey: "S", rankInTier: 0 },
@@ -73,7 +73,7 @@ describe("sessions votes route", () => {
     response = await POST(baseRequest(duplicateVotes), routeCtx({ sessionId: "s1" }));
     expect(response.status).toBe(400);
     await expect(response.json()).resolves.toEqual({
-      error: "Duplicate votes for the same item are not allowed",
+      error: "Duplicate rankings for the same item are not allowed",
     });
 
     mocks.prisma.sessionItem.count.mockResolvedValueOnce(3);
@@ -93,7 +93,7 @@ describe("sessions votes route", () => {
     );
     expect(response.status).toBe(400);
     await expect(response.json()).resolves.toEqual({
-      error: "One or more votes reference items outside this session",
+      error: "One or more rankings reference items outside this session",
     });
 
     mocks.prisma.sessionItem.count.mockResolvedValueOnce(1).mockResolvedValueOnce(1);

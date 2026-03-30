@@ -119,14 +119,14 @@ export default async function VotesPage({
   return (
     <div>
       <PageHeader
-        title="Votes"
+        title="Rankings"
         actions={
           <div className="flex w-full flex-wrap items-center justify-end gap-2 sm:w-auto sm:shrink-0">
             <Link href="/sessions/join" className={buttonVariants.secondary}>
-              Join a Vote
+              Join Ranking
             </Link>
             <Link href="/sessions/new" className={buttonVariants.primary}>
-              + Start a Vote
+              + Start Ranking
             </Link>
           </div>
         }
@@ -134,15 +134,15 @@ export default async function VotesPage({
 
       {isEmpty ? (
         <EmptyState
-          title="No votes yet"
+          title="No rankings yet"
           description="Make a list first, then start the ranking chaos"
         />
       ) : (
         <div className="space-y-10">
           {showLiveSection && (
             <VotesSection
-              title="Active Votes"
-              subtitle="Votes you started or joined that are still open."
+              title="Active Rankings"
+              subtitle="Rankings you started or joined that are still open."
               votes={liveVotesSection.votes}
               viewer="participant"
               ownerUserId={userId}
@@ -158,8 +158,8 @@ export default async function VotesPage({
 
           {showFinishedSection && (
             <VotesSection
-              title="Finished Votes"
-              subtitle="Votes you started or joined that are done."
+              title="Finished Rankings"
+              subtitle="Rankings you started or joined that are done."
               votes={finishedVotesSection.votes}
               viewer="participant"
               ownerUserId={userId}
@@ -175,8 +175,8 @@ export default async function VotesPage({
 
           {showPublicSection && (
             <VotesSection
-              title="Public Votes"
-              subtitle="Public votes from other people you can jump into right now."
+              title="Public Rankings"
+              subtitle="Public rankings from other people you can jump into right now."
               votes={publicVotesSection.votes}
               viewer="browser"
               ownerUserId={userId}
@@ -369,14 +369,14 @@ function VoteRow({ vote, viewer }: { vote: VoteListItem; viewer: VoteViewer }) {
             sessionId={vote.id}
             creatorId={vote.creatorId}
             status={vote.status}
-            label="End vote"
+            label="Close ranking"
             className={DESKTOP_ACTION_BUTTON_CLASS}
           />
           <ReopenVoteButton
             sessionId={vote.id}
             creatorId={vote.creatorId}
             status={vote.status}
-            label="Reopen vote"
+            label="Reopen ranking"
             className={DESKTOP_ACTION_BUTTON_CLASS}
           />
           <DeleteVoteButton sessionId={vote.id} creatorId={vote.creatorId} className="shrink-0" />

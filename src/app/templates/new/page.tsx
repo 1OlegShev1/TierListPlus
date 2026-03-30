@@ -41,7 +41,7 @@ export default async function NewListPage({
       >
         {accessSpaceId ? "\u2190 Back to Space" : "\u2190 Back to Lists"}
       </Link>
-      <h1 className="mb-6 text-2xl font-bold">Make a Tier List</h1>
+      <h1 className="mb-6 text-2xl font-bold">Make a Starter List</h1>
       <ListEditor spaceId={accessSpaceId} spaceName={accessSpaceName} />
     </div>
   );

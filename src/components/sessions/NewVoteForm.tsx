@@ -17,13 +17,13 @@ import type { ListSummary } from "@/types";
 
 const QUICK_START_LIST_COUNT = 2;
 const BLANK_SELECTION_KEY = "__blank__";
-const BLANK_VOTE_NAME = "Blank Canvas Vote";
+const BLANK_VOTE_NAME = "Blank Canvas Ranking";
 
 function buildDefaultVoteName(listName: string | null): string {
   const trimmed = listName?.trim() ?? "";
   if (!trimmed) return BLANK_VOTE_NAME;
-  if (/\bvote\b/i.test(trimmed)) return trimmed.slice(0, 100);
-  return `${trimmed} Vote`.slice(0, 100);
+  if (/\branking\b/i.test(trimmed)) return trimmed.slice(0, 100);
+  return `${trimmed} Ranking`.slice(0, 100);
 }
 
 export function NewVoteForm({
@@ -43,7 +43,7 @@ export function NewVoteForm({
   const [error, setError] = useState<string | null>(null);
   const createInFlightRef = useRef(false);
   const backHref = spaceId ? `/spaces/${spaceId}#votes` : "/sessions";
-  const backLabel = spaceId ? "Back to Space Votes" : "Back to Votes";
+  const backLabel = spaceId ? "Back to Space Rankings" : "Back to Rankings";
   const defaultNickname = (initialNickname?.trim() || "Host").slice(0, 30);
   const canCreate = !creatingSelectionKey && !userLoading && !!userId;
 
@@ -68,7 +68,7 @@ export function NewVoteForm({
       saveParticipant(data.id, data.participantId, data.participantNickname);
       router.push(`/sessions/${data.id}/vote?editName=1`);
     } catch (err) {
-      setError(getErrorMessage(err, "Could not start this vote"));
+      setError(getErrorMessage(err, "Could not start this ranking"));
     } finally {
       createInFlightRef.current = false;
       setCreatingSelectionKey(null);
@@ -160,7 +160,7 @@ function ListPicker({
         <section>
           <SectionHeader
             title="Choose How to Start"
-            subtitle="Pick a list to create the vote instantly."
+            subtitle="Pick a list to create a ranking instantly."
           />
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
             <BlankStartCard
@@ -329,7 +329,9 @@ function BlankStartCard({
     >
       <ListPreviewCard
         title="Start blank"
-        detailsLabel={isStarting ? "Starting vote..." : "Add the picks after the vote starts."}
+        detailsLabel={
+          isStarting ? "Starting ranking..." : "Add the picks after the ranking starts."
+        }
         secondaryLabel="No preset items"
         items={[]}
         chips={[{ label: isStarting ? "Starting..." : "Quick start", tone: "accent" }]}
@@ -363,7 +365,7 @@ function ListPickerCard({
       tabIndex={disabled ? -1 : 0}
       aria-busy={isStarting || undefined}
       aria-disabled={disabled || undefined}
-      aria-label={`Start vote with ${list.name}`}
+      aria-label={`Start ranking with ${list.name}`}
       onClick={(e) => {
         if (disabled || (e.target as HTMLElement).closest("a")) return;
         onSelect();
@@ -379,7 +381,7 @@ function ListPickerCard({
     >
       <ListPreviewCard
         title={list.name}
-        detailsLabel={isStarting ? "Starting vote..." : `${list._count.items} picks`}
+        detailsLabel={isStarting ? "Starting ranking..." : `${list._count.items} picks`}
         items={list.items}
         chips={buildPickerChips(list)}
         action={
@@ -414,10 +416,10 @@ function buildPickerChips(list: ListSummary): ListDisplayChip[] {
   const origin = resolveListOrigin(list);
   const originChip: ListDisplayChip =
     origin === "SPACE"
-      ? { label: "Space list", tone: "neutral" }
+      ? { label: "Space starter list", tone: "neutral" }
       : origin === "PERSONAL"
-        ? { label: "Your list", tone: "accent" }
-        : { label: "Public list", tone: "public" };
+        ? { label: "Starter list", tone: "accent" }
+        : { label: "Public starter list", tone: "public" };
 
   if (origin === "SPACE") {
     return [originChip];

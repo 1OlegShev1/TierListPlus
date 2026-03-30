@@ -82,7 +82,7 @@ describe("CloseVoteButton", () => {
     );
 
     fireEvent.click(screen.getByRole("button", { name: "End" }));
-    fireEvent.click(screen.getByRole("button", { name: "End vote" }));
+    fireEvent.click(screen.getByRole("button", { name: "Close ranking" }));
 
     await waitFor(() => {
       expect(mocks.apiPatch).toHaveBeenCalledWith("/api/sessions/session_1", { status: "CLOSED" });
@@ -109,7 +109,7 @@ describe("CloseVoteButton", () => {
     );
 
     fireEvent.click(screen.getByRole("button", { name: "End" }));
-    fireEvent.click(screen.getByRole("button", { name: "End vote" }));
+    fireEvent.click(screen.getByRole("button", { name: "Close ranking" }));
 
     await waitFor(() => {
       expect(mocks.push).toHaveBeenCalledWith("/sessions/session_2/results");

@@ -330,7 +330,7 @@ export function ListEditor({
             Cancel
           </Button>
           <Button ref={saveButtonRef} type="submit" disabled={!canSave}>
-            {saving ? "Saving..." : listId ? "Save List" : "Create List"}
+            {saving ? "Saving..." : listId ? "Save List Picks" : "Create List"}
           </Button>
         </div>
 

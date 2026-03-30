@@ -46,7 +46,7 @@ export const POST = withHandler(async (request) => {
   if (session.isModeratedHidden && !existingForUser) {
     notFound("Session not found");
   }
-  if (session.status !== "OPEN") badRequest("Session is no longer accepting votes");
+  if (session.status !== "OPEN") badRequest("Session is no longer accepting rankings");
 
   if (
     session.space?.visibility === "PRIVATE" &&
@@ -54,7 +54,7 @@ export const POST = withHandler(async (request) => {
   ) {
     return NextResponse.json(
       {
-        error: "Only members of this private space can join this vote",
+        error: "Only members of this private space can join this ranking",
         code: "SPACE_MEMBERSHIP_REQUIRED",
         spaceId: session.space.id,
         spaceName: session.space.name,

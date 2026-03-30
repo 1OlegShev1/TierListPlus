@@ -175,16 +175,16 @@ export function ShareVoteButton({
   const statusMessage =
     status === "OPEN"
       ? isLocked
-        ? "Voting is open, but joins are currently locked."
+        ? "Ranking is open, but joins are currently locked."
         : isPrivateSpaceVote
-          ? "Voting is open for current space members."
-          : "Voting is open. Anyone with this link can join."
+          ? "Ranking is open for current space members."
+          : "Ranking is open. Anyone with this link can join."
       : isPrivateSpaceVote
-        ? "Voting has ended. The same link opens results for space members."
-        : "Voting has ended. The same link now opens results.";
+        ? "Ranking has ended. The same link opens results for space members."
+        : "Ranking has ended. The same link now opens results.";
   const privateSpacePrompt =
     status === "OPEN"
-      ? "People outside the space can open this link, but they will need a space invite before they can vote."
+      ? "People outside the space can open this link, but they will need a space invite before they can rank."
       : "People outside the space can open this link, but they will need a space invite before they can view results.";
   const formattedSpaceInviteExpiry = spaceInviteExpiresAt
     ? new Date(spaceInviteExpiresAt).toLocaleDateString()
@@ -220,7 +220,9 @@ export function ShareVoteButton({
             <p className="text-xs uppercase tracking-wider text-[var(--accent-primary)]">
               Invite People
             </p>
-            <h3 className="mt-1 text-xl font-semibold text-[var(--fg-primary)]">Share this vote</h3>
+            <h3 className="mt-1 text-xl font-semibold text-[var(--fg-primary)]">
+              Share this ranking
+            </h3>
             <p className="mt-1 text-sm text-[var(--fg-muted)]">{statusMessage}</p>
           </div>
           {isPrivateSpaceVote && (
@@ -237,8 +239,8 @@ export function ShareVoteButton({
                         Include space invite in shared link
                       </p>
                       <p className="text-xs text-[var(--fg-muted)]">
-                        Optional. Recipients can join the private space and continue to the vote in
-                        one flow.
+                        Optional. Recipients can join the private space and continue to the ranking
+                        in one flow.
                       </p>
                       <p className="text-xs text-[var(--fg-subtle)]">
                         {includeSpaceInvite
@@ -302,7 +304,7 @@ export function ShareVoteButton({
                 ) : qrCodeDataUrl ? (
                   <img
                     src={qrCodeDataUrl}
-                    alt="QR code for vote invite"
+                    alt="QR code for ranking invite"
                     className="w-full rounded"
                   />
                 ) : (
@@ -321,7 +323,7 @@ export function ShareVoteButton({
                 </div>
                 <p className="text-xs text-[var(--fg-subtle)]">
                   Share the link directly, or let people scan the QR code on mobile. Anyone with a
-                  valid link/code can access this vote based on its visibility settings.
+                  valid link/code can access this ranking based on its visibility settings.
                 </p>
               </div>
             </div>

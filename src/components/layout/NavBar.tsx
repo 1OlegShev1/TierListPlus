@@ -10,7 +10,7 @@ const BASE_LINKS = [
   { href: "/", label: "Home" },
   { href: "/spaces", label: "Spaces" },
   { href: "/templates", label: "Lists" },
-  { href: "/sessions", label: "Votes" },
+  { href: "/sessions", label: "Rankings" },
 ] as const;
 
 export function NavBar({ isAdmin }: { isAdmin?: boolean }) {

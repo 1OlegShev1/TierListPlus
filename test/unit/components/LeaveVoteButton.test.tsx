@@ -80,7 +80,7 @@ describe("LeaveVoteButton", () => {
 
     expect(
       screen.getByText(
-        "This removes your ballot from this vote. You can rejoin while voting is open, but you will start from scratch.",
+        "This removes your ballot from this ranking. You can rejoin while ranking is open, but you will start from scratch.",
       ),
     ).toBeTruthy();
   });
@@ -92,7 +92,7 @@ describe("LeaveVoteButton", () => {
 
     expect(
       screen.getByText(
-        "This removes your ballot from this vote. Joins are currently locked, so you will not be able to rejoin unless a host unlocks joins.",
+        "This removes your ballot from this ranking. Joins are currently locked, so you will not be able to rejoin unless a host unlocks joins.",
       ),
     ).toBeTruthy();
   });
@@ -101,7 +101,7 @@ describe("LeaveVoteButton", () => {
     render(<LeaveVoteButton sessionId="session_1" joinCode="ABCD12" label="Leave" />);
 
     fireEvent.click(screen.getByRole("button", { name: "Leave" }));
-    fireEvent.click(screen.getByRole("button", { name: "Leave vote" }));
+    fireEvent.click(screen.getByRole("button", { name: "Leave ranking" }));
 
     await waitFor(() => {
       expect(mocks.apiDelete).toHaveBeenCalledWith("/api/sessions/session_1/participants/me");
@@ -113,15 +113,15 @@ describe("LeaveVoteButton", () => {
 
   it("shows API error in the confirmation description", async () => {
     mocks.apiDelete.mockRejectedValue(new Error("boom"));
-    mocks.getErrorMessage.mockReturnValue("Could not leave this vote");
+    mocks.getErrorMessage.mockReturnValue("Could not leave this ranking");
 
     render(<LeaveVoteButton sessionId="session_1" joinCode="ABCD12" label="Leave" />);
 
     fireEvent.click(screen.getByRole("button", { name: "Leave" }));
-    fireEvent.click(screen.getByRole("button", { name: "Leave vote" }));
+    fireEvent.click(screen.getByRole("button", { name: "Leave ranking" }));
 
     await waitFor(() => {
-      expect(screen.getByText("Could not leave this vote")).toBeTruthy();
+      expect(screen.getByText("Could not leave this ranking")).toBeTruthy();
     });
     expect(mocks.clearParticipant).not.toHaveBeenCalled();
     expect(mocks.push).not.toHaveBeenCalled();

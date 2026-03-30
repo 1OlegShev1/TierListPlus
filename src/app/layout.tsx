@@ -5,7 +5,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "TierList+",
-  description: "Collaborative tier list voting for teams",
+  description: "Collaborative tier list ranking for teams",
 };
 
 export const viewport: Viewport = {

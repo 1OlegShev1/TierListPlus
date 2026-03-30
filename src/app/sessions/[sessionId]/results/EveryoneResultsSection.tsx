@@ -88,7 +88,7 @@ export function EveryoneResultsSection({
                 </h3>
                 <p className="mt-1 text-sm text-[var(--fg-muted)]">
                   Average score {detailsItem.averageScore.toFixed(2)} from {detailsItem.totalVotes}{" "}
-                  vote{detailsItem.totalVotes !== 1 ? "s" : ""}
+                  ranking{detailsItem.totalVotes !== 1 ? "s" : ""}
                 </p>
               </div>
               {detailsItem.sourceUrl && (
@@ -160,7 +160,7 @@ export function EveryoneResultsSection({
                               {tooltipPreview}
                             </span>
                             <span className="mt-1 block text-[11px] text-[var(--fg-subtle)]">
-                              {count} vote{count !== 1 ? "s" : ""} in {tier.label}
+                              {count} ranking{count !== 1 ? "s" : ""} in {tier.label}
                             </span>
                           </div>
                         )}

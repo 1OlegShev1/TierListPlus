@@ -83,7 +83,7 @@ export default async function ListDetailPage({
       {fromSessionsNew ? (
         <TemplateBackLink
           fallbackHref={fallbackBackHref}
-          label="Back to Start Vote"
+          label="Back to Start Ranking"
           className={`${buttonVariants.ghost} inline-flex items-center`}
         />
       ) : (
@@ -100,12 +100,12 @@ export default async function ListDetailPage({
           )}
           <p className="mt-1 text-xs text-[var(--fg-subtle)]">
             {list.space
-              ? `${list.space.visibility === "OPEN" ? "Open" : "Private"} space list`
+              ? `${list.space.visibility === "OPEN" ? "Open" : "Private"} space starter list`
               : list.isPublic
-                ? "Public list"
+                ? "Public starter list"
                 : owner
-                  ? "Private to you"
-                  : "Private list"}
+                  ? "Private starter list (only you)"
+                  : "Private starter list"}
           </p>
         </div>
         <div className="flex w-full flex-wrap items-center justify-end gap-3 sm:w-auto sm:shrink-0">
@@ -127,6 +127,15 @@ export default async function ListDetailPage({
             <DeleteListButton listId={templateId} creatorId={list.creatorId} canDeleteOverride />
           )}
         </div>
+      </div>
+
+      <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface)] px-4 py-3 text-sm text-[var(--fg-secondary)]">
+        <p className="font-medium text-[var(--fg-primary)]">
+          This is a starter list, not a live ranking.
+        </p>
+        <p className="mt-1 text-[var(--fg-muted)]">
+          Use this list to define picks. Ranking happens after you start a ranking.
+        </p>
       </div>
 
       <ListDetailItemsGrid items={list.items} />

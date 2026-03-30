@@ -52,7 +52,7 @@ export function deriveResultsViewState({
     activeView,
     isBrowseView,
     contextTitle: "Everyone's ranking",
-    contextDescription: "Based on all submitted votes.",
+    contextDescription: "Based on all submitted rankings.",
     browseHeaderTitle: hasCompareSelection
       ? `${primaryLabel} vs ${compareLabel}`
       : hasPrimarySelection

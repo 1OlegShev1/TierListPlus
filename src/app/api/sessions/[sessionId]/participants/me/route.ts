@@ -26,7 +26,7 @@ export const PATCH = withHandler(async (request, { params }) => {
     orderBy: { createdAt: "asc" },
   });
   if (!participant) {
-    badRequest("Join this vote before updating your nickname");
+    badRequest("Join this ranking before updating your nickname");
   }
 
   const nextNickname = data.nickname.trim();
@@ -89,10 +89,10 @@ export const DELETE = withHandler(async (request, { params }) => {
   const { requestUserId, isOwner } = await requireSessionAccess(request, sessionId);
 
   if (!requestUserId) {
-    forbidden("Sign in to leave this vote");
+    forbidden("Sign in to leave this ranking");
   }
   if (isOwner) {
-    forbidden("Vote owners cannot leave this vote");
+    forbidden("Ranking owners cannot leave this ranking");
   }
 
   const session = await prisma.session.findUnique({
@@ -103,14 +103,14 @@ export const DELETE = withHandler(async (request, { params }) => {
     notFound("Session not found");
   }
   if (session.status !== "OPEN") {
-    badRequest("This vote is closed. Leaving is only available while voting is open.");
+    badRequest("This ranking is closed. Leaving is only available while ranking is open.");
   }
 
   const deleted = await prisma.participant.deleteMany({
     where: { sessionId, userId: requestUserId },
   });
   if (deleted.count === 0) {
-    badRequest("Join this vote before leaving");
+    badRequest("Join this ranking before leaving");
   }
 
   return new Response(null, { status: 204 });

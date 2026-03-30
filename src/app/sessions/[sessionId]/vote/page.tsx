@@ -119,7 +119,9 @@ export default async function VotePage({ params }: { params: Promise<{ sessionId
   if (session.status !== "OPEN") {
     return (
       <div className="flex flex-col items-center gap-3 py-20">
-        <p className="text-lg text-[var(--fg-muted)]">This session is no longer accepting votes</p>
+        <p className="text-lg text-[var(--fg-muted)]">
+          This ranking is no longer accepting changes.
+        </p>
         <Link href={`/sessions/${sessionId}/results`} className={resultsLinkClassName}>
           View Results
         </Link>

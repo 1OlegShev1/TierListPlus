@@ -87,10 +87,11 @@ export default async function ListsPage({
     <div>
       <PageHeader
         title="Lists"
+        subtitle="Lists are reusable pick sets. Ranking happens in the Rankings tab."
         actions={
           <div className="flex w-full flex-wrap items-center justify-end gap-2 sm:w-auto sm:shrink-0">
             <Link href="/templates/new" className={buttonVariants.primary}>
-              + Make a Tier List
+              + Make a List
             </Link>
           </div>
         }
@@ -99,14 +100,14 @@ export default async function ListsPage({
       {isEmpty ? (
         <EmptyState
           title="No lists yet"
-          description="Make your first tier list and start some arguments"
+          description="Make your first list and start some arguments"
         />
       ) : (
         <div className="space-y-10">
           {showOwnSection && (
             <ListSection
               title="Your Lists"
-              subtitle="Lists you can edit, keep private, or use to start new votes."
+              subtitle="Reusable pick sets you can edit, keep private, or use to start new rankings."
               lists={ownListsSection.lists}
               viewer="owner"
               pagination={buildPagination({

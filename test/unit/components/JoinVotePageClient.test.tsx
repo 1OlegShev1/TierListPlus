@@ -55,7 +55,7 @@ describe("JoinVotePageClient", () => {
     globalThis.fetch = vi.fn().mockResolvedValue({
       ok: false,
       json: async () => ({
-        error: "Only members of this private space can join this vote",
+        error: "Only members of this private space can join this ranking",
         code: "SPACE_MEMBERSHIP_REQUIRED",
         spaceId: "space_1",
         spaceName: "Anime Club",
@@ -67,11 +67,11 @@ describe("JoinVotePageClient", () => {
     fireEvent.change(screen.getByPlaceholderText("e.g., Alex"), {
       target: { value: "Nick" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Join Vote" }));
+    fireEvent.click(screen.getByRole("button", { name: "Join Ranking" }));
 
     await waitFor(() => {
       expect(
-        screen.getByText('This vote lives in "Anime Club", and that space is private.'),
+        screen.getByText('This ranking lives in "Anime Club", and that space is private.'),
       ).toBeTruthy();
     });
     expect(screen.getByRole("link", { name: "Open spaces" }).getAttribute("href")).toBe("/spaces");
@@ -86,7 +86,7 @@ describe("JoinVotePageClient", () => {
       .mockResolvedValueOnce({
         ok: false,
         json: async () => ({
-          error: "Only members of this private space can join this vote",
+          error: "Only members of this private space can join this ranking",
           code: "SPACE_MEMBERSHIP_REQUIRED",
           spaceId: "space_1",
           spaceName: "Anime Club",
@@ -110,7 +110,7 @@ describe("JoinVotePageClient", () => {
     fireEvent.change(screen.getByPlaceholderText("e.g., Alex"), {
       target: { value: "Nick" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Join Vote" }));
+    fireEvent.click(screen.getByRole("button", { name: "Join Ranking" }));
 
     await waitFor(() => {
       expect(screen.getByRole("button", { name: "Join space and continue" })).toBeTruthy();

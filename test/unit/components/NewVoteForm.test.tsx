@@ -70,7 +70,7 @@ describe("NewVoteForm", () => {
     await waitFor(() => {
       expect(mocks.apiPost).toHaveBeenCalledWith("/api/sessions", {
         templateId: "template_1",
-        name: "Movies Vote",
+        name: "Movies Ranking",
         nickname: "Host",
         isPrivate: true,
       });
@@ -92,7 +92,7 @@ describe("NewVoteForm", () => {
 
     await waitFor(() => {
       expect(mocks.apiPost).toHaveBeenCalledWith("/api/sessions", {
-        name: "Blank Canvas Vote",
+        name: "Blank Canvas Ranking",
         nickname: "Host",
         isPrivate: true,
       });
@@ -112,7 +112,7 @@ describe("NewVoteForm", () => {
     await waitFor(() => {
       expect(mocks.apiPost).toHaveBeenCalledWith("/api/sessions", {
         templateId: "template_1",
-        name: "Movies Vote",
+        name: "Movies Ranking",
         nickname: "LastUsedNick",
         isPrivate: true,
       });
@@ -132,7 +132,7 @@ describe("NewVoteForm", () => {
     await waitFor(() => {
       expect(mocks.apiPost).toHaveBeenCalledWith("/api/spaces/space_1/sessions", {
         templateId: "template_1",
-        name: "Movies Vote",
+        name: "Movies Ranking",
         nickname: "Host",
       });
     });

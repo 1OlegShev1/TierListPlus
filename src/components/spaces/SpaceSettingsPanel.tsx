@@ -385,7 +385,7 @@ export function SpaceSettingsPanel({
                   </label>
                 </fieldset>
                 <p className="text-xs text-[var(--fg-subtle)]">
-                  Open spaces are discoverable and allow voting from non-members.
+                  Open spaces are discoverable and allow ranking from non-members.
                 </p>
               </div>
             </div>
