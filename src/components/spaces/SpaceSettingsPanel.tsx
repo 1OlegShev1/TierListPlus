@@ -207,7 +207,7 @@ export function SpaceSettingsPanel({
                   <img
                     src={logoUrl}
                     alt={`${initialName} logo`}
-                    className="h-full w-full object-cover"
+                    className="h-full w-full object-contain p-1"
                   />
                 ) : (
                   <span className="text-sm font-semibold text-[var(--fg-muted)]">
@@ -239,7 +239,7 @@ export function SpaceSettingsPanel({
                     <img
                       src={logoUrl}
                       alt={`${trimmedName || "Space"} logo`}
-                      className="h-full w-full object-cover"
+                      className="h-full w-full object-contain p-1"
                     />
                   ) : (
                     <span className="text-sm font-semibold text-[var(--fg-muted)]">

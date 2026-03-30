@@ -184,7 +184,7 @@ export default async function SpaceDetailPage({
                   <img
                     src={space.logoUrl}
                     alt={`${space.name} logo`}
-                    className="h-full w-full object-cover"
+                    className="h-full w-full object-contain p-1"
                   />
                 ) : (
                   <span className="text-base font-semibold text-[var(--fg-muted)]">

@@ -104,10 +104,7 @@ async function prepareFileForUpload(file: File, variant: "item" | "space_logo"):
     const context = canvas.getContext("2d");
     if (!context) return file;
 
-    const scale =
-      variant === "space_logo"
-        ? Math.max(targetSize / bitmap.width, targetSize / bitmap.height)
-        : Math.min(1, targetSize / bitmap.width, targetSize / bitmap.height);
+    const scale = Math.min(1, targetSize / bitmap.width, targetSize / bitmap.height);
     const drawWidth = Math.round(bitmap.width * scale);
     const drawHeight = Math.round(bitmap.height * scale);
     const offsetX = Math.floor((targetSize - drawWidth) / 2);

@@ -179,7 +179,7 @@ function SpaceCard({
               <img
                 src={logoUrl}
                 alt={`${name} logo`}
-                className="h-full w-full object-cover"
+                className="h-full w-full object-contain p-1"
                 loading="lazy"
                 decoding="async"
               />

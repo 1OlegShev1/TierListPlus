@@ -44,8 +44,8 @@ function getResizeOptions(variant: UploadImageVariant) {
     ? {
         width: PROCESSED_SPACE_LOGO_SIZE,
         height: PROCESSED_SPACE_LOGO_SIZE,
-        fit: "cover" as const,
-        position: "centre" as const,
+        fit: "contain" as const,
+        background: { r: 0, g: 0, b: 0, alpha: 0 },
         withoutEnlargement: true,
       }
     : {
