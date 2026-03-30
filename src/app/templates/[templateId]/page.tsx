@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { DeleteListButton } from "@/components/templates/DeleteListButton";
 import { DuplicateListButton } from "@/components/templates/DuplicateListButton";
 import { ListDetailItemsGrid } from "@/components/templates/ListDetailItemsGrid";
+import { ListRankingPreviewTeaser } from "@/components/templates/ListRankingPreviewTeaser";
 import { StartVoteFromTemplateButton } from "@/components/templates/StartVoteFromTemplateButton";
 import { TemplateBackLink } from "@/components/templates/TemplateBackLink";
 import { buttonVariants } from "@/components/ui/Button";
@@ -137,6 +138,8 @@ export default async function ListDetailPage({
           Use this list to define picks. Ranking happens after you start a ranking.
         </p>
       </div>
+
+      <ListRankingPreviewTeaser items={list.items} />
 
       <ListDetailItemsGrid items={list.items} />
     </div>

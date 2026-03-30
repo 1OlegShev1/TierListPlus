@@ -2,10 +2,11 @@
 
 import { Link2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { ItemSourceModal } from "@/components/items/ItemSourceModal";
 import { CombinedAddItemTile } from "@/components/shared/CombinedAddItemTile";
 import type { UploadedImage } from "@/components/shared/ImageUploader";
+import { ListRankingPreviewTeaser } from "@/components/templates/ListRankingPreviewTeaser";
 import { Button } from "@/components/ui/Button";
 import { ErrorMessage } from "@/components/ui/ErrorMessage";
 import { Input } from "@/components/ui/Input";
@@ -61,6 +62,7 @@ export function ListEditor({
   const [showAddByUrlSourceModal, setShowAddByUrlSourceModal] = useState(false);
   const [addByUrlSourceError, setAddByUrlSourceError] = useState<string | null>(null);
   const [addingByUrl, setAddingByUrl] = useState(false);
+  const visibilityFieldName = useId();
   const uploadsDisabled = userLoading || !userId;
   const canSave = !saving && !userLoading && !!userId && !!name.trim() && items.length > 0;
 
@@ -301,25 +303,64 @@ export function ListEditor({
 
       <div>
         {!spaceId && (
-          <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-4 transition-colors hover:border-[var(--border-default)] hover:bg-[var(--bg-surface-hover)]">
-            <input
-              type="checkbox"
-              checked={isPublic}
-              onChange={(e) => setIsPublic(e.target.checked)}
-              className="h-4 w-4 accent-[var(--accent-primary)]"
-            />
-            <div>
-              <p className="font-medium">Show in public Lists</p>
-              <p className="text-sm text-[var(--fg-subtle)]">
-                Off by default. Private lists are only visible to you.
-              </p>
-              <p className="text-xs text-[var(--fg-subtle)]">
-                If you publish, you confirm you have rights to the content and links you share.
-              </p>
+          <div className="rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elevated)] p-4">
+            <p className="font-medium">Show in public Lists</p>
+            <div className="mt-3">
+              <fieldset className="relative inline-grid h-11 min-w-[11rem] grid-cols-2 rounded-lg border border-[var(--border-default)] bg-[var(--bg-soft-contrast)] p-1">
+                <legend className="sr-only">List visibility</legend>
+                <span
+                  aria-hidden="true"
+                  className={`pointer-events-none absolute bottom-1 left-1 top-1 w-[calc(50%-0.25rem)] rounded-md border border-[var(--border-default)] bg-[var(--bg-surface)] shadow-sm transition-transform duration-200 ${
+                    isPublic ? "translate-x-full" : "translate-x-0"
+                  }`}
+                />
+                <label
+                  className={`relative z-10 flex cursor-pointer items-center justify-center rounded-md px-3 text-sm font-medium transition-colors ${
+                    !isPublic
+                      ? "text-[var(--fg-primary)]"
+                      : "text-[var(--fg-muted)] hover:text-[var(--fg-secondary)]"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name={visibilityFieldName}
+                    value="PRIVATE"
+                    checked={!isPublic}
+                    onChange={() => setIsPublic(false)}
+                    className="sr-only"
+                  />
+                  Private
+                </label>
+                <label
+                  className={`relative z-10 flex cursor-pointer items-center justify-center rounded-md px-3 text-sm font-medium transition-colors ${
+                    isPublic
+                      ? "text-[var(--fg-primary)]"
+                      : "text-[var(--fg-muted)] hover:text-[var(--fg-secondary)]"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name={visibilityFieldName}
+                    value="PUBLIC"
+                    checked={isPublic}
+                    onChange={() => setIsPublic(true)}
+                    className="sr-only"
+                  />
+                  Public
+                </label>
+              </fieldset>
             </div>
-          </label>
+            <p className="mt-3 text-sm text-[var(--fg-subtle)]">
+              Off by default. Private lists are only visible to you.
+            </p>
+            <p className="text-xs text-[var(--fg-subtle)]">
+              If you publish, you confirm you have rights to the content and links you share.
+            </p>
+          </div>
         )}
       </div>
+
+      <ListRankingPreviewTeaser items={items} />
 
       <div className="space-y-2">
         <div className="flex w-full flex-wrap items-center justify-end gap-3">
