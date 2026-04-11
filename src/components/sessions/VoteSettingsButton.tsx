@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/Button";
 import { ErrorMessage } from "@/components/ui/ErrorMessage";
 import { GearIcon } from "@/components/ui/GearIcon";
 import { Input } from "@/components/ui/Input";
+import { ThemedTooltip } from "@/components/ui/ThemedTooltip";
 import { apiPatch, getErrorMessage } from "@/lib/api-client";
 import { VoteVisibilityField } from "./VoteVisibilityField";
 
@@ -98,15 +99,19 @@ export function VoteSettingsButton({
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        aria-label="Open ranking settings"
-        title="Open ranking settings"
-        className="inline-flex h-10 w-10 items-center justify-center text-[var(--fg-subtle)] transition-colors hover:text-[var(--fg-secondary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"
-      >
-        <GearIcon className="h-5 w-5" />
-      </button>
+      <span className="group relative inline-flex">
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          aria-label="Open ranking settings"
+          className="peer inline-flex h-10 w-10 items-center justify-center text-[var(--fg-subtle)] transition-colors hover:text-[var(--fg-secondary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"
+        >
+          <GearIcon className="h-5 w-5" />
+        </button>
+        <ThemedTooltip className="max-w-[14rem] text-[0.68rem]">
+          Open ranking settings
+        </ThemedTooltip>
+      </span>
 
       <dialog
         ref={dialogRef}

@@ -97,12 +97,14 @@ export function getVoteAction({
   isPrivate,
   isLocked,
   sessionId,
+  hasCompletedRanking = false,
 }: {
   viewer: VoteViewer;
   status: string;
   isPrivate: boolean;
   isLocked: boolean;
   sessionId: string;
+  hasCompletedRanking?: boolean;
 }) {
   if (status !== "OPEN") {
     return { label: "Results", href: `/sessions/${sessionId}/results` };
@@ -114,6 +116,10 @@ export function getVoteAction({
     }
 
     return { label: "View", href: `/sessions/${sessionId}` };
+  }
+
+  if (hasCompletedRanking) {
+    return { label: "Results", href: `/sessions/${sessionId}/results` };
   }
 
   return { label: "Resume", href: `/sessions/${sessionId}` };

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildVoteDisplay } from "@/lib/vote-display";
+import { buildVoteDisplay, getVoteAction } from "@/lib/vote-display";
 
 describe("buildVoteDisplay", () => {
   it("separates the source list from the stats for visible lists", () => {
@@ -89,5 +89,54 @@ describe("buildVoteDisplay", () => {
 
     expect(display.chips.some((chip) => chip.label === "Space")).toBe(true);
     expect(display.chips.some((chip) => chip.label === "Open space")).toBe(false);
+  });
+});
+
+describe("getVoteAction", () => {
+  it("returns Results for closed rankings", () => {
+    const action = getVoteAction({
+      viewer: "participant",
+      status: "CLOSED",
+      isPrivate: false,
+      isLocked: false,
+      sessionId: "session-1",
+    });
+
+    expect(action).toEqual({
+      label: "Results",
+      href: "/sessions/session-1/results",
+    });
+  });
+
+  it("returns Results for open rankings when participant completed all rankings", () => {
+    const action = getVoteAction({
+      viewer: "participant",
+      status: "OPEN",
+      isPrivate: false,
+      isLocked: false,
+      sessionId: "session-1",
+      hasCompletedRanking: true,
+    });
+
+    expect(action).toEqual({
+      label: "Results",
+      href: "/sessions/session-1/results",
+    });
+  });
+
+  it("returns Resume for open rankings when participant has not completed rankings", () => {
+    const action = getVoteAction({
+      viewer: "participant",
+      status: "OPEN",
+      isPrivate: false,
+      isLocked: false,
+      sessionId: "session-1",
+      hasCompletedRanking: false,
+    });
+
+    expect(action).toEqual({
+      label: "Resume",
+      href: "/sessions/session-1",
+    });
   });
 });

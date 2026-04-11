@@ -28,7 +28,7 @@ describe("JoinCodeBanner", () => {
   it("copies invite link while code remains hidden", async () => {
     render(<JoinCodeBanner joinCode="ABCD1234" hideCodeByDefault />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Copy invite link" }));
+    fireEvent.click(screen.getByRole("button", { name: "Copy full invite link" }));
 
     await waitFor(() => {
       expect(writeText).toHaveBeenCalledWith(
@@ -43,16 +43,46 @@ describe("JoinCodeBanner", () => {
   it("normalizes copied code and link values", async () => {
     render(<JoinCodeBanner joinCode="ab cd1234" hideCodeByDefault />);
 
-    fireEvent.click(screen.getByTitle("Invite code hidden. Click to copy."));
+    fireEvent.click(screen.getByRole("button", { name: "Copy hidden invite code" }));
     await waitFor(() => {
       expect(writeText).toHaveBeenCalledWith("ABCD1234");
     });
 
-    fireEvent.click(screen.getByRole("button", { name: "Copy invite link" }));
+    fireEvent.click(screen.getByRole("button", { name: "Copy full invite link" }));
     await waitFor(() => {
       expect(writeText).toHaveBeenCalledWith(
         `${window.location.origin}/sessions/join?code=ABCD1234`,
       );
+    });
+  });
+
+  it("reports successful copy results via callback", async () => {
+    const onCopyResult = vi.fn();
+    render(<JoinCodeBanner joinCode="ABCD1234" hideCodeByDefault onCopyResult={onCopyResult} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Copy hidden invite code" }));
+    await waitFor(() => {
+      expect(onCopyResult).toHaveBeenCalledWith({ target: "code", success: true });
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Copy full invite link" }));
+    await waitFor(() => {
+      expect(onCopyResult).toHaveBeenCalledWith({ target: "link", success: true });
+    });
+  });
+
+  it("reports failed copy result when clipboard write throws", async () => {
+    const failingWriteText = vi.fn().mockRejectedValueOnce(new Error("copy failed"));
+    Object.defineProperty(navigator, "clipboard", {
+      value: { writeText: failingWriteText },
+      configurable: true,
+    });
+    const onCopyResult = vi.fn();
+    render(<JoinCodeBanner joinCode="ABCD1234" hideCodeByDefault onCopyResult={onCopyResult} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Copy full invite link" }));
+    await waitFor(() => {
+      expect(onCopyResult).toHaveBeenCalledWith({ target: "link", success: false });
     });
   });
 });

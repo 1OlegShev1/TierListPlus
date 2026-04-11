@@ -11,6 +11,7 @@ import { buttonVariants } from "@/components/ui/Button";
 import { ErrorMessage } from "@/components/ui/ErrorMessage";
 import { CloseIcon, LockClosedIcon, LockOpenIcon } from "@/components/ui/icons";
 import { JoinCodeBanner } from "@/components/ui/JoinCodeBanner";
+import { ThemedTooltip } from "@/components/ui/ThemedTooltip";
 import { useParticipant } from "@/hooks/useParticipant";
 import { apiPatch, getErrorMessage } from "@/lib/api-client";
 import type { SessionData } from "@/types";
@@ -18,6 +19,9 @@ import type { SessionData } from "@/types";
 const resultsLinkClassName = `${buttonVariants.secondary} !h-10 !px-4 !py-0 !text-sm !font-medium`;
 const closeRankingButtonClassName =
   "!border-[var(--state-danger-fg)]/35 !bg-transparent !text-[var(--state-danger-fg)] hover:!border-[var(--state-danger-fg)]/60 hover:!bg-[var(--state-danger-bg)]/50 hover:!text-[var(--state-danger-fg)]";
+const titleMaxWidthClassName =
+  "min-w-0 max-w-[min(58vw,19rem)] sm:max-w-[min(56vw,25rem)] md:max-w-[min(42vw,31rem)] lg:max-w-[min(38vw,35rem)]";
+const editButtonSlotWidthPx = 44;
 
 function StatusNotice({
   tone,
@@ -80,7 +84,9 @@ export function VotePageClient({
   const [nameSaving, setNameSaving] = useState(false);
   const [nameError, setNameError] = useState<string | null>(null);
   const nameInputRef = useRef<HTMLInputElement>(null);
+  const titleHeadingRef = useRef<HTMLHeadingElement>(null);
   const nameCommittingRef = useRef(false);
+  const [editingTitleWidthPx, setEditingTitleWidthPx] = useState<number | null>(null);
   const [isLocked, setIsLocked] = useState(session.isLocked);
   const [lockUpdating, setLockUpdating] = useState(false);
   const [lockError, setLockError] = useState<string | null>(null);
@@ -194,6 +200,10 @@ export function VotePageClient({
     : "Ranking visibility. Change this in Ranking settings.";
 
   const startEditingName = () => {
+    const measuredTitleWidth = titleHeadingRef.current?.offsetWidth ?? 0;
+    setEditingTitleWidthPx(
+      measuredTitleWidth > 0 ? measuredTitleWidth + editButtonSlotWidthPx : null,
+    );
     nameCommittingRef.current = false;
     setNameDraft(sessionName);
     setNameError(null);
@@ -211,6 +221,7 @@ export function VotePageClient({
     if (!trimmed || trimmed === sessionName || !session.canManageSession) {
       setNameDraft(sessionName);
       setIsEditingName(false);
+      setEditingTitleWidthPx(null);
       nameCommittingRef.current = false;
       return;
     }
@@ -220,6 +231,7 @@ export function VotePageClient({
       await apiPatch(`/api/sessions/${session.id}`, { name: trimmed });
       setSessionName(trimmed);
       setIsEditingName(false);
+      setEditingTitleWidthPx(null);
     } catch (err) {
       setNameError(getErrorMessage(err, "Could not rename this ranking"));
     } finally {
@@ -234,6 +246,7 @@ export function VotePageClient({
     setNameDraft(sessionName);
     setNameError(null);
     setIsEditingName(false);
+    setEditingTitleWidthPx(null);
   };
 
   useEffect(() => {
@@ -241,6 +254,10 @@ export function VotePageClient({
     if (!session.canManageSession) return;
     if (searchParams.get("editName") !== "1") return;
     autoEditNameHandledRef.current = true;
+    const measuredTitleWidth = titleHeadingRef.current?.offsetWidth ?? 0;
+    setEditingTitleWidthPx(
+      measuredTitleWidth > 0 ? measuredTitleWidth + editButtonSlotWidthPx : null,
+    );
     nameCommittingRef.current = false;
     setNameDraft(session.name);
     setNameError(null);
@@ -299,75 +316,106 @@ export function VotePageClient({
       </div>
 
       <div className="mb-1.5 flex flex-shrink-0 flex-col gap-2 md:flex-row md:items-start md:justify-between sm:mb-2 sm:gap-3">
-        <div className="min-w-0">
-          <div className="flex items-center gap-1 sm:gap-1.5">
-            {isEditingName ? (
-              <input
-                ref={nameInputRef}
-                type="text"
-                value={nameDraft}
-                onChange={(event) => setNameDraft(event.target.value)}
-                onBlur={() => void commitName()}
-                onKeyDown={(event) => {
-                  if (event.nativeEvent.isComposing) return;
-                  if (event.key === "Enter") void commitName();
-                  if (event.key === "Escape") cancelEditingName();
-                }}
-                maxLength={100}
-                disabled={nameSaving}
-                className="min-w-0 flex-1 truncate rounded-lg border border-[var(--accent-primary)] bg-transparent px-2 py-0.5 text-lg font-bold text-[var(--fg-primary)] outline-none ring-2 ring-[var(--focus-ring)] sm:text-2xl"
+        <div className="min-w-0 flex-1">
+          <div className="inline-flex min-w-0 max-w-full items-center gap-1 sm:gap-1.5">
+            <div
+              className={`${titleMaxWidthClassName} relative min-w-0`}
+              style={
+                isEditingName && editingTitleWidthPx
+                  ? { width: `${editingTitleWidthPx}px` }
+                  : undefined
+              }
+            >
+              {isEditingName ? (
+                <>
+                  <span
+                    aria-hidden
+                    className="block invisible truncate text-lg font-bold sm:text-2xl"
+                  >
+                    {sessionName}
+                  </span>
+                  <input
+                    ref={nameInputRef}
+                    type="text"
+                    value={nameDraft}
+                    onChange={(event) => setNameDraft(event.target.value)}
+                    onBlur={() => void commitName()}
+                    onKeyDown={(event) => {
+                      if (event.nativeEvent.isComposing) return;
+                      if (event.key === "Enter") void commitName();
+                      if (event.key === "Escape") cancelEditingName();
+                    }}
+                    maxLength={100}
+                    disabled={nameSaving}
+                    className="absolute inset-0 w-full truncate rounded-lg border border-[var(--accent-primary)] bg-transparent px-2 py-0.5 text-lg font-bold text-[var(--fg-primary)] outline-none ring-2 ring-[var(--focus-ring)] sm:text-2xl"
+                  />
+                </>
+              ) : (
+                <h1 ref={titleHeadingRef} className="truncate text-lg font-bold sm:text-2xl">
+                  {sessionName}
+                </h1>
+              )}
+            </div>
+            <div className="flex flex-shrink-0 items-center gap-1 sm:gap-1.5">
+              {session.canManageSession && !isEditingName && (
+                <span className="group relative inline-flex">
+                  <button
+                    type="button"
+                    onClick={startEditingName}
+                    aria-label="Edit ranking name"
+                    className="peer inline-flex h-10 w-10 items-center justify-center text-[var(--fg-subtle)] transition-colors hover:text-[var(--fg-secondary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"
+                  >
+                    <Pencil className="h-5 w-5" />
+                  </button>
+                  <ThemedTooltip className="max-w-[14rem] text-[0.68rem]">
+                    Edit ranking name
+                  </ThemedTooltip>
+                </span>
+              )}
+              {isOwner ? (
+                <span className="group relative inline-flex">
+                  <button
+                    type="button"
+                    onClick={toggleLock}
+                    disabled={lockUpdating}
+                    aria-label={isLocked ? "Unlock joins" : "Lock joins"}
+                    aria-busy={lockUpdating || undefined}
+                    className={`peer inline-flex h-10 w-10 items-center justify-center rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] disabled:cursor-wait disabled:opacity-80 ${
+                      isLocked
+                        ? "text-[var(--fg-subtle)] hover:bg-[var(--bg-surface-hover)] hover:text-[var(--fg-secondary)]"
+                        : "text-[var(--state-success-fg)] hover:bg-[var(--state-success-bg)]"
+                    }`}
+                  >
+                    <JoinStatusIcon className="h-5 w-5" />
+                  </button>
+                  <ThemedTooltip className="max-w-[14rem] text-[0.68rem]">
+                    {isLocked ? "Joins locked - click to unlock" : "Joins open - click to lock"}
+                  </ThemedTooltip>
+                </span>
+              ) : (
+                <span className="group relative inline-flex">
+                  <span
+                    className={`peer inline-flex h-10 w-10 items-center justify-center ${
+                      isLocked ? "text-[var(--fg-subtle)]" : "text-[var(--state-success-fg)]"
+                    }`}
+                  >
+                    <JoinStatusIcon className="h-5 w-5" />
+                  </span>
+                  <ThemedTooltip className="max-w-[14rem] text-[0.68rem]">
+                    {isLocked ? "Joins locked" : "Joins open"}
+                  </ThemedTooltip>
+                </span>
+              )}
+              <VoteSettingsButton
+                sessionId={session.id}
+                initialNickname={participantNickname}
+                initialIsPrivate={isPrivate}
+                canManageSession={session.canManageSession}
+                isSpaceSession={!!session.spaceId}
+                onNicknameChange={setParticipantNickname}
+                onPrivacyChange={setIsPrivate}
               />
-            ) : (
-              <h1 className="min-w-0 flex-1 truncate text-lg font-bold sm:text-2xl">
-                {sessionName}
-              </h1>
-            )}
-            {session.canManageSession && !isEditingName && (
-              <button
-                type="button"
-                onClick={startEditingName}
-                aria-label="Edit ranking name"
-                title="Edit ranking name"
-                className="inline-flex h-10 w-10 items-center justify-center text-[var(--fg-subtle)] transition-colors hover:text-[var(--fg-secondary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"
-              >
-                <Pencil className="h-5 w-5" />
-              </button>
-            )}
-            {isOwner ? (
-              <button
-                type="button"
-                onClick={toggleLock}
-                disabled={lockUpdating}
-                aria-label={isLocked ? "Unlock joins" : "Lock joins"}
-                title={isLocked ? "Joins locked — click to unlock" : "Joins open — click to lock"}
-                aria-busy={lockUpdating || undefined}
-                className={`inline-flex h-10 w-10 items-center justify-center rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] disabled:cursor-wait disabled:opacity-80 ${
-                  isLocked
-                    ? "text-[var(--fg-subtle)] hover:bg-[var(--bg-surface-hover)] hover:text-[var(--fg-secondary)]"
-                    : "text-[var(--state-success-fg)] hover:bg-[var(--state-success-bg)]"
-                }`}
-              >
-                <JoinStatusIcon className="h-5 w-5" />
-              </button>
-            ) : (
-              <span
-                title={isLocked ? "Joins locked" : "Joins open"}
-                className={`inline-flex h-10 w-10 items-center justify-center ${
-                  isLocked ? "text-[var(--fg-subtle)]" : "text-[var(--state-success-fg)]"
-                }`}
-              >
-                <JoinStatusIcon className="h-5 w-5" />
-              </span>
-            )}
-            <VoteSettingsButton
-              sessionId={session.id}
-              initialNickname={participantNickname}
-              initialIsPrivate={isPrivate}
-              canManageSession={session.canManageSession}
-              isSpaceSession={!!session.spaceId}
-              onNicknameChange={setParticipantNickname}
-              onPrivacyChange={setIsPrivate}
-            />
+            </div>
           </div>
           {(nameError || lockError) && (
             <div className="mt-2">
@@ -376,18 +424,42 @@ export function VotePageClient({
             </div>
           )}
           <div className="mt-0.5 flex flex-wrap items-center gap-2 sm:mt-1 sm:gap-2.5">
-            <JoinCodeBanner joinCode={session.joinCode} hideCodeByDefault />
+            <JoinCodeBanner
+              joinCode={session.joinCode}
+              hideCodeByDefault
+              onCopyResult={({ target, success }) => {
+                if (success) {
+                  pushNotice({
+                    tone: "emerald",
+                    message: target === "link" ? "Invite link copied." : "Invite code copied.",
+                    durationMs: 2200,
+                  });
+                  return;
+                }
+                pushNotice({
+                  tone: "amber",
+                  message:
+                    target === "link"
+                      ? "Could not copy invite link."
+                      : "Could not copy invite code.",
+                  durationMs: 2600,
+                });
+              }}
+            />
           </div>
         </div>
         <div className="text-left md:text-right">
           <div className="mt-1.5 flex flex-wrap items-center gap-2 md:justify-end sm:mt-2">
-            <Link
-              href={`/sessions/${sessionId}/results`}
-              className={`${resultsLinkClassName} shrink-0 whitespace-nowrap`}
-            >
-              <span className="sm:hidden">Results</span>
-              <span className="hidden sm:inline">View Results</span>
-            </Link>
+            <span className="group relative inline-flex">
+              <Link
+                href={`/sessions/${sessionId}/results`}
+                className={`${resultsLinkClassName} peer shrink-0 whitespace-nowrap`}
+              >
+                <span className="sm:hidden">Results</span>
+                <span className="hidden sm:inline">View Results</span>
+              </Link>
+              <ThemedTooltip className="max-w-[14rem]">Open ranking results</ThemedTooltip>
+            </span>
             <CloseVoteButton
               sessionId={session.id}
               creatorId={session.creatorId}

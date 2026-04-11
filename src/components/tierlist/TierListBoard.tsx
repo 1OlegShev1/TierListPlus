@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { ItemSourceModal } from "@/components/items/ItemSourceModal";
 import { CombinedAddItemTile } from "@/components/shared/CombinedAddItemTile";
+import { ThemedTooltip } from "@/components/ui/ThemedTooltip";
 import { useDelayedBusy } from "@/hooks/useDelayedBusy";
 import { useTierListStore } from "@/hooks/useTierList";
 import { useUser } from "@/hooks/useUser";
@@ -309,6 +310,12 @@ export function TierListBoard({
   const saveTemplateMobileLabel = savesWorkingTemplate ? "Publish" : "Save List";
   const openSavedTemplateLabel = savesWorkingTemplate ? "Open Published List" : "Open Saved List";
   const openSavedTemplateMobileLabel = "Open";
+  const saveTemplateTooltipLabel = savesWorkingTemplate
+    ? "Publish the current ranking items as a reusable list."
+    : "Save a detached copy of this ranking as a new list.";
+  const openSavedTemplateTooltipLabel = savesWorkingTemplate
+    ? "Open the published list."
+    : "Open the saved list.";
   const uploadsDisabled = userLoading || !userId || submitting || submitted;
   const unrankedEmptyMessage =
     totalItems === 0
@@ -356,61 +363,73 @@ export function TierListBoard({
       <div className="mb-2 space-y-2 sm:mb-3">
         <div className="flex flex-wrap items-center justify-end gap-2">
           {totalItems >= 2 && (
-            <button
-              type="button"
-              onClick={() => {
-                if (hasPendingItemMutations) {
-                  setItemMutationError("Finish item changes before opening Quick Bracket.");
-                  return;
-                }
-                setItemMutationError(null);
-                setShowSessionBracket(true);
-              }}
-              disabled={submitting || hasPendingItemMutations}
-              className="rounded-lg border border-[var(--border-default)] px-3 py-2 text-sm font-medium text-[var(--fg-secondary)] transition-colors hover:border-[var(--accent-primary)] hover:text-[var(--accent-primary-hover)] disabled:opacity-50 sm:px-4 sm:py-1.5"
-            >
-              <span className="sm:hidden">Bracket</span>
-              <span className="hidden sm:inline">Quick Bracket</span>
-            </button>
+            <span className="group relative inline-flex">
+              <button
+                type="button"
+                onClick={() => {
+                  if (hasPendingItemMutations) {
+                    setItemMutationError("Finish item changes before opening Quick Bracket.");
+                    return;
+                  }
+                  setItemMutationError(null);
+                  setShowSessionBracket(true);
+                }}
+                disabled={submitting || hasPendingItemMutations}
+                className="peer rounded-lg border border-[var(--border-default)] px-3 py-2 text-sm font-medium text-[var(--fg-secondary)] transition-colors hover:border-[var(--accent-primary)] hover:text-[var(--accent-primary-hover)] disabled:opacity-50 sm:px-4 sm:py-1.5"
+              >
+                <span className="sm:hidden">Bracket</span>
+                <span className="hidden sm:inline">Quick Bracket</span>
+              </button>
+              <ThemedTooltip>Seed item order with quick 1v1 matchups.</ThemedTooltip>
+            </span>
           )}
           {canSaveTemplate &&
             (savedTemplateId ? (
-              <Link
-                href={`/templates/${savedTemplateId}`}
-                className="rounded-lg border border-[var(--state-success-fg)] bg-[var(--state-success-bg)] px-3 py-2 text-sm font-medium text-[var(--state-success-fg)] transition-colors hover:brightness-110 sm:px-4 sm:py-1.5"
-              >
-                <span className="sm:hidden">{openSavedTemplateMobileLabel}</span>
-                <span className="hidden sm:inline">{openSavedTemplateLabel}</span>
-              </Link>
+              <span className="group relative inline-flex">
+                <Link
+                  href={`/templates/${savedTemplateId}`}
+                  className="peer rounded-lg border border-[var(--state-success-fg)] bg-[var(--state-success-bg)] px-3 py-2 text-sm font-medium text-[var(--state-success-fg)] transition-colors hover:brightness-110 sm:px-4 sm:py-1.5"
+                >
+                  <span className="sm:hidden">{openSavedTemplateMobileLabel}</span>
+                  <span className="hidden sm:inline">{openSavedTemplateLabel}</span>
+                </Link>
+                <ThemedTooltip>{openSavedTemplateTooltipLabel}</ThemedTooltip>
+              </span>
             ) : (
-              <button
-                type="button"
-                onClick={handleSaveTemplate}
-                disabled={saveTemplateActionLocked || hasPendingItemMutations}
-                className="rounded-lg border border-[var(--border-default)] px-3 py-2 text-sm font-medium text-[var(--fg-secondary)] transition-colors hover:border-[var(--accent-primary)] hover:text-[var(--accent-primary-hover)] disabled:opacity-50 sm:px-4 sm:py-1.5"
-              >
-                <span className="sm:hidden">
-                  {showSaveTemplateBusyState ? "Saving" : saveTemplateMobileLabel}
-                </span>
-                <span className="hidden sm:inline">
-                  {showSaveTemplateBusyState ? "Saving..." : saveTemplateActionLabel}
-                </span>
-              </button>
+              <span className="group relative inline-flex">
+                <button
+                  type="button"
+                  onClick={handleSaveTemplate}
+                  disabled={saveTemplateActionLocked || hasPendingItemMutations}
+                  className="peer rounded-lg border border-[var(--border-default)] px-3 py-2 text-sm font-medium text-[var(--fg-secondary)] transition-colors hover:border-[var(--accent-primary)] hover:text-[var(--accent-primary-hover)] disabled:opacity-50 sm:px-4 sm:py-1.5"
+                >
+                  <span className="sm:hidden">
+                    {showSaveTemplateBusyState ? "Saving" : saveTemplateMobileLabel}
+                  </span>
+                  <span className="hidden sm:inline">
+                    {showSaveTemplateBusyState ? "Saving..." : saveTemplateActionLabel}
+                  </span>
+                </button>
+                <ThemedTooltip>{saveTemplateTooltipLabel}</ThemedTooltip>
+              </span>
             ))}
-          <button
-            type="button"
-            onClick={handleSubmit}
-            disabled={
-              submitActionLocked ||
-              hasPendingItemMutations ||
-              totalItems === 0 ||
-              rankedCount !== totalItems
-            }
-            className="rounded-lg bg-[var(--action-primary-bg)] px-3 py-2 text-sm font-medium text-[var(--action-primary-fg)] transition-colors hover:bg-[var(--action-primary-bg-hover)] disabled:opacity-50 sm:px-5 sm:py-1.5"
-          >
-            <span className="sm:hidden">Save</span>
-            <span className="hidden sm:inline">Lock In Ranking</span>
-          </button>
+          <span className="group relative inline-flex">
+            <button
+              type="button"
+              onClick={handleSubmit}
+              disabled={
+                submitActionLocked ||
+                hasPendingItemMutations ||
+                totalItems === 0 ||
+                rankedCount !== totalItems
+              }
+              className="peer rounded-lg bg-[var(--action-primary-bg)] px-3 py-2 text-sm font-medium text-[var(--action-primary-fg)] transition-colors hover:bg-[var(--action-primary-bg-hover)] disabled:opacity-50 sm:px-5 sm:py-1.5"
+            >
+              <span className="sm:hidden">Save</span>
+              <span className="hidden sm:inline">Lock In Ranking</span>
+            </button>
+            <ThemedTooltip>Submit and lock in your ranking.</ThemedTooltip>
+          </span>
         </div>
         {saveTemplateError && (
           <p className="text-right text-sm text-[var(--state-danger-fg)]">{saveTemplateError}</p>

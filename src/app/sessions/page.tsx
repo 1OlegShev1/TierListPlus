@@ -109,6 +109,17 @@ export default async function VotesPage({
         : { spaceId: null, status: "OPEN", isPrivate: false, isModeratedHidden: false },
     }),
   ]);
+  const progressVoteIds = userId
+    ? [
+        ...new Set(
+          [...liveVotesSection.votes, ...finishedVotesSection.votes].map((vote) => vote.id),
+        ),
+      ]
+    : [];
+  const userRankedCountBySessionId =
+    userId && progressVoteIds.length > 0
+      ? await loadUserRankedCountBySession(progressVoteIds, userId)
+      : new Map<string, number>();
   const showLiveSection =
     !!userId && (liveVotesSection.votes.length > 0 || liveVotesSection.hasPrevious);
   const showFinishedSection =
@@ -146,6 +157,7 @@ export default async function VotesPage({
               votes={liveVotesSection.votes}
               viewer="participant"
               ownerUserId={userId}
+              userRankedCountBySessionId={userRankedCountBySessionId}
               pagination={buildPagination({
                 searchParams: resolvedSearchParams,
                 key: "active",
@@ -163,6 +175,7 @@ export default async function VotesPage({
               votes={finishedVotesSection.votes}
               viewer="participant"
               ownerUserId={userId}
+              userRankedCountBySessionId={userRankedCountBySessionId}
               pagination={buildPagination({
                 searchParams: resolvedSearchParams,
                 key: "history",
@@ -180,6 +193,7 @@ export default async function VotesPage({
               votes={publicVotesSection.votes}
               viewer="browser"
               ownerUserId={userId}
+              userRankedCountBySessionId={userRankedCountBySessionId}
               pagination={buildPagination({
                 searchParams: resolvedSearchParams,
                 key: "discover",
@@ -201,6 +215,7 @@ function VotesSection({
   votes,
   viewer,
   ownerUserId,
+  userRankedCountBySessionId,
   pagination,
 }: {
   title: string;
@@ -208,6 +223,7 @@ function VotesSection({
   votes: VoteListItem[];
   viewer: VoteViewer;
   ownerUserId: string | null;
+  userRankedCountBySessionId: Map<string, number>;
   pagination: {
     previousHref: string | null;
     nextHref: string | null;
@@ -220,7 +236,12 @@ function VotesSection({
       {votes.length > 0 ? (
         <div className="space-y-4">
           {votes.map((vote) => (
-            <VoteRow key={vote.id} vote={vote} viewer={resolveViewer(vote, viewer, ownerUserId)} />
+            <VoteRow
+              key={vote.id}
+              vote={vote}
+              viewer={resolveViewer(vote, viewer, ownerUserId)}
+              rankedItemCountForUser={userRankedCountBySessionId.get(vote.id) ?? null}
+            />
           ))}
         </div>
       ) : (
@@ -253,7 +274,15 @@ function VotesSection({
   );
 }
 
-function VoteRow({ vote, viewer }: { vote: VoteListItem; viewer: VoteViewer }) {
+function VoteRow({
+  vote,
+  viewer,
+  rankedItemCountForUser,
+}: {
+  vote: VoteListItem;
+  viewer: VoteViewer;
+  rankedItemCountForUser: number | null;
+}) {
   const { chips, detailsLabel, secondaryLabel, sourceLabel } = buildVoteDisplay({
     viewer,
     isPrivate: vote.isPrivate,
@@ -265,12 +294,17 @@ function VoteRow({ vote, viewer }: { vote: VoteListItem; viewer: VoteViewer }) {
     listName: vote.template.name,
     listHidden: vote.template.isHidden,
   });
+  const hasCompletedRanking =
+    vote._count.items > 0 &&
+    rankedItemCountForUser !== null &&
+    rankedItemCountForUser >= vote._count.items;
   const action = getVoteAction({
     viewer,
     status: vote.status,
     isPrivate: vote.isPrivate,
     isLocked: vote.isLocked,
     sessionId: vote.id,
+    hasCompletedRanking,
   });
   const mobileMetaLabel = buildMobileVoteMetaLine({
     itemCount: vote._count.items,
@@ -281,7 +315,7 @@ function VoteRow({ vote, viewer }: { vote: VoteListItem; viewer: VoteViewer }) {
     action.label === "Resume"
       ? "Go"
       : action.label === "Results"
-        ? "Result"
+        ? "Results"
         : action.label === "Join"
           ? "Join"
           : action.label;
@@ -290,7 +324,7 @@ function VoteRow({ vote, viewer }: { vote: VoteListItem; viewer: VoteViewer }) {
     <>
       <div className={`${VOTE_CARD_SHELL_CLASS} sm:hidden`}>
         <div className={VOTE_CARD_HEADER_CLASS}>
-          <Link href={`/sessions/${vote.id}`} className={VOTE_CARD_SUMMARY_LINK_CLASS}>
+          <Link href={action.href} className={VOTE_CARD_SUMMARY_LINK_CLASS}>
             <VotePreviewSummary
               title={vote.name}
               detailsLabel={detailsLabel}
@@ -317,7 +351,7 @@ function VoteRow({ vote, viewer }: { vote: VoteListItem; viewer: VoteViewer }) {
           />
           <Link
             href={action.href}
-            className={`${buttonVariants.secondary} ${MOBILE_ACTION_BUTTON_CLASS}`}
+            className={`${buttonVariants.accent} ${MOBILE_ACTION_BUTTON_CLASS}`}
           >
             {mobileActionLabel}
           </Link>
@@ -326,6 +360,7 @@ function VoteRow({ vote, viewer }: { vote: VoteListItem; viewer: VoteViewer }) {
             creatorId={vote.creatorId}
             status={vote.status}
             label="End"
+            variant="secondary"
             className={MOBILE_ACTION_BUTTON_CLASS}
           />
           <ReopenVoteButton
@@ -340,7 +375,7 @@ function VoteRow({ vote, viewer }: { vote: VoteListItem; viewer: VoteViewer }) {
       </div>
 
       <div className={`${VOTE_CARD_SHELL_CLASS} hidden sm:flex sm:items-center sm:gap-5`}>
-        <Link href={`/sessions/${vote.id}`} className="min-w-0 flex-1">
+        <Link href={action.href} className="min-w-0 flex-1">
           <VotePreviewSummary
             title={vote.name}
             detailsLabel={detailsLabel}
@@ -361,7 +396,7 @@ function VoteRow({ vote, viewer }: { vote: VoteListItem; viewer: VoteViewer }) {
           />
           <Link
             href={action.href}
-            className={`${buttonVariants.secondary} ${DESKTOP_ACTION_BUTTON_CLASS}`}
+            className={`${buttonVariants.accent} ${DESKTOP_ACTION_BUTTON_CLASS}`}
           >
             {action.label}
           </Link>
@@ -370,6 +405,7 @@ function VoteRow({ vote, viewer }: { vote: VoteListItem; viewer: VoteViewer }) {
             creatorId={vote.creatorId}
             status={vote.status}
             label="Close ranking"
+            variant="secondary"
             className={DESKTOP_ACTION_BUTTON_CLASS}
           />
           <ReopenVoteButton
@@ -421,6 +457,20 @@ async function loadVotesSection({
     hasPrevious: page > 1,
     page,
   };
+}
+
+async function loadUserRankedCountBySession(sessionIds: string[], userId: string) {
+  const participants = await prisma.participant.findMany({
+    where: { userId, sessionId: { in: sessionIds } },
+    select: {
+      sessionId: true,
+      _count: { select: { tierVotes: true } },
+    },
+  });
+
+  return new Map(
+    participants.map((participant) => [participant.sessionId, participant._count.tierVotes]),
+  );
 }
 
 function emptyVoteSection(page: number): VoteSectionData {

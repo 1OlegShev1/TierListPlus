@@ -2,16 +2,21 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { buttonVariants } from "@/components/ui/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { ThemedTooltip } from "@/components/ui/ThemedTooltip";
 import { useUser } from "@/hooks/useUser";
 import { apiPatch, getErrorMessage } from "@/lib/api-client";
 import { cn } from "@/lib/utils";
+
+type CloseVoteButtonVariant = "accent" | "secondary";
 
 interface CloseVoteButtonProps {
   sessionId: string;
   creatorId: string | null;
   status: string;
   canManageOverride?: boolean;
+  variant?: CloseVoteButtonVariant;
   className?: string;
   label?: string;
   redirectHref?: string;
@@ -23,6 +28,7 @@ export function CloseVoteButton({
   creatorId,
   status,
   canManageOverride = false,
+  variant = "accent",
   className,
   label = "Close ranking",
   redirectHref,
@@ -37,6 +43,8 @@ export function CloseVoteButton({
 
   const canManage = canManageOverride || (!!creatorId && creatorId === userId);
   if (!canManage || status !== "OPEN" || isClosed) return null;
+  const buttonClassName =
+    variant === "secondary" ? buttonVariants.secondary : buttonVariants.accent;
 
   const handleClose = async () => {
     if (closing) return;
@@ -60,18 +68,17 @@ export function CloseVoteButton({
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        aria-label={label}
-        title={label}
-        className={cn(
-          "inline-flex h-10 cursor-pointer items-center justify-center rounded-lg border border-[var(--accent-primary)]/60 bg-[var(--accent-primary)]/10 px-4 text-sm font-medium text-[var(--accent-primary-hover)] transition-colors hover:border-[var(--accent-primary-hover)] hover:bg-[var(--accent-primary)]/15 hover:text-[var(--fg-primary)]",
-          className,
-        )}
-      >
-        <span>{label}</span>
-      </button>
+      <span className="group relative inline-flex">
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          aria-label={label}
+          className={cn("peer", buttonClassName, className)}
+        >
+          <span>{label}</span>
+        </button>
+        <ThemedTooltip className="max-w-[14rem]">{label}</ThemedTooltip>
+      </span>
       <ConfirmDialog
         open={open}
         title="Close ranking"
