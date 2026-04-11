@@ -215,6 +215,31 @@ describe("source preview resolver", () => {
     }
   });
 
+  it("resolves Twitch channel metadata from public Open Graph tags", async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      headers: { get: () => "text/html; charset=utf-8" },
+      text: async () =>
+        '<meta property="og:title" content="SareneWild - Twitch" /><meta property="og:image" content="https://static-cdn.jtvnw.net/jtv_user_pictures/user-profile.png" /><meta property="og:description" content="Tending to your ears" /><meta property="og:site_name" content="Twitch" />',
+    } as unknown as Response);
+
+    try {
+      const result = await resolveSourcePreview("https://www.twitch.tv/sarenewild", "localhost");
+      expect(result.kind).toBe("TWITCH");
+      expect(result.embedUrl).toBe("https://player.twitch.tv/?channel=sarenewild&parent=localhost");
+      expect(result.thumbnailUrl).toBe(
+        "https://static-cdn.jtvnw.net/jtv_user_pictures/user-profile.png",
+      );
+      expect(result.title).toBe("SareneWild - Twitch");
+      expect(result.description).toBe("Tending to your ears");
+      expect(result.siteName).toBe("Twitch");
+      expect(result.resolvedBy).toBe("native");
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
   it("resolves generic link unfurl metadata from Open Graph tags", async () => {
     const originalFetch = globalThis.fetch;
     globalThis.fetch = vi.fn().mockResolvedValue({

@@ -101,6 +101,13 @@ export async function resolveExternalSourcePreview(
     thumbnailUrl = metadata.thumbnailUrl ?? thumbnailUrl;
     title = metadata.title ?? title;
     durationSec = metadata.durationSec ?? durationSec;
+  } else if (kind === "TWITCH" && (!thumbnailUrl || !title)) {
+    const metadata = await resolveGenericMetadataViaHtml(canonicalSourceUrl);
+    thumbnailUrl = metadata.thumbnailUrl ?? thumbnailUrl;
+    title = metadata.title ?? title;
+    durationSec = metadata.durationSec ?? durationSec;
+    description = metadata.description ?? description;
+    siteName = metadata.siteName ?? siteName;
   } else if (kind === "X" && !title) {
     const metadata = await resolveXMetadataViaOEmbed(canonicalSourceUrl);
     title = metadata.title ?? title;

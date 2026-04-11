@@ -233,7 +233,7 @@ export function useSourceDraft({
   const resolvedExternalSiteName = resolvedExternalPreview?.siteName ?? resolvedSourceSiteName;
   const shouldShowGenericUnfurlCard =
     activeProvider === null &&
-    externalSourceKind === "GENERIC" &&
+    (externalSourceKind === "GENERIC" || (externalSourceKind === "TWITCH" && !externalEmbedUrl)) &&
     !!(
       resolvedSourceTitle ||
       resolvedExternalDescription ||
