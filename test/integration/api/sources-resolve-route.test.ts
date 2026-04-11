@@ -87,6 +87,35 @@ describe("sources resolve route", () => {
     });
   });
 
+  it("returns 200 safe payload for policy-blocked preview URLs", async () => {
+    const blockedPayload = {
+      sourceUrl: "http://127.0.0.1:8080/private",
+      provider: null,
+      youtubeContentKind: null,
+      durationSec: null,
+      kind: "GENERIC",
+      label: "External link",
+      embedUrl: null,
+      embedType: null,
+      thumbnailUrl: null,
+      title: null,
+      description: null,
+      siteName: null,
+      note: "Preview blocked for local or private network URLs. Use Open source.",
+      resolvedBy: "none",
+    };
+    mocks.resolveSourcePreview.mockResolvedValue(blockedPayload);
+
+    const response = await GET(
+      new Request(
+        "https://example.test/api/sources/resolve?url=http%3A%2F%2F127.0.0.1%3A8080%2Fprivate",
+      ),
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual(blockedPayload);
+  });
+
   it("returns 400 when resolver throws", async () => {
     mocks.resolveSourcePreview.mockRejectedValue(new Error("boom"));
 

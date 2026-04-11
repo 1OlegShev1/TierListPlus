@@ -3,7 +3,7 @@
 import { Link2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
-import { ItemSourceModal } from "@/components/items/ItemSourceModal";
+import { ItemSourceModal } from "@/components/items/source-modal/ItemSourceModal";
 import { CombinedAddItemTile } from "@/components/shared/CombinedAddItemTile";
 import type { UploadedImage } from "@/components/shared/ImageUploader";
 import { ListRankingPreviewTeaser } from "@/components/templates/ListRankingPreviewTeaser";

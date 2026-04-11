@@ -4,7 +4,7 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Link2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { ItemSourceModal } from "@/components/items/ItemSourceModal";
+import { ItemSourceModal } from "@/components/items/source-modal/ItemSourceModal";
 import { ItemArtwork } from "@/components/ui/ItemArtwork";
 import { CloseIcon } from "@/components/ui/icons";
 import type { ItemSourceProvider } from "@/types";

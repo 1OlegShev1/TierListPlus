@@ -4,7 +4,7 @@ import { DndContext, DragOverlay } from "@dnd-kit/core";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { ItemSourceModal } from "@/components/items/ItemSourceModal";
+import { ItemSourceModal } from "@/components/items/source-modal/ItemSourceModal";
 import { CombinedAddItemTile } from "@/components/shared/CombinedAddItemTile";
 import { ThemedTooltip } from "@/components/ui/ThemedTooltip";
 import { useDelayedBusy } from "@/hooks/useDelayedBusy";

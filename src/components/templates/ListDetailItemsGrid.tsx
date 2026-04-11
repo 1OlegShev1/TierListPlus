@@ -2,7 +2,7 @@
 
 import { Link2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { ItemSourceModal } from "@/components/items/ItemSourceModal";
+import { ItemSourceModal } from "@/components/items/source-modal/ItemSourceModal";
 import { ItemArtwork } from "@/components/ui/ItemArtwork";
 import type { ItemSourceProvider } from "@/types";
 

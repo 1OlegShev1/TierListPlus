@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { ItemSourceModal } from "@/components/items/ItemSourceModal";
+import { ItemSourceModal } from "@/components/items/source-modal/ItemSourceModal";
 
 const YOUTUBE_URL = "https://www.youtube.com/watch?v=dQw4w9WgXcQ";
 const YOUTUBE_SHORTS_URL = "https://www.youtube.com/shorts/dQw4w9WgXcQ";
@@ -137,6 +137,47 @@ describe("ItemSourceModal", () => {
         sourceEndSec: null,
       });
     });
+  });
+
+  it("renders a messenger-style unfurl card for generic links", async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        provider: null,
+        youtubeContentKind: null,
+        kind: "GENERIC",
+        label: "External link",
+        embedUrl: null,
+        embedType: null,
+        thumbnailUrl: "https://cdn.example.com/card.jpg",
+        title: "Preview title",
+        description: "Preview description",
+        siteName: "Example",
+        note: null,
+      }),
+    } as Response);
+
+    try {
+      render(
+        <ItemSourceModal
+          open
+          editable={false}
+          itemLabel="Song"
+          sourceUrl={GENERIC_URL}
+          onClose={vi.fn()}
+        />,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText("Preview title")).toBeTruthy();
+      });
+      expect(screen.getByText("Preview description")).toBeTruthy();
+      expect(screen.getByText("Example")).toBeTruthy();
+      expect(screen.getByAltText("Song link preview")).toBeTruthy();
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
   });
 
   it("parses mm:ss YouTube intervals before save", async () => {
@@ -716,6 +757,46 @@ describe("ItemSourceModal", () => {
     ).toBeTruthy();
   });
 
+  it("shows a policy note when preview fetch is blocked for local/private URLs", async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        provider: null,
+        youtubeContentKind: null,
+        kind: "GENERIC",
+        label: "External link",
+        embedUrl: null,
+        embedType: null,
+        thumbnailUrl: null,
+        title: null,
+        description: null,
+        siteName: null,
+        note: "Preview blocked for local or private network URLs. Use Open source.",
+      }),
+    } as Response);
+
+    try {
+      render(
+        <ItemSourceModal
+          open
+          editable={false}
+          itemLabel="Internal"
+          sourceUrl="http://127.0.0.1:8080/private"
+          onClose={vi.fn()}
+        />,
+      );
+
+      await waitFor(() => {
+        expect(
+          screen.getByText("Preview blocked for local or private network URLs. Use Open source."),
+        ).toBeTruthy();
+      });
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
   it("resolves SoundCloud short links through oEmbed", async () => {
     const originalFetch = globalThis.fetch;
     globalThis.fetch = vi.fn().mockResolvedValue({
@@ -814,6 +895,73 @@ describe("ItemSourceModal", () => {
         expect(screen.queryByText("stale-note")).toBeNull();
       });
       expect(screen.getByTitle("SoundCloud Mix SoundCloud preview")).toBeTruthy();
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it("uses a single includeDuration resolver request when YouTube interval validation is needed", async () => {
+    const originalFetch = globalThis.fetch;
+    const fetchMock = vi.fn().mockImplementation((input: RequestInfo | URL) => {
+      const url = typeof input === "string" ? input : input.toString();
+      if (url.includes("includeDuration=1")) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({
+            provider: "YOUTUBE",
+            youtubeContentKind: "VIDEO",
+            durationSec: 180,
+            kind: null,
+            label: "YouTube",
+            embedUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ",
+            embedType: "iframe",
+            thumbnailUrl: "https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg",
+            title: "Clip",
+            description: null,
+            siteName: null,
+            note: null,
+          }),
+        } as Response);
+      }
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({
+          provider: "YOUTUBE",
+          youtubeContentKind: "VIDEO",
+          durationSec: null,
+          kind: null,
+          label: "YouTube",
+          embedUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ",
+          embedType: "iframe",
+          thumbnailUrl: "https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg",
+          title: "Clip",
+          description: null,
+          siteName: null,
+          note: null,
+        }),
+      } as Response);
+    });
+    globalThis.fetch = fetchMock;
+
+    try {
+      render(
+        <ItemSourceModal
+          open
+          editable
+          itemLabel="Song"
+          sourceUrl={YOUTUBE_URL}
+          onClose={vi.fn()}
+          onSave={vi.fn().mockResolvedValue(true)}
+        />,
+      );
+
+      fireEvent.change(screen.getByLabelText("End time"), { target: { value: "2:00" } });
+      await waitFor(() => {
+        const includeDurationCalls = fetchMock.mock.calls.filter(([input]) =>
+          (typeof input === "string" ? input : input.toString()).includes("includeDuration=1"),
+        );
+        expect(includeDurationCalls.length).toBe(1);
+      });
     } finally {
       globalThis.fetch = originalFetch;
     }

@@ -1,3 +1,11 @@
+const dnsMocks = vi.hoisted(() => ({
+  lookup: vi.fn(),
+}));
+
+vi.mock("node:dns/promises", () => ({
+  lookup: dnsMocks.lookup,
+}));
+
 import {
   __clearSourcePreviewResolverCacheForTests,
   __getSourcePreviewResolverCacheSizeForTests,
@@ -7,6 +15,7 @@ import {
 describe("source preview resolver", () => {
   beforeEach(() => {
     __clearSourcePreviewResolverCacheForTests();
+    dnsMocks.lookup.mockReset().mockResolvedValue([{ address: "93.184.216.34", family: 4 }]);
   });
 
   it("returns native provider previews for YouTube", async () => {
@@ -24,7 +33,7 @@ describe("source preview resolver", () => {
     globalThis.fetch = vi.fn().mockResolvedValue({
       ok: true,
       json: async () => ({ width: 113, height: 200, thumbnail_url: "https://i.ytimg.com/hq2.jpg" }),
-    } as Response);
+    } as unknown as Response);
 
     try {
       const result = await resolveSourcePreview(
@@ -51,12 +60,12 @@ describe("source preview resolver", () => {
       .mockResolvedValueOnce({
         ok: true,
         json: async () => ({ width: 200, height: 113, thumbnail_url: "https://i.ytimg.com/hq.jpg" }),
-      } as Response)
+      } as unknown as Response)
       .mockResolvedValueOnce({
         ok: true,
         text: async () =>
           '<meta itemprop="duration" content="PT1M30S" /><script>var x={"lengthSeconds":"90"};</script>',
-      } as Response);
+      } as unknown as Response);
 
     try {
       const result = await resolveSourcePreview(
@@ -76,7 +85,7 @@ describe("source preview resolver", () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
       json: async () => ({ width: 200, height: 113, thumbnail_url: "https://i.ytimg.com/hq.jpg" }),
-    } as Response);
+    } as unknown as Response);
     globalThis.fetch = fetchMock;
 
     try {
@@ -101,7 +110,7 @@ describe("source preview resolver", () => {
         title: "Uranium Heart",
         thumbnail_url: "https://image-cdn-fa.spotifycdn.com/image/ab67616d00001e02139acc2cf55729a5991ef2bf",
       }),
-    } as Response);
+    } as unknown as Response);
 
     try {
       const result = await resolveSourcePreview("https://open.spotify.com/track/5O9j5J7eMaBKHqNqupnu0i");
@@ -124,7 +133,7 @@ describe("source preview resolver", () => {
         title: "The Miracle",
         thumbnail_url: "https://i.vimeocdn.com/video/2129137440-b65534ce.jpg",
       }),
-    } as Response);
+    } as unknown as Response);
 
     try {
       const result = await resolveSourcePreview("https://vimeo.com/123456789");
@@ -146,7 +155,7 @@ describe("source preview resolver", () => {
       json: async () => ({
         html: '<iframe src="https://w.soundcloud.com/player/?url=https%3A%2F%2Fapi.soundcloud.com%2Ftracks%2F42"></iframe>',
       }),
-    } as Response);
+    } as unknown as Response);
     globalThis.fetch = fetchMock;
 
     try {
@@ -171,7 +180,7 @@ describe("source preview resolver", () => {
         author_name: "Roundtable",
         html: "<blockquote><p>Hello from X message</p></blockquote>",
       }),
-    } as Response);
+    } as unknown as Response);
 
     try {
       const result = await resolveSourcePreview("https://x.com/openai/status/1895463212345678901");
@@ -193,7 +202,7 @@ describe("source preview resolver", () => {
       ok: true,
       text: async () =>
         '<meta property="og:title" content="Reel title" /><meta property="og:image" content="https://scontent.cdninstagram.com/reel.jpg?x=1&amp;y=2" />',
-    } as Response);
+    } as unknown as Response);
 
     try {
       const result = await resolveSourcePreview("https://www.instagram.com/reel/DVfKzGbiDeA/");
@@ -206,6 +215,103 @@ describe("source preview resolver", () => {
     }
   });
 
+  it("resolves generic link unfurl metadata from Open Graph tags", async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      headers: { get: () => "text/html; charset=utf-8" },
+      text: async () =>
+        '<meta property="og:title" content="Article title" /><meta property="og:description" content="Quick summary" /><meta property="og:image" content="https://cdn.example.com/cover.jpg" /><meta property="og:site_name" content="Example News" />',
+    } as unknown as Response);
+
+    try {
+      const result = await resolveSourcePreview("https://example.com/posts/123");
+      expect(result.kind).toBe("GENERIC");
+      expect(result.embedUrl).toBeNull();
+      expect(result.title).toBe("Article title");
+      expect(result.description).toBe("Quick summary");
+      expect(result.thumbnailUrl).toBe("https://cdn.example.com/cover.jpg");
+      expect(result.siteName).toBe("Example News");
+      expect(result.note).toBeNull();
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it("returns a safe blocked payload for localhost/private preview URLs", async () => {
+    const originalFetch = globalThis.fetch;
+    const fetchMock = vi.fn();
+    globalThis.fetch = fetchMock as typeof fetch;
+
+    try {
+      const result = await resolveSourcePreview("http://127.0.0.1:8080/private");
+      expect(result.provider).toBeNull();
+      expect(result.embedUrl).toBeNull();
+      expect(result.resolvedBy).toBe("none");
+      expect(result.note).toBe("Preview blocked for local or private network URLs. Use Open source.");
+      expect(fetchMock).not.toHaveBeenCalled();
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it("blocks redirects from public URLs to private-network targets", async () => {
+    const originalFetch = globalThis.fetch;
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(null, {
+        status: 302,
+        headers: { location: "http://127.0.0.1:9000/admin" },
+      }),
+    );
+    globalThis.fetch = fetchMock;
+
+    try {
+      const result = await resolveSourcePreview("https://example.com/redirect-private");
+      expect(result.embedUrl).toBeNull();
+      expect(result.resolvedBy).toBe("none");
+      expect(result.note).toBe("Preview blocked for local or private network URLs. Use Open source.");
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it("blocks hostname previews when DNS resolves to private addresses", async () => {
+    dnsMocks.lookup.mockResolvedValueOnce([{ address: "127.0.0.1", family: 4 }]);
+    const originalFetch = globalThis.fetch;
+    const fetchMock = vi.fn();
+    globalThis.fetch = fetchMock as typeof fetch;
+
+    try {
+      const result = await resolveSourcePreview("https://example.com/internal");
+      expect(result.embedUrl).toBeNull();
+      expect(result.resolvedBy).toBe("none");
+      expect(result.note).toBe("Preview blocked for local or private network URLs. Use Open source.");
+      expect(fetchMock).not.toHaveBeenCalled();
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it("allows public IPv6 literal URLs to resolve without policy block", async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = vi.fn().mockResolvedValue(
+      new Response("<html><body>ok</body></html>", {
+        status: 200,
+        headers: { "content-type": "text/html; charset=utf-8" },
+      }),
+    );
+
+    try {
+      const result = await resolveSourcePreview("http://[2606:4700:4700::1111]/");
+      expect(result.note).not.toBe("Preview blocked for local or private network URLs. Use Open source.");
+      expect(result.resolvedBy).toBe("none");
+      expect(globalThis.fetch).toHaveBeenCalledTimes(1);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
   it("rejects unsafe SoundCloud oEmbed iframe hosts", async () => {
     const originalFetch = globalThis.fetch;
     const fetchMock = vi.fn().mockResolvedValue({
@@ -213,7 +319,7 @@ describe("source preview resolver", () => {
       json: async () => ({
         html: '<iframe src="https://evil.example/embed"></iframe>',
       }),
-    } as Response);
+    } as unknown as Response);
     globalThis.fetch = fetchMock;
 
     try {
@@ -324,9 +430,20 @@ describe("source preview resolver", () => {
   });
 
   it("bounds cache growth for high-cardinality URLs", async () => {
-    for (let index = 0; index < 700; index += 1) {
-      await resolveSourcePreview(`https://example.com/resource/${index}`);
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: false,
+      headers: { get: () => "text/html" },
+      text: async () => "",
+    } as unknown as Response);
+    try {
+      for (let index = 0; index < 700; index += 1) {
+        await resolveSourcePreview(`https://example.com/resource/${index}`);
+      }
+      expect(__getSourcePreviewResolverCacheSizeForTests()).toBeLessThanOrEqual(500);
+    } finally {
+      globalThis.fetch = originalFetch;
     }
-    expect(__getSourcePreviewResolverCacheSizeForTests()).toBeLessThanOrEqual(500);
   });
 });
+
