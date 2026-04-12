@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { DeleteListButton } from "@/components/templates/DeleteListButton";
 import { DuplicateListButton } from "@/components/templates/DuplicateListButton";
+import { ListDetailDraftIndicator } from "@/components/templates/ListDetailDraftIndicator";
 import { ListDetailItemsGrid } from "@/components/templates/ListDetailItemsGrid";
 import { ListRankingPreviewTeaser } from "@/components/templates/ListRankingPreviewTeaser";
 import { StartVoteFromTemplateButton } from "@/components/templates/StartVoteFromTemplateButton";
@@ -95,7 +96,10 @@ export default async function ListDetailPage({
 
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold">{list.name}</h1>
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="text-2xl font-bold">{list.name}</h1>
+            {canManage && <ListDetailDraftIndicator listId={templateId} spaceId={list.spaceId} />}
+          </div>
           {list.description && (
             <p className="mt-1 text-sm text-[var(--fg-muted)]">{list.description}</p>
           )}
