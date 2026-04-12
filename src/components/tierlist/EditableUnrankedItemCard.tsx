@@ -200,6 +200,7 @@ export function EditableUnrankedItemCard({
             className="h-full w-full"
             presentation="ambient"
             inset="compact"
+            draggable={false}
             showAnimatedHint
           />
         </div>
@@ -209,6 +210,8 @@ export function EditableUnrankedItemCard({
           {...attributes}
           {...listeners}
           onClick={() => setPreviewing((current) => !current)}
+          onContextMenu={(event) => event.preventDefault()}
+          onDragStart={(event) => event.preventDefault()}
           onBlur={(event) => {
             const nextFocused = event.relatedTarget;
             if (
@@ -220,7 +223,7 @@ export function EditableUnrankedItemCard({
             }
             setPreviewing(false);
           }}
-          className="block h-[var(--editable-item-media-size)] w-full cursor-grab overflow-hidden rounded active:cursor-grabbing"
+          className="draggable-handle block h-[var(--editable-item-media-size)] w-full cursor-grab overflow-hidden rounded active:cursor-grabbing [-webkit-touch-callout:none]"
           aria-label={`Preview animation for ${label || "item"} or drag to rank`}
         >
           <ItemArtwork

@@ -270,7 +270,7 @@ export function VotePageClient({
   }, [router, searchParams, session.canManageSession, session.name, sessionId]);
 
   return (
-    <div className="-mt-2 relative flex flex-col pb-3 sm:-mt-4 sm:pb-4">
+    <div className="relative -mt-2 flex min-w-0 touch-pan-y overflow-x-hidden overscroll-x-none flex-col pb-3 sm:-mt-4 sm:pb-4">
       <div
         aria-live="polite"
         aria-atomic="true"

@@ -21,6 +21,7 @@ import {
 import { createVoteBoardDraftSnapshot } from "@/lib/vote-draft-storage";
 import type { Item, TierConfig } from "@/types";
 import { DraggableItem } from "./DraggableItem";
+import { EditableUnrankedItemOverlay } from "./EditableUnrankedItemOverlay";
 import { EditableUnrankedItemCard } from "./EditableUnrankedItemCard";
 import { TierRow } from "./TierRow";
 import { UnrankedDropZone, UnrankedHeader } from "./UnrankedPool";
@@ -260,6 +261,18 @@ export function TierListBoard({
     tierConfig,
   });
 
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    if (activeId) {
+      document.body.dataset.dragging = "true";
+    } else {
+      delete document.body.dataset.dragging;
+    }
+    return () => {
+      delete document.body.dataset.dragging;
+    };
+  }, [activeId]);
+
   // ---- Submit ----
 
   const handleSubmit = async () => {
@@ -327,6 +340,7 @@ export function TierListBoard({
   };
 
   const activeItem = activeId ? items.get(activeId) : null;
+  const activeContainer = activeId ? findContainer(activeId) : null;
   const sourceModalItem = sourceModalItemId ? (items.get(sourceModalItemId) ?? null) : null;
   const totalItems = liveItems.length;
   const savesWorkingTemplate = canEditTierConfig && templateIsHidden;
@@ -573,14 +587,21 @@ export function TierListBoard({
         {/* Drag Overlay */}
         <DragOverlay>
           {activeItem ? (
-            <DraggableItem
-              id={activeItem.id}
-              label={activeItem.label}
-              imageUrl={activeItem.imageUrl}
-              sourceUrl={activeItem.sourceUrl}
-              sourceProvider={activeItem.sourceProvider}
-              overlay
-            />
+            canManageItems && activeContainer === "unranked" ? (
+              <EditableUnrankedItemOverlay
+                label={activeItem.label}
+                imageUrl={activeItem.imageUrl}
+              />
+            ) : (
+              <DraggableItem
+                id={activeItem.id}
+                label={activeItem.label}
+                imageUrl={activeItem.imageUrl}
+                sourceUrl={activeItem.sourceUrl}
+                sourceProvider={activeItem.sourceProvider}
+                overlay
+              />
+            )
           ) : null}
         </DragOverlay>
       </DndContext>

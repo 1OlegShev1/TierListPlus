@@ -60,6 +60,9 @@ export function ItemSourceModal({
 
   useEffect(() => {
     if (!open) return;
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new Event("overlay:modal-open"));
+    }
     setDraftUrl(sourceUrl ?? "");
     setDraftLabel(itemLabel);
     setDraftLabelTouched(false);

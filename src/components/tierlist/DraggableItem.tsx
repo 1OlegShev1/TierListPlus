@@ -3,6 +3,7 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Link2 } from "lucide-react";
+import { useId } from "react";
 import { ItemArtwork } from "@/components/ui/ItemArtwork";
 import { CloseIcon } from "@/components/ui/icons";
 import type { ItemSourceProvider } from "@/types";
@@ -49,8 +50,10 @@ export function DraggableItem({
   expandedScale = 1.6,
   compareDifferenceState = "none",
 }: DraggableItemProps) {
+  const staticId = useId();
+  const sortableId = overlay || !enableSorting ? `static-${staticId}` : id;
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
-    id,
+    id: sortableId,
     disabled: overlay || !enableSorting,
   });
 
@@ -85,6 +88,7 @@ export function DraggableItem({
       ref={overlay || !enableSorting ? undefined : setNodeRef}
       style={style}
       data-peek-item={overlay ? undefined : "true"}
+      data-draggable-item={overlay ? undefined : "true"}
       className={`group relative h-[var(--compact-item-size)] w-[var(--compact-item-size)] flex-shrink-0 overflow-visible ${metricsClassName} ${
         expanded ? "z-20" : "z-0"
       }`}
@@ -162,8 +166,9 @@ export function DraggableItem({
                 }
               }
         }
+        onDragStart={(event) => event.preventDefault()}
         onContextMenu={overlay ? undefined : (e) => e.preventDefault()}
-        className={`relative h-full w-full select-none overflow-hidden rounded-md border bg-transparent p-0 touch-manipulation [-webkit-touch-callout:none] ${
+        className={`draggable-handle relative h-full w-full select-none overflow-hidden rounded-md border bg-transparent p-0 [-webkit-touch-callout:none] ${
           enableSorting ? "cursor-grab active:cursor-grabbing" : "cursor-pointer"
         } ${
           overlay

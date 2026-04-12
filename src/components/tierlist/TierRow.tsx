@@ -9,6 +9,11 @@ import { useTierListStore } from "@/hooks/useTierList";
 import { DraggableItem } from "./DraggableItem";
 import { TierColorPicker } from "./TierColorPicker";
 import { TierRowActions } from "./TierRowActions";
+import {
+  TIER_LABEL_WIDTH_CLASS,
+  TIER_ROW_CONTENT_CLASS,
+  TIER_ROW_HEIGHT_CLASS,
+} from "./tokens";
 
 const EMPTY_TIER_ITEMS: string[] = [];
 
@@ -93,7 +98,7 @@ export function TierRow({
   return (
     <div>
       <div
-        className={`flex min-h-[72px] border-b border-[var(--border-grid)] sm:min-h-[80px] md:min-h-[90px] lg:min-h-[104px] ${isFirst ? "rounded-t-lg" : ""} ${isLast ? "rounded-b-lg border-b-0" : ""}`}
+        className={`flex ${TIER_ROW_HEIGHT_CLASS} border-b border-[var(--border-grid)] ${isFirst ? "rounded-t-lg" : ""} ${isLast ? "rounded-b-lg border-b-0" : ""}`}
       >
         {/* Color Strip (leftmost) */}
         <TierColorPicker
@@ -107,7 +112,7 @@ export function TierRow({
 
         {/* Tier Label */}
         <div
-          className="flex w-14 flex-shrink-0 items-center justify-center sm:w-20 md:w-24 lg:w-28"
+          className={`flex ${TIER_LABEL_WIDTH_CLASS} flex-shrink-0 items-center justify-center`}
           style={{ backgroundColor: color, color: "var(--fg-on-accent)" }}
         >
           {editingLabel ? (
@@ -125,7 +130,7 @@ export function TierRow({
                 }
               }}
               maxLength={20}
-              className="w-12 rounded bg-[var(--bg-soft-contrast)] px-1 py-0.5 text-center text-xs font-bold text-inherit focus:outline-none focus:ring-1 focus:ring-[var(--focus-ring)] sm:w-14 sm:text-sm md:w-16 md:text-base"
+              className="w-12 rounded bg-[var(--bg-soft-contrast)] px-1 py-0.5 text-center text-[16px] font-bold text-inherit focus:outline-none focus:ring-1 focus:ring-[var(--focus-ring)] sm:w-14 md:w-16"
               aria-label="Edit tier label"
             />
           ) : (
@@ -148,7 +153,7 @@ export function TierRow({
         {/* Items Area */}
         <div
           ref={setNodeRef}
-          className={`flex flex-1 flex-wrap items-start gap-0.5 p-0.5 transition-colors sm:gap-1.5 sm:p-1.5 md:gap-2 md:p-2 ${
+          className={`flex min-w-0 flex-1 flex-wrap items-start content-center transition-colors sm:content-start ${TIER_ROW_CONTENT_CLASS} ${
             isOver ? "bg-[var(--bg-surface-hover)]" : ""
           }`}
         >
