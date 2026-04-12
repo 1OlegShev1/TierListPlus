@@ -8,10 +8,7 @@ interface EditableUnrankedItemOverlayProps {
   imageUrl: string;
 }
 
-export function EditableUnrankedItemOverlay({
-  label,
-  imageUrl,
-}: EditableUnrankedItemOverlayProps) {
+export function EditableUnrankedItemOverlay({ label, imageUrl }: EditableUnrankedItemOverlayProps) {
   const labelText = label.trim().length > 0 ? label : "Untitled item";
 
   return (

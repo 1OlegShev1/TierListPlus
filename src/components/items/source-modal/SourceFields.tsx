@@ -171,13 +171,15 @@ export function SourceFields({
         />
       )}
 
-      <div className="min-h-[3.75rem]" aria-live="polite">
-        {inlineValidationMessage ? (
-          <ErrorMessage message={inlineValidationMessage} />
-        ) : inlineHintMessage ? (
-          <p className="text-xs text-[var(--fg-subtle)]">{inlineHintMessage}</p>
-        ) : null}
-      </div>
+      {(inlineValidationMessage || inlineHintMessage) && (
+        <div aria-live="polite">
+          {inlineValidationMessage ? (
+            <ErrorMessage message={inlineValidationMessage} />
+          ) : (
+            <p className="text-xs text-[var(--fg-subtle)]">{inlineHintMessage}</p>
+          )}
+        </div>
+      )}
     </>
   );
 }

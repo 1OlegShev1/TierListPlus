@@ -9,11 +9,7 @@ import { useTierListStore } from "@/hooks/useTierList";
 import { DraggableItem } from "./DraggableItem";
 import { TierColorPicker } from "./TierColorPicker";
 import { TierRowActions } from "./TierRowActions";
-import {
-  TIER_LABEL_WIDTH_CLASS,
-  TIER_ROW_CONTENT_CLASS,
-  TIER_ROW_HEIGHT_CLASS,
-} from "./tokens";
+import { TIER_LABEL_WIDTH_CLASS, TIER_ROW_CONTENT_CLASS, TIER_ROW_HEIGHT_CLASS } from "./tokens";
 
 const EMPTY_TIER_ITEMS: string[] = [];
 
@@ -153,7 +149,7 @@ export function TierRow({
         {/* Items Area */}
         <div
           ref={setNodeRef}
-          className={`flex min-w-0 flex-1 flex-wrap items-start content-center transition-colors sm:content-start ${TIER_ROW_CONTENT_CLASS} ${
+          className={`flex min-w-0 flex-1 flex-wrap items-center content-center transition-colors sm:items-start sm:content-start ${TIER_ROW_CONTENT_CLASS} ${
             isOver ? "bg-[var(--bg-surface-hover)]" : ""
           }`}
         >

@@ -21,8 +21,8 @@ import {
 import { createVoteBoardDraftSnapshot } from "@/lib/vote-draft-storage";
 import type { Item, TierConfig } from "@/types";
 import { DraggableItem } from "./DraggableItem";
-import { EditableUnrankedItemOverlay } from "./EditableUnrankedItemOverlay";
 import { EditableUnrankedItemCard } from "./EditableUnrankedItemCard";
+import { EditableUnrankedItemOverlay } from "./EditableUnrankedItemOverlay";
 import { TierRow } from "./TierRow";
 import { UnrankedDropZone, UnrankedHeader } from "./UnrankedPool";
 import { useLiveSessionItems } from "./useLiveSessionItems";

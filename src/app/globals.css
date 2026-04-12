@@ -236,7 +236,7 @@ body {
   pointer-events: none;
 }
 
-[data-dragging="true"] .draggable-handle {
+.draggable-handle {
   touch-action: none;
 }
 

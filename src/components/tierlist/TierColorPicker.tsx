@@ -1,9 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
-import { TIER_COLORS } from "@/lib/constants";
-import { Portal } from "@/components/ui/Portal";
 import type { CSSProperties } from "react";
+import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
+import { Portal } from "@/components/ui/Portal";
+import { TIER_COLORS } from "@/lib/constants";
 
 interface TierColorPickerProps {
   color: string;
@@ -60,7 +60,11 @@ export function TierColorPicker({
     };
     const handleFocus = (e: FocusEvent) => {
       const nextTarget = e.target as Node | null;
-      if (nextTarget && !buttonRef.current?.contains(nextTarget) && !menuRef.current?.contains(nextTarget)) {
+      if (
+        nextTarget &&
+        !buttonRef.current?.contains(nextTarget) &&
+        !menuRef.current?.contains(nextTarget)
+      ) {
         closePicker();
       }
     };
