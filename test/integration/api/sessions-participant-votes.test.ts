@@ -32,10 +32,13 @@ describe("participant votes route", () => {
   it("returns an empty vote list when no submitted votes exist", async () => {
     mocks.prisma.tierVote.findMany.mockResolvedValue([]);
 
-    const response = await GET(new Request("https://example.test"), routeCtx({
-      sessionId: "s1",
-      participantId: "participant_1",
-    }));
+    const response = await GET(
+      new Request("https://example.test"),
+      routeCtx({
+        sessionId: "s1",
+        participantId: "participant_1",
+      }),
+    );
 
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({
@@ -52,10 +55,13 @@ describe("participant votes route", () => {
       },
     ]);
 
-    const response = await GET(new Request("https://example.test"), routeCtx({
-      sessionId: "s1",
-      participantId: "participant_1",
-    }));
+    const response = await GET(
+      new Request("https://example.test"),
+      routeCtx({
+        sessionId: "s1",
+        participantId: "participant_1",
+      }),
+    );
 
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({

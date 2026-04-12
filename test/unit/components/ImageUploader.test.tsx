@@ -17,9 +17,7 @@ describe("ImageUploader", () => {
       }),
     );
 
-    render(
-      <ImageUploader onUploaded={onUploaded} onUploadStateChange={onUploadStateChange} />,
-    );
+    render(<ImageUploader onUploaded={onUploaded} onUploadStateChange={onUploadStateChange} />);
 
     fireEvent.change(screen.getByLabelText("Upload image"), {
       target: {

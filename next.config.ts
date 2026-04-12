@@ -13,9 +13,7 @@ const nextConfig: NextConfig = {
   // Allow LAN-origin access to Next.js dev internals (HMR/runtime) for phone testing.
   // Without this, pages can render but never hydrate when opened via local IP.
   allowedDevOrigins:
-    process.env.NODE_ENV === "development"
-      ? DEV_PRIVATE_NETWORK_ORIGINS
-      : undefined,
+    process.env.NODE_ENV === "development" ? DEV_PRIVATE_NETWORK_ORIGINS : undefined,
   images: {
     remotePatterns: [],
   },

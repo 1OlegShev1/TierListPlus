@@ -38,11 +38,17 @@ describe("template duplicate route", () => {
       );
     mocks.prisma.template.create.mockResolvedValue({ id: "copy_1" });
 
-    let response = await POST(new Request("https://example.test", { method: "POST" }), routeCtx({ templateId: "t1" }));
+    let response = await POST(
+      new Request("https://example.test", { method: "POST" }),
+      routeCtx({ templateId: "t1" }),
+    );
     expect(response.status).toBe(404);
     await expect(response.json()).resolves.toEqual({ error: "Template not found" });
 
-    response = await POST(new Request("https://example.test", { method: "POST" }), routeCtx({ templateId: "t1" }));
+    response = await POST(
+      new Request("https://example.test", { method: "POST" }),
+      routeCtx({ templateId: "t1" }),
+    );
     expect(response.status).toBe(201);
     await expect(response.json()).resolves.toEqual({ id: "copy_1" });
     expect(mocks.prisma.template.create).toHaveBeenCalledWith({

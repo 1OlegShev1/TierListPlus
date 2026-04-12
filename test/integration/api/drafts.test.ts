@@ -32,12 +32,21 @@ describe("drafts api route", () => {
     mocks.prisma.draft.findUnique.mockResolvedValue({
       kind: "LIST_EDITOR",
       scope: "list-editor:create:personal",
-      payload: { version: 1, updatedAtMs: 1, name: "x", description: "", isPublic: false, items: [] },
+      payload: {
+        version: 1,
+        updatedAtMs: 1,
+        name: "x",
+        description: "",
+        isPublic: false,
+        items: [],
+      },
       updatedAt: new Date("2026-04-11T10:00:00.000Z"),
     });
 
     const response = await GET(
-      new Request("https://example.test/api/drafts?kind=LIST_EDITOR&scope=list-editor:create:personal"),
+      new Request(
+        "https://example.test/api/drafts?kind=LIST_EDITOR&scope=list-editor:create:personal",
+      ),
       { params: Promise.resolve({}) },
     );
 
@@ -45,7 +54,14 @@ describe("drafts api route", () => {
     await expect(response.json()).resolves.toEqual({
       kind: "LIST_EDITOR",
       scope: "list-editor:create:personal",
-      payload: { version: 1, updatedAtMs: 1, name: "x", description: "", isPublic: false, items: [] },
+      payload: {
+        version: 1,
+        updatedAtMs: 1,
+        name: "x",
+        description: "",
+        isPublic: false,
+        items: [],
+      },
       updatedAtMs: new Date("2026-04-11T10:00:00.000Z").getTime(),
     });
     expect(mocks.prisma.draft.findUnique).toHaveBeenCalledWith({
@@ -69,7 +85,9 @@ describe("drafts api route", () => {
     mocks.prisma.draft.findUnique.mockResolvedValue(null);
 
     const response = await GET(
-      new Request("https://example.test/api/drafts?kind=LIST_EDITOR&scope=list-editor:create:personal"),
+      new Request(
+        "https://example.test/api/drafts?kind=LIST_EDITOR&scope=list-editor:create:personal",
+      ),
       { params: Promise.resolve({}) },
     );
 
@@ -81,7 +99,14 @@ describe("drafts api route", () => {
     mocks.prisma.draft.upsert.mockResolvedValue({
       kind: "LIST_EDITOR",
       scope: "list-editor:edit:tpl_1",
-      payload: { version: 1, updatedAtMs: 2, name: "Edited", description: "", isPublic: true, items: [] },
+      payload: {
+        version: 1,
+        updatedAtMs: 2,
+        name: "Edited",
+        description: "",
+        isPublic: true,
+        items: [],
+      },
       updatedAt: new Date("2026-04-11T11:00:00.000Z"),
     });
 
@@ -89,7 +114,14 @@ describe("drafts api route", () => {
       jsonRequest("PUT", "https://example.test/api/drafts", {
         kind: "LIST_EDITOR",
         scope: "list-editor:edit:tpl_1",
-        payload: { version: 1, updatedAtMs: 2, name: "Edited", description: "", isPublic: true, items: [] },
+        payload: {
+          version: 1,
+          updatedAtMs: 2,
+          name: "Edited",
+          description: "",
+          isPublic: true,
+          items: [],
+        },
       }),
       { params: Promise.resolve({}) },
     );
@@ -98,7 +130,14 @@ describe("drafts api route", () => {
     await expect(response.json()).resolves.toEqual({
       kind: "LIST_EDITOR",
       scope: "list-editor:edit:tpl_1",
-      payload: { version: 1, updatedAtMs: 2, name: "Edited", description: "", isPublic: true, items: [] },
+      payload: {
+        version: 1,
+        updatedAtMs: 2,
+        name: "Edited",
+        description: "",
+        isPublic: true,
+        items: [],
+      },
       updatedAtMs: new Date("2026-04-11T11:00:00.000Z").getTime(),
     });
 
@@ -111,7 +150,14 @@ describe("drafts api route", () => {
         },
       },
       update: {
-        payload: { version: 1, updatedAtMs: 2, name: "Edited", description: "", isPublic: true, items: [] },
+        payload: {
+          version: 1,
+          updatedAtMs: 2,
+          name: "Edited",
+          description: "",
+          isPublic: true,
+          items: [],
+        },
         deviceId: "device_1",
       },
       create: {
@@ -119,7 +165,14 @@ describe("drafts api route", () => {
         deviceId: "device_1",
         kind: "LIST_EDITOR",
         scope: "list-editor:edit:tpl_1",
-        payload: { version: 1, updatedAtMs: 2, name: "Edited", description: "", isPublic: true, items: [] },
+        payload: {
+          version: 1,
+          updatedAtMs: 2,
+          name: "Edited",
+          description: "",
+          isPublic: true,
+          items: [],
+        },
       },
       select: {
         kind: true,
@@ -175,9 +228,12 @@ describe("drafts api route", () => {
     mocks.prisma.draft.deleteMany.mockResolvedValue({ count: 1 });
 
     const response = await DELETE(
-      new Request("https://example.test/api/drafts?kind=LIST_EDITOR&scope=list-editor:create:personal", {
-        method: "DELETE",
-      }),
+      new Request(
+        "https://example.test/api/drafts?kind=LIST_EDITOR&scope=list-editor:create:personal",
+        {
+          method: "DELETE",
+        },
+      ),
       { params: Promise.resolve({}) },
     );
 
@@ -262,6 +318,8 @@ describe("drafts api route", () => {
       params: Promise.resolve({}),
     });
     expect(response.status).toBe(400);
-    await expect(response.json()).resolves.toEqual({ error: "Query requires valid kind and scope" });
+    await expect(response.json()).resolves.toEqual({
+      error: "Query requires valid kind and scope",
+    });
   });
 });

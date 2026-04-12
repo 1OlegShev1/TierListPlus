@@ -96,7 +96,9 @@ describe("space create page access", () => {
     });
     mocks.canReadSpace.mockReturnValue(false);
 
-    await expect(NewListPage({ searchParams: { spaceId: "space_1" } })).rejects.toThrow("NOT_FOUND");
+    await expect(NewListPage({ searchParams: { spaceId: "space_1" } })).rejects.toThrow(
+      "NOT_FOUND",
+    );
   });
 
   it("redirects open-space non-members from new vote page to the space page", async () => {
@@ -129,7 +131,9 @@ describe("space create page access", () => {
     });
     mocks.canReadSpace.mockReturnValue(false);
 
-    await expect(NewVotePage({ searchParams: { spaceId: "space_1" } })).rejects.toThrow("NOT_FOUND");
+    await expect(NewVotePage({ searchParams: { spaceId: "space_1" } })).rejects.toThrow(
+      "NOT_FOUND",
+    );
     expect(mocks.prisma.template.findMany).not.toHaveBeenCalled();
   });
 
@@ -145,9 +149,9 @@ describe("space create page access", () => {
     });
     mocks.canReadSpace.mockReturnValue(true);
 
-    await expect(SpaceImportTemplatePage({ params: Promise.resolve({ spaceId: "space_1" }) })).rejects.toThrow(
-      "REDIRECT:/spaces/space_1",
-    );
+    await expect(
+      SpaceImportTemplatePage({ params: Promise.resolve({ spaceId: "space_1" }) }),
+    ).rejects.toThrow("REDIRECT:/spaces/space_1");
     expect(mocks.prisma.template.findMany).not.toHaveBeenCalled();
   });
 
@@ -163,9 +167,9 @@ describe("space create page access", () => {
     });
     mocks.canReadSpace.mockReturnValue(false);
 
-    await expect(SpaceImportTemplatePage({ params: Promise.resolve({ spaceId: "space_1" }) })).rejects.toThrow(
-      "NOT_FOUND",
-    );
+    await expect(
+      SpaceImportTemplatePage({ params: Promise.resolve({ spaceId: "space_1" }) }),
+    ).rejects.toThrow("NOT_FOUND");
     expect(mocks.prisma.template.findMany).not.toHaveBeenCalled();
   });
 });

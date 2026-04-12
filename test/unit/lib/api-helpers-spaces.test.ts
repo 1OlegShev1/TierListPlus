@@ -33,7 +33,9 @@ describe("api helpers space/session access", () => {
       isOwner: false,
     });
 
-    await expect(resolveSpaceAccess(new Request("https://example.test"), "space_1")).rejects.toEqual(
+    await expect(
+      resolveSpaceAccess(new Request("https://example.test"), "space_1"),
+    ).rejects.toEqual(
       expect.objectContaining({
         status: 403,
         details: "This space is private",

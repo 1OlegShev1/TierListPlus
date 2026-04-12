@@ -22,8 +22,8 @@ vi.mock("@/lib/upload-gc", () => ({
   tryDeleteManagedUploadIfUnreferenced: mocks.tryDeleteManagedUploadIfUnreferenced,
 }));
 
-import { POST as addItem } from "@/app/api/templates/[templateId]/items/route";
 import { DELETE, PATCH } from "@/app/api/templates/[templateId]/items/[itemId]/route";
+import { POST as addItem } from "@/app/api/templates/[templateId]/items/route";
 import { jsonRequest, routeCtx } from "../../helpers/request";
 
 describe("template item routes", () => {

@@ -30,7 +30,12 @@ vi.mock("@/lib/nanoid", () => ({
 }));
 
 import { GET, POST } from "@/app/api/sessions/route";
-import { makeKnownRequestError, makeSession, makeSessionItem, makeTemplate } from "../../helpers/mocks";
+import {
+  makeKnownRequestError,
+  makeSession,
+  makeSessionItem,
+  makeTemplate,
+} from "../../helpers/mocks";
 import { jsonRequest } from "../../helpers/request";
 
 describe("sessions collection route", () => {
@@ -49,17 +54,20 @@ describe("sessions collection route", () => {
   it("filters public sessions for anonymous users and rejects invalid status", async () => {
     mocks.prisma.session.findMany.mockResolvedValue([makeSession({ isPrivate: false })]);
 
-    let response = await GET(new Request("https://example.test/api/sessions"), { params: Promise.resolve({}) });
+    let response = await GET(new Request("https://example.test/api/sessions"), {
+      params: Promise.resolve({}),
+    });
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual([expect.objectContaining({ isPrivate: false })]);
     expect(mocks.prisma.session.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { isPrivate: false, isModeratedHidden: false, spaceId: null } }),
+      expect.objectContaining({
+        where: { isPrivate: false, isModeratedHidden: false, spaceId: null },
+      }),
     );
 
-    response = await GET(
-      new Request("https://example.test/api/sessions?status=BAD"),
-      { params: Promise.resolve({}) },
-    );
+    response = await GET(new Request("https://example.test/api/sessions?status=BAD"), {
+      params: Promise.resolve({}),
+    });
     expect(response.status).toBe(400);
     await expect(response.json()).resolves.toEqual({
       error: "Invalid status filter. Must be OPEN, CLOSED, or ARCHIVED",
@@ -70,10 +78,9 @@ describe("sessions collection route", () => {
     mocks.getRequestAuth.mockResolvedValue({ userId: "user_1" });
     mocks.prisma.session.findMany.mockResolvedValue([]);
 
-    const response = await GET(
-      new Request("https://example.test/api/sessions?status=OPEN"),
-      { params: Promise.resolve({}) },
-    );
+    const response = await GET(new Request("https://example.test/api/sessions?status=OPEN"), {
+      params: Promise.resolve({}),
+    });
 
     expect(response.status).toBe(200);
     expect(mocks.prisma.session.findMany).toHaveBeenCalledWith(

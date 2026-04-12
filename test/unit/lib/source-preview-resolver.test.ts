@@ -59,7 +59,11 @@ describe("source preview resolver", () => {
       .fn()
       .mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ width: 200, height: 113, thumbnail_url: "https://i.ytimg.com/hq.jpg" }),
+        json: async () => ({
+          width: 200,
+          height: 113,
+          thumbnail_url: "https://i.ytimg.com/hq.jpg",
+        }),
       } as unknown as Response)
       .mockResolvedValueOnce({
         ok: true,
@@ -108,12 +112,15 @@ describe("source preview resolver", () => {
       ok: true,
       json: async () => ({
         title: "Uranium Heart",
-        thumbnail_url: "https://image-cdn-fa.spotifycdn.com/image/ab67616d00001e02139acc2cf55729a5991ef2bf",
+        thumbnail_url:
+          "https://image-cdn-fa.spotifycdn.com/image/ab67616d00001e02139acc2cf55729a5991ef2bf",
       }),
     } as unknown as Response);
 
     try {
-      const result = await resolveSourcePreview("https://open.spotify.com/track/5O9j5J7eMaBKHqNqupnu0i");
+      const result = await resolveSourcePreview(
+        "https://open.spotify.com/track/5O9j5J7eMaBKHqNqupnu0i",
+      );
       expect(result.provider).toBe("SPOTIFY");
       expect(result.embedUrl).toBe("https://open.spotify.com/embed/track/5O9j5J7eMaBKHqNqupnu0i");
       expect(result.thumbnailUrl).toBe(
@@ -227,7 +234,9 @@ describe("source preview resolver", () => {
     try {
       const result = await resolveSourcePreview("https://www.twitch.tv/sarenewild", "localhost");
       expect(result.kind).toBe("TWITCH");
-      expect(result.embedUrl).toBe("https://player.twitch.tv/?channel=sarenewild&parent=localhost");
+      expect(result.embedUrl).toBe(
+        "https://player.twitch.tv/?channel=sarenewild&parent=localhost&autoplay=false",
+      );
       expect(result.thumbnailUrl).toBe(
         "https://static-cdn.jtvnw.net/jtv_user_pictures/user-profile.png",
       );
@@ -273,7 +282,9 @@ describe("source preview resolver", () => {
       expect(result.provider).toBeNull();
       expect(result.embedUrl).toBeNull();
       expect(result.resolvedBy).toBe("none");
-      expect(result.note).toBe("Preview blocked for local or private network URLs. Use Open source.");
+      expect(result.note).toBe(
+        "Preview blocked for local or private network URLs. Use Open source.",
+      );
       expect(fetchMock).not.toHaveBeenCalled();
     } finally {
       globalThis.fetch = originalFetch;
@@ -294,7 +305,9 @@ describe("source preview resolver", () => {
       const result = await resolveSourcePreview("https://example.com/redirect-private");
       expect(result.embedUrl).toBeNull();
       expect(result.resolvedBy).toBe("none");
-      expect(result.note).toBe("Preview blocked for local or private network URLs. Use Open source.");
+      expect(result.note).toBe(
+        "Preview blocked for local or private network URLs. Use Open source.",
+      );
       expect(fetchMock).toHaveBeenCalledTimes(1);
     } finally {
       globalThis.fetch = originalFetch;
@@ -311,7 +324,9 @@ describe("source preview resolver", () => {
       const result = await resolveSourcePreview("https://example.com/internal");
       expect(result.embedUrl).toBeNull();
       expect(result.resolvedBy).toBe("none");
-      expect(result.note).toBe("Preview blocked for local or private network URLs. Use Open source.");
+      expect(result.note).toBe(
+        "Preview blocked for local or private network URLs. Use Open source.",
+      );
       expect(fetchMock).not.toHaveBeenCalled();
     } finally {
       globalThis.fetch = originalFetch;
@@ -329,7 +344,9 @@ describe("source preview resolver", () => {
 
     try {
       const result = await resolveSourcePreview("http://[2606:4700:4700::1111]/");
-      expect(result.note).not.toBe("Preview blocked for local or private network URLs. Use Open source.");
+      expect(result.note).not.toBe(
+        "Preview blocked for local or private network URLs. Use Open source.",
+      );
       expect(result.resolvedBy).toBe("none");
       expect(globalThis.fetch).toHaveBeenCalledTimes(1);
     } finally {
@@ -471,4 +488,3 @@ describe("source preview resolver", () => {
     }
   });
 });
-

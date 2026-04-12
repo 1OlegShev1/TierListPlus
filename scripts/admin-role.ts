@@ -1,6 +1,6 @@
 import "dotenv/config";
 import { PrismaPg } from "@prisma/adapter-pg";
-import { PrismaClient, Prisma, type UserRole } from "@prisma/client";
+import { Prisma, PrismaClient, type UserRole } from "@prisma/client";
 
 if (!process.env.DATABASE_URL) {
   throw new Error("DATABASE_URL environment variable is required");

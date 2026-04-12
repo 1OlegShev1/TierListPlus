@@ -76,9 +76,9 @@ describe("session page access guards", () => {
     });
     mocks.prisma.participant.findFirst.mockResolvedValue(null);
 
-    await expect(
-      VotePage({ params: Promise.resolve({ sessionId: "session_1" }) }),
-    ).rejects.toThrow("NOT_FOUND");
+    await expect(VotePage({ params: Promise.resolve({ sessionId: "session_1" }) })).rejects.toThrow(
+      "NOT_FOUND",
+    );
   });
 
   it("redirects open-space non-members into join flow from vote page", async () => {
@@ -101,9 +101,9 @@ describe("session page access guards", () => {
       items: [],
     });
 
-    await expect(
-      VotePage({ params: Promise.resolve({ sessionId: "session_1" }) }),
-    ).rejects.toThrow("REDIRECT:/sessions/join?code=JOIN1");
+    await expect(VotePage({ params: Promise.resolve({ sessionId: "session_1" }) })).rejects.toThrow(
+      "REDIRECT:/sessions/join?code=JOIN1",
+    );
     expect(mocks.prisma.participant.findFirst).not.toHaveBeenCalled();
   });
 
@@ -125,9 +125,9 @@ describe("session page access guards", () => {
     });
     mocks.prisma.participant.findFirst.mockResolvedValue(null);
 
-    await expect(
-      VotePage({ params: Promise.resolve({ sessionId: "session_1" }) }),
-    ).rejects.toThrow("NOT_FOUND");
+    await expect(VotePage({ params: Promise.resolve({ sessionId: "session_1" }) })).rejects.toThrow(
+      "NOT_FOUND",
+    );
   });
 
   it("blocks private-space non-members on results page", async () => {

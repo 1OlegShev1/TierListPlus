@@ -28,9 +28,9 @@ vi.mock("@/lib/upload-gc", () => ({
   tryDeleteManagedUploadIfUnreferenced: mocks.tryDeleteManagedUploadIfUnreferenced,
 }));
 
-import { ApiError } from "@/lib/api-helpers";
 import { DELETE, PATCH } from "@/app/api/sessions/[sessionId]/items/[itemId]/route";
 import { POST } from "@/app/api/sessions/[sessionId]/items/route";
+import { ApiError } from "@/lib/api-helpers";
 import { jsonRequest, routeCtx } from "../../helpers/request";
 
 describe("session item delete route", () => {

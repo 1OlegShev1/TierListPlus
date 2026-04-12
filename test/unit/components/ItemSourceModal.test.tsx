@@ -235,9 +235,9 @@ describe("ItemSourceModal", () => {
       fireEvent.change(screen.getByLabelText("End time"), { target: { value: "2:15" } });
 
       await waitFor(() => {
-        expect((screen.getByRole("button", { name: "Save Source" }) as HTMLButtonElement).disabled).toBe(
-          false,
-        );
+        expect(
+          (screen.getByRole("button", { name: "Save Source" }) as HTMLButtonElement).disabled,
+        ).toBe(false);
       });
       fireEvent.click(screen.getByRole("button", { name: "Save Source" }));
 
@@ -271,9 +271,9 @@ describe("ItemSourceModal", () => {
     fireEvent.change(screen.getByLabelText("End time"), { target: { value: "2:" } });
 
     expect(screen.queryByText(/invalid end time/i)).toBeNull();
-    expect((screen.getByRole("button", { name: "Save Source" }) as HTMLButtonElement).disabled).toBe(
-      true,
-    );
+    expect(
+      (screen.getByRole("button", { name: "Save Source" }) as HTMLButtonElement).disabled,
+    ).toBe(true);
   });
 
   it("enforces end time against resolved clip duration when available", async () => {
@@ -314,9 +314,9 @@ describe("ItemSourceModal", () => {
       await waitFor(() => {
         expect(screen.getByText("End time can be at most 1:30.")).toBeTruthy();
       });
-      expect((screen.getByRole("button", { name: "Save Source" }) as HTMLButtonElement).disabled).toBe(
-        true,
-      );
+      expect(
+        (screen.getByRole("button", { name: "Save Source" }) as HTMLButtonElement).disabled,
+      ).toBe(true);
     } finally {
       globalThis.fetch = originalFetch;
     }
@@ -364,9 +364,9 @@ describe("ItemSourceModal", () => {
       await waitFor(() => {
         expect(screen.getByText("Checking clip length...")).toBeTruthy();
       });
-      expect((screen.getByRole("button", { name: "Save Source" }) as HTMLButtonElement).disabled).toBe(
-        true,
-      );
+      expect(
+        (screen.getByRole("button", { name: "Save Source" }) as HTMLButtonElement).disabled,
+      ).toBe(true);
 
       deferredDurationResponse.resolve({
         ok: true,
@@ -387,9 +387,9 @@ describe("ItemSourceModal", () => {
       await waitFor(() => {
         expect(screen.queryByText("Checking clip length...")).toBeNull();
       });
-      expect((screen.getByRole("button", { name: "Save Source" }) as HTMLButtonElement).disabled).toBe(
-        false,
-      );
+      expect(
+        (screen.getByRole("button", { name: "Save Source" }) as HTMLButtonElement).disabled,
+      ).toBe(false);
     } finally {
       globalThis.fetch = originalFetch;
     }
@@ -435,9 +435,9 @@ describe("ItemSourceModal", () => {
           ),
         ).toBeTruthy();
       });
-      expect((screen.getByRole("button", { name: "Save Source" }) as HTMLButtonElement).disabled).toBe(
-        false,
-      );
+      expect(
+        (screen.getByRole("button", { name: "Save Source" }) as HTMLButtonElement).disabled,
+      ).toBe(false);
 
       fireEvent.click(screen.getByRole("button", { name: "Save Source" }));
       await waitFor(() => {

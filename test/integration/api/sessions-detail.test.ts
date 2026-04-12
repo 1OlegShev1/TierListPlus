@@ -147,7 +147,9 @@ describe("session detail route", () => {
     );
 
     expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toEqual(expect.objectContaining({ name: "Renamed vote" }));
+    await expect(response.json()).resolves.toEqual(
+      expect.objectContaining({ name: "Renamed vote" }),
+    );
     expect(mocks.prisma.session.update).toHaveBeenCalledWith({
       where: { id: "s1" },
       data: { name: "Renamed vote" },

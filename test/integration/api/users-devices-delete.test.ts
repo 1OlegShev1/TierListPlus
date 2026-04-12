@@ -69,12 +69,18 @@ describe("device delete route", () => {
   });
 
   it("rejects revoking the current device and missing devices", async () => {
-    let response = await DELETE(new Request("https://example.test"), routeCtx({ deviceId: "device_1" }));
+    let response = await DELETE(
+      new Request("https://example.test"),
+      routeCtx({ deviceId: "device_1" }),
+    );
     expect(response.status).toBe(400);
     await expect(response.json()).resolves.toEqual({ error: "Cannot revoke current device" });
 
     mocks.prisma.device.findFirst.mockResolvedValue(null);
-    response = await DELETE(new Request("https://example.test"), routeCtx({ deviceId: "device_2" }));
+    response = await DELETE(
+      new Request("https://example.test"),
+      routeCtx({ deviceId: "device_2" }),
+    );
     expect(response.status).toBe(404);
     await expect(response.json()).resolves.toEqual({ error: "Device not found" });
   });
@@ -82,7 +88,10 @@ describe("device delete route", () => {
   it("revokes an owned active device", async () => {
     mocks.prisma.device.findFirst.mockResolvedValue({ id: "device_2" });
 
-    const response = await DELETE(new Request("https://example.test"), routeCtx({ deviceId: "device_2" }));
+    const response = await DELETE(
+      new Request("https://example.test"),
+      routeCtx({ deviceId: "device_2" }),
+    );
 
     expect(response.status).toBe(204);
     expect(mocks.prisma.device.update).toHaveBeenCalledWith({

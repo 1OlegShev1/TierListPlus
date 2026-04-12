@@ -57,7 +57,9 @@ describe("CopyListToSpaceButton", () => {
   });
 
   it("re-enables copy when import request fails", async () => {
-    mocks.apiPost.mockRejectedValueOnce(new Error("boom")).mockResolvedValueOnce({ id: "template_copy_2" });
+    mocks.apiPost
+      .mockRejectedValueOnce(new Error("boom"))
+      .mockResolvedValueOnce({ id: "template_copy_2" });
 
     render(<CopyListToSpaceButton spaceId="space_1" sourceTemplateId="template_1" />);
 

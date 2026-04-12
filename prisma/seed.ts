@@ -1,10 +1,15 @@
 import "dotenv/config";
-import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
+import { PrismaClient } from "@prisma/client";
 import { DEFAULT_TIER_CONFIG } from "../src/lib/constants";
 
+const databaseUrl = process.env.DATABASE_URL;
+if (!databaseUrl) {
+  throw new Error("DATABASE_URL is required to run prisma seed.");
+}
+
 const adapter = new PrismaPg({
-  connectionString: process.env.DATABASE_URL!,
+  connectionString: databaseUrl,
 });
 
 const prisma = new PrismaClient({ adapter });

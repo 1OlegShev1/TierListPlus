@@ -29,9 +29,7 @@ describe("media helpers", () => {
 
   it("maps managed gif uploads to static poster urls", () => {
     expect(getStaticArtworkSrc("/uploads/abc123.gif")).toBe("/uploads/abc123.poster.webp");
-    expect(getStaticArtworkSrc("/uploads/abc123.gif?v=1")).toBe(
-      "/uploads/abc123.poster.webp?v=1",
-    );
+    expect(getStaticArtworkSrc("/uploads/abc123.gif?v=1")).toBe("/uploads/abc123.poster.webp?v=1");
     expect(getStaticArtworkSrc("/uploads/abc123.webp")).toBe("/uploads/abc123.webp");
     expect(getStaticArtworkSrc("https://cdn.example.com/cat.gif")).toBe(
       "https://cdn.example.com/cat.gif",

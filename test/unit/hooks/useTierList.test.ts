@@ -27,12 +27,14 @@ describe("useTierListStore", () => {
     expect(useTierListStore.getState().unranked).toEqual(["i2", "i3"]);
 
     resetStore();
-    useTierListStore.getState().initialize(
-      items,
-      ["S", "A"],
-      { S: ["i1"] },
-      { tiers: { Z: ["i2"], S: ["i3"] }, unranked: ["i1"] },
-    );
+    useTierListStore
+      .getState()
+      .initialize(
+        items,
+        ["S", "A"],
+        { S: ["i1"] },
+        { tiers: { Z: ["i2"], S: ["i3"] }, unranked: ["i1"] },
+      );
 
     expect(useTierListStore.getState().tiers).toEqual({ S: ["i3"], A: [] });
     expect(useTierListStore.getState().unranked).toEqual(["i1", "i2"]);

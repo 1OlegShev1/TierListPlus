@@ -50,7 +50,10 @@ describe("admin stats route", () => {
       .mockResolvedValueOnce(5)
       .mockResolvedValueOnce(4)
       .mockResolvedValueOnce(12);
-    mocks.prisma.participant.count.mockResolvedValueOnce(101).mockResolvedValueOnce(16).mockResolvedValueOnce(8);
+    mocks.prisma.participant.count
+      .mockResolvedValueOnce(101)
+      .mockResolvedValueOnce(16)
+      .mockResolvedValueOnce(8);
 
     const response = await GET(new Request("https://example.test/api/admin/stats"), {
       params: Promise.resolve({}),

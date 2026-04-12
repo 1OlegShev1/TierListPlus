@@ -23,27 +23,23 @@ vi.mock("@/lib/auth", () => ({
 
 vi.mock("@/domain/spaces/service", () => mocks.spacesService);
 
-import { ApiError } from "@/lib/api-helpers";
-import { jsonRequest, routeCtx } from "../../helpers/request";
-import { GET as getSpace, PATCH as patchSpace } from "@/app/api/spaces/[spaceId]/route";
-import {
-  GET as getMembers,
-  POST as postMembers,
-} from "@/app/api/spaces/[spaceId]/members/route";
-import { DELETE as leaveSpace } from "@/app/api/spaces/[spaceId]/members/me/route";
+import { GET as getInvite, POST as postInvite } from "@/app/api/spaces/[spaceId]/invite/route";
 import { DELETE as removeMember } from "@/app/api/spaces/[spaceId]/members/[userId]/route";
-import {
-  GET as getInvite,
-  POST as postInvite,
-} from "@/app/api/spaces/[spaceId]/invite/route";
+import { DELETE as leaveSpace } from "@/app/api/spaces/[spaceId]/members/me/route";
+import { GET as getMembers, POST as postMembers } from "@/app/api/spaces/[spaceId]/members/route";
+import { GET as getSpace, PATCH as patchSpace } from "@/app/api/spaces/[spaceId]/route";
 import { POST as joinByCode } from "@/app/api/spaces/join/route";
 import { GET, POST } from "@/app/api/spaces/route";
+import { ApiError } from "@/lib/api-helpers";
+import { jsonRequest, routeCtx } from "../../helpers/request";
 
 describe("spaces api routes", () => {
   beforeEach(() => {
     mocks.getRequestAuth.mockReset().mockResolvedValue(null);
     mocks.requireRequestAuth.mockReset().mockResolvedValue({ userId: "user_1" });
-    Object.values(mocks.spacesService).forEach((fn) => fn.mockReset());
+    Object.values(mocks.spacesService).forEach((fn) => {
+      fn.mockReset();
+    });
   });
 
   it("lists spaces using optional auth user", async () => {

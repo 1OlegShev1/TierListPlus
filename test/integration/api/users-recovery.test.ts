@@ -40,14 +40,20 @@ describe("user recovery code route", () => {
   it("requires ownership and an existing user", async () => {
     mocks.requireRequestAuth.mockResolvedValueOnce({ userId: "user_2" });
 
-    let response = await POST(new Request("https://example.test", { method: "POST" }), routeCtx({ userId: "user_1" }));
+    let response = await POST(
+      new Request("https://example.test", { method: "POST" }),
+      routeCtx({ userId: "user_1" }),
+    );
     expect(response.status).toBe(403);
     await expect(response.json()).resolves.toEqual({
       error: "You are not the owner of this resource",
     });
 
     mocks.prisma.user.findUnique.mockResolvedValue(null);
-    response = await POST(new Request("https://example.test", { method: "POST" }), routeCtx({ userId: "user_1" }));
+    response = await POST(
+      new Request("https://example.test", { method: "POST" }),
+      routeCtx({ userId: "user_1" }),
+    );
     expect(response.status).toBe(404);
     await expect(response.json()).resolves.toEqual({ error: "User not found" });
   });

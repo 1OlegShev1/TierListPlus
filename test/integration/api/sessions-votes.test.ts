@@ -27,8 +27,8 @@ vi.mock("@/lib/api-helpers", async () => {
   };
 });
 
-import { ApiError } from "@/lib/api-helpers";
 import { GET, POST } from "@/app/api/sessions/[sessionId]/votes/route";
+import { ApiError } from "@/lib/api-helpers";
 import { routeCtx } from "../../helpers/request";
 
 describe("sessions votes route", () => {
@@ -97,7 +97,9 @@ describe("sessions votes route", () => {
     });
 
     mocks.prisma.sessionItem.count.mockResolvedValueOnce(1).mockResolvedValueOnce(1);
-    mocks.prisma.session.findUnique.mockResolvedValue({ tierConfig: [{ key: "A", label: "A", color: "#ffffff", sortOrder: 0 }] });
+    mocks.prisma.session.findUnique.mockResolvedValue({
+      tierConfig: [{ key: "A", label: "A", color: "#ffffff", sortOrder: 0 }],
+    });
     response = await POST(
       baseRequest([{ sessionItemId: "i1", tierKey: "S", rankInTier: 0 }]),
       routeCtx({ sessionId: "s1" }),
@@ -141,8 +143,18 @@ describe("sessions votes route", () => {
     expect(deleteMany).toHaveBeenCalledWith({ where: { participantId: "participant_canonical" } });
     expect(createMany).toHaveBeenCalledWith({
       data: [
-        { participantId: "participant_canonical", sessionItemId: "i1", tierKey: "S", rankInTier: 0 },
-        { participantId: "participant_canonical", sessionItemId: "i2", tierKey: "S", rankInTier: 1 },
+        {
+          participantId: "participant_canonical",
+          sessionItemId: "i1",
+          tierKey: "S",
+          rankInTier: 0,
+        },
+        {
+          participantId: "participant_canonical",
+          sessionItemId: "i2",
+          tierKey: "S",
+          rankInTier: 1,
+        },
       ],
     });
     expect(update).toHaveBeenCalledWith({

@@ -319,6 +319,8 @@ function VoteRow({
         : action.label === "Join"
           ? "Join"
           : action.label;
+  const actionButtonVariant =
+    action.label === "Resume" ? buttonVariants.primary : buttonVariants.accent;
 
   return (
     <>
@@ -351,7 +353,7 @@ function VoteRow({
           />
           <Link
             href={action.href}
-            className={`${buttonVariants.accent} ${MOBILE_ACTION_BUTTON_CLASS}`}
+            className={`${actionButtonVariant} ${MOBILE_ACTION_BUTTON_CLASS}`}
           >
             {mobileActionLabel}
           </Link>
@@ -396,7 +398,7 @@ function VoteRow({
           />
           <Link
             href={action.href}
-            className={`${buttonVariants.accent} ${DESKTOP_ACTION_BUTTON_CLASS}`}
+            className={`${actionButtonVariant} ${DESKTOP_ACTION_BUTTON_CLASS}`}
           >
             {action.label}
           </Link>

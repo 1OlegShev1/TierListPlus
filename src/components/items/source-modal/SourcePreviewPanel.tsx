@@ -42,6 +42,13 @@ export function SourcePreviewPanel({ model }: SourcePreviewPanelProps) {
     resolvedExternalDescription,
   } = model;
   const [showExpandedPreview, setShowExpandedPreview] = useState(false);
+  const externalIframeAllow =
+    externalSourceKind === "TWITCH"
+      ? "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen; web-share"
+      : "autoplay; clipboard-write; encrypted-media; picture-in-picture; fullscreen";
+  const expandedPreviewAllow = expandedPreviewUrl?.includes("youtube.com/embed")
+    ? "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+    : externalIframeAllow;
 
   return (
     <>
@@ -205,7 +212,7 @@ export function SourcePreviewPanel({ model }: SourcePreviewPanelProps) {
                       title={`${previewItemLabel} source preview`}
                       className={externalIframeClassName}
                       style={externalIframeStyle}
-                      allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; fullscreen"
+                      allow={externalIframeAllow}
                       loading="lazy"
                       sandbox="allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-scripts allow-presentation"
                       referrerPolicy="no-referrer"
@@ -249,7 +256,7 @@ export function SourcePreviewPanel({ model }: SourcePreviewPanelProps) {
                 title={`${previewItemLabel} large source preview`}
                 className="w-full"
                 style={{ height: "min(82dvh, 56rem)" }}
-                allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; fullscreen"
+                allow={expandedPreviewAllow}
                 loading="lazy"
                 sandbox="allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-scripts allow-presentation"
                 referrerPolicy="no-referrer"

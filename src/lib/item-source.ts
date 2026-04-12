@@ -298,23 +298,23 @@ function buildTwitchEmbedUrl(url: URL, parentHostname: string): string | null {
   if (host === "clips.twitch.tv") {
     const clipSlug = url.pathname.split("/").filter(Boolean)[0];
     if (!clipSlug) return null;
-    return `https://clips.twitch.tv/embed?clip=${encodeURIComponent(clipSlug)}&parent=${encodedParent}`;
+    return `https://clips.twitch.tv/embed?clip=${encodeURIComponent(clipSlug)}&parent=${encodedParent}&autoplay=false`;
   }
 
   const segments = url.pathname.split("/").filter(Boolean);
   if (segments[0] === "clip" && segments[1]) {
-    return `https://clips.twitch.tv/embed?clip=${encodeURIComponent(segments[1])}&parent=${encodedParent}`;
+    return `https://clips.twitch.tv/embed?clip=${encodeURIComponent(segments[1])}&parent=${encodedParent}&autoplay=false`;
   }
   if (segments[1] === "clip" && segments[2]) {
-    return `https://clips.twitch.tv/embed?clip=${encodeURIComponent(segments[2])}&parent=${encodedParent}`;
+    return `https://clips.twitch.tv/embed?clip=${encodeURIComponent(segments[2])}&parent=${encodedParent}&autoplay=false`;
   }
   if (segments[0] === "videos" && segments[1] && /^\d+$/.test(segments[1])) {
-    return `https://player.twitch.tv/?video=v${segments[1]}&parent=${encodedParent}`;
+    return `https://player.twitch.tv/?video=v${segments[1]}&parent=${encodedParent}&autoplay=false`;
   }
 
   const channelName = segments[0];
   if (!channelName) return null;
-  return `https://player.twitch.tv/?channel=${encodeURIComponent(channelName)}&parent=${encodedParent}`;
+  return `https://player.twitch.tv/?channel=${encodeURIComponent(channelName)}&parent=${encodedParent}&autoplay=false`;
 }
 
 function getXStatusId(url: URL): string | null {

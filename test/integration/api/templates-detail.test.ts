@@ -87,13 +87,19 @@ describe("template detail route", () => {
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual(expect.objectContaining({ name: "Renamed" }));
 
-    response = await DELETE(new Request("https://example.test", { method: "DELETE" }), routeCtx({ templateId: "t1" }));
+    response = await DELETE(
+      new Request("https://example.test", { method: "DELETE" }),
+      routeCtx({ templateId: "t1" }),
+    );
     expect(response.status).toBe(400);
     await expect(response.json()).resolves.toEqual({
       error: "Cannot delete: 2 session(s) use this template. Delete those sessions first.",
     });
 
-    response = await DELETE(new Request("https://example.test", { method: "DELETE" }), routeCtx({ templateId: "t1" }));
+    response = await DELETE(
+      new Request("https://example.test", { method: "DELETE" }),
+      routeCtx({ templateId: "t1" }),
+    );
     expect(response.status).toBe(204);
     expect(mocks.prisma.session.updateMany).toHaveBeenCalledWith({
       where: { sourceTemplateId: "t1" },
@@ -171,7 +177,9 @@ describe("template detail route", () => {
       routeCtx({ templateId: "t_space" }),
     );
     expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toEqual(expect.objectContaining({ name: "Owner edited" }));
+    await expect(response.json()).resolves.toEqual(
+      expect.objectContaining({ name: "Owner edited" }),
+    );
 
     mocks.getRequestAuth.mockResolvedValue({ userId: "member_non_creator" });
     mocks.prisma.template.findUnique.mockResolvedValueOnce({
@@ -190,7 +198,9 @@ describe("template detail route", () => {
       routeCtx({ templateId: "t_space" }),
     );
     expect(response.status).toBe(403);
-    await expect(response.json()).resolves.toEqual({ error: "You are not allowed to edit this list" });
+    await expect(response.json()).resolves.toEqual({
+      error: "You are not allowed to edit this list",
+    });
   });
 
   it("returns forbidden (not 500) for anonymous space-template mutations", async () => {
@@ -218,7 +228,9 @@ describe("template detail route", () => {
       routeCtx({ templateId: "t_space" }),
     );
     expect(response.status).toBe(403);
-    await expect(response.json()).resolves.toEqual({ error: "You are not allowed to edit this list" });
+    await expect(response.json()).resolves.toEqual({
+      error: "You are not allowed to edit this list",
+    });
 
     response = await DELETE(
       new Request("https://example.test", { method: "DELETE" }),

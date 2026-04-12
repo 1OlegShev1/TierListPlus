@@ -177,9 +177,7 @@ describe("spaces service", () => {
     });
 
     const { createSpaceTemplate } = await import("@/domain/spaces/service");
-    await expect(
-      createSpaceTemplate("space_1", "user_2", { name: "My list" }),
-    ).rejects.toEqual(
+    await expect(createSpaceTemplate("space_1", "user_2", { name: "My list" })).rejects.toEqual(
       expect.objectContaining({
         status: 403,
         details: "You must join this space first",
