@@ -137,11 +137,12 @@ Default target host is `tieradmin@100.120.76.1` (Tailscale SSH path). You can ov
 
 What script does:
 1. `rsync` project to server (keeps remote `.env.production`, skips repo docs and repo-side upload files)
-2. builds `app` + `migrate` images
-3. starts `db` and waits for healthcheck
-4. runs one-off Prisma migrations (`migrate` service)
-5. starts `app` and `caddy`
-6. prints service status
+2. pauses `tierlistplus-healthcheck.timer` for the deploy window (when installed) to avoid false alerts during app restart
+3. builds `app` + `migrate` images
+4. starts `db` and waits for healthcheck
+5. runs one-off Prisma migrations (`migrate` service)
+6. starts `app` and `caddy`
+7. prints service status and runs one immediate post-deploy healthcheck
 
 Important: production uploads are stored in the named `uploads_data` Docker volume, not in the checked-out repo tree. The deploy script intentionally excludes `public/uploads/*` from sync so local development files do not overwrite production assets.
 

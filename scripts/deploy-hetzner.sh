@@ -106,6 +106,32 @@ fi
   sudo bash -lc '
     set -euo pipefail
     cd \"${REMOTE_DIR}\"
+    HEALTHCHECK_TIMER=\"tierlistplus-healthcheck.timer\"
+    HEALTHCHECK_SERVICE=\"tierlistplus-healthcheck.service\"
+    HEALTHCHECK_TIMER_PRESENT=0
+    HEALTHCHECK_TIMER_WAS_ACTIVE=0
+
+    restore_healthcheck_timer() {
+      if [[ \"\${HEALTHCHECK_TIMER_PRESENT}\" != \"1\" ]]; then
+        return 0
+      fi
+
+      if [[ \"\${HEALTHCHECK_TIMER_WAS_ACTIVE}\" == \"1\" ]]; then
+        systemctl start \"\${HEALTHCHECK_TIMER}\" >/dev/null 2>&1 || true
+      fi
+    }
+
+    if systemctl list-unit-files --type=timer --no-legend \"\${HEALTHCHECK_TIMER}\" 2>/dev/null | grep -q \"\${HEALTHCHECK_TIMER}\"; then
+      HEALTHCHECK_TIMER_PRESENT=1
+      if systemctl is-active --quiet \"\${HEALTHCHECK_TIMER}\"; then
+        HEALTHCHECK_TIMER_WAS_ACTIVE=1
+        echo \"Pausing \${HEALTHCHECK_TIMER} during deploy.\"
+        systemctl stop \"\${HEALTHCHECK_TIMER}\"
+      fi
+      systemctl reset-failed \"\${HEALTHCHECK_SERVICE}\" >/dev/null 2>&1 || true
+      trap restore_healthcheck_timer EXIT
+    fi
+
     test -f .env.production || {
       echo \".env.production not found on server. Create it first.\" >&2
       exit 1
@@ -133,6 +159,12 @@ fi
       docker builder prune -af --filter \"until=168h\" >/dev/null || true
     fi
     \$COMPOSE ps
+
+    if [[ \"\${HEALTHCHECK_TIMER_PRESENT}\" == \"1\" ]]; then
+      echo \"Running post-deploy healthcheck.\"
+      systemctl start \"\${HEALTHCHECK_SERVICE}\"
+      systemctl --no-pager --full status \"\${HEALTHCHECK_SERVICE}\" || true
+    fi
   '
 "
 
