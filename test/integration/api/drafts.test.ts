@@ -130,6 +130,47 @@ describe("drafts api route", () => {
     });
   });
 
+  it("accepts vote board payload on PUT", async () => {
+    mocks.prisma.draft.upsert.mockResolvedValue({
+      kind: "VOTE_BOARD",
+      scope: "vote-board:session_1:participant_1",
+      payload: {
+        version: 1,
+        updatedAtMs: 3,
+        tiers: { S: ["item_1"], A: [] },
+        unranked: ["item_2"],
+      },
+      updatedAt: new Date("2026-04-11T11:30:00.000Z"),
+    });
+
+    const response = await PUT(
+      jsonRequest("PUT", "https://example.test/api/drafts", {
+        kind: "VOTE_BOARD",
+        scope: "vote-board:session_1:participant_1",
+        payload: {
+          version: 1,
+          updatedAtMs: 3,
+          tiers: { S: ["item_1"], A: [] },
+          unranked: ["item_2"],
+        },
+      }),
+      { params: Promise.resolve({}) },
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({
+      kind: "VOTE_BOARD",
+      scope: "vote-board:session_1:participant_1",
+      payload: {
+        version: 1,
+        updatedAtMs: 3,
+        tiers: { S: ["item_1"], A: [] },
+        unranked: ["item_2"],
+      },
+      updatedAtMs: new Date("2026-04-11T11:30:00.000Z").getTime(),
+    });
+  });
+
   it("deletes matching draft on DELETE", async () => {
     mocks.prisma.draft.deleteMany.mockResolvedValue({ count: 1 });
 
@@ -156,6 +197,28 @@ describe("drafts api route", () => {
         kind: "LIST_EDITOR",
         scope: "list-editor:create:personal",
         payload: {},
+      }),
+      { params: Promise.resolve({}) },
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({
+      error: "Payload is invalid for the requested draft kind",
+    });
+    expect(mocks.prisma.draft.upsert).not.toHaveBeenCalled();
+  });
+
+  it("rejects vote payload with duplicate item IDs on PUT", async () => {
+    const response = await PUT(
+      jsonRequest("PUT", "https://example.test/api/drafts", {
+        kind: "VOTE_BOARD",
+        scope: "vote-board:session_1:participant_1",
+        payload: {
+          version: 1,
+          updatedAtMs: 3,
+          tiers: { S: ["item_1"], A: [] },
+          unranked: ["item_1"],
+        },
       }),
       { params: Promise.resolve({}) },
     );

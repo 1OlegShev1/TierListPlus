@@ -1,4 +1,3 @@
-import type { DraftKind } from "@prisma/client";
 import {
   MAX_SOURCE_INTERVAL_SECONDS,
   normalizeItemLabel,
@@ -8,11 +7,12 @@ import type { TemplateItemData } from "@/types";
 
 const STORAGE_KEY_PREFIX = "tierlistplus_list_draft_v1";
 const LIST_EDITOR_DRAFT_VERSION = 1 as const;
-const LIST_EDITOR_DRAFT_KIND: DraftKind = "LIST_EDITOR";
+const LIST_EDITOR_DRAFT_KIND = "LIST_EDITOR" as const;
 const MAX_NAME_LENGTH = 100;
 const MAX_DESCRIPTION_LENGTH = 500;
 const MAX_SOURCE_NOTE_LENGTH = 120;
 const DEFAULT_DRAFT_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+type DraftApiKind = "LIST_EDITOR" | "VOTE_BOARD";
 
 export interface ListEditorDraftItem {
   id?: string;
@@ -62,7 +62,7 @@ interface SnapshotInput {
 }
 
 interface RemoteDraftResponse {
-  kind: DraftKind;
+  kind: DraftApiKind;
   scope: string;
   payload: unknown;
   updatedAtMs: number;

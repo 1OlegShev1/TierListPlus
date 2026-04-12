@@ -1,9 +1,23 @@
-import { clearDraft, getDraft, saveDraft } from "@/lib/vote-draft";
+import { createVoteBoardDraftSnapshot, LocalVoteDraftStore } from "@/lib/vote-draft-storage";
 
-describe("vote-draft on the server", () => {
+describe("vote-draft-storage on server", () => {
   it("no-ops without window", () => {
-    expect(getDraft("s1", "p1", new Set(["i1"]))).toBeNull();
-    expect(() => saveDraft("s1", "p1", { tiers: {}, unranked: [] })).not.toThrow();
-    expect(() => clearDraft("s1", "p1")).not.toThrow();
+    const store = new LocalVoteDraftStore();
+    const context = {
+      userId: "user_1",
+      scopeId: "vote-board:session_1:participant_1",
+      tierKeys: ["S", "A"],
+      validItemIds: new Set(["i1", "i2"]),
+    };
+    const snapshot = createVoteBoardDraftSnapshot({
+      tierKeys: context.tierKeys,
+      validItemIds: context.validItemIds,
+      tiers: { S: ["i1"], A: [] },
+      unranked: ["i2"],
+    });
+
+    expect(store.load(context)).toBeNull();
+    expect(() => store.save(context, snapshot)).not.toThrow();
+    expect(() => store.clear(context)).not.toThrow();
   });
 });

@@ -3,6 +3,11 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { TierListBoard } from "@/components/tierlist/TierListBoard";
 import { useTierListStore } from "@/hooks/useTierList";
+import {
+  buildVoteBoardScopeId,
+  createVoteBoardDraftSnapshot,
+  getVoteDraftStorageKey,
+} from "@/lib/vote-draft-storage";
 
 const mocks = vi.hoisted(() => ({
   useUser: vi.fn(),
@@ -12,7 +17,8 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("next/dynamic", () => ({
-  default: () =>
+  default:
+    () =>
     ({
       items,
       onComplete,
@@ -87,6 +93,7 @@ function resetStore() {
 describe("TierListBoard", () => {
   beforeEach(() => {
     resetStore();
+    localStorage.clear();
     global.fetch = vi.fn().mockResolvedValue(new Response(null, { status: 204 })) as typeof fetch;
     mocks.useUser.mockReset().mockReturnValue({
       userId: "user_1",
@@ -139,7 +146,9 @@ describe("TierListBoard", () => {
   });
 
   it("does not write late upload results into the shared store after unmount", async () => {
-    let resolveItemCreate: ((value: { id: string; label: string; imageUrl: string }) => void) | undefined;
+    let resolveItemCreate:
+      | ((value: { id: string; label: string; imageUrl: string }) => void)
+      | undefined;
     mocks.apiPost.mockReturnValue(
       new Promise((resolve) => {
         resolveItemCreate = resolve;
@@ -258,5 +267,103 @@ describe("TierListBoard", () => {
 
     fireEvent.click(spotlightButton);
     expect(spotlightButton.className.includes("border-[var(--accent-primary-hover)]")).toBe(true);
+  });
+
+  it("restores stored vote drafts on mount and emits a notice", async () => {
+    const sessionId = "session_1";
+    const participantId = "participant_1";
+    const tierKeys = ["S", "A"];
+    const validItemIds = new Set(["item_1", "item_2"]);
+    const draftContext = {
+      userId: "user_1",
+      scopeId: buildVoteBoardScopeId({ sessionId, participantId }),
+      tierKeys,
+      validItemIds,
+    };
+    const restored = createVoteBoardDraftSnapshot({
+      tierKeys,
+      validItemIds,
+      tiers: { S: ["item_2"], A: [] },
+      unranked: ["item_1"],
+    });
+    localStorage.setItem(getVoteDraftStorageKey(draftContext), JSON.stringify(restored));
+
+    const onNotice = vi.fn();
+    render(
+      <TierListBoard
+        sessionId={sessionId}
+        participantId={participantId}
+        tierConfig={[
+          { key: "S", label: "S", color: "#ff7f7f", sortOrder: 0 },
+          { key: "A", label: "A", color: "#ffbf7f", sortOrder: 1 },
+        ]}
+        sessionItems={[
+          { id: "item_1", label: "Rust", imageUrl: "/img/rust.webp" },
+          { id: "item_2", label: "Go", imageUrl: "/img/go.webp" },
+        ]}
+        onSubmitted={vi.fn()}
+        onNotice={onNotice}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(onNotice).toHaveBeenCalledWith(
+        expect.objectContaining({
+          tone: "amber",
+          message: "Draft restored.",
+        }),
+      );
+    });
+    expect(screen.getByText("1/2 ranked")).toBeTruthy();
+  });
+
+  it("persists live-added items in vote draft snapshots", async () => {
+    const sessionId = "session_1";
+    const participantId = "participant_1";
+    mocks.apiPost.mockImplementation(async (path) => {
+      if (path === `/api/sessions/${sessionId}/items`) {
+        return { id: "item_new", label: "New item", imageUrl: "/img/new.webp" };
+      }
+      return { createdCount: 0 };
+    });
+
+    render(
+      <TierListBoard
+        sessionId={sessionId}
+        participantId={participantId}
+        tierConfig={[
+          { key: "S", label: "S", color: "#ff7f7f", sortOrder: 0 },
+          { key: "A", label: "A", color: "#ffbf7f", sortOrder: 1 },
+        ]}
+        sessionItems={[{ id: "item_1", label: "Rust", imageUrl: "/img/rust.webp" }]}
+        canManageItems
+        onSubmitted={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Simulate uploaded image" }));
+
+    await waitFor(() => {
+      expect(mocks.apiPost).toHaveBeenCalledWith(`/api/sessions/${sessionId}/items`, {
+        label: "New item",
+        imageUrl: "/img/new.webp",
+      });
+    });
+
+    const context = {
+      userId: "user_1",
+      scopeId: buildVoteBoardScopeId({ sessionId, participantId }),
+    };
+
+    await waitFor(
+      () => {
+        const saved = localStorage.getItem(getVoteDraftStorageKey(context));
+        expect(saved).toBeTruthy();
+      },
+      { timeout: 3000 },
+    );
+
+    const saved = localStorage.getItem(getVoteDraftStorageKey(context));
+    expect(saved).toContain("item_new");
   });
 });

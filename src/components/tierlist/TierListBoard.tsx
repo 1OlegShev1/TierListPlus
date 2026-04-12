@@ -3,7 +3,7 @@
 import { DndContext, DragOverlay } from "@dnd-kit/core";
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ItemSourceModal } from "@/components/items/source-modal/ItemSourceModal";
 import { CombinedAddItemTile } from "@/components/shared/CombinedAddItemTile";
 import { ThemedTooltip } from "@/components/ui/ThemedTooltip";
@@ -18,7 +18,7 @@ import {
   resolveItemImageUrlForWrite,
   suggestItemLabelFromSourceUrl,
 } from "@/lib/item-source";
-import { clearDraft, getDraft, saveDraft } from "@/lib/vote-draft";
+import { createVoteBoardDraftSnapshot } from "@/lib/vote-draft-storage";
 import type { Item, TierConfig } from "@/types";
 import { DraggableItem } from "./DraggableItem";
 import { EditableUnrankedItemCard } from "./EditableUnrankedItemCard";
@@ -27,6 +27,7 @@ import { UnrankedDropZone, UnrankedHeader } from "./UnrankedPool";
 import { useLiveSessionItems } from "./useLiveSessionItems";
 import { useTierConfigEditor } from "./useTierConfigEditor";
 import { useTierListDragAndDrop } from "./useTierListDragAndDrop";
+import { useVoteBoardDrafts } from "./useVoteBoardDrafts";
 
 const BracketModal = dynamic(
   () => import("../bracket/BracketModal").then((mod) => mod.BracketModal),
@@ -74,6 +75,7 @@ export function TierListBoard({
     items,
     findContainer,
     tiers,
+    unranked,
     getVotes,
     addTier: addTierToStore,
     removeTier: removeTierFromStore,
@@ -91,6 +93,7 @@ export function TierListBoard({
   const [savedTemplateId, setSavedTemplateId] = useState<string | null>(null);
   const [sourceModalItemId, setSourceModalItemId] = useState<string | null>(null);
   const [sourceModalReadOnly, setSourceModalReadOnly] = useState(false);
+  const [boardInitialized, setBoardInitialized] = useState(false);
   const [showAddByUrlSourceModal, setShowAddByUrlSourceModal] = useState(false);
   const [addByUrlSourceError, setAddByUrlSourceError] = useState<string | null>(null);
   const showSubmitBusyState = useDelayedBusy(submitting, {
@@ -149,74 +152,96 @@ export function TierListBoard({
     minVisibleMs: 320,
   });
 
-  // Initialize Zustand store only once on mount (restore draft if available)
+  const tierKeys = useMemo(() => initialTierConfig.map((tier) => tier.key), [initialTierConfig]);
+  const baselineValidItemIds = useMemo(
+    () => new Set(sessionItems.map((item) => item.id)),
+    [sessionItems],
+  );
+  const liveItems = useMemo(
+    () => (boardInitialized ? Array.from(items.values()) : sessionItems),
+    [boardInitialized, items, sessionItems],
+  );
+  const currentValidItemIds = useMemo(() => new Set(liveItems.map((item) => item.id)), [liveItems]);
+
+  const baselineSnapshot = useMemo(() => {
+    const seen = new Set<string>();
+    const baselineTiers: Record<string, string[]> = {};
+
+    for (const tierKey of tierKeys) {
+      const seededIds = seededTiers?.[tierKey] ?? [];
+      const tierItems: string[] = [];
+      for (const id of seededIds) {
+        if (!baselineValidItemIds.has(id) || seen.has(id)) continue;
+        seen.add(id);
+        tierItems.push(id);
+      }
+      baselineTiers[tierKey] = tierItems;
+    }
+
+    const baselineUnranked: string[] = [];
+    for (const item of sessionItems) {
+      if (!seen.has(item.id)) {
+        baselineUnranked.push(item.id);
+      }
+    }
+
+    return createVoteBoardDraftSnapshot({
+      updatedAtMs: 1,
+      tierKeys,
+      validItemIds: baselineValidItemIds,
+      tiers: baselineTiers,
+      unranked: baselineUnranked,
+    });
+  }, [baselineValidItemIds, tierKeys, seededTiers, sessionItems]);
+
+  const currentSnapshot = useMemo(
+    () =>
+      createVoteBoardDraftSnapshot({
+        updatedAtMs: 1,
+        tierKeys,
+        validItemIds: currentValidItemIds,
+        tiers,
+        unranked,
+      }),
+    [currentValidItemIds, tierKeys, tiers, unranked],
+  );
+
+  // Initialize Zustand store only once on mount.
   const initializedRef = useRef(false);
   useEffect(() => {
     if (initializedRef.current) return;
     initializedRef.current = true;
 
-    const validIds = new Set(sessionItems.map((i) => i.id));
-    const draft = getDraft(sessionId, participantId, validIds);
+    initialize(sessionItems, tierKeys, seededTiers, null);
+    setBoardInitialized(true);
+  }, [initialize, seededTiers, sessionItems, tierKeys]);
 
-    initialize(
-      sessionItems,
-      initialTierConfig.map((t) => t.key),
-      seededTiers,
-      draft,
-    );
-
-    if (draft) {
+  const { clearStoredDraft } = useVoteBoardDrafts({
+    userId,
+    userLoading,
+    sessionId,
+    participantId,
+    tierKeys,
+    validItemIds: currentValidItemIds,
+    enabled: boardInitialized,
+    baselineSnapshot,
+    currentSnapshot,
+    warnOnUnloadWhenDirty: boardInitialized && !submitting && !submitted,
+    onApplySnapshot: (snapshot) => {
+      initialize(sessionItems, tierKeys, seededTiers, {
+        tiers: snapshot.tiers,
+        unranked: snapshot.unranked,
+      });
+    },
+    onDraftRestored: () =>
       onNotice?.({
         tone: "amber",
         message: "Draft restored.",
         durationMs: 3000,
-      });
-    }
-  }, [
-    sessionItems,
-    initialTierConfig,
-    seededTiers,
-    initialize,
-    sessionId,
-    participantId,
-    onNotice,
-  ]);
+      }),
+  });
 
-  // Auto-save draft to localStorage on every tier/unranked change
-  useEffect(() => {
-    // Skip until store is initialized
-    if (!initializedRef.current) return;
-
-    let timeout: ReturnType<typeof setTimeout>;
-    const unsub = useTierListStore.subscribe((state) => {
-      clearTimeout(timeout);
-      timeout = setTimeout(() => {
-        saveDraft(sessionId, participantId, {
-          tiers: state.tiers,
-          unranked: state.unranked,
-        });
-      }, 300);
-    });
-
-    return () => {
-      clearTimeout(timeout);
-      unsub();
-    };
-  }, [sessionId, participantId]);
-
-  // Warn before leaving with unsaved ranked items.
-  // Disable this guard while submit is in-flight and after successful submit.
   const rankedCount = Object.values(tiers).reduce((sum, ids) => sum + ids.length, 0);
-  useEffect(() => {
-    const handler = (e: BeforeUnloadEvent) => {
-      e.preventDefault();
-    };
-
-    if (rankedCount > 0 && !submitting && !submitted) {
-      window.addEventListener("beforeunload", handler);
-    }
-    return () => window.removeEventListener("beforeunload", handler);
-  }, [rankedCount, submitting, submitted]);
 
   const {
     sensors,
@@ -265,7 +290,7 @@ export function TierListBoard({
     setSubmitError(null);
     try {
       await apiPost(`/api/sessions/${sessionId}/votes`, { participantId, votes });
-      clearDraft(sessionId, participantId);
+      await clearStoredDraft();
       setSubmitted(true);
       onSubmitted();
     } catch (err) {
@@ -303,7 +328,6 @@ export function TierListBoard({
 
   const activeItem = activeId ? items.get(activeId) : null;
   const sourceModalItem = sourceModalItemId ? (items.get(sourceModalItemId) ?? null) : null;
-  const liveItems = initializedRef.current ? Array.from(items.values()) : sessionItems;
   const totalItems = liveItems.length;
   const savesWorkingTemplate = canEditTierConfig && templateIsHidden;
   const saveTemplateActionLabel = savesWorkingTemplate ? "Publish to Lists" : "Save as New List";

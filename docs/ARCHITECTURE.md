@@ -172,8 +172,8 @@ No bracket trees or bracket votes are persisted server-side; bracket assist is l
 
 ### Drafts
 - `GET/PUT/DELETE /api/drafts`
-  - Generic authenticated draft persistence endpoint (currently used by list-draft infrastructure, local-first in UI).
-  - `kind` is extensible; currently includes `LIST_EDITOR`.
+  - Generic authenticated draft persistence endpoint (currently used by list-editor and vote-board draft infrastructure, local-first in UI).
+  - `kind` is extensible; currently includes `LIST_EDITOR` and `VOTE_BOARD`.
   - Read [List Draft Persistence](./LIST_DRAFTS.md) for detailed behavior, scope keys, TTL, and hybrid sync readiness.
 
 ### Templates
@@ -255,7 +255,9 @@ Key paths:
   - `[spaceId]/page` (space hub)
   - `[spaceId]/templates/import/page` (copy public/personal lists into space)
 - `src/components/tierlist/TierListBoard.tsx`
-  - main vote UX, draft save, live session item editing for hidden working templates, session/per-tier bracket assist, submit
+  - main vote UX, draft save/restore via `useVoteBoardDrafts`, live session item editing for hidden working templates, session/per-tier bracket assist, submit
+- `src/lib/vote-draft-storage.ts`
+  - vote-board draft snapshot normalization + local/remote/hybrid stores
 - `src/components/bracket/BracketModal.tsx`
   - local bracket assist modal
 - `src/app/api/sessions/*`

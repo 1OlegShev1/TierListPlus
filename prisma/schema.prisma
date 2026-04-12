@@ -64,6 +64,7 @@ model LinkCode {
 
 enum DraftKind {
   LIST_EDITOR
+  VOTE_BOARD
 }
 
 model Draft {

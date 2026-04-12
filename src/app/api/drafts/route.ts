@@ -1,14 +1,18 @@
 import type { DraftKind, Prisma } from "@prisma/client";
+import { DraftKind as PrismaDraftKind } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { z } from "zod/v4";
 import { badRequest, validateBody, withHandler } from "@/lib/api-helpers";
 import { requireRequestAuth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
-const draftKindSchema = z.enum(["LIST_EDITOR"]);
+const draftKindSchema = z.enum(["LIST_EDITOR", "VOTE_BOARD"]);
+type DraftApiKind = z.infer<typeof draftKindSchema>;
 const draftScopeSchema = z.string().trim().min(1).max(160);
 const MAX_DRAFT_PAYLOAD_BYTES = 256 * 1024;
 const MAX_LIST_ITEMS_PER_DRAFT = 500;
+const MAX_VOTE_ITEMS_PER_DRAFT = 500;
+const MAX_VOTE_TIERS_PER_DRAFT = 24;
 
 const listEditorDraftItemSchema = z
   .object({
@@ -35,13 +39,71 @@ const listEditorDraftPayloadSchema = z
   })
   .strict();
 
+const voteItemIdSchema = z.string().trim().min(1).max(191);
+
+const voteBoardDraftPayloadSchema = z
+  .object({
+    version: z.literal(1),
+    updatedAtMs: z.number().int().positive(),
+    tiers: z.record(
+      voteItemIdSchema.max(64),
+      z.array(voteItemIdSchema).max(MAX_VOTE_ITEMS_PER_DRAFT),
+    ),
+    unranked: z.array(voteItemIdSchema).max(MAX_VOTE_ITEMS_PER_DRAFT),
+  })
+  .strict()
+  .superRefine((payload, ctx) => {
+    const tierCount = Object.keys(payload.tiers).length;
+    if (tierCount > MAX_VOTE_TIERS_PER_DRAFT) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Too many tiers in vote draft payload",
+      });
+    }
+
+    const seen = new Set<string>();
+    let totalItems = 0;
+    for (const ids of Object.values(payload.tiers)) {
+      totalItems += ids.length;
+      for (const id of ids) {
+        if (seen.has(id)) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Vote draft payload cannot contain duplicate item IDs",
+          });
+          return;
+        }
+        seen.add(id);
+      }
+    }
+
+    totalItems += payload.unranked.length;
+    for (const id of payload.unranked) {
+      if (seen.has(id)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Vote draft payload cannot contain duplicate item IDs",
+        });
+        return;
+      }
+      seen.add(id);
+    }
+
+    if (totalItems > MAX_VOTE_ITEMS_PER_DRAFT) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Vote draft payload has too many items",
+      });
+    }
+  });
+
 const putDraftSchema = z.object({
   kind: draftKindSchema,
   scope: draftScopeSchema,
   payload: z.unknown(),
 });
 
-function parseDraftQuery(request: Request): { kind: DraftKind; scope: string } {
+function parseDraftQuery(request: Request): { kind: DraftApiKind; scope: string } {
   const { searchParams } = new URL(request.url);
   const kind = searchParams.get("kind");
   const scope = searchParams.get("scope");
@@ -51,6 +113,14 @@ function parseDraftQuery(request: Request): { kind: DraftKind; scope: string } {
     badRequest("Query requires valid kind and scope");
   }
   return { kind: parsedKind.data, scope: parsedScope.data };
+}
+
+function toPrismaDraftKind(kind: DraftApiKind): DraftKind {
+  const knownPrismaKinds = Object.values(PrismaDraftKind) as string[];
+  if (!knownPrismaKinds.includes(kind)) {
+    badRequest("Unsupported draft kind");
+  }
+  return kind as DraftKind;
 }
 
 function toDraftResponse(draft: {
@@ -67,11 +137,17 @@ function toDraftResponse(draft: {
   };
 }
 
-function validateDraftPayload(kind: DraftKind, payload: unknown): Prisma.InputJsonValue {
+function validateDraftPayload(kind: DraftApiKind, payload: unknown): Prisma.InputJsonValue {
   let parsedPayload: unknown;
 
   if (kind === "LIST_EDITOR") {
     const parsed = listEditorDraftPayloadSchema.safeParse(payload);
+    if (!parsed.success) {
+      badRequest("Payload is invalid for the requested draft kind");
+    }
+    parsedPayload = parsed.data;
+  } else if (kind === "VOTE_BOARD") {
+    const parsed = voteBoardDraftPayloadSchema.safeParse(payload);
     if (!parsed.success) {
       badRequest("Payload is invalid for the requested draft kind");
     }
@@ -91,11 +167,12 @@ function validateDraftPayload(kind: DraftKind, payload: unknown): Prisma.InputJs
 export const GET = withHandler(async (request) => {
   const auth = await requireRequestAuth(request);
   const { kind, scope } = parseDraftQuery(request);
+  const prismaKind = toPrismaDraftKind(kind);
   const draft = await prisma.draft.findUnique({
     where: {
       userId_kind_scope: {
         userId: auth.userId,
-        kind,
+        kind: prismaKind,
         scope,
       },
     },
@@ -117,12 +194,13 @@ export const GET = withHandler(async (request) => {
 export const PUT = withHandler(async (request) => {
   const auth = await requireRequestAuth(request);
   const { kind, scope, payload } = await validateBody(request, putDraftSchema);
+  const prismaKind = toPrismaDraftKind(kind);
   const validatedPayload = validateDraftPayload(kind, payload);
   const draft = await prisma.draft.upsert({
     where: {
       userId_kind_scope: {
         userId: auth.userId,
-        kind,
+        kind: prismaKind,
         scope,
       },
     },
@@ -133,7 +211,7 @@ export const PUT = withHandler(async (request) => {
     create: {
       userId: auth.userId,
       deviceId: auth.deviceId,
-      kind,
+      kind: prismaKind,
       scope,
       payload: validatedPayload,
     },
@@ -151,10 +229,11 @@ export const PUT = withHandler(async (request) => {
 export const DELETE = withHandler(async (request) => {
   const auth = await requireRequestAuth(request);
   const { kind, scope } = parseDraftQuery(request);
+  const prismaKind = toPrismaDraftKind(kind);
   await prisma.draft.deleteMany({
     where: {
       userId: auth.userId,
-      kind,
+      kind: prismaKind,
       scope,
     },
   });
