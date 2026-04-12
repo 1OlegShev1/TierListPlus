@@ -1,28 +1,30 @@
 "use client";
 
-import { Link2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useId, useRef, useState } from "react";
-import { ItemSourceModal } from "@/components/items/source-modal/ItemSourceModal";
-import { CombinedAddItemTile } from "@/components/shared/CombinedAddItemTile";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import type { UploadedImage } from "@/components/shared/ImageUploader";
+import {
+  ListEditorDialogs,
+  type ListEditorSourceModalSavePayload,
+} from "@/components/templates/ListEditorDialogs";
+import { ListEditorItemsGrid } from "@/components/templates/ListEditorItemsGrid";
 import { ListRankingPreviewTeaser } from "@/components/templates/ListRankingPreviewTeaser";
+import { useListEditorDrafts } from "@/components/templates/useListEditorDrafts";
+import { useListEditorSave } from "@/components/templates/useListEditorSave";
 import { Button } from "@/components/ui/Button";
 import { ErrorMessage } from "@/components/ui/ErrorMessage";
 import { Input } from "@/components/ui/Input";
-import { ItemArtwork } from "@/components/ui/ItemArtwork";
-import { CloseIcon } from "@/components/ui/icons";
 import { Textarea } from "@/components/ui/Textarea";
 import { useUser } from "@/hooks/useUser";
-import { apiFetch, apiPatch, apiPost, getErrorMessage } from "@/lib/api-client";
+import { getErrorMessage } from "@/lib/api-client";
 import {
-  MAX_ITEM_LABEL_LENGTH,
   normalizeItemLabel,
   parseAnyItemSource,
   parseSupportedItemSource,
   resolveItemImageUrlForWrite,
   suggestItemLabelFromSourceUrl,
 } from "@/lib/item-source";
+import type { ListEditorDraftSnapshot } from "@/lib/list-draft-storage";
 import type { TemplateItemData } from "@/types";
 
 interface ListEditorProps {
@@ -52,8 +54,6 @@ export function ListEditor({
   const [items, setItems] = useState<TemplateItemData[]>(initialItems);
   const [previewingItemIndex, setPreviewingItemIndex] = useState<number | null>(null);
   const [editingSourceIndex, setEditingSourceIndex] = useState<number | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const itemLabelRefs = useRef<Array<HTMLInputElement | null>>([]);
   const itemCardRefs = useRef<Array<HTMLDivElement | null>>([]);
   const uploadTriggerRef = useRef<HTMLButtonElement>(null);
@@ -62,8 +62,58 @@ export function ListEditor({
   const [showAddByUrlSourceModal, setShowAddByUrlSourceModal] = useState(false);
   const [addByUrlSourceError, setAddByUrlSourceError] = useState<string | null>(null);
   const [addingByUrl, setAddingByUrl] = useState(false);
+  const [showCancelDraftDialog, setShowCancelDraftDialog] = useState(false);
   const visibilityFieldName = useId();
   const uploadsDisabled = userLoading || !userId;
+  const cancelDraftDialogHandledRef = useRef(false);
+
+  const applyEditorSnapshot = useCallback((snapshot: ListEditorDraftSnapshot) => {
+    setName(snapshot.name);
+    setDescription(snapshot.description);
+    setIsPublic(snapshot.isPublic);
+    setItems(snapshot.items);
+    setPreviewingItemIndex(null);
+    setEditingSourceIndex(null);
+  }, []);
+
+  const { isDirty, draftNotice, clearStoredDraft, discardDraftAndReset } = useListEditorDrafts({
+    userId,
+    userLoading,
+    listId,
+    spaceId,
+    initialName,
+    initialDescription,
+    initialIsPublic,
+    initialItems,
+    name,
+    description,
+    isPublic,
+    items,
+    onApplySnapshot: applyEditorSnapshot,
+  });
+
+  const handleSaved = useCallback(
+    (templateId: string) => {
+      router.push(`/templates/${templateId}`);
+    },
+    [router],
+  );
+
+  const {
+    save,
+    saving,
+    error: saveError,
+  } = useListEditorSave({
+    listId,
+    spaceId,
+    initialItems,
+    items,
+    name,
+    description,
+    isPublic,
+    clearStoredDraft,
+    onSaved: handleSaved,
+  });
   const canSave = !saving && !userLoading && !!userId && !!name.trim() && items.length > 0;
 
   const addItem = ({ url, suggestedLabel }: UploadedImage) => {
@@ -203,77 +253,128 @@ export function ListEditor({
     focusPrimaryAddTrigger();
   };
 
-  const save = async () => {
-    if (!canSave) return;
-    setSaving(true);
-    setError(null);
+  const navigateAway = useCallback(() => {
+    if (spaceId) {
+      router.push(`/spaces/${spaceId}`);
+      return;
+    }
+    router.back();
+  }, [router, spaceId]);
 
+  const handleCancel = () => {
+    if (!isDirty) {
+      navigateAway();
+      return;
+    }
+    cancelDraftDialogHandledRef.current = false;
+    setShowCancelDraftDialog(true);
+  };
+
+  const handleCancelDraftDialogChoice = (choice: "keep" | "discard") => {
+    if (cancelDraftDialogHandledRef.current) return;
+    cancelDraftDialogHandledRef.current = true;
+
+    if (choice === "keep") {
+      setShowCancelDraftDialog(false);
+      navigateAway();
+      return;
+    }
+
+    void (async () => {
+      await discardDraftAndReset();
+      setShowCancelDraftDialog(false);
+      navigateAway();
+    })();
+  };
+
+  const handleOpenAddByUrl = () => {
+    setAddByUrlSourceError(null);
+    setShowAddByUrlSourceModal(true);
+  };
+
+  const handleCloseAddByUrl = () => {
+    if (addingByUrl) return;
+    setShowAddByUrlSourceModal(false);
+  };
+
+  const handleSaveEditingSource = async ({
+    sourceUrl,
+    sourceNote,
+    sourceStartSec,
+    sourceEndSec,
+    itemLabel,
+    resolvedImageUrl,
+  }: ListEditorSourceModalSavePayload) => {
+    if (editingSourceIndex == null) return false;
+    updateItemSource(
+      editingSourceIndex,
+      sourceUrl,
+      sourceNote,
+      sourceStartSec,
+      sourceEndSec,
+      resolvedImageUrl,
+      itemLabel,
+    );
+    return true;
+  };
+
+  const handleSaveAddByUrl = async ({
+    sourceUrl,
+    sourceNote,
+    sourceStartSec,
+    sourceEndSec,
+    itemLabel,
+    resolvedImageUrl,
+    resolvedTitle,
+  }: ListEditorSourceModalSavePayload) => {
+    setAddByUrlSourceError(null);
+    if (!sourceUrl) {
+      setAddByUrlSourceError("Source URL is required.");
+      return false;
+    }
+
+    setAddingByUrl(true);
     try {
-      let id = listId;
-
-      if (!id) {
-        const template = await apiPost<{ id: string }>(
-          spaceId ? `/api/spaces/${spaceId}/templates` : "/api/templates",
-          {
-            name,
-            description,
-            ...(spaceId ? {} : { isPublic }),
-          },
-        );
-        id = template.id;
-      } else {
-        await apiPatch(`/api/templates/${id}`, {
-          name,
-          description,
-          ...(spaceId ? {} : { isPublic }),
-        });
+      const parsed = parseAnyItemSource(sourceUrl);
+      if (!parsed) {
+        setAddByUrlSourceError("Enter a valid http(s) URL.");
+        return false;
       }
+      const imageUrl = resolveItemImageUrlForWrite(resolvedImageUrl, parsed.normalizedUrl);
+      const label = normalizeItemLabel(
+        itemLabel ??
+          resolvedTitle ??
+          suggestItemLabelFromSourceUrl(parsed.normalizedUrl) ??
+          "Link item",
+      );
 
-      const existingIds = new Set(initialItems.filter((i) => i.id).map((i) => i.id));
-
-      // Delete removed items
-      for (const existing of initialItems) {
-        if (existing.id && !items.find((i) => i.id === existing.id)) {
-          await apiFetch(`/api/templates/${id}/items/${existing.id}`, { method: "DELETE" });
-        }
-      }
-
-      // Create or update items
-      for (let i = 0; i < items.length; i++) {
-        const item = items[i];
-        if (item.id && existingIds.has(item.id)) {
-          await apiPatch(`/api/templates/${id}/items/${item.id}`, {
-            label: item.label,
-            imageUrl: item.imageUrl,
-            sourceUrl: item.sourceUrl ?? null,
-            sourceNote: item.sourceNote ?? null,
-            sourceStartSec: item.sourceStartSec ?? null,
-            sourceEndSec: item.sourceEndSec ?? null,
-            sortOrder: i,
-          });
-        } else {
-          await apiPost(`/api/templates/${id}/items`, {
-            label: item.label,
-            imageUrl: item.imageUrl,
-            sourceUrl: item.sourceUrl ?? undefined,
-            sourceNote: item.sourceNote ?? undefined,
-            sourceStartSec: item.sourceStartSec ?? undefined,
-            sourceEndSec: item.sourceEndSec ?? undefined,
-            sortOrder: i,
-          });
-        }
-      }
-
-      router.push(`/templates/${id}`);
+      setPreviewingItemIndex(null);
+      setItems((prev) => [
+        ...prev,
+        {
+          label: label || "Link item",
+          imageUrl,
+          sourceUrl: parsed.normalizedUrl,
+          sourceProvider: parsed.provider,
+          sourceNote,
+          sourceStartSec,
+          sourceEndSec,
+          sortOrder: prev.length,
+        },
+      ]);
+      setShowAddByUrlSourceModal(false);
+      return true;
     } catch (err) {
-      setError(getErrorMessage(err, "Could not save this list. Try again."));
+      setAddByUrlSourceError(getErrorMessage(err, "Could not add an item from this URL."));
+      return false;
     } finally {
-      setSaving(false);
+      setAddingByUrl(false);
     }
   };
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!canSave || saving) return;
     void save();
   };
 
@@ -281,6 +382,20 @@ export function ListEditor({
     <form className="space-y-6" onSubmit={handleSubmit}>
       {spaceId && (
         <p className="text-sm text-[var(--fg-subtle)]">{`Publishing inside ${spaceName ?? "this space"} only.`}</p>
+      )}
+      {draftNotice && (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[var(--border-default)] bg-[var(--bg-soft-contrast)] px-3 py-2 text-sm">
+          <p className="text-[var(--fg-secondary)]">{draftNotice}</p>
+          <Button
+            variant="secondary"
+            size="equalAction"
+            onClick={() => {
+              void discardDraftAndReset();
+            }}
+          >
+            Discard draft
+          </Button>
+        </div>
       )}
       <div className="space-y-4">
         <Input
@@ -364,10 +479,7 @@ export function ListEditor({
 
       <div className="space-y-2">
         <div className="flex w-full flex-wrap items-center justify-end gap-3">
-          <Button
-            variant="secondary"
-            onClick={() => (spaceId ? router.push(`/spaces/${spaceId}`) : router.back())}
-          >
+          <Button variant="secondary" onClick={handleCancel}>
             Cancel
           </Button>
           <Button ref={saveButtonRef} type="submit" disabled={!canSave}>
@@ -375,10 +487,10 @@ export function ListEditor({
           </Button>
         </div>
 
-        {(userError || error) && (
+        {(userError || saveError) && (
           <div className="space-y-2">
             {userError && <ErrorMessage message={userError} />}
-            {error && <ErrorMessage message={error} />}
+            {saveError && <ErrorMessage message={saveError} />}
             {userError && (
               <Button variant="secondary" onClick={retryUser}>
                 Retry Device Setup
@@ -388,223 +500,46 @@ export function ListEditor({
         )}
       </div>
 
-      <div>
-        <h3 className="mb-3 text-sm font-medium text-[var(--fg-muted)]">Picks ({items.length})</h3>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-          {items.map((item, index) => (
-            <div
-              key={item.id ?? `new-${index}`}
-              ref={(node) => {
-                itemCardRefs.current[index] = node;
-              }}
-              className="group relative rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-2"
-            >
-              <button
-                type="button"
-                onClick={() => removeItem(index)}
-                className="absolute right-1 top-1 z-10 flex h-7 w-7 items-center justify-center rounded-full border border-[var(--border-default)] bg-[var(--bg-media-overlay)] text-[var(--fg-on-media-overlay)] opacity-0 transition-all hover:border-[var(--action-danger-bg)] hover:bg-[var(--action-danger-bg)] hover:text-[var(--action-danger-fg)] focus-visible:opacity-100 group-hover:opacity-100 group-focus-within:opacity-100"
-                aria-label={`Remove ${item.label || "pick"}`}
-              >
-                <CloseIcon className="h-4 w-4" />
-              </button>
-              <button
-                type="button"
-                onClick={() => setEditingSourceIndex(index)}
-                className={`absolute left-1 top-1 z-10 flex h-7 min-w-7 items-center justify-center gap-1 rounded-full border px-2 text-xs font-medium shadow-sm transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] ${
-                  item.sourceUrl
-                    ? "border-[var(--source-control-linked-border)] bg-[var(--source-control-linked-bg)] text-[var(--source-control-linked-fg)] hover:border-[var(--source-control-linked-border-hover)] hover:bg-[var(--source-control-linked-bg-hover)] hover:text-[var(--source-control-linked-fg-hover)]"
-                    : "border-[var(--source-control-unlinked-border)] bg-[var(--source-control-unlinked-bg)] text-[var(--source-control-unlinked-fg)] hover:border-[var(--source-control-unlinked-border-hover)] hover:bg-[var(--source-control-unlinked-bg-hover)] hover:text-[var(--source-control-unlinked-fg-hover)]"
-                } ${
-                  item.sourceUrl
-                    ? "opacity-100"
-                    : "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100"
-                }`}
-                aria-label={
-                  item.sourceUrl
-                    ? `Open source for ${item.label || "pick"}`
-                    : `Add source for ${item.label || "pick"}`
-                }
-                title={item.sourceUrl ? "Open source link" : "Add source link"}
-              >
-                <Link2 className="h-4 w-4" aria-hidden="true" />
-                {item.sourceUrl ? "See" : "Add"}
-              </button>
-              <button
-                type="button"
-                onClick={() =>
-                  setPreviewingItemIndex((current) => (current === index ? null : index))
-                }
-                onBlur={(event) => {
-                  const card = itemCardRefs.current[index];
-                  const nextFocused = event.relatedTarget;
-                  if (card && nextFocused instanceof Node && card.contains(nextFocused)) return;
-                  setPreviewingItemIndex((current) => (current === index ? null : current));
-                }}
-                className="block w-full overflow-hidden rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-surface)]"
-                aria-label={`Preview animation for ${item.label || "pick"}`}
-              >
-                <ItemArtwork
-                  src={item.imageUrl}
-                  alt={item.label}
-                  className="aspect-square w-full rounded"
-                  presentation="ambient"
-                  inset="compact"
-                  animate={previewingItemIndex === index}
-                  showAnimatedHint
-                />
-              </button>
-              <input
-                ref={(node) => {
-                  itemLabelRefs.current[index] = node;
-                }}
-                type="text"
-                placeholder="Name this pick"
-                value={item.label}
-                onChange={(e) => updateItemLabel(index, e.target.value)}
-                maxLength={MAX_ITEM_LABEL_LENGTH}
-                onKeyDown={(e) => {
-                  if (e.nativeEvent.isComposing) return;
-                  if (e.key !== "Enter") return;
-                  e.preventDefault();
-                  focusNextItemControl(index, e.currentTarget);
-                }}
-                className="mt-2 w-full rounded border border-[var(--border-default)] bg-[var(--bg-elevated)] px-2 py-1.5 text-sm text-[var(--fg-primary)] placeholder:text-[var(--fg-subtle)] focus:border-[var(--accent-primary)] focus:outline-none"
-              />
-            </div>
-          ))}
-          <CombinedAddItemTile
-            onAddByUrlClick={() => {
-              setAddByUrlSourceError(null);
-              setShowAddByUrlSourceModal(true);
-            }}
-            addByUrlDisabled={uploadsDisabled}
-            addByUrlTriggerRef={addByUrlTriggerRef}
-            onUploaded={addItem}
-            onUploadStateChange={(uploading) => {
-              if (!uploading) {
-                setPreviewingItemIndex(null);
-              }
-            }}
-            multiple
-            className="w-full"
-            matchUploadedItemCardHeight
-            labelPlaceholder="Name this pick"
-            uploadDisabled={uploadsDisabled}
-            uploadTriggerRef={uploadTriggerRef}
-            uploadIdleLabel={
-              userLoading ? "Getting ready..." : uploadsDisabled ? "Device needed" : undefined
-            }
-          />
-        </div>
-      </div>
+      <ListEditorItemsGrid
+        addByUrlTriggerRef={addByUrlTriggerRef}
+        itemCardRefs={itemCardRefs}
+        itemLabelRefs={itemLabelRefs}
+        items={items}
+        previewingItemIndex={previewingItemIndex}
+        uploadsDisabled={uploadsDisabled}
+        userLoading={userLoading}
+        uploadTriggerRef={uploadTriggerRef}
+        onRemoveItem={removeItem}
+        onOpenItemSource={setEditingSourceIndex}
+        onCloseItemPreview={(index) => {
+          setPreviewingItemIndex((current) => (current === index ? null : current));
+        }}
+        onToggleItemPreview={(index) => {
+          setPreviewingItemIndex((current) => (current === index ? null : index));
+        }}
+        onUpdateItemLabel={updateItemLabel}
+        onLabelEnter={focusNextItemControl}
+        onOpenAddByUrl={handleOpenAddByUrl}
+        onUploaded={addItem}
+        onUploadStateChange={(uploading) => {
+          if (!uploading) {
+            setPreviewingItemIndex(null);
+          }
+        }}
+      />
 
-      {editingSourceIndex != null && items[editingSourceIndex] && (
-        <ItemSourceModal
-          open
-          itemLabel={items[editingSourceIndex].label || "Untitled item"}
-          itemImageUrl={items[editingSourceIndex].imageUrl}
-          sourceUrl={items[editingSourceIndex].sourceUrl}
-          sourceProvider={items[editingSourceIndex].sourceProvider}
-          sourceNote={items[editingSourceIndex].sourceNote}
-          sourceStartSec={items[editingSourceIndex].sourceStartSec}
-          sourceEndSec={items[editingSourceIndex].sourceEndSec}
-          editable
-          onClose={() => setEditingSourceIndex(null)}
-          onSave={async ({
-            sourceUrl,
-            sourceNote,
-            sourceStartSec,
-            sourceEndSec,
-            itemLabel,
-            resolvedImageUrl,
-          }) => {
-            updateItemSource(
-              editingSourceIndex,
-              sourceUrl,
-              sourceNote,
-              sourceStartSec,
-              sourceEndSec,
-              resolvedImageUrl,
-              itemLabel,
-            );
-            return true;
-          }}
-        />
-      )}
-
-      {showAddByUrlSourceModal && (
-        <ItemSourceModal
-          open
-          mode="CREATE_FROM_URL"
-          itemLabel="New item"
-          itemImageUrl={null}
-          sourceUrl={null}
-          sourceProvider={null}
-          sourceNote={null}
-          sourceStartSec={null}
-          sourceEndSec={null}
-          editable
-          saving={addingByUrl}
-          error={addByUrlSourceError}
-          onClose={() => {
-            if (addingByUrl) return;
-            setShowAddByUrlSourceModal(false);
-          }}
-          onSave={async ({
-            sourceUrl,
-            sourceNote,
-            sourceStartSec,
-            sourceEndSec,
-            itemLabel,
-            resolvedImageUrl,
-            resolvedTitle,
-          }) => {
-            setAddByUrlSourceError(null);
-            if (!sourceUrl) {
-              setAddByUrlSourceError("Source URL is required.");
-              return false;
-            }
-
-            setAddingByUrl(true);
-            try {
-              const parsed = parseAnyItemSource(sourceUrl);
-              if (!parsed) {
-                setAddByUrlSourceError("Enter a valid http(s) URL.");
-                return false;
-              }
-              const imageUrl = resolveItemImageUrlForWrite(resolvedImageUrl, parsed.normalizedUrl);
-              const label = normalizeItemLabel(
-                itemLabel ??
-                  resolvedTitle ??
-                  suggestItemLabelFromSourceUrl(parsed.normalizedUrl) ??
-                  "Link item",
-              );
-
-              setPreviewingItemIndex(null);
-              setItems((prev) => [
-                ...prev,
-                {
-                  label: label || "Link item",
-                  imageUrl,
-                  sourceUrl: parsed.normalizedUrl,
-                  sourceProvider: parsed.provider,
-                  sourceNote,
-                  sourceStartSec,
-                  sourceEndSec,
-                  sortOrder: prev.length,
-                },
-              ]);
-              setShowAddByUrlSourceModal(false);
-              return true;
-            } catch (err) {
-              setAddByUrlSourceError(getErrorMessage(err, "Could not add an item from this URL."));
-              return false;
-            } finally {
-              setAddingByUrl(false);
-            }
-          }}
-        />
-      )}
+      <ListEditorDialogs
+        addByUrlSourceError={addByUrlSourceError}
+        addingByUrl={addingByUrl}
+        editingSourceItem={editingSourceIndex != null ? (items[editingSourceIndex] ?? null) : null}
+        showAddByUrlSourceModal={showAddByUrlSourceModal}
+        showCancelDraftDialog={showCancelDraftDialog}
+        onCloseEditingSource={() => setEditingSourceIndex(null)}
+        onSaveEditingSource={handleSaveEditingSource}
+        onCloseAddByUrl={handleCloseAddByUrl}
+        onSaveAddByUrl={handleSaveAddByUrl}
+        onCancelDraftChoice={handleCancelDraftDialogChoice}
+      />
     </form>
   );
 }

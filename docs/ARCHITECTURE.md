@@ -170,6 +170,12 @@ No bracket trees or bracket votes are persisted server-side; bracket assist is l
 
 ## API Surface
 
+### Drafts
+- `GET/PUT/DELETE /api/drafts`
+  - Generic authenticated draft persistence endpoint (currently used by list-draft infrastructure, local-first in UI).
+  - `kind` is extensible; currently includes `LIST_EDITOR`.
+  - Read [List Draft Persistence](./LIST_DRAFTS.md) for detailed behavior, scope keys, TTL, and hybrid sync readiness.
+
 ### Templates
 - `GET/POST /api/templates`
   - Anonymous `GET` returns public non-hidden templates

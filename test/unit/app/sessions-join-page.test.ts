@@ -169,12 +169,25 @@ describe("sessions join page", () => {
     const metadata = await generateMetadata({
       searchParams: Promise.resolve({ code: "join1" }),
     });
+    const openGraphImages = metadata.openGraph?.images;
+    const firstOpenGraphImage = Array.isArray(openGraphImages)
+      ? openGraphImages[0]
+      : openGraphImages;
+    let firstOpenGraphImageUrl = "";
+    if (typeof firstOpenGraphImage === "string") {
+      firstOpenGraphImageUrl = firstOpenGraphImage;
+    } else if (
+      firstOpenGraphImage &&
+      typeof firstOpenGraphImage === "object" &&
+      "url" in firstOpenGraphImage
+    ) {
+      const imageUrl = (firstOpenGraphImage as { url?: string | URL }).url;
+      firstOpenGraphImageUrl = imageUrl ? String(imageUrl) : "";
+    }
 
     expect(metadata.title).toBe('Join ranking "Best Pizza Toppings" | TierList+');
     expect(metadata.description).toBe("Set your tiers and compare picks with the group.");
-    expect(metadata.openGraph?.images?.[0]?.url).toContain(
-      "/api/og/vote?title=Best%20Pizza%20Toppings",
-    );
-    expect(metadata.openGraph?.images?.[0]?.url).toContain("status=Open%20now");
+    expect(firstOpenGraphImageUrl).toContain("/api/og/vote?title=Best%20Pizza%20Toppings");
+    expect(firstOpenGraphImageUrl).toContain("status=Open%20now");
   });
 });

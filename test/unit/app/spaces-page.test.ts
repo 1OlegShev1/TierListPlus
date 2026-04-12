@@ -3,7 +3,7 @@ import React from "react";
 const mocks = vi.hoisted(() => ({
   cookies: vi.fn(),
   getCookieAuth: vi.fn(),
-  spaceActionPanel: vi.fn(() => null),
+  spaceActionPanel: vi.fn((..._args: unknown[]) => null),
   prisma: {
     space: {
       findMany: vi.fn(),

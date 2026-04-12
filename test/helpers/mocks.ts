@@ -50,6 +50,11 @@ export function createPrismaMock() {
     linkCode: {
       findFirst: vi.fn(),
     },
+    draft: {
+      findUnique: vi.fn(),
+      upsert: vi.fn(),
+      deleteMany: vi.fn(),
+    },
     bracket: {
       findFirst: vi.fn(),
     },
