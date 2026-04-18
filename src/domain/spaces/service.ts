@@ -242,6 +242,27 @@ export async function updateSpace(
   return updated;
 }
 
+export async function deleteSpace(
+  spaceId: string,
+  requestUserId: string | null,
+  requestRole?: UserRole | null,
+) {
+  const access = await resolveSpaceAccessContext(spaceId, requestUserId, requestRole);
+  if (!access) {
+    notFound("Space not found");
+  }
+  if (!access.isOwner) {
+    forbidden("Only the space owner can delete this space");
+  }
+
+  const previousLogoUrl = access.logoUrl;
+  await prisma.space.delete({ where: { id: spaceId } });
+
+  if (previousLogoUrl) {
+    await tryDeleteManagedUploadIfUnreferenced(previousLogoUrl, "space delete");
+  }
+}
+
 export async function joinPrivateSpaceByInviteCode(
   userId: string,
   code: string,

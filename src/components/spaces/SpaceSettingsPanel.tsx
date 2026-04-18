@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { ErrorMessage } from "@/components/ui/ErrorMessage";
 import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Textarea";
-import { apiPatch, getErrorMessage, tryCleanupUnattachedUpload } from "@/lib/api-client";
+import { apiDelete, apiPatch, getErrorMessage, tryCleanupUnattachedUpload } from "@/lib/api-client";
 import { getSpaceAccentClasses, SPACE_ACCENT_OPTIONS } from "@/lib/space-theme";
 import { cn } from "@/lib/utils";
 
@@ -45,6 +45,7 @@ export function SpaceSettingsPanel({
   const [accentColor, setAccentColor] = useState<SpaceAccentColor>(initialAccentColor);
   const [visibility, setVisibility] = useState<"PRIVATE" | "OPEN">(initialVisibility);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [accentPickerOpen, setAccentPickerOpen] = useState(false);
   const accentPickerRef = useRef<HTMLDivElement>(null);
@@ -61,7 +62,7 @@ export function SpaceSettingsPanel({
     accentColor !== initialAccentColor ||
     visibility !== initialVisibility;
 
-  const canSave = !saving && trimmedName.length > 0 && isDirty;
+  const canSave = !saving && !deleting && trimmedName.length > 0 && isDirty;
   const accent = getSpaceAccentClasses(accentColor);
   const nameInitial = trimmedName.charAt(0).toUpperCase() || "?";
   const selectedAccentOption = SPACE_ACCENT_OPTIONS.find((option) => option.value === accentColor);
@@ -111,7 +112,7 @@ export function SpaceSettingsPanel({
   };
 
   const cancel = async () => {
-    if (saving) return;
+    if (saving || deleting) return;
     if (logoUrl && logoUrl !== initialLogoUrl) {
       await cleanupUploadedLogo(logoUrl);
     }
@@ -170,6 +171,25 @@ export function SpaceSettingsPanel({
       if (!keepBusyUntilUnmount) {
         setSaving(false);
       }
+    }
+  };
+
+  const deleteCurrentSpace = async () => {
+    if (saving || deleting) return;
+    const confirmed = window.confirm(
+      "Delete this space and all related rankings, lists, and memberships? This cannot be undone.",
+    );
+    if (!confirmed) return;
+
+    setDeleting(true);
+    setError(null);
+    try {
+      await apiDelete(`/api/spaces/${spaceId}`);
+      router.push("/spaces");
+      router.refresh();
+    } catch (err) {
+      setError(getErrorMessage(err, "Could not delete this space"));
+      setDeleting(false);
     }
   };
 
@@ -259,7 +279,7 @@ export function SpaceSettingsPanel({
                     <Button
                       variant="secondary"
                       onClick={removeLogo}
-                      disabled={saving}
+                      disabled={saving || deleting}
                       className="!px-3 !py-2 !text-sm"
                     >
                       Clear
@@ -403,10 +423,20 @@ export function SpaceSettingsPanel({
                 onClick={() => {
                   void cancel();
                 }}
-                disabled={saving}
+                disabled={saving || deleting}
                 className="!px-3 !py-2 !text-sm"
               >
                 Cancel
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  void deleteCurrentSpace();
+                }}
+                disabled={saving || deleting}
+                className="!ml-auto !border-[var(--state-danger-fg)]/35 !bg-transparent !px-3 !py-2 !text-sm !text-[var(--state-danger-fg)] hover:!border-[var(--state-danger-fg)]/60 hover:!bg-[var(--state-danger-bg)]/50 hover:!text-[var(--state-danger-fg)]"
+              >
+                {deleting ? "Deleting..." : "Delete space"}
               </Button>
             </div>
           </div>
