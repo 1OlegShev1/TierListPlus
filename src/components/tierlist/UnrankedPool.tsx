@@ -58,7 +58,7 @@ export function UnrankedDropZone({
     <div
       ref={setNodeRef}
       className={cn(
-        `flex min-h-[56px] max-h-[calc((var(--unranked-item-height)*2)+var(--unranked-gap)+(var(--unranked-padding)*2))] overflow-y-auto flex-wrap gap-1 rounded-lg border border-[var(--border-grid)] bg-[var(--bg-surface)] p-1 transition-colors sm:min-h-[60px] sm:p-1.5 md:min-h-[72px] md:gap-1.5 lg:min-h-[104px] lg:gap-2 lg:p-3 ${metricsClassName} ${
+        `flex min-h-[56px] flex-wrap gap-1 rounded-lg border border-[var(--border-grid)] bg-[var(--bg-surface)] p-1 transition-colors sm:min-h-[60px] sm:p-1.5 md:min-h-[72px] md:gap-1.5 lg:min-h-[104px] lg:gap-2 lg:p-3 ${metricsClassName} ${
           isOver ? "border-[var(--accent-primary)]/50 bg-[var(--bg-surface-hover)]" : ""
         }`,
         className,

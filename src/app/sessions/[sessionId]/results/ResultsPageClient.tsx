@@ -273,6 +273,7 @@ export function ResultsPageClient({
                 <DeleteVoteButton
                   sessionId={sessionId}
                   creatorId={session.creatorId}
+                  canDeleteOverride={session.canManageSession}
                   label="Delete"
                   className={`${buttonSizes.equalAction} min-w-0`}
                 />

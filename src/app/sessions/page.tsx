@@ -66,6 +66,7 @@ export default async function VotesPage({
   const cookieStore = await cookies();
   const auth = await getCookieAuth(cookieStore);
   const userId = auth?.userId ?? null;
+  const isAdmin = auth?.role === "ADMIN";
   const activePage = readPageParam(resolvedSearchParams.active);
   const historyPage = readPageParam(resolvedSearchParams.history);
   const discoverPage = readPageParam(resolvedSearchParams.discover);
@@ -157,6 +158,7 @@ export default async function VotesPage({
               votes={liveVotesSection.votes}
               viewer="participant"
               ownerUserId={userId}
+              canDeleteOverride={isAdmin}
               userRankedCountBySessionId={userRankedCountBySessionId}
               pagination={buildPagination({
                 searchParams: resolvedSearchParams,
@@ -175,6 +177,7 @@ export default async function VotesPage({
               votes={finishedVotesSection.votes}
               viewer="participant"
               ownerUserId={userId}
+              canDeleteOverride={isAdmin}
               userRankedCountBySessionId={userRankedCountBySessionId}
               pagination={buildPagination({
                 searchParams: resolvedSearchParams,
@@ -193,6 +196,7 @@ export default async function VotesPage({
               votes={publicVotesSection.votes}
               viewer="browser"
               ownerUserId={userId}
+              canDeleteOverride={isAdmin}
               userRankedCountBySessionId={userRankedCountBySessionId}
               pagination={buildPagination({
                 searchParams: resolvedSearchParams,
@@ -215,6 +219,7 @@ function VotesSection({
   votes,
   viewer,
   ownerUserId,
+  canDeleteOverride,
   userRankedCountBySessionId,
   pagination,
 }: {
@@ -223,6 +228,7 @@ function VotesSection({
   votes: VoteListItem[];
   viewer: VoteViewer;
   ownerUserId: string | null;
+  canDeleteOverride: boolean;
   userRankedCountBySessionId: Map<string, number>;
   pagination: {
     previousHref: string | null;
@@ -239,6 +245,7 @@ function VotesSection({
             <VoteRow
               key={vote.id}
               vote={vote}
+              canDeleteOverride={canDeleteOverride}
               viewer={resolveViewer(vote, viewer, ownerUserId)}
               rankedItemCountForUser={userRankedCountBySessionId.get(vote.id) ?? null}
             />
@@ -276,10 +283,12 @@ function VotesSection({
 
 function VoteRow({
   vote,
+  canDeleteOverride,
   viewer,
   rankedItemCountForUser,
 }: {
   vote: VoteListItem;
+  canDeleteOverride: boolean;
   viewer: VoteViewer;
   rankedItemCountForUser: number | null;
 }) {
@@ -372,7 +381,12 @@ function VoteRow({
             label="Reopen"
             className={MOBILE_ACTION_BUTTON_CLASS}
           />
-          <DeleteVoteButton sessionId={vote.id} creatorId={vote.creatorId} className="shrink-0" />
+          <DeleteVoteButton
+            sessionId={vote.id}
+            creatorId={vote.creatorId}
+            canDeleteOverride={canDeleteOverride}
+            className="shrink-0"
+          />
         </div>
       </div>
 
@@ -417,7 +431,12 @@ function VoteRow({
             label="Reopen ranking"
             className={DESKTOP_ACTION_BUTTON_CLASS}
           />
-          <DeleteVoteButton sessionId={vote.id} creatorId={vote.creatorId} className="shrink-0" />
+          <DeleteVoteButton
+            sessionId={vote.id}
+            creatorId={vote.creatorId}
+            canDeleteOverride={canDeleteOverride}
+            className="shrink-0"
+          />
         </div>
       </div>
     </>
