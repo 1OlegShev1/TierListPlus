@@ -2,6 +2,7 @@
 
 import { useDroppable } from "@dnd-kit/core";
 import { rectSortingStrategy, SortableContext } from "@dnd-kit/sortable";
+import { useEffect, useRef, useState } from "react";
 import { useTierListStore } from "@/hooks/useTierList";
 import { cn } from "@/lib/utils";
 import type { Item } from "@/types";
@@ -47,6 +48,9 @@ export function UnrankedDropZone({
 }: UnrankedDropZoneProps = {}) {
   const unranked = useTierListStore((s) => s.unranked);
   const itemMap = useTierListStore((s) => s.items);
+  const activeId = useTierListStore((s) => s.activeId);
+  const dropZoneRef = useRef<HTMLDivElement | null>(null);
+  const [lockedMinHeightPx, setLockedMinHeightPx] = useState<number | null>(null);
 
   const { setNodeRef, isOver } = useDroppable({ id: "unranked" });
   const metricsClassName =
@@ -54,9 +58,23 @@ export function UnrankedDropZone({
       ? EDITABLE_UNRANKED_POOL_METRICS_CLASS
       : COMPACT_UNRANKED_POOL_METRICS_CLASS;
 
+  useEffect(() => {
+    if (!activeId) {
+      setLockedMinHeightPx(null);
+      return;
+    }
+    const dropZone = dropZoneRef.current;
+    if (!dropZone) return;
+    setLockedMinHeightPx(Math.ceil(dropZone.getBoundingClientRect().height));
+  }, [activeId]);
+
   return (
     <div
-      ref={setNodeRef}
+      ref={(node) => {
+        dropZoneRef.current = node;
+        setNodeRef(node);
+      }}
+      style={lockedMinHeightPx ? { minHeight: `${lockedMinHeightPx}px` } : undefined}
       className={cn(
         `flex min-h-[56px] flex-wrap gap-1 rounded-lg border border-[var(--border-grid)] bg-[var(--bg-surface)] p-1 transition-colors sm:min-h-[60px] sm:p-1.5 md:min-h-[72px] md:gap-1.5 lg:min-h-[104px] lg:gap-2 lg:p-3 ${metricsClassName} ${
           isOver ? "border-[var(--accent-primary)]/50 bg-[var(--bg-surface-hover)]" : ""

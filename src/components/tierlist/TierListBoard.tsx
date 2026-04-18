@@ -485,6 +485,7 @@ export function TierListBoard({
       <DndContext
         sensors={sensors}
         collisionDetection={collisionDetection}
+        autoScroll={false}
         onDragStart={handleDragStart}
         onDragOver={handleDragOver}
         onDragEnd={handleDragEnd}
