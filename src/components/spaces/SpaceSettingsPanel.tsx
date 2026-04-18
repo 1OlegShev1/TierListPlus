@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { ImageUploader, type UploadedImage } from "@/components/shared/ImageUploader";
 import { Button } from "@/components/ui/Button";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { ErrorMessage } from "@/components/ui/ErrorMessage";
 import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Textarea";
@@ -46,6 +47,8 @@ export function SpaceSettingsPanel({
   const [visibility, setVisibility] = useState<"PRIVATE" | "OPEN">(initialVisibility);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [accentPickerOpen, setAccentPickerOpen] = useState(false);
   const accentPickerRef = useRef<HTMLDivElement>(null);
@@ -176,19 +179,14 @@ export function SpaceSettingsPanel({
 
   const deleteCurrentSpace = async () => {
     if (saving || deleting) return;
-    const confirmed = window.confirm(
-      "Delete this space and all related rankings, lists, and memberships? This cannot be undone.",
-    );
-    if (!confirmed) return;
-
     setDeleting(true);
-    setError(null);
+    setDeleteError(null);
     try {
       await apiDelete(`/api/spaces/${spaceId}`);
       router.push("/spaces");
       router.refresh();
     } catch (err) {
-      setError(getErrorMessage(err, "Could not delete this space"));
+      setDeleteError(getErrorMessage(err, "Could not delete this space"));
       setDeleting(false);
     }
   };
@@ -431,7 +429,8 @@ export function SpaceSettingsPanel({
               <Button
                 variant="secondary"
                 onClick={() => {
-                  void deleteCurrentSpace();
+                  setDeleteError(null);
+                  setDeleteDialogOpen(true);
                 }}
                 disabled={saving || deleting}
                 className="!ml-auto !border-[var(--state-danger-fg)]/35 !bg-transparent !px-3 !py-2 !text-sm !text-[var(--state-danger-fg)] hover:!border-[var(--state-danger-fg)]/60 hover:!bg-[var(--state-danger-bg)]/50 hover:!text-[var(--state-danger-fg)]"
@@ -447,6 +446,24 @@ export function SpaceSettingsPanel({
             <ErrorMessage message={error} />
           </div>
         )}
+        <ConfirmDialog
+          open={deleteDialogOpen}
+          title="Delete space"
+          description={
+            deleteError ??
+            "This deletes the entire space and all related rankings, lists, and memberships. This cannot be undone."
+          }
+          confirmLabel="Delete space"
+          confirmVariant="danger"
+          onConfirm={deleteCurrentSpace}
+          onCancel={() => {
+            if (deleting) return;
+            setDeleteDialogOpen(false);
+            setDeleteError(null);
+          }}
+          preserveLabelWhileLoading
+          loading={deleting}
+        />
       </div>
     </div>
   );
