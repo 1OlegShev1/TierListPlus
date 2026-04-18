@@ -1,4 +1,5 @@
-import { cookies } from "next/headers";
+import type { Metadata } from "next";
+import { cookies, headers } from "next/headers";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { QuickStartVoteButton } from "@/components/sessions/QuickStartVoteButton";
@@ -33,6 +34,125 @@ const SPACE_LANDING_SECTION_LIMIT = 4;
 const SPACE_SECTION_PAGE_SIZE = 12;
 const SPACE_MEMBER_NICKNAME_SAMPLE_PER_MEMBER = 20;
 const SPACE_MEMBER_NICKNAME_SAMPLE_MAX = 800;
+const SPACE_DEFAULT_TITLE = "Playground space | TierList+";
+const SPACE_DEFAULT_DESCRIPTION =
+  "A playful space for hot takes, chaotic rankings, and fun arguments.";
+
+function normalizeOrigin(value: string): string {
+  return value.endsWith("/") ? value.slice(0, -1) : value;
+}
+
+async function resolveMetadataOrigin(): Promise<string> {
+  const envOrigin = process.env.NEXT_PUBLIC_APP_URL ?? process.env.APP_URL;
+  if (envOrigin) {
+    return normalizeOrigin(envOrigin);
+  }
+
+  const requestHeaders = await headers();
+  const host = requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host");
+  const proto = requestHeaders.get("x-forwarded-proto") ?? "https";
+  if (host) {
+    return `${proto}://${host}`;
+  }
+
+  return "http://localhost:3000";
+}
+
+function buildSpaceMetadata(
+  title: string,
+  description: string,
+  ogImageUrl: string,
+  pageUrl: string,
+  imageAlt: string,
+): Metadata {
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      type: "website",
+      url: pageUrl,
+      images: [
+        {
+          url: ogImageUrl,
+          width: 1200,
+          height: 630,
+          alt: imageAlt,
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: [ogImageUrl],
+    },
+  };
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ spaceId: string }>;
+}): Promise<Metadata> {
+  const { spaceId } = await params;
+  const origin = await resolveMetadataOrigin();
+  const pageUrl = new URL(`/spaces/${spaceId}`, origin).toString();
+  const fallbackOgImageUrl = new URL(
+    "/api/og/vote?title=TierList%2B%20Space&status=Rank%20together",
+    origin,
+  ).toString();
+
+  const space = await prisma.space.findUnique({
+    where: { id: spaceId },
+    select: {
+      name: true,
+      description: true,
+      visibility: true,
+      _count: {
+        select: {
+          members: true,
+          templates: { where: { isHidden: false } },
+          sessions: true,
+        },
+      },
+    },
+  });
+
+  if (!space) {
+    return buildSpaceMetadata(
+      SPACE_DEFAULT_TITLE,
+      SPACE_DEFAULT_DESCRIPTION,
+      fallbackOgImageUrl,
+      pageUrl,
+      "TierList+ space preview",
+    );
+  }
+
+  if (space.visibility === "PRIVATE") {
+    return buildSpaceMetadata(
+      "Private space | TierList+",
+      "Open this link in TierList+ to view or join the space.",
+      fallbackOgImageUrl,
+      pageUrl,
+      "TierList+ private space",
+    );
+  }
+
+  const members = space._count.members;
+  const lists = space._count.templates;
+  const rankings = space._count.sessions;
+  const statsLabel = `${members} members · ${lists} lists · ${rankings} rankings`;
+  const title = `${space.name} | TierList+`;
+  const description = space.description?.trim() || statsLabel;
+  const ogImageUrl = new URL(
+    `/api/og/vote?title=${encodeURIComponent(space.name)}&status=${encodeURIComponent(statsLabel)}`,
+    origin,
+  ).toString();
+
+  return buildSpaceMetadata(title, description, ogImageUrl, pageUrl, `${space.name} space preview`);
+}
 
 export default async function SpaceDetailPage({
   params,
