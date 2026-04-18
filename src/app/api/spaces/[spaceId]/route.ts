@@ -8,7 +8,7 @@ export const GET = withHandler(async (request, { params }) => {
   const { spaceId } = await params;
   const auth = await getRequestAuth(request);
   const requestUserId = auth?.userId ?? null;
-  const space = await getSpaceDetails(spaceId, requestUserId);
+  const space = await getSpaceDetails(spaceId, requestUserId, auth?.role ?? null);
   return NextResponse.json(space);
 });
 
@@ -21,13 +21,18 @@ export const PATCH = withHandler(async (request, { params }) => {
     updateSpaceSchema,
   );
 
-  const updated = await updateSpace(spaceId, requestUserId, {
-    ...(name != null ? { name } : {}),
-    ...(description !== undefined ? { description } : {}),
-    ...(logoUrl !== undefined ? { logoUrl } : {}),
-    ...(accentColor != null ? { accentColor } : {}),
-    ...(visibility != null ? { visibility } : {}),
-  });
+  const updated = await updateSpace(
+    spaceId,
+    requestUserId,
+    {
+      ...(name != null ? { name } : {}),
+      ...(description !== undefined ? { description } : {}),
+      ...(logoUrl !== undefined ? { logoUrl } : {}),
+      ...(accentColor != null ? { accentColor } : {}),
+      ...(visibility != null ? { visibility } : {}),
+    },
+    auth?.role ?? null,
+  );
 
   return NextResponse.json(updated);
 });

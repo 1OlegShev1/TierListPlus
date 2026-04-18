@@ -23,6 +23,7 @@ export const PATCH = withHandler(async (request, { params }) => {
   const { templateId, itemId } = await params;
   const auth = await getRequestAuth(request);
   const userId = auth?.userId ?? null;
+  const isAdmin = auth?.role === "ADMIN";
 
   const template = await prisma.template.findUnique({
     where: { id: templateId },
@@ -49,11 +50,12 @@ export const PATCH = withHandler(async (request, { params }) => {
       ? (template.space.members[0] ?? null)
       : null;
     const isSpaceOwner =
-      !!userId && (template.space?.creatorId === userId || spaceMember?.role === "OWNER");
-    if (!canMutateSpaceResource(template.creatorId, userId, isSpaceOwner)) {
+      isAdmin ||
+      (!!userId && (template.space?.creatorId === userId || spaceMember?.role === "OWNER"));
+    if (!canMutateSpaceResource(template.creatorId, userId, isSpaceOwner, isAdmin)) {
       forbidden("You are not allowed to edit this list");
     }
-  } else {
+  } else if (!isAdmin) {
     requireOwner(template.creatorId, userId);
   }
 
@@ -176,6 +178,7 @@ export const DELETE = withHandler(async (_request, { params }) => {
   const { templateId, itemId } = await params;
   const auth = await getRequestAuth(_request);
   const userId = auth?.userId ?? null;
+  const isAdmin = auth?.role === "ADMIN";
 
   const template = await prisma.template.findUnique({
     where: { id: templateId },
@@ -202,11 +205,12 @@ export const DELETE = withHandler(async (_request, { params }) => {
       ? (template.space.members[0] ?? null)
       : null;
     const isSpaceOwner =
-      !!userId && (template.space?.creatorId === userId || spaceMember?.role === "OWNER");
-    if (!canMutateSpaceResource(template.creatorId, userId, isSpaceOwner)) {
+      isAdmin ||
+      (!!userId && (template.space?.creatorId === userId || spaceMember?.role === "OWNER"));
+    if (!canMutateSpaceResource(template.creatorId, userId, isSpaceOwner, isAdmin)) {
       forbidden("You are not allowed to edit this list");
     }
-  } else {
+  } else if (!isAdmin) {
     requireOwner(template.creatorId, userId);
   }
 

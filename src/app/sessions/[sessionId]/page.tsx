@@ -12,6 +12,7 @@ export default async function VoteEntryPage({
   const cookieStore = await cookies();
   const auth = await getCookieAuth(cookieStore);
   const requestUserId = auth?.userId ?? null;
+  const isAdmin = auth?.role === "ADMIN";
   const vote = await prisma.session.findUnique({
     where: { id: sessionId },
     select: {
@@ -37,19 +38,20 @@ export default async function VoteEntryPage({
   });
 
   if (!vote) notFound();
-  const isOwner = !!requestUserId && vote.creatorId === requestUserId;
+  const isOwner = isAdmin || (!!requestUserId && vote.creatorId === requestUserId);
   const isParticipant = requestUserId
     ? (await prisma.participant.count({
         where: { sessionId, userId: requestUserId },
       })) > 0
     : false;
-  if (vote.isModeratedHidden && !isOwner && !isParticipant) {
+  if (vote.isModeratedHidden && !isOwner && !isParticipant && !isAdmin) {
     notFound();
   }
   if (vote.space) {
-    const isSpaceMember = Array.isArray(vote.space.members) && vote.space.members.length > 0;
+    const isSpaceMember =
+      isAdmin || (Array.isArray(vote.space.members) && vote.space.members.length > 0);
     if (vote.space.visibility === "PRIVATE" && !isSpaceMember) notFound();
-  } else if (vote.isPrivate && !isOwner && !isParticipant) {
+  } else if (vote.isPrivate && !isOwner && !isParticipant && !isAdmin) {
     notFound();
   }
 

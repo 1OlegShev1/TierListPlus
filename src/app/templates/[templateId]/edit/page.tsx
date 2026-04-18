@@ -14,6 +14,7 @@ export default async function EditListPage({
   const cookieStore = await cookies();
   const auth = await getCookieAuth(cookieStore);
   const userId = auth?.userId ?? null;
+  const isAdmin = auth?.role === "ADMIN";
   const list = await prisma.template.findUnique({
     where: { id: templateId },
     include: {
@@ -39,13 +40,15 @@ export default async function EditListPage({
   if (!list || list.isHidden || !userId) notFound();
 
   if (list.space) {
-    const isSpaceMember = Array.isArray(list.space.members) && list.space.members.length > 0;
+    const isSpaceMember =
+      isAdmin || (Array.isArray(list.space.members) && list.space.members.length > 0);
     if (list.space.visibility === "PRIVATE" && !isSpaceMember) notFound();
     const isSpaceOwner =
+      isAdmin ||
       list.space.creatorId === userId ||
       (Array.isArray(list.space.members) && list.space.members[0]?.role === "OWNER");
-    if (!canMutateSpaceResource(list.creatorId, userId, isSpaceOwner)) notFound();
-  } else if (list.creatorId !== userId) {
+    if (!canMutateSpaceResource(list.creatorId, userId, isSpaceOwner, isAdmin)) notFound();
+  } else if (!isAdmin && list.creatorId !== userId) {
     notFound();
   }
 

@@ -10,6 +10,11 @@ export const POST = withHandler(async (request, { params }) => {
   const requestUserId = auth?.userId ?? null;
   const { sourceTemplateId } = await validateBody(request, importSpaceTemplateSchema);
 
-  const template = await importTemplateIntoSpace(spaceId, requestUserId, sourceTemplateId);
+  const template = await importTemplateIntoSpace(
+    spaceId,
+    requestUserId,
+    sourceTemplateId,
+    auth?.role ?? null,
+  );
   return NextResponse.json(template, { status: 201 });
 });

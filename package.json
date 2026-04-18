@@ -21,6 +21,9 @@
     "db:seed": "npx tsx prisma/seed.ts",
     "db:studio": "npx prisma studio",
     "admin:role": "npx tsx scripts/admin-role.ts",
+    "import:content": "tsx scripts/import-content.ts",
+    "import:anichart": "tsx scripts/import-anichart-seasons.ts",
+    "import:steam": "tsx scripts/import-steam-games.ts",
     "uploads:gc": "node scripts/cleanup-orphan-uploads.mjs",
     "fixture:vote": "npx tsx scripts/create-vote-fixture.ts"
   },

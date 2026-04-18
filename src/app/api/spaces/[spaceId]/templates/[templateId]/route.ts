@@ -7,6 +7,6 @@ export const GET = withHandler(async (request, { params }) => {
   const { spaceId, templateId } = await params;
   const auth = await getRequestAuth(request);
   const requestUserId = auth?.userId ?? null;
-  const template = await getSpaceTemplate(spaceId, templateId, requestUserId);
+  const template = await getSpaceTemplate(spaceId, templateId, requestUserId, auth?.role ?? null);
   return NextResponse.json(template);
 });

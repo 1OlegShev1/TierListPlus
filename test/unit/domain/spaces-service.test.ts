@@ -5,6 +5,8 @@ const mocks = vi.hoisted(() => ({
   prisma: {
     $transaction: vi.fn(),
     space: {
+      findMany: vi.fn(),
+      findUnique: vi.fn(),
       update: vi.fn(),
     },
     spaceMember: {
@@ -40,7 +42,7 @@ vi.mock("@/lib/upload-gc", () => ({
   tryDeleteManagedUploadIfUnreferenced: mocks.tryDeleteManagedUploadIfUnreferenced,
 }));
 
-import { listSpaceMembers } from "@/domain/spaces/service";
+import { listSpaceMembers, listSpacesForUser } from "@/domain/spaces/service";
 
 describe("spaces service", () => {
   beforeEach(() => {
@@ -48,6 +50,8 @@ describe("spaces service", () => {
     mocks.getTemplateForRead.mockReset();
     mocks.tryDeleteManagedUploadIfUnreferenced.mockReset().mockResolvedValue(true);
     mocks.prisma.$transaction.mockReset();
+    mocks.prisma.space.findMany.mockReset();
+    mocks.prisma.space.findUnique.mockReset();
     mocks.prisma.space.update.mockReset();
     mocks.prisma.spaceMember.findMany.mockReset();
     mocks.prisma.spaceMember.findUnique.mockReset();
@@ -77,6 +81,63 @@ describe("spaces service", () => {
       }),
     );
     expect(mocks.prisma.spaceMember.findMany).not.toHaveBeenCalled();
+  });
+
+  it("paginates admin space listing and reports hasMore", async () => {
+    const rows = Array.from({ length: 25 }, (_, index) => ({ id: `space_${index}` }));
+    mocks.prisma.space.findMany.mockResolvedValue(rows);
+
+    const result = await listSpacesForUser("admin_1", "ADMIN");
+
+    expect(mocks.prisma.space.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        orderBy: { updatedAt: "desc" },
+        skip: 0,
+        take: 25,
+      }),
+    );
+    const firstCall = mocks.prisma.space.findMany.mock.calls[0]?.[0];
+    expect(firstCall?.select?._count?.select?.templates).toEqual({
+      where: { isHidden: false },
+    });
+    expect(result).toEqual(
+      expect.objectContaining({
+        page: 1,
+        pageSize: 24,
+        hasMore: true,
+        discoverOpenSpaces: [],
+      }),
+    );
+    expect(result.mySpaces).toHaveLength(24);
+  });
+
+  it("caps admin page size and honors page offset", async () => {
+    mocks.prisma.space.findMany.mockResolvedValue([{ id: "space_1" }]);
+
+    await listSpacesForUser("admin_1", "ADMIN", {
+      page: 3,
+      pageSize: 500,
+    });
+
+    expect(mocks.prisma.space.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        skip: 200,
+        take: 101,
+      }),
+    );
+  });
+
+  it("uses non-hidden template counts in user space listings", async () => {
+    mocks.prisma.space.findMany.mockResolvedValueOnce([]).mockResolvedValueOnce([]);
+
+    await listSpacesForUser("user_1", "USER");
+
+    expect(mocks.prisma.space.findMany).toHaveBeenCalledTimes(2);
+    for (const [query] of mocks.prisma.space.findMany.mock.calls) {
+      expect(query?.select?._count?.select?.templates).toEqual({
+        where: { isHidden: false },
+      });
+    }
   });
 
   it("keeps private spaces hidden for non-members", async () => {

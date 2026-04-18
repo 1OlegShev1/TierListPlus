@@ -25,8 +25,9 @@ export default async function SpaceImportTemplatePage({
   const cookieStore = await cookies();
   const auth = await getCookieAuth(cookieStore);
   const userId = auth?.userId ?? null;
+  const role = auth?.role ?? null;
 
-  const space = await getSpaceAccessForUser(spaceId, userId);
+  const space = await getSpaceAccessForUser(spaceId, userId, role);
   if (!space) notFound();
   if (!canReadSpace(space.visibility, space.isMember)) notFound();
   if (!space.isMember) {

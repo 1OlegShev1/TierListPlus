@@ -1,3 +1,4 @@
+import type { UserRole } from "@prisma/client";
 import { canMutateResource, canReadTemplate } from "@/domain/policy/access";
 import { forbidden, notFound } from "@/lib/api-helpers";
 import { prisma } from "@/lib/prisma";
@@ -38,7 +39,13 @@ export async function listPersonalTemplates(userId: string | null, previewLimit:
   }));
 }
 
-export async function getTemplateForRead(templateId: string, requestUserId: string | null) {
+export async function getTemplateForRead(
+  templateId: string,
+  requestUserId: string | null,
+  requestRole?: UserRole | null,
+) {
+  const isAdmin = requestRole === "ADMIN";
+
   const template = await prisma.template.findUnique({
     where: { id: templateId },
     include: {
@@ -70,8 +77,8 @@ export async function getTemplateForRead(templateId: string, requestUserId: stri
   const memberRole = Array.isArray(template.space?.members)
     ? template.space.members[0]?.role
     : null;
-  const isSpaceMember = memberRole != null;
-  const isOwner = !!requestUserId && template.creatorId === requestUserId;
+  const isSpaceMember = isAdmin || memberRole != null;
+  const isOwner = isAdmin || (!!requestUserId && template.creatorId === requestUserId);
   const canRead = canReadTemplate({
     isHidden: template.isHidden,
     isModeratedHidden: template.isModeratedHidden,
@@ -80,6 +87,7 @@ export async function getTemplateForRead(templateId: string, requestUserId: stri
     isSpaceMember,
     isPublic: template.isPublic,
     isOwner,
+    isAdmin,
   });
   if (!canRead) {
     notFound("Template not found");

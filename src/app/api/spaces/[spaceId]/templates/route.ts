@@ -8,7 +8,7 @@ export const GET = withHandler(async (request, { params }) => {
   const { spaceId } = await params;
   const auth = await getRequestAuth(request);
   const requestUserId = auth?.userId ?? null;
-  const templates = await listSpaceTemplates(spaceId, requestUserId);
+  const templates = await listSpaceTemplates(spaceId, requestUserId, auth?.role ?? null);
 
   return NextResponse.json(templates);
 });
@@ -18,10 +18,15 @@ export const POST = withHandler(async (request, { params }) => {
   const auth = await getRequestAuth(request);
   const requestUserId = auth?.userId ?? null;
   const { name, description } = await validateBody(request, createTemplateSchema);
-  const template = await createSpaceTemplate(spaceId, requestUserId, {
-    name,
-    ...(description != null ? { description } : {}),
-  });
+  const template = await createSpaceTemplate(
+    spaceId,
+    requestUserId,
+    {
+      name,
+      ...(description != null ? { description } : {}),
+    },
+    auth?.role ?? null,
+  );
 
   return NextResponse.json(template, { status: 201 });
 });

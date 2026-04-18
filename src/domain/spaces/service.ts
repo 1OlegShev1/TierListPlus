@@ -1,4 +1,4 @@
-import type { SpaceAccentColor } from "@prisma/client";
+import type { SpaceAccentColor, UserRole } from "@prisma/client";
 import { canReadSpace } from "@/domain/policy/access";
 import { resolveSpaceAccessContext } from "@/domain/policy/resolvers";
 import { getTemplateForRead } from "@/domain/templates/service";
@@ -10,6 +10,8 @@ import { extractManagedWebpUploadFilename } from "@/lib/uploads";
 
 const INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 const INVITE_RETRY_LIMIT = 10;
+const ADMIN_SPACES_PAGE_SIZE_DEFAULT = 24;
+const ADMIN_SPACES_PAGE_SIZE_MAX = 100;
 
 const SPACE_LIST_SELECT = {
   id: true,
@@ -21,10 +23,22 @@ const SPACE_LIST_SELECT = {
   creatorId: true,
   createdAt: true,
   updatedAt: true,
-  _count: { select: { members: true, templates: true, sessions: true } },
+  _count: { select: { members: true, templates: { where: { isHidden: false } }, sessions: true } },
 } as const;
 
-export async function listSpacesForUser(userId: string | null) {
+function parsePositiveInt(raw: number | undefined, fallback: number) {
+  if (!Number.isFinite(raw) || !raw || raw < 1) return fallback;
+  return Math.floor(raw);
+}
+
+export async function listSpacesForUser(
+  userId: string | null,
+  requestRole?: UserRole | null,
+  options?: {
+    page?: number;
+    pageSize?: number;
+  },
+) {
   if (!userId) {
     const discoverOpenSpaces = await prisma.space.findMany({
       where: { visibility: "OPEN" },
@@ -35,6 +49,32 @@ export async function listSpacesForUser(userId: string | null) {
     return {
       mySpaces: [],
       discoverOpenSpaces,
+    };
+  }
+
+  if (requestRole === "ADMIN") {
+    const page = parsePositiveInt(options?.page, 1);
+    const pageSize = Math.min(
+      parsePositiveInt(options?.pageSize, ADMIN_SPACES_PAGE_SIZE_DEFAULT),
+      ADMIN_SPACES_PAGE_SIZE_MAX,
+    );
+    const skip = (page - 1) * pageSize;
+
+    const rows = await prisma.space.findMany({
+      select: SPACE_LIST_SELECT,
+      orderBy: { updatedAt: "desc" },
+      skip,
+      take: pageSize + 1,
+    });
+    const hasMore = rows.length > pageSize;
+    const mySpaces = hasMore ? rows.slice(0, pageSize) : rows;
+
+    return {
+      mySpaces,
+      discoverOpenSpaces: [],
+      page,
+      pageSize,
+      hasMore,
     };
   }
 
@@ -102,8 +142,12 @@ export async function createSpace(input: {
   });
 }
 
-export async function getSpaceDetails(spaceId: string, requestUserId: string | null) {
-  const access = await resolveSpaceAccessContext(spaceId, requestUserId);
+export async function getSpaceDetails(
+  spaceId: string,
+  requestUserId: string | null,
+  requestRole?: UserRole | null,
+) {
+  const access = await resolveSpaceAccessContext(spaceId, requestUserId, requestRole);
   if (!access) {
     notFound("Space not found");
   }
@@ -124,7 +168,9 @@ export async function getSpaceDetails(spaceId: string, requestUserId: string | n
       creatorId: true,
       createdAt: true,
       updatedAt: true,
-      _count: { select: { members: true, templates: true, sessions: true } },
+      _count: {
+        select: { members: true, templates: { where: { isHidden: false } }, sessions: true },
+      },
     },
   });
 
@@ -151,8 +197,9 @@ export async function updateSpace(
     accentColor?: SpaceAccentColor;
     visibility?: "PRIVATE" | "OPEN";
   },
+  requestRole?: UserRole | null,
 ) {
-  const access = await resolveSpaceAccessContext(spaceId, requestUserId);
+  const access = await resolveSpaceAccessContext(spaceId, requestUserId, requestRole);
   if (!access) {
     notFound("Space not found");
   }
@@ -242,8 +289,12 @@ export async function joinPrivateSpaceByInviteCode(
   return { spaceId: invite.spaceId, joined: true };
 }
 
-export async function listSpaceMembers(spaceId: string, requestUserId: string | null) {
-  const access = await resolveSpaceAccessContext(spaceId, requestUserId);
+export async function listSpaceMembers(
+  spaceId: string,
+  requestUserId: string | null,
+  requestRole?: UserRole | null,
+) {
+  const access = await resolveSpaceAccessContext(spaceId, requestUserId, requestRole);
   if (!access) {
     notFound("Space not found");
   }
@@ -333,8 +384,9 @@ export async function removeSpaceMember(
   spaceId: string,
   actorUserId: string | null,
   targetUserId: string,
+  actorRole?: UserRole | null,
 ) {
-  const access = await resolveSpaceAccessContext(spaceId, actorUserId);
+  const access = await resolveSpaceAccessContext(spaceId, actorUserId, actorRole);
   if (!access) {
     notFound("Space not found");
   }
@@ -360,8 +412,12 @@ export async function removeSpaceMember(
   await prisma.spaceMember.delete({ where: { id: member.id } });
 }
 
-export async function getPrivateSpaceInvite(spaceId: string, requestUserId: string | null) {
-  const access = await resolveSpaceAccessContext(spaceId, requestUserId);
+export async function getPrivateSpaceInvite(
+  spaceId: string,
+  requestUserId: string | null,
+  requestRole?: UserRole | null,
+) {
+  const access = await resolveSpaceAccessContext(spaceId, requestUserId, requestRole);
   if (!access) {
     notFound("Space not found");
   }
@@ -392,8 +448,12 @@ export async function getPrivateSpaceInvite(spaceId: string, requestUserId: stri
   };
 }
 
-export async function rotatePrivateSpaceInvite(spaceId: string, requestUserId: string | null) {
-  const access = await resolveSpaceAccessContext(spaceId, requestUserId);
+export async function rotatePrivateSpaceInvite(
+  spaceId: string,
+  requestUserId: string | null,
+  requestRole?: UserRole | null,
+) {
+  const access = await resolveSpaceAccessContext(spaceId, requestUserId, requestRole);
   if (!access) {
     notFound("Space not found");
   }
@@ -443,8 +503,12 @@ export async function rotatePrivateSpaceInvite(spaceId: string, requestUserId: s
   };
 }
 
-export async function listSpaceTemplates(spaceId: string, requestUserId: string | null) {
-  const access = await resolveSpaceAccessContext(spaceId, requestUserId);
+export async function listSpaceTemplates(
+  spaceId: string,
+  requestUserId: string | null,
+  requestRole?: UserRole | null,
+) {
+  const access = await resolveSpaceAccessContext(spaceId, requestUserId, requestRole);
   if (!access) {
     notFound("Space not found");
   }
@@ -473,8 +537,9 @@ export async function getSpaceTemplate(
   spaceId: string,
   templateId: string,
   requestUserId: string | null,
+  requestRole?: UserRole | null,
 ) {
-  const access = await resolveSpaceAccessContext(spaceId, requestUserId);
+  const access = await resolveSpaceAccessContext(spaceId, requestUserId, requestRole);
   if (!access) {
     notFound("Space not found");
   }
@@ -509,8 +574,9 @@ export async function createSpaceTemplate(
     name: string;
     description?: string;
   },
+  requestRole?: UserRole | null,
 ) {
-  const access = await resolveSpaceAccessContext(spaceId, requestUserId);
+  const access = await resolveSpaceAccessContext(spaceId, requestUserId, requestRole);
   if (!access) {
     notFound("Space not found");
   }
@@ -533,8 +599,9 @@ export async function importTemplateIntoSpace(
   spaceId: string,
   requestUserId: string | null,
   sourceTemplateId: string,
+  requestRole?: UserRole | null,
 ) {
-  const access = await resolveSpaceAccessContext(spaceId, requestUserId);
+  const access = await resolveSpaceAccessContext(spaceId, requestUserId, requestRole);
   if (!access) {
     notFound("Space not found");
   }
@@ -542,7 +609,9 @@ export async function importTemplateIntoSpace(
     forbidden("You must join this space first");
   }
 
-  const source = await getTemplateForRead(sourceTemplateId, requestUserId);
+  const source = requestRole
+    ? await getTemplateForRead(sourceTemplateId, requestUserId, requestRole)
+    : await getTemplateForRead(sourceTemplateId, requestUserId);
   if (source.spaceId) {
     badRequest("Only personal or public lists can be copied into a space");
   }

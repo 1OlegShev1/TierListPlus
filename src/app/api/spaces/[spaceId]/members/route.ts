@@ -7,7 +7,7 @@ export const GET = withHandler(async (request, { params }) => {
   const { spaceId } = await params;
   const auth = await getRequestAuth(request);
   const requestUserId = auth?.userId ?? null;
-  const { members } = await listSpaceMembers(spaceId, requestUserId);
+  const { members } = await listSpaceMembers(spaceId, requestUserId, auth?.role ?? null);
 
   return NextResponse.json({ members });
 });

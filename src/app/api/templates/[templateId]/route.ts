@@ -18,7 +18,8 @@ export const GET = withHandler(async (request, { params }) => {
   const { templateId } = await params;
   const auth = await getRequestAuth(request);
   const userId = auth?.userId ?? null;
-  const template = await getTemplateForRead(templateId, userId);
+  const isAdmin = auth?.role === "ADMIN";
+  const template = await getTemplateForRead(templateId, userId, isAdmin ? "ADMIN" : null);
   return NextResponse.json(template);
 });
 
@@ -26,6 +27,7 @@ export const PATCH = withHandler(async (request, { params }) => {
   const { templateId } = await params;
   const auth = await getRequestAuth(request);
   const userId = auth?.userId ?? null;
+  const isAdmin = auth?.role === "ADMIN";
 
   const existing = await prisma.template.findUnique({
     where: { id: templateId },
@@ -55,11 +57,12 @@ export const PATCH = withHandler(async (request, { params }) => {
       ? (existing.space.members[0] ?? null)
       : null;
     const isSpaceOwner =
-      !!userId && (existing.space?.creatorId === userId || spaceMember?.role === "OWNER");
-    if (!canMutateSpaceResource(existing.creatorId, userId, isSpaceOwner)) {
+      isAdmin ||
+      (!!userId && (existing.space?.creatorId === userId || spaceMember?.role === "OWNER"));
+    if (!canMutateSpaceResource(existing.creatorId, userId, isSpaceOwner, isAdmin)) {
       forbidden("You are not allowed to edit this list");
     }
-  } else {
+  } else if (!isAdmin) {
     requireOwner(existing.creatorId, userId);
   }
 
@@ -77,6 +80,7 @@ export const DELETE = withHandler(async (request, { params }) => {
   const { templateId } = await params;
   const auth = await getRequestAuth(request);
   const userId = auth?.userId ?? null;
+  const isAdmin = auth?.role === "ADMIN";
 
   const existing = await prisma.template.findUnique({
     where: { id: templateId },
@@ -108,11 +112,12 @@ export const DELETE = withHandler(async (request, { params }) => {
       ? (existing.space.members[0] ?? null)
       : null;
     const isSpaceOwner =
-      !!userId && (existing.space?.creatorId === userId || spaceMember?.role === "OWNER");
-    if (!canMutateSpaceResource(existing.creatorId, userId, isSpaceOwner)) {
+      isAdmin ||
+      (!!userId && (existing.space?.creatorId === userId || spaceMember?.role === "OWNER"));
+    if (!canMutateSpaceResource(existing.creatorId, userId, isSpaceOwner, isAdmin)) {
       forbidden("You are not allowed to delete this list");
     }
-  } else {
+  } else if (!isAdmin) {
     requireOwner(existing.creatorId, userId);
   }
 

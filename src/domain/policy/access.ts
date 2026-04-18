@@ -13,12 +13,14 @@ export interface SessionReadPolicyInput {
   isModeratedHidden: boolean;
   isOwner: boolean;
   isParticipant: boolean;
+  isAdmin?: boolean;
 }
 
 export interface ResourceMutatePolicyInput {
   creatorId: string | null;
   requestUserId: string | null;
   isSpaceOwner: boolean;
+  isAdmin?: boolean;
 }
 
 export interface TemplateReadPolicyInput {
@@ -29,6 +31,7 @@ export interface TemplateReadPolicyInput {
   isSpaceMember: boolean;
   isPublic: boolean;
   isOwner: boolean;
+  isAdmin?: boolean;
 }
 
 export function canReadSpace(input: SpaceReadPolicyInput) {
@@ -36,10 +39,17 @@ export function canReadSpace(input: SpaceReadPolicyInput) {
 }
 
 export function canMutateResource(input: ResourceMutatePolicyInput) {
-  return !!input.requestUserId && (input.creatorId === input.requestUserId || input.isSpaceOwner);
+  return (
+    !!input.requestUserId &&
+    (input.isAdmin || input.creatorId === input.requestUserId || input.isSpaceOwner)
+  );
 }
 
 export function canReadSession(input: SessionReadPolicyInput) {
+  if (input.isAdmin) {
+    return true;
+  }
+
   if (input.isModeratedHidden && !input.isOwner && !input.isParticipant) {
     return false;
   }
@@ -56,6 +66,10 @@ export function canReadSession(input: SessionReadPolicyInput) {
 }
 
 export function canReadTemplate(input: TemplateReadPolicyInput) {
+  if (input.isAdmin) {
+    return true;
+  }
+
   if (input.isHidden) {
     return false;
   }

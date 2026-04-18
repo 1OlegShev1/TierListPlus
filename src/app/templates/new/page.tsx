@@ -19,11 +19,12 @@ export default async function NewListPage({
   const cookieStore = await cookies();
   const auth = await getCookieAuth(cookieStore);
   const userId = auth?.userId ?? null;
+  const role = auth?.role ?? null;
   let accessSpaceId: string | null = null;
   let accessSpaceName: string | null = null;
 
   if (spaceId) {
-    const spaceAccess = await getSpaceAccessForUser(spaceId, userId);
+    const spaceAccess = await getSpaceAccessForUser(spaceId, userId, role);
     if (!spaceAccess) notFound();
     if (!canReadSpace(spaceAccess.visibility, spaceAccess.isMember)) notFound();
     if (!spaceAccess.isMember) {

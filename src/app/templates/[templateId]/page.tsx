@@ -29,6 +29,7 @@ export default async function ListDetailPage({
   const cookieStore = await cookies();
   const auth = await getCookieAuth(cookieStore);
   const userId = auth?.userId ?? null;
+  const isAdmin = auth?.role === "ADMIN";
   const list = await prisma.template.findUnique({
     where: { id: templateId },
     include: {
@@ -54,20 +55,22 @@ export default async function ListDetailPage({
   if (!list) notFound();
 
   if (list.spaceId && list.space) {
-    const isSpaceMember = Array.isArray(list.space.members) && list.space.members.length > 0;
+    const isSpaceMember =
+      isAdmin || (Array.isArray(list.space.members) && list.space.members.length > 0);
     if (list.space.visibility === "PRIVATE" && !isSpaceMember) notFound();
-  } else if (!canAccessTemplate(list, userId)) {
+  } else if (!isAdmin && !canAccessTemplate(list, userId)) {
     notFound();
   }
   const suggestedNickname = await getSuggestedNicknameForUser(userId);
 
   const owner = isTemplateOwner(list, userId);
   const isSpaceOwner =
-    !!userId &&
-    !!list.space &&
-    (list.space.creatorId === userId ||
-      (Array.isArray(list.space.members) && list.space.members[0]?.role === "OWNER"));
-  const canManage = canMutateSpaceResource(list.creatorId, userId, isSpaceOwner);
+    isAdmin ||
+    (!!userId &&
+      !!list.space &&
+      (list.space.creatorId === userId ||
+        (Array.isArray(list.space.members) && list.space.members[0]?.role === "OWNER")));
+  const canManage = canMutateSpaceResource(list.creatorId, userId, isSpaceOwner, isAdmin);
   const from = typeof resolvedSearchParams.from === "string" ? resolvedSearchParams.from : null;
   const returnSpaceId =
     typeof resolvedSearchParams.returnSpaceId === "string"

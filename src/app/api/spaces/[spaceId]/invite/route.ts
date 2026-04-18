@@ -7,7 +7,7 @@ export const GET = withHandler(async (request, { params }) => {
   const { spaceId } = await params;
   const auth = await getRequestAuth(request);
   const requestUserId = auth?.userId ?? null;
-  const result = await getPrivateSpaceInvite(spaceId, requestUserId);
+  const result = await getPrivateSpaceInvite(spaceId, requestUserId, auth?.role ?? null);
   return NextResponse.json(result);
 });
 
@@ -15,7 +15,7 @@ export const POST = withHandler(async (request, { params }) => {
   const { spaceId } = await params;
   const auth = await getRequestAuth(request);
   const requestUserId = auth?.userId ?? null;
-  const invite = await rotatePrivateSpaceInvite(spaceId, requestUserId);
+  const invite = await rotatePrivateSpaceInvite(spaceId, requestUserId, auth?.role ?? null);
   return NextResponse.json(
     {
       code: invite.code,

@@ -17,7 +17,7 @@ export const GET = withHandler(async (request, { params }) => {
   const status = searchParams.get("status");
   assertValidSessionStatus(status);
 
-  const sessions = await listSpaceSessions(spaceId, requestUserId, status);
+  const sessions = await listSpaceSessions(spaceId, requestUserId, status, auth?.role ?? null);
 
   return NextResponse.json(sessions);
 });

@@ -1,4 +1,4 @@
-import { Prisma } from "@prisma/client";
+import { Prisma, type UserRole } from "@prisma/client";
 import { canReadSpace } from "@/domain/policy/access";
 import { resolveSpaceAccessContext } from "@/domain/policy/resolvers";
 import { badRequest, forbidden, notFound } from "@/lib/api-helpers";
@@ -67,8 +67,9 @@ export async function listSpaceSessions(
   spaceId: string,
   requestUserId: string | null,
   status: "OPEN" | "CLOSED" | "ARCHIVED" | null,
+  requestRole?: UserRole | null,
 ) {
-  const access = await resolveSpaceAccessContext(spaceId, requestUserId);
+  const access = await resolveSpaceAccessContext(spaceId, requestUserId, requestRole);
   if (!access) {
     notFound("Space not found");
   }

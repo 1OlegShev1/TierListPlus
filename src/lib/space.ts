@@ -1,4 +1,4 @@
-import type { SpaceAccentColor, SpaceRole, SpaceVisibility } from "@prisma/client";
+import type { SpaceAccentColor, SpaceRole, SpaceVisibility, UserRole } from "@prisma/client";
 import { canReadSpace as canReadSpacePolicy } from "@/domain/policy/access";
 import { resolveSpaceAccessContext } from "@/domain/policy/resolvers";
 
@@ -22,8 +22,9 @@ export function canReadSpace(visibility: SpaceVisibility, isMember: boolean) {
 export async function getSpaceAccessForUser(
   spaceId: string,
   userId: string | null,
+  role?: UserRole | null,
 ): Promise<SpaceAccess | null> {
-  const access = await resolveSpaceAccessContext(spaceId, userId);
+  const access = await resolveSpaceAccessContext(spaceId, userId, role);
   if (!access) return null;
 
   return {

@@ -42,6 +42,7 @@ export default async function VotePage({ params }: { params: Promise<{ sessionId
   const cookieStore = await cookies();
   const auth = await getCookieAuth(cookieStore);
   const requestUserId = auth?.userId ?? null;
+  const isAdmin = auth?.role === "ADMIN";
 
   const session = await prisma.session.findUnique({
     where: { id: sessionId },
@@ -88,17 +89,18 @@ export default async function VotePage({ params }: { params: Promise<{ sessionId
       })
     : null;
 
-  const isOwner = !!requestUserId && session.creatorId === requestUserId;
+  const isOwner = isAdmin || (!!requestUserId && session.creatorId === requestUserId);
   const isParticipant = !!currentParticipant;
   if (session.isModeratedHidden && !isOwner && !isParticipant) {
     notFound();
   }
   const spaceMember = Array.isArray(session.space?.members) ? session.space.members[0] : null;
-  const isSpaceMember = !!spaceMember;
+  const isSpaceMember = isAdmin || !!spaceMember;
   const isSpaceOwner =
-    !!requestUserId &&
-    !!session.space &&
-    (session.space.creatorId === requestUserId || spaceMember?.role === "OWNER");
+    isAdmin ||
+    (!!requestUserId &&
+      !!session.space &&
+      (session.space.creatorId === requestUserId || spaceMember?.role === "OWNER"));
   const canManageSession = isOwner || isSpaceOwner;
 
   if (session.space) {
@@ -155,6 +157,7 @@ export default async function VotePage({ params }: { params: Promise<{ sessionId
       session.creatorId,
       requestUserId,
       isSpaceOwner,
+      isAdmin,
     ),
     tierConfig: tierConfigSchema.parse(session.tierConfig),
     items: session.items,

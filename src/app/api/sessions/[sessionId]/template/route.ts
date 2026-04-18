@@ -11,7 +11,8 @@ import { prisma } from "@/lib/prisma";
 export const POST = withHandler(async (request, { params }) => {
   const { sessionId } = await params;
   await requireSessionAccess(request, sessionId);
-  const { userId: requestUserId } = await requireRequestAuth(request);
+  const { userId: requestUserId, role } = await requireRequestAuth(request);
+  const isAdmin = role === "ADMIN";
 
   const session = await prisma.session.findUnique({
     where: { id: sessionId },
@@ -58,12 +59,14 @@ export const POST = withHandler(async (request, { params }) => {
   const isOwner = session.creatorId === requestUserId;
   const spaceMember = session.space?.members[0] ?? null;
   const isSpaceOwner =
-    session.space != null &&
-    (session.space.creatorId === requestUserId || spaceMember?.role === "OWNER");
+    isAdmin ||
+    (session.space != null &&
+      (session.space.creatorId === requestUserId || spaceMember?.role === "OWNER"));
   const canPublishSessionTemplate = canMutateSpaceResource(
     session.creatorId,
     requestUserId,
     isSpaceOwner,
+    isAdmin,
   );
 
   if (canPublishSessionTemplate && session.template.isHidden) {

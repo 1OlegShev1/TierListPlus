@@ -50,12 +50,34 @@ describe("spaces api routes", () => {
 
     let response = await GET(new Request("https://example.test"), routeCtx({}));
     expect(response.status).toBe(200);
-    expect(mocks.spacesService.listSpacesForUser).toHaveBeenCalledWith(null);
+    expect(mocks.spacesService.listSpacesForUser).toHaveBeenCalledWith(null, null);
 
-    mocks.getRequestAuth.mockResolvedValueOnce({ userId: "user_2" });
+    mocks.getRequestAuth.mockResolvedValueOnce({ userId: "user_2", role: "ADMIN" });
     response = await GET(new Request("https://example.test"), routeCtx({}));
     expect(response.status).toBe(200);
-    expect(mocks.spacesService.listSpacesForUser).toHaveBeenLastCalledWith("user_2");
+    expect(mocks.spacesService.listSpacesForUser).toHaveBeenLastCalledWith("user_2", "ADMIN");
+  });
+
+  it("forwards pagination query params to admin list call", async () => {
+    mocks.getRequestAuth.mockResolvedValueOnce({ userId: "admin_1", role: "ADMIN" });
+    mocks.spacesService.listSpacesForUser.mockResolvedValueOnce({
+      mySpaces: [],
+      discoverOpenSpaces: [],
+      page: 2,
+      pageSize: 10,
+      hasMore: false,
+    });
+
+    const response = await GET(
+      new Request("https://example.test?page=2&pageSize=10"),
+      routeCtx({}),
+    );
+
+    expect(response.status).toBe(200);
+    expect(mocks.spacesService.listSpacesForUser).toHaveBeenCalledWith("admin_1", "ADMIN", {
+      page: 2,
+      pageSize: 10,
+    });
   });
 
   it("creates a space with default private visibility", async () => {
@@ -118,27 +140,32 @@ describe("spaces api routes", () => {
   it("exposes space detail/update through service with request user context", async () => {
     mocks.spacesService.getSpaceDetails.mockResolvedValue({ id: "space_1", isMember: true });
     mocks.spacesService.updateSpace.mockResolvedValue({ id: "space_1", name: "Renamed" });
-    mocks.getRequestAuth.mockResolvedValue({ userId: "user_2" });
+    mocks.getRequestAuth.mockResolvedValue({ userId: "user_2", role: "ADMIN" });
 
     let response = await getSpace(
       new Request("https://example.test"),
       routeCtx({ spaceId: "space_1" }),
     );
     expect(response.status).toBe(200);
-    expect(mocks.spacesService.getSpaceDetails).toHaveBeenCalledWith("space_1", "user_2");
+    expect(mocks.spacesService.getSpaceDetails).toHaveBeenCalledWith("space_1", "user_2", "ADMIN");
 
     response = await patchSpace(
       jsonRequest("PATCH", "https://example.test", { name: "Renamed" }),
       routeCtx({ spaceId: "space_1" }),
     );
     expect(response.status).toBe(200);
-    expect(mocks.spacesService.updateSpace).toHaveBeenCalledWith("space_1", "user_2", {
-      name: "Renamed",
-    });
+    expect(mocks.spacesService.updateSpace).toHaveBeenCalledWith(
+      "space_1",
+      "user_2",
+      {
+        name: "Renamed",
+      },
+      "ADMIN",
+    );
   });
 
   it("passes space customization fields through PATCH", async () => {
-    mocks.getRequestAuth.mockResolvedValue({ userId: "owner_1" });
+    mocks.getRequestAuth.mockResolvedValue({ userId: "owner_1", role: "ADMIN" });
     mocks.spacesService.updateSpace.mockResolvedValue({ id: "space_1", name: "Anime" });
 
     const response = await patchSpace(
@@ -151,11 +178,16 @@ describe("spaces api routes", () => {
     );
 
     expect(response.status).toBe(200);
-    expect(mocks.spacesService.updateSpace).toHaveBeenCalledWith("space_1", "owner_1", {
-      description: "Vote on seasonal picks",
-      logoUrl: "/uploads/abc123.webp",
-      accentColor: "SKY",
-    });
+    expect(mocks.spacesService.updateSpace).toHaveBeenCalledWith(
+      "space_1",
+      "owner_1",
+      {
+        description: "Vote on seasonal picks",
+        logoUrl: "/uploads/abc123.webp",
+        accentColor: "SKY",
+      },
+      "ADMIN",
+    );
   });
 
   it("rejects invalid logoUrl payloads before service call", async () => {
@@ -179,14 +211,14 @@ describe("spaces api routes", () => {
     mocks.spacesService.listSpaceMembers.mockResolvedValue({
       members: [{ userId: "user_1", role: "OWNER" }],
     });
-    mocks.getRequestAuth.mockResolvedValue({ userId: "user_1" });
+    mocks.getRequestAuth.mockResolvedValue({ userId: "user_1", role: "ADMIN" });
 
     let response = await getMembers(
       new Request("https://example.test"),
       routeCtx({ spaceId: "space_1" }),
     );
     expect(response.status).toBe(200);
-    expect(mocks.spacesService.listSpaceMembers).toHaveBeenCalledWith("space_1", "user_1");
+    expect(mocks.spacesService.listSpaceMembers).toHaveBeenCalledWith("space_1", "user_1", "ADMIN");
 
     mocks.spacesService.listSpaceMembers.mockRejectedValueOnce(
       new ApiError(403, "You must join this space first"),
@@ -220,7 +252,7 @@ describe("spaces api routes", () => {
   });
 
   it("reads and rotates private-space invites via service", async () => {
-    mocks.getRequestAuth.mockResolvedValue({ userId: "owner_1" });
+    mocks.getRequestAuth.mockResolvedValue({ userId: "owner_1", role: "ADMIN" });
     mocks.spacesService.getPrivateSpaceInvite.mockResolvedValue({
       invite: { code: "ABCD1234", expiresAt: new Date("2026-03-12T10:00:00.000Z") },
     });
@@ -235,14 +267,22 @@ describe("spaces api routes", () => {
       routeCtx({ spaceId: "space_1" }),
     );
     expect(response.status).toBe(200);
-    expect(mocks.spacesService.getPrivateSpaceInvite).toHaveBeenCalledWith("space_1", "owner_1");
+    expect(mocks.spacesService.getPrivateSpaceInvite).toHaveBeenCalledWith(
+      "space_1",
+      "owner_1",
+      "ADMIN",
+    );
 
     response = await postInvite(
       jsonRequest("POST", "https://example.test"),
       routeCtx({ spaceId: "space_1" }),
     );
     expect(response.status).toBe(201);
-    expect(mocks.spacesService.rotatePrivateSpaceInvite).toHaveBeenCalledWith("space_1", "owner_1");
+    expect(mocks.spacesService.rotatePrivateSpaceInvite).toHaveBeenCalledWith(
+      "space_1",
+      "owner_1",
+      "ADMIN",
+    );
     await expect(response.json()).resolves.toEqual(
       expect.objectContaining({
         code: "NEWCODE1234",
@@ -267,7 +307,7 @@ describe("spaces api routes", () => {
   });
 
   it("supports leave-space and owner member-removal flows", async () => {
-    mocks.getRequestAuth.mockResolvedValue({ userId: "owner_1" });
+    mocks.getRequestAuth.mockResolvedValue({ userId: "owner_1", role: "ADMIN" });
 
     let response = await leaveSpace(
       new Request("https://example.test", { method: "DELETE" }),
@@ -285,6 +325,7 @@ describe("spaces api routes", () => {
       "space_1",
       "owner_1",
       "member_1",
+      "ADMIN",
     );
   });
 

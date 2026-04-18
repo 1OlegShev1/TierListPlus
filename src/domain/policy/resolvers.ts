@@ -1,4 +1,4 @@
-import type { SpaceAccentColor, SpaceRole, SpaceVisibility } from "@prisma/client";
+import type { SpaceAccentColor, SpaceRole, SpaceVisibility, UserRole } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 
 export interface SpaceAccessContext {
@@ -12,6 +12,7 @@ export interface SpaceAccessContext {
   memberRole: SpaceRole | null;
   isMember: boolean;
   isOwner: boolean;
+  isAdmin: boolean;
 }
 
 export interface SessionAccessContext {
@@ -27,6 +28,7 @@ export interface SessionAccessContext {
   isSpaceOwner: boolean;
   isOwner: boolean;
   isParticipant: boolean;
+  isAdmin: boolean;
 }
 
 export interface TemplateAccessContext {
@@ -42,9 +44,32 @@ export interface TemplateAccessContext {
   isSpaceMember: boolean;
   isSpaceOwner: boolean;
   isOwner: boolean;
+  isAdmin: boolean;
 }
 
-export async function resolveSpaceAccessContext(spaceId: string, requestUserId: string | null) {
+async function resolveRequestRole(
+  requestUserId: string | null,
+  requestRole?: UserRole | null,
+): Promise<UserRole | null> {
+  if (!requestUserId) return null;
+  if (requestRole) return requestRole;
+
+  const user = await prisma.user.findUnique({
+    where: { id: requestUserId },
+    select: { role: true },
+  });
+
+  return user?.role ?? null;
+}
+
+export async function resolveSpaceAccessContext(
+  spaceId: string,
+  requestUserId: string | null,
+  requestRole?: UserRole | null,
+) {
+  const resolvedRole = await resolveRequestRole(requestUserId, requestRole);
+  const isAdmin = resolvedRole === "ADMIN";
+
   const space = await prisma.space.findUnique({
     where: { id: spaceId },
     select: {
@@ -70,8 +95,9 @@ export async function resolveSpaceAccessContext(spaceId: string, requestUserId: 
   }
 
   const memberRole = Array.isArray(space.members) ? (space.members[0]?.role ?? null) : null;
-  const isMember = memberRole != null;
-  const isOwner = (!!requestUserId && space.creatorId === requestUserId) || memberRole === "OWNER";
+  const isMember = isAdmin || memberRole != null;
+  const isOwner =
+    isAdmin || (!!requestUserId && space.creatorId === requestUserId) || memberRole === "OWNER";
 
   return {
     id: space.id,
@@ -84,10 +110,18 @@ export async function resolveSpaceAccessContext(spaceId: string, requestUserId: 
     memberRole,
     isMember,
     isOwner,
+    isAdmin,
   } satisfies SpaceAccessContext;
 }
 
-export async function resolveSessionAccessContext(sessionId: string, requestUserId: string | null) {
+export async function resolveSessionAccessContext(
+  sessionId: string,
+  requestUserId: string | null,
+  requestRole?: UserRole | null,
+) {
+  const resolvedRole = await resolveRequestRole(requestUserId, requestRole);
+  const isAdmin = resolvedRole === "ADMIN";
+
   const session = await prisma.session.findUnique({
     where: { id: sessionId },
     select: {
@@ -126,12 +160,15 @@ export async function resolveSessionAccessContext(sessionId: string, requestUser
   const memberRole = Array.isArray(session.space?.members)
     ? (session.space.members[0]?.role ?? null)
     : null;
-  const isSpaceMember = memberRole != null;
+  const isSpaceMember = isAdmin || memberRole != null;
   const isSpaceOwner =
-    (!!requestUserId && session.space?.creatorId === requestUserId) || memberRole === "OWNER";
-  const isOwner = !!requestUserId && session.creatorId === requestUserId;
+    isAdmin ||
+    (!!requestUserId && session.space?.creatorId === requestUserId) ||
+    memberRole === "OWNER";
+  const isOwner = isAdmin || (!!requestUserId && session.creatorId === requestUserId);
   const isParticipant =
-    !!requestUserId && Array.isArray(session.participants) && session.participants.length > 0;
+    isAdmin ||
+    (!!requestUserId && Array.isArray(session.participants) && session.participants.length > 0);
 
   return {
     id: session.id,
@@ -146,13 +183,18 @@ export async function resolveSessionAccessContext(sessionId: string, requestUser
     isSpaceOwner,
     isOwner,
     isParticipant,
+    isAdmin,
   } satisfies SessionAccessContext;
 }
 
 export async function resolveTemplateAccessContext(
   templateId: string,
   requestUserId: string | null,
+  requestRole?: UserRole | null,
 ) {
+  const resolvedRole = await resolveRequestRole(requestUserId, requestRole);
+  const isAdmin = resolvedRole === "ADMIN";
+
   const template = await prisma.template.findUnique({
     where: { id: templateId },
     select: {
@@ -185,10 +227,12 @@ export async function resolveTemplateAccessContext(
   const memberRole = Array.isArray(template.space?.members)
     ? (template.space.members[0]?.role ?? null)
     : null;
-  const isSpaceMember = memberRole != null;
+  const isSpaceMember = isAdmin || memberRole != null;
   const isSpaceOwner =
-    (!!requestUserId && template.space?.creatorId === requestUserId) || memberRole === "OWNER";
-  const isOwner = !!requestUserId && template.creatorId === requestUserId;
+    isAdmin ||
+    (!!requestUserId && template.space?.creatorId === requestUserId) ||
+    memberRole === "OWNER";
+  const isOwner = isAdmin || (!!requestUserId && template.creatorId === requestUserId);
 
   return {
     id: template.id,
@@ -203,5 +247,6 @@ export async function resolveTemplateAccessContext(
     isSpaceMember,
     isSpaceOwner,
     isOwner,
+    isAdmin,
   } satisfies TemplateAccessContext;
 }

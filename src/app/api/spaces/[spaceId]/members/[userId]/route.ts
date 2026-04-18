@@ -6,7 +6,7 @@ export const DELETE = withHandler(async (request, { params }) => {
   const { spaceId, userId } = await params;
   const auth = await getRequestAuth(request);
   const requestUserId = auth?.userId ?? null;
-  await removeSpaceMember(spaceId, requestUserId, userId);
+  await removeSpaceMember(spaceId, requestUserId, userId, auth?.role ?? null);
 
   return new Response(null, { status: 204 });
 });

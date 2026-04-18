@@ -2,6 +2,7 @@ import type { SpaceAccentColor } from "@prisma/client";
 import { cookies } from "next/headers";
 import Link from "next/link";
 import { SpaceActionPanel } from "@/components/spaces/SpaceActionPanel";
+import { buttonVariants } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { SectionHeader } from "@/components/ui/SectionHeader";
@@ -12,6 +13,7 @@ import { getSpaceAccentClasses } from "@/lib/space-theme";
 export const dynamic = "force-dynamic";
 
 type SearchParams = Record<string, string | string[] | undefined>;
+const SPACES_ADMIN_PAGE_SIZE = 24;
 
 export default async function SpacesPage({
   searchParams,
@@ -30,11 +32,14 @@ export default async function SpacesPage({
   const cookieStore = await cookies();
   const auth = await getCookieAuth(cookieStore);
   const userId = auth?.userId ?? null;
+  const isAdmin = auth?.role === "ADMIN";
+  const adminPage = isAdmin ? readPageParam(resolvedSearchParams.page) : 1;
+  const adminSkip = isAdmin ? (adminPage - 1) * SPACES_ADMIN_PAGE_SIZE : 0;
 
-  const [mySpaces, discoverOpenSpaces] = await Promise.all([
+  const [rawMySpaces, discoverOpenSpaces] = await Promise.all([
     userId
       ? prisma.space.findMany({
-          where: { members: { some: { userId } } },
+          where: isAdmin ? {} : { members: { some: { userId } } },
           include: {
             _count: {
               select: {
@@ -45,29 +50,35 @@ export default async function SpacesPage({
             },
           },
           orderBy: { updatedAt: "desc" },
+          ...(isAdmin ? { skip: adminSkip, take: SPACES_ADMIN_PAGE_SIZE + 1 } : {}),
         })
       : Promise.resolve([]),
-    prisma.space.findMany({
-      where: userId
-        ? {
-            visibility: "OPEN",
-            NOT: { members: { some: { userId } } },
-          }
-        : {
-            visibility: "OPEN",
+    isAdmin
+      ? Promise.resolve([])
+      : prisma.space.findMany({
+          where: userId
+            ? {
+                visibility: "OPEN",
+                NOT: { members: { some: { userId } } },
+              }
+            : {
+                visibility: "OPEN",
+              },
+          include: {
+            _count: {
+              select: {
+                members: true,
+                templates: { where: { isHidden: false } },
+                sessions: true,
+              },
+            },
           },
-      include: {
-        _count: {
-          select: {
-            members: true,
-            templates: { where: { isHidden: false } },
-            sessions: true,
-          },
-        },
-      },
-      orderBy: { updatedAt: "desc" },
-    }),
+          orderBy: { updatedAt: "desc" },
+        }),
   ]);
+  const adminHasMore = isAdmin && rawMySpaces.length > SPACES_ADMIN_PAGE_SIZE;
+  const mySpaces =
+    isAdmin && adminHasMore ? rawMySpaces.slice(0, SPACES_ADMIN_PAGE_SIZE) : rawMySpaces;
 
   return (
     <div className="space-y-8">
@@ -77,14 +88,17 @@ export default async function SpacesPage({
       />
 
       <section>
-        <SectionHeader title="Your Spaces" subtitle="Spaces you own or have joined." />
+        <SectionHeader
+          title={isAdmin ? "All Spaces" : "Your Spaces"}
+          subtitle={isAdmin ? "Admin view across all spaces." : "Spaces you own or have joined."}
+        />
         {mySpaces.length === 0 ? (
           <EmptyState
             title="No spaces yet"
             description="Use Create or Join below when you are ready."
           />
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" id="spaces-grid">
             {mySpaces.map((space) => (
               <SpaceCard
                 key={space.id}
@@ -101,36 +115,63 @@ export default async function SpacesPage({
             ))}
           </div>
         )}
+        {isAdmin && (adminHasMore || adminPage > 1) ? (
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            {adminPage > 1 ? (
+              <Link
+                href={buildSpacesHref(
+                  resolvedSearchParams,
+                  adminPage - 1 > 1 ? String(adminPage - 1) : null,
+                  "spaces-grid",
+                )}
+                className={`${buttonVariants.secondary} !rounded-xl !px-3 !py-1.5 !text-sm !font-medium`}
+              >
+                Newer
+              </Link>
+            ) : null}
+            {adminHasMore ? (
+              <Link
+                href={buildSpacesHref(resolvedSearchParams, String(adminPage + 1), "spaces-grid")}
+                className={`${buttonVariants.secondary} !rounded-xl !px-3 !py-1.5 !text-sm !font-medium`}
+              >
+                More
+              </Link>
+            ) : null}
+            <p className="text-sm text-[var(--fg-subtle)]">{`Page ${adminPage}`}</p>
+          </div>
+        ) : null}
       </section>
 
-      <section>
-        <SectionHeader
-          title="Discover Open Spaces"
-          subtitle="Open communities you can browse, join, and rank in."
-        />
-        {discoverOpenSpaces.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-[var(--border-subtle)] bg-[var(--bg-soft-contrast)] px-5 py-4 text-sm text-[var(--fg-subtle)]">
-            No open spaces to discover right now.
-          </div>
-        ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {discoverOpenSpaces.map((space) => (
-              <SpaceCard
-                key={space.id}
-                id={space.id}
-                name={space.name}
-                description={space.description}
-                logoUrl={space.logoUrl}
-                accentColor={space.accentColor}
-                visibility={space.visibility}
-                memberCount={space._count.members}
-                listCount={space._count.templates}
-                voteCount={space._count.sessions}
-              />
-            ))}
-          </div>
-        )}
-      </section>
+      {!isAdmin ? (
+        <section>
+          <SectionHeader
+            title="Discover Open Spaces"
+            subtitle="Open communities you can browse, join, and rank in."
+          />
+          {discoverOpenSpaces.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-[var(--border-subtle)] bg-[var(--bg-soft-contrast)] px-5 py-4 text-sm text-[var(--fg-subtle)]">
+              No open spaces to discover right now.
+            </div>
+          ) : (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {discoverOpenSpaces.map((space) => (
+                <SpaceCard
+                  key={space.id}
+                  id={space.id}
+                  name={space.name}
+                  description={space.description}
+                  logoUrl={space.logoUrl}
+                  accentColor={space.accentColor}
+                  visibility={space.visibility}
+                  memberCount={space._count.members}
+                  listCount={space._count.templates}
+                  voteCount={space._count.sessions}
+                />
+              ))}
+            </div>
+          )}
+        </section>
+      ) : null}
 
       <SpaceActionPanel
         defaultOpen={mySpaces.length === 0 || joinCode.length > 0 || expectedSpaceId.length > 0}
@@ -139,6 +180,35 @@ export default async function SpacesPage({
       />
     </div>
   );
+}
+
+function readPageParam(value: string | string[] | undefined) {
+  const raw = Array.isArray(value) ? value[0] : value;
+  const page = raw ? Number.parseInt(raw, 10) : 1;
+  return Number.isFinite(page) && page > 0 ? page : 1;
+}
+
+function buildSpacesHref(searchParams: SearchParams, page: string | null, hash?: string) {
+  const params = new URLSearchParams();
+
+  for (const [entryKey, entryValue] of Object.entries(searchParams)) {
+    if (entryKey === "page" || entryValue == null) continue;
+    if (Array.isArray(entryValue)) {
+      for (const value of entryValue) {
+        params.append(entryKey, value);
+      }
+      continue;
+    }
+    params.set(entryKey, entryValue);
+  }
+
+  if (page) {
+    params.set("page", page);
+  }
+
+  const query = params.toString();
+  const base = query ? `/spaces?${query}` : "/spaces";
+  return hash ? `${base}#${hash}` : base;
 }
 
 function SpaceCard({

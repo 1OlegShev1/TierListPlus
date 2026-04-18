@@ -153,14 +153,15 @@ export function canMutateSpaceResource(
   creatorId: string | null,
   requestUserId: string | null,
   isSpaceOwner: boolean,
+  isAdmin = false,
 ) {
-  return canMutateResource({ creatorId, requestUserId, isSpaceOwner });
+  return canMutateResource({ creatorId, requestUserId, isSpaceOwner, isAdmin });
 }
 
 export async function resolveSpaceAccess(request: Request, spaceId: string) {
   const auth = await getRequestAuth(request);
   const requestUserId = auth?.userId ?? null;
-  const access = await resolveSpaceAccessContext(spaceId, requestUserId);
+  const access = await resolveSpaceAccessContext(spaceId, requestUserId, auth?.role ?? null);
   if (!access) notFound("Space not found");
 
   if (!canReadSpace({ visibility: access.visibility, isMember: access.isMember })) {
@@ -273,7 +274,7 @@ export async function requireOpenSession(sessionId: string) {
 export async function requireSessionAccess(request: Request, sessionId: string) {
   const auth = await getRequestAuth(request);
   const requestUserId = auth?.userId ?? null;
-  const access = await resolveSessionAccessContext(sessionId, requestUserId);
+  const access = await resolveSessionAccessContext(sessionId, requestUserId, auth?.role ?? null);
   if (!access) notFound("Session not found");
 
   const isReadable = canReadSession({
@@ -284,6 +285,7 @@ export async function requireSessionAccess(request: Request, sessionId: string) 
     isModeratedHidden: access.isModeratedHidden,
     isOwner: access.isOwner,
     isParticipant: access.isParticipant,
+    isAdmin: access.isAdmin,
   });
 
   if (!isReadable) {
@@ -325,8 +327,11 @@ export function canManageSessionItems(
   creatorId: string | null,
   requestUserId: string | null,
   isSpaceOwner = false,
+  isAdmin = false,
 ) {
-  return !!templateIsHidden && canMutateResource({ creatorId, requestUserId, isSpaceOwner });
+  return (
+    !!templateIsHidden && canMutateResource({ creatorId, requestUserId, isSpaceOwner, isAdmin })
+  );
 }
 
 /** Require that the current signed-in user may manage session items for a session. */
@@ -335,7 +340,8 @@ export async function requireSessionItemManager(
   sessionId: string,
   options?: { includeTemplateId?: boolean },
 ) {
-  const { userId: requestUserId } = await requireRequestAuth(request);
+  const { userId: requestUserId, role } = await requireRequestAuth(request);
+  const isAdmin = role === "ADMIN";
   const session = await prisma.session.findUnique({
     where: { id: sessionId },
     select: {
@@ -359,8 +365,9 @@ export async function requireSessionItemManager(
   if (!session) notFound("Session not found");
   const spaceMember = session.space?.members[0] ?? null;
   const isSpaceOwner =
-    session.space != null &&
-    (session.space.creatorId === requestUserId || spaceMember?.role === "OWNER");
+    isAdmin ||
+    (session.space != null &&
+      (session.space.creatorId === requestUserId || spaceMember?.role === "OWNER"));
 
   if (
     !canManageSessionItems(
@@ -368,9 +375,12 @@ export async function requireSessionItemManager(
       session.creatorId,
       requestUserId,
       isSpaceOwner,
+      isAdmin,
     )
   ) {
-    requireOwner(session.creatorId, requestUserId);
+    if (!isAdmin) {
+      requireOwner(session.creatorId, requestUserId);
+    }
     badRequest("This session must be recreated before live item editing is available");
   }
 
