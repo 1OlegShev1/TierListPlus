@@ -10,6 +10,8 @@ CPU_SAMPLE_COUNT="${CPU_SAMPLE_COUNT:-3}"
 CPU_SAMPLE_INTERVAL_SEC="${CPU_SAMPLE_INTERVAL_SEC:-1}"
 CPU_REQUIRED_BREACHES="${CPU_REQUIRED_BREACHES:-3}"
 CPU_LAST_DETAIL="disabled"
+TRANSIENT_RETRY_ENABLED="${TRANSIENT_RETRY_ENABLED:-true}"
+TRANSIENT_RETRY_DELAY_SEC="${TRANSIENT_RETRY_DELAY_SEC:-75}"
 
 compose_cmd() {
   docker compose \
@@ -108,24 +110,54 @@ report_compose_status() {
     "${CPU_LAST_DETAIL}"
 }
 
+run_checks() {
+  local -n result_failures="$1"
+  local -n result_app_state="$2"
+  local -n result_db_state="$3"
+  local -n result_caddy_state="$4"
+  local -n result_disk_usage="$5"
+
+  result_failures=()
+  result_app_state="$(container_state "app")"
+  result_db_state="$(container_state "db")"
+  result_caddy_state="$(container_state "caddy")"
+  result_disk_usage="$(df -P / | awk 'NR==2 { gsub(/%/, "", $5); print $5 }')"
+
+  check_http || result_failures+=("public-url")
+  check_container "${result_app_state}" "healthy" || result_failures+=("app:${result_app_state}")
+  check_container "${result_db_state}" "healthy" || result_failures+=("db:${result_db_state}")
+  check_container "${result_caddy_state}" "running" || result_failures+=("caddy:${result_caddy_state}")
+  check_disk "${result_disk_usage}" || result_failures+=("disk:${result_disk_usage}%")
+  if [[ "${CPU_CHECK_ENABLED}" == "true" ]]; then
+    check_cpu || result_failures+=("cpu")
+  else
+    CPU_LAST_DETAIL="disabled"
+  fi
+}
+
+has_transient_container_state() {
+  local failure
+
+  for failure in "$@"; do
+    case "${failure}" in
+      app:created | app:restarting | app:running | app:starting | app:unhealthy | db:created | db:restarting | db:running | db:starting | db:unhealthy | caddy:created | caddy:restarting | caddy:starting)
+        return 0
+        ;;
+    esac
+  done
+
+  return 1
+}
+
 main() {
   local failures=()
   local app_state db_state caddy_state disk_usage
 
-  app_state="$(container_state "app")"
-  db_state="$(container_state "db")"
-  caddy_state="$(container_state "caddy")"
-  disk_usage="$(df -P / | awk 'NR==2 { gsub(/%/, "", $5); print $5 }')"
+  run_checks failures app_state db_state caddy_state disk_usage
 
-  check_http || failures+=("public-url")
-  check_container "${app_state}" "healthy" || failures+=("app:${app_state}")
-  check_container "${db_state}" "healthy" || failures+=("db:${db_state}")
-  check_container "${caddy_state}" "running" || failures+=("caddy:${caddy_state}")
-  check_disk "${disk_usage}" || failures+=("disk:${disk_usage}%")
-  if [[ "${CPU_CHECK_ENABLED}" == "true" ]]; then
-    check_cpu || failures+=("cpu")
-  else
-    CPU_LAST_DETAIL="disabled"
+  if [[ "${TRANSIENT_RETRY_ENABLED}" == "true" ]] && ((${#failures[@]} > 0)) && has_transient_container_state "${failures[@]}"; then
+    sleep "${TRANSIENT_RETRY_DELAY_SEC}"
+    run_checks failures app_state db_state caddy_state disk_usage
   fi
 
   if ((${#failures[@]} > 0)); then
