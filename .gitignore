@@ -37,6 +37,9 @@ next-env.d.ts
 public/uploads/*
 !public/uploads/.gitkeep
 
+# pi agent harness
+.pi/
+
 # generated import/export artifacts
 scripts/output/*
 !scripts/output/.gitkeep
