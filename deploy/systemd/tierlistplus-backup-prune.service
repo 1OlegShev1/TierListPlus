@@ -1,0 +1,9 @@
+[Unit]
+Description=Prune local TierListPlus backups
+
+[Service]
+Type=oneshot
+User=homeadmin
+Group=homeadmin
+EnvironmentFile=-/etc/tierlistplus/backup-prune.env
+ExecStart=/usr/local/bin/tierlistplus-backup-prune

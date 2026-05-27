@@ -26,7 +26,12 @@ HOSTNAME_NOW="$(hostname)"
 TIME_NOW="$(date '+%Y-%m-%d %H:%M %Z')"
 ACTIVE_STATE="$(systemctl show -p ActiveState --value "${UNIT_NAME}" 2>/dev/null || echo unknown)"
 RESULT_STATE="$(systemctl show -p Result --value "${UNIT_NAME}" 2>/dev/null || echo unknown)"
-JOURNAL_LOGS="$(journalctl -u "${UNIT_NAME}" -n 80 --no-pager -o cat 2>/dev/null || true)"
+UNIT_INVOCATION_ID="$(systemctl show -p InvocationID --value "${UNIT_NAME}" 2>/dev/null || true)"
+if [[ -n "${UNIT_INVOCATION_ID}" && "${UNIT_INVOCATION_ID}" != "00000000000000000000000000000000" ]]; then
+  JOURNAL_LOGS="$(journalctl _SYSTEMD_INVOCATION_ID="${UNIT_INVOCATION_ID}" -n 120 --no-pager -o cat 2>/dev/null || true)"
+else
+  JOURNAL_LOGS="$(journalctl -u "${UNIT_NAME}" -n 80 --no-pager -o cat 2>/dev/null || true)"
+fi
 
 is_success_result() {
   case "$1" in
@@ -51,11 +56,15 @@ send_message() {
 }
 
 backup_success_db_line() {
-  printf '%s\n' "${JOURNAL_LOGS}" | sed -n 's/^DB backup uploaded: /db: uploaded to /p' | tail -n 1
+  if printf '%s\n' "${JOURNAL_LOGS}" | grep -q '^DB backup uploaded: '; then
+    printf '%s\n' 'db: uploaded'
+  fi
 }
 
 backup_success_uploads_line() {
-  printf '%s\n' "${JOURNAL_LOGS}" | sed -n 's/^Uploads backup uploaded: /uploads: uploaded to /p' | tail -n 1
+  if printf '%s\n' "${JOURNAL_LOGS}" | grep -q '^Uploads backup uploaded: '; then
+    printf '%s\n' 'uploads: uploaded'
+  fi
 }
 
 meaningful_journal_lines() {
@@ -74,13 +83,46 @@ meaningful_journal_lines() {
 }
 
 backup_failure_lines() {
-  meaningful_journal_lines | awk '!seen[$0]++'
+  meaningful_journal_lines | sed -E \
+    -e '/(^|[[:space:]])COMMAND=/d' \
+    -e '/(^|[[:space:]])PWD=/d' \
+    -e '/(^|[[:space:]])USER=/d' \
+    -e '/^pam_unix\(sudo:session\):/d' \
+    -e '/^tierlistplus_[0-9TZ_]+.*: OK$/d' \
+    -e '/^tierlistplus_uploads_[0-9TZ_]+.*: OK$/d' \
+    -e '/^DB backup uploaded: /d' \
+    -e '/^Uploads backup uploaded: /d' \
+    -e 's#/home/[A-Za-z0-9._-]+/#/home/<user>/#g' \
+    -e 's#/var/lib/docker/volumes/[^[:space:]]+#<docker-volume-path>#g' \
+    -e 's#100\.[0-9]+\.[0-9]+\.[0-9]+#<tailscale-host>#g' |
+    awk '
+      /backup failed$/ ||
+      /lookup failed$/ ||
+      /setup failed$/ ||
+      /verification failed$/ ||
+      /publish failed$/ ||
+      /checksum failed$/ ||
+      /prune failed$/ ||
+      /^ssh:/ ||
+      /Connection (timed out|refused|reset)/ ||
+      /port [0-9]+ timed out/ ||
+      /No route to host/ ||
+      /Could not resolve host/ ||
+      /Network is unreachable/ ||
+      /Permission denied/ ||
+      /Host key verification failed/ ||
+      /Broken pipe/ ||
+      /^pg_dump:/ ||
+      /^tar:/ {
+        if (!seen[$0]++) print
+      }
+    '
 }
 
 backup_failure_hint() {
   case "$1" in
     *"Connection timed out"* | *"No route to host"* | *"Connection refused"* | *"Could not resolve host"* | *"ssh:"*)
-      printf '%s\n' "hint: the backup target may have been unreachable over Tailscale"
+      printf '%s\n' "hint: backup target SSH may be unreachable from the VPS over Tailscale"
       ;;
   esac
 }

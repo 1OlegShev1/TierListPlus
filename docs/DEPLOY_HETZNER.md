@@ -229,6 +229,17 @@ The backup job:
 - verifies checksums remotely
 - prunes backups older than `KEEP_DAYS` (default `21`)
 
+The mini PC also runs a local safety prune timer:
+
+```bash
+systemctl list-timers tierlistplus-backup-prune.timer --all
+systemctl status tierlistplus-backup-prune.service
+```
+
+That timer deletes old TierListPlus backup files under
+`/home/homeadmin/backups/tierlistplus` and stale `.partial` files if the VPS
+backup job failed before it could run its own prune step.
+
 Inspect latest runs:
 
 ```bash
@@ -241,6 +252,43 @@ Manual one-off DB dump command (optional):
 ```bash
 ssh tieradmin@100.120.76.1 "sudo sh -lc 'cd /opt/tierlistplus && docker compose --env-file .env.production -f docker-compose.prod.yml exec -T db sh -lc '\\''pg_dump -U \"\$POSTGRES_USER\" \"\$POSTGRES_DB\"'\\'' > /root/tierlistplus-\$(date +%F).sql'"
 ```
+
+## Cleanup and retention
+
+The VPS and mini PC rely on the standard Ubuntu cleanup timers for OS logs and
+temporary files:
+
+```bash
+systemctl list-timers logrotate.timer systemd-tmpfiles-clean.timer --all
+journalctl --disk-usage
+```
+
+Both machines should keep a journald cap in
+`/etc/systemd/journald.conf.d/90-tierlistplus-retention.conf`:
+
+```ini
+[Journal]
+SystemMaxUse=512M
+SystemKeepFree=2G
+MaxRetentionSec=30day
+```
+
+The VPS should also keep Docker JSON log rotation configured in
+`/etc/docker/daemon.json`:
+
+```json
+{
+  "log-driver": "json-file",
+  "log-opts": {
+    "max-size": "10m",
+    "max-file": "5"
+  }
+}
+```
+
+Docker reads this setting when the daemon starts, so existing containers may
+need a normal maintenance restart or redeploy before every container is using
+the limit.
 
 ## System package auto-updates
 
