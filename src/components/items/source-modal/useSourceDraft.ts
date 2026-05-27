@@ -322,7 +322,7 @@ export function useSourceDraft({
   const inlineHintMessage = !inlineValidationMessage
     ? isCreateFromUrlMode &&
       trimmedDraftUrl.length > 0 &&
-      !!parsedDraftSource &&
+      parsedDraftSource &&
       isResolvingSourcePreview
       ? "Resolving title and thumbnail..."
       : shouldResolveDurationMetadata && isResolvingDurationMetadata

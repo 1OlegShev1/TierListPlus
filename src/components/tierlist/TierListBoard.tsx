@@ -35,6 +35,10 @@ const BracketModal = dynamic(
   { ssr: false },
 );
 
+const VOTE_BOARD_AUTO_SCROLL = {
+  threshold: { x: 0.08, y: 0.28 },
+};
+
 interface TierListBoardProps {
   sessionId: string;
   participantId: string;
@@ -485,7 +489,7 @@ export function TierListBoard({
       <DndContext
         sensors={sensors}
         collisionDetection={collisionDetection}
-        autoScroll={false}
+        autoScroll={VOTE_BOARD_AUTO_SCROLL}
         onDragStart={handleDragStart}
         onDragOver={handleDragOver}
         onDragEnd={handleDragEnd}
