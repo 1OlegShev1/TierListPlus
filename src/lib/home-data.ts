@@ -7,7 +7,8 @@ export const HOME_LIST_SECTION_LIMIT = 6;
 export interface HomeListSummary {
   id: string;
   name: string;
-  createdAt: string;
+  isPublic: boolean;
+  updatedAt: string;
   items: { id: string; imageUrl: string; label: string }[];
   _count: { items: number };
 }
@@ -51,7 +52,7 @@ export async function loadHomeData(userId: string): Promise<HomeData> {
         _count: { select: { items: true } },
         items: previewItems,
       },
-      orderBy: { createdAt: "desc" },
+      orderBy: { updatedAt: "desc" },
       take: HOME_LIST_SECTION_LIMIT,
     }),
     prisma.session.count({
@@ -105,8 +106,12 @@ export async function loadHomeData(userId: string): Promise<HomeData> {
 
   return {
     myTemplates: myTemplates.map((template) => ({
-      ...template,
-      createdAt: template.createdAt.toISOString(),
+      id: template.id,
+      name: template.name,
+      isPublic: template.isPublic,
+      updatedAt: template.updatedAt.toISOString(),
+      items: template.items,
+      _count: template._count,
     })),
     mySessions: mySessions.map((session) => ({
       ...session,

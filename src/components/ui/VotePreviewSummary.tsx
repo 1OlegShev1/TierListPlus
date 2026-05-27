@@ -40,7 +40,7 @@ export function VotePreviewSummary({
           {title}
         </h3>
         {chips.length > 0 && (
-          <div className="mt-2.5 flex flex-nowrap gap-1 overflow-hidden sm:flex-wrap sm:gap-1.5">
+          <div className="mt-2.5 flex flex-wrap gap-1 sm:gap-1.5">
             {chips.map((chip) => (
               <span
                 key={`${chip.tone}-${chip.label}`}

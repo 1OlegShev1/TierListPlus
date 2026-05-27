@@ -19,7 +19,7 @@ import { VotePreviewSummary } from "@/components/ui/VotePreviewSummary";
 import { useUser } from "@/hooks/useUser";
 import { apiFetch } from "@/lib/api-client";
 import type { HomeData, HomeVoteSummary } from "@/lib/home-data";
-import { formatDate } from "@/lib/utils";
+import { buildListDisplay } from "@/lib/list-display";
 import { buildVoteDisplay } from "@/lib/vote-display";
 
 type HomeActivityVote = HomeVoteSummary & { involvement: "started" | "joined" };
@@ -129,17 +129,27 @@ export function HomeContent({ initialData = null }: { initialData?: HomeData | n
           <section>
             <SectionHeader title="Your Lists" actionHref="/templates" actionLabel="See all lists" />
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {listPreview.map((t) => (
-                <Link key={t.id} href={`/templates/${t.id}`} className="block h-full">
-                  <ListPreviewCard
-                    title={t.name}
-                    detailsLabel={`${t._count.items} picks`}
-                    secondaryLabel={formatDate(t.createdAt)}
-                    items={t.items}
-                    className="transition-colors hover:border-[var(--border-strong)]"
-                  />
-                </Link>
-              ))}
+              {listPreview.map((t) => {
+                const { chips, detailsLabel, secondaryLabel } = buildListDisplay({
+                  viewer: "owner",
+                  isPublic: t.isPublic,
+                  updatedAt: t.updatedAt,
+                  itemCount: t._count.items,
+                });
+
+                return (
+                  <Link key={t.id} href={`/templates/${t.id}`} className="block h-full">
+                    <ListPreviewCard
+                      title={t.name}
+                      detailsLabel={detailsLabel}
+                      secondaryLabel={secondaryLabel}
+                      items={t.items}
+                      chips={chips}
+                      className="transition-colors hover:border-[var(--border-strong)]"
+                    />
+                  </Link>
+                );
+              })}
             </div>
           </section>
         )}

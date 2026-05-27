@@ -32,7 +32,7 @@ export function ListRankingPreviewTeaser({ items }: { items: ListRankingPreviewI
             How this becomes a ranking
           </h2>
           <p className="mt-1 text-xs text-[var(--fg-muted)]">
-            This list is a starter set. Ranking starts after you click Start Ranking From List.
+            This list is a starter set. Ranking starts after you click Start Ranking.
           </p>
         </div>
         <span className="shrink-0 rounded-full border border-[var(--border-default)] bg-[var(--bg-elevated)] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--fg-subtle)]">
