@@ -419,10 +419,10 @@ export function ListEditor({
       <div>
         {!spaceId && (
           <div className="rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elevated)] p-4">
-            <p className="font-medium">Show in public Lists</p>
+            <p className="font-medium">Show in public Templates</p>
             <div className="mt-3">
               <fieldset className="relative inline-grid h-11 min-w-[11rem] grid-cols-2 rounded-lg border border-[var(--border-default)] bg-[var(--bg-soft-contrast)] p-1">
-                <legend className="sr-only">List visibility</legend>
+                <legend className="sr-only">Template visibility</legend>
                 <span
                   aria-hidden="true"
                   className={`pointer-events-none absolute bottom-1 left-1 top-1 w-[calc(50%-0.25rem)] rounded-md border border-[var(--border-default)] bg-[var(--bg-surface)] shadow-sm transition-transform duration-200 ${

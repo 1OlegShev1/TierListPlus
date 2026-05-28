@@ -80,8 +80,8 @@ export default async function ListDetailPage({
   const fallbackBackHref = returnSpaceId
     ? `/sessions/new?spaceId=${encodeURIComponent(returnSpaceId)}`
     : "/sessions/new";
-  const backHref = list.space ? `/spaces/${list.space.id}#lists` : "/templates";
-  const backLabel = list.space ? "Back to Space" : "Back to Lists";
+  const backHref = list.space ? `/spaces/${list.space.id}#templates` : "/templates";
+  const backLabel = list.space ? "Back to Space" : "Back to Templates";
 
   return (
     <div className="space-y-4">
@@ -108,12 +108,12 @@ export default async function ListDetailPage({
           )}
           <p className="mt-1 text-xs text-[var(--fg-subtle)]">
             {list.space
-              ? `${list.space.visibility === "OPEN" ? "Open" : "Private"} space starter list`
+              ? `${list.space.visibility === "OPEN" ? "Open" : "Private"} space starter template`
               : list.isPublic
-                ? "Public starter list"
+                ? "Public starter template"
                 : owner
-                  ? "Private starter list (only you)"
-                  : "Private starter list"}
+                  ? "Private starter template (only you)"
+                  : "Private starter template"}
           </p>
         </div>
         <div className="flex w-full flex-wrap items-center justify-end gap-3 sm:w-auto sm:shrink-0">

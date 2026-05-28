@@ -127,7 +127,7 @@ describe("TierListBoard", () => {
     );
 
     const submitButton = screen.getByRole("button", { name: /lock in ranking/i });
-    const saveButton = screen.getByRole("button", { name: /save as new list/i });
+    const saveButton = screen.getByRole("button", { name: /save as new template/i });
     const bracketButton = screen.getByRole("button", { name: /quick bracket/i });
 
     await waitFor(() => {

@@ -86,12 +86,12 @@ export default async function ListsPage({
   return (
     <div>
       <PageHeader
-        title="Lists"
-        subtitle="Lists are reusable pick sets. Ranking happens in the Rankings tab."
+        title="Templates"
+        subtitle="Templates are reusable pick sets. Ranking happens in the Rankings tab."
         actions={
           <div className="flex w-full flex-wrap items-center justify-end gap-2 sm:w-auto sm:shrink-0">
             <Link href="/templates/new" className={buttonVariants.primary}>
-              + Make a List
+              + Make a Template
             </Link>
           </div>
         }
@@ -99,14 +99,14 @@ export default async function ListsPage({
 
       {isEmpty ? (
         <EmptyState
-          title="No lists yet"
-          description="Make your first list and start some arguments"
+          title="No templates yet"
+          description="Make your first template and start some arguments"
         />
       ) : (
         <div className="space-y-10">
           {showOwnSection && (
             <ListSection
-              title="Your Lists"
+              title="Your Templates"
               subtitle="Reusable pick sets you can edit, keep private, or use to start new rankings."
               lists={ownListsSection.lists}
               viewer="owner"
@@ -122,11 +122,11 @@ export default async function ListsPage({
 
           {showSharedSection && (
             <ListSection
-              title={userId ? "Shared Lists" : "Public Lists"}
+              title={userId ? "Shared Templates" : "Public Templates"}
               subtitle={
                 userId
-                  ? "Public lists from other people you can use as a starting point."
-                  : "Public lists you can browse and use as a starting point."
+                  ? "Public templates from other people you can use as a starting point."
+                  : "Public templates you can browse and use as a starting point."
               }
               lists={sharedListsSection.lists}
               viewer="browser"

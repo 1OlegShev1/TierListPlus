@@ -28,7 +28,7 @@ export function DuplicateListButton({ listId }: DuplicateListButtonProps) {
       router.push(`/templates/${list.id}/edit`);
       router.refresh();
     } catch (err) {
-      setError(getErrorMessage(err, "Could not copy this list"));
+      setError(getErrorMessage(err, "Could not copy this template"));
       setDuplicating(false);
     }
   };

@@ -102,7 +102,7 @@ export function useListEditorSave({
       await clearStoredDraft();
       onSaved(id);
     } catch (err) {
-      setError(getErrorMessage(err, "Could not save this list. Try again."));
+      setError(getErrorMessage(err, "Could not save this template. Try again."));
     } finally {
       setSaving(false);
     }

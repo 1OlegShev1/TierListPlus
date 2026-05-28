@@ -9,7 +9,7 @@ import { GearIcon } from "@/components/ui/GearIcon";
 const BASE_LINKS = [
   { href: "/", label: "Home" },
   { href: "/spaces", label: "Spaces" },
-  { href: "/templates", label: "Lists" },
+  { href: "/templates", label: "Templates" },
   { href: "/sessions", label: "Rankings" },
 ] as const;
 

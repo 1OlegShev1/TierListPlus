@@ -35,7 +35,7 @@ export function DeleteListButton({
       router.push("/templates");
       router.refresh();
     } catch (err) {
-      setError(getErrorMessage(err, "Could not delete this list"));
+      setError(getErrorMessage(err, "Could not delete this template"));
       setDeleting(false);
     }
   };
@@ -51,10 +51,10 @@ export function DeleteListButton({
       </Button>
       <ConfirmDialog
         open={open}
-        title="Delete List"
+        title="Delete Template"
         description={
           error ??
-          "This deletes this list and all its items. Rankings already started from it will still stay up."
+          "This deletes this template and all its items. Rankings already started from it will still stay up."
         }
         onConfirm={handleDelete}
         onCancel={() => {

@@ -40,9 +40,9 @@ export default async function NewListPage({
         href={accessSpaceId ? `/spaces/${accessSpaceId}` : "/templates"}
         className={`${buttonVariants.ghost} mb-3 inline-flex items-center`}
       >
-        {accessSpaceId ? "\u2190 Back to Space" : "\u2190 Back to Lists"}
+        {accessSpaceId ? "\u2190 Back to Space" : "\u2190 Back to Templates"}
       </Link>
-      <h1 className="mb-6 text-2xl font-bold">Make a Starter List</h1>
+      <h1 className="mb-6 text-2xl font-bold">Make a Starter Template</h1>
       <ListEditor spaceId={accessSpaceId} spaceName={accessSpaceName} />
     </div>
   );

@@ -85,8 +85,8 @@ export function HomeContent({ initialData = null }: { initialData?: HomeData | n
             <span className="hidden sm:inline">Join Ranking</span>
           </Link>
           <Link href="/templates/new" className={`${buttonVariants.secondary} ${heroCtaClass}`}>
-            <span className="sm:hidden">New List</span>
-            <span className="hidden sm:inline">Make a List</span>
+            <span className="sm:hidden">New Template</span>
+            <span className="hidden sm:inline">Make a Template</span>
           </Link>
         </div>
       </section>
@@ -99,7 +99,7 @@ export function HomeContent({ initialData = null }: { initialData?: HomeData | n
           <div className="rounded-3xl border border-[var(--border-default)] bg-[var(--bg-surface)] px-6 py-10 text-center">
             <p className="text-xl font-medium text-[var(--fg-primary)]">Nothing cooking yet</p>
             <p className="mt-3 text-base text-[var(--fg-muted)]">
-              Make a list or jump into a ranking to get things moving.
+              Make a template or jump into a ranking to get things moving.
             </p>
           </div>
         )}
@@ -127,7 +127,11 @@ export function HomeContent({ initialData = null }: { initialData?: HomeData | n
 
         {listPreview.length > 0 && (
           <section>
-            <SectionHeader title="Your Lists" actionHref="/templates" actionLabel="See all lists" />
+            <SectionHeader
+              title="Your Templates"
+              actionHref="/templates"
+              actionLabel="See all templates"
+            />
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {listPreview.map((t) => {
                 const { chips, detailsLabel, secondaryLabel } = buildListDisplay({
@@ -157,8 +161,8 @@ export function HomeContent({ initialData = null }: { initialData?: HomeData | n
         {fromMyListsPreview.length > 0 && (
           <section>
             <SectionHeader
-              title="From Your Lists"
-              subtitle="Public rankings other people started using your lists."
+              title="From Your Templates"
+              subtitle="Public rankings other people started using your templates."
               actionHref="/sessions"
               actionLabel="See all rankings"
             />

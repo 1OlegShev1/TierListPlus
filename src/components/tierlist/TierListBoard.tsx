@@ -320,7 +320,7 @@ export function TierListBoard({
   const handleSaveTemplate = async () => {
     if (!canSaveTemplate || savingTemplate) return;
     if (hasPendingItemMutations) {
-      setSaveTemplateError("Finish item changes before saving this list.");
+      setSaveTemplateError("Finish item changes before saving this template.");
       return;
     }
 
@@ -331,13 +331,13 @@ export function TierListBoard({
       setSavedTemplateId(result.id);
       onNotice?.({
         tone: "emerald",
-        message: savesWorkingTemplate ? "List published." : "List saved.",
+        message: savesWorkingTemplate ? "Template published." : "Template saved.",
         actionHref: `/templates/${result.id}`,
         actionLabel: "Open it",
         durationMs: 5000,
       });
     } catch (err) {
-      setSaveTemplateError(getErrorMessage(err, "Could not save this list"));
+      setSaveTemplateError(getErrorMessage(err, "Could not save this template"));
     } finally {
       setSavingTemplate(false);
     }
@@ -348,16 +348,20 @@ export function TierListBoard({
   const sourceModalItem = sourceModalItemId ? (items.get(sourceModalItemId) ?? null) : null;
   const totalItems = liveItems.length;
   const savesWorkingTemplate = canEditTierConfig && templateIsHidden;
-  const saveTemplateActionLabel = savesWorkingTemplate ? "Publish to Lists" : "Save as New List";
-  const saveTemplateMobileLabel = savesWorkingTemplate ? "Publish" : "Save List";
-  const openSavedTemplateLabel = savesWorkingTemplate ? "Open Published List" : "Open Saved List";
+  const saveTemplateActionLabel = savesWorkingTemplate
+    ? "Publish to Templates"
+    : "Save as New Template";
+  const saveTemplateMobileLabel = savesWorkingTemplate ? "Publish" : "Save Template";
+  const openSavedTemplateLabel = savesWorkingTemplate
+    ? "Open Published Template"
+    : "Open Saved Template";
   const openSavedTemplateMobileLabel = "Open";
   const saveTemplateTooltipLabel = savesWorkingTemplate
-    ? "Publish the current ranking items as a reusable list."
-    : "Save a detached copy of this ranking as a new list.";
+    ? "Publish the current ranking items as a reusable template."
+    : "Save a detached copy of this ranking as a new template.";
   const openSavedTemplateTooltipLabel = savesWorkingTemplate
-    ? "Open the published list."
-    : "Open the saved list.";
+    ? "Open the published template."
+    : "Open the saved template.";
   const uploadsDisabled = userLoading || !userId || submitting || submitted;
   const unrankedEmptyMessage =
     totalItems === 0

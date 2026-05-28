@@ -55,21 +55,21 @@ export default async function SpaceImportTemplatePage({
   return (
     <div className="space-y-6">
       <Link
-        href={`/spaces/${space.id}#lists`}
+        href={`/spaces/${space.id}#templates`}
         className={`${buttonVariants.ghost} inline-flex items-center`}
       >
         &larr; Back to Space
       </Link>
 
       <PageHeader
-        title="Copy a List into This Space"
-        subtitle="Pick a public list or one of your own lists. We will create a space copy you can edit and reuse."
+        title="Copy a Template into This Space"
+        subtitle="Pick a public template or one of your own templates. We will create a space copy you can edit and reuse."
       />
 
       {sourceLists.length === 0 ? (
         <EmptyState
-          title="No lists available to copy"
-          description="Create your own list first, or wait for public lists to appear."
+          title="No templates available to copy"
+          description="Create your own template first, or wait for public templates to appear."
         />
       ) : (
         <div className="grid gap-4 lg:grid-cols-2">

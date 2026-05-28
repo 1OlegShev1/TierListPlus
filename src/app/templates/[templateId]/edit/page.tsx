@@ -54,7 +54,7 @@ export default async function EditListPage({
 
   return (
     <div>
-      <h1 className="mb-2 text-2xl font-bold">Edit Starter List</h1>
+      <h1 className="mb-2 text-2xl font-bold">Edit Starter Template</h1>
       <p className="mb-6 text-sm text-[var(--fg-muted)]">
         You&apos;re editing the picks future rankings start with.
       </p>

@@ -490,10 +490,10 @@ export default async function SpaceDetailPage({
           ) : null}
         </section>
 
-        <section id="lists">
+        <section id="templates">
           <SectionHeader
-            title="Lists"
-            subtitle="Starter lists this space collaborates on and ranks from."
+            title="Templates"
+            subtitle="Starter templates this space collaborates on and ranks from."
             actions={
               <div className="flex items-center gap-2">
                 {canCreateInSpace ? (
@@ -501,7 +501,7 @@ export default async function SpaceDetailPage({
                     href={`/spaces/${spaceId}/templates/import`}
                     className={sectionSecondaryActionClassName}
                   >
-                    Copy list
+                    Copy template
                   </Link>
                 ) : null}
                 {canCreateInSpace ? (
@@ -509,7 +509,7 @@ export default async function SpaceDetailPage({
                     href={`/templates/new?spaceId=${spaceId}`}
                     className={sectionPrimaryActionClassName}
                   >
-                    Make list
+                    Make template
                   </Link>
                 ) : null}
                 {listsExpanded ? (
@@ -528,7 +528,7 @@ export default async function SpaceDetailPage({
                       spaceId,
                       resolvedSearchParams,
                       { listsView: "all", listsPage: null },
-                      "lists",
+                      "templates",
                     )}
                     className={sectionSecondaryActionClassName}
                   >
@@ -540,8 +540,8 @@ export default async function SpaceDetailPage({
           />
           {visibleLists.length === 0 ? (
             <EmptyState
-              title="No lists yet"
-              description="Create the first list for this space, or copy a public list into it."
+              title="No templates yet"
+              description="Create the first template for this space, or copy a public template into it."
             />
           ) : (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
