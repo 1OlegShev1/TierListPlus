@@ -122,10 +122,12 @@ function SegmentedToggle<T extends string | number>({
 
 function StatCard({ label, value, hint }: { label: string; value: number; hint?: string }) {
   return (
-    <div className="rounded-2xl border border-[var(--border-default)] bg-[var(--bg-surface)] p-4">
-      <p className="text-xs uppercase tracking-wide text-[var(--fg-subtle)]">{label}</p>
-      <p className="mt-2 text-3xl font-semibold text-[var(--fg-primary)]">{formatNumber(value)}</p>
-      {hint ? <p className="mt-1 text-xs text-[var(--fg-muted)]">{hint}</p> : null}
+    <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface)] px-3 py-2.5">
+      <p className="text-[11px] uppercase tracking-wide text-[var(--fg-subtle)]">{label}</p>
+      <p className="mt-1 text-2xl font-semibold leading-tight text-[var(--fg-primary)]">
+        {formatNumber(value)}
+      </p>
+      {hint ? <p className="mt-0.5 text-[11px] text-[var(--fg-muted)]">{hint}</p> : null}
     </div>
   );
 }
@@ -306,7 +308,7 @@ export function AdminStatsPage() {
 
           <section>
             <h2 className="mb-3 text-lg font-semibold text-[var(--fg-primary)]">Totals</h2>
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-6">
               <StatCard
                 label="Users"
                 value={data.totals.users}
@@ -348,7 +350,7 @@ export function AdminStatsPage() {
 
           <section>
             <h2 className="mb-3 text-lg font-semibold text-[var(--fg-primary)]">Last 24 hours</h2>
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
               <StatCard label="New Users" value={data.recent.usersCreated24h} />
               <StatCard label="New Sessions" value={data.recent.sessionsCreated24h} />
               <StatCard label="Participants Joined" value={data.recent.participantsJoined24h} />
