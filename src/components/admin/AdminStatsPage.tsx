@@ -1,39 +1,87 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  Area,
+  AreaChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 import { Button } from "@/components/ui/Button";
 import { ErrorMessage } from "@/components/ui/ErrorMessage";
 import { Loading } from "@/components/ui/Loading";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { apiFetch, getErrorMessage } from "@/lib/api-client";
 
+interface Series {
+  created: number[];
+  cumulative: number[];
+}
+
 interface AdminStatsResponse {
   generatedAt: string;
   windows: {
     last24hStart: string;
     last7dStart: string;
+    seriesStart: string;
+    seriesDays: number;
   };
   totals: {
     users: number;
     usersActive7d: number;
+    moderators: number;
+    admins: number;
     publicTemplatesAvailable: number;
     publicTemplatesModerated: number;
+    templates: number;
     sessions: number;
     publicSessionsAvailable: number;
     publicSessionsModerated: number;
     openSessions: number;
+    closedSessions: number;
+    archivedSessions: number;
     participants: number;
+    spaces: number;
+    activeDevices7d: number;
+    votes: number;
   };
   recent: {
     usersCreated24h: number;
-    usersCreated7d: number;
-    publicTemplatesCreated7d: number;
     sessionsCreated24h: number;
-    sessionsCreated7d: number;
-    participantsJoined7d: number;
-    participantsSubmitted7d: number;
+    participantsJoined24h: number;
+    participantsSubmitted24h: number;
+  };
+  series: {
+    days: string[];
+    users: Series;
+    sessions: Series;
+    publicTemplates: Series;
+    participants: Series;
+    submissions: Series;
   };
 }
+
+type SeriesKey = "users" | "sessions" | "publicTemplates" | "participants" | "submissions";
+type TrendMode = "created" | "cumulative";
+
+const RANGE_OPTIONS = [7, 30, 90] as const;
+type RangeDays = (typeof RANGE_OPTIONS)[number];
+
+const TREND_MODE_OPTIONS: { value: TrendMode; label: string }[] = [
+  { value: "created", label: "New per day" },
+  { value: "cumulative", label: "Cumulative" },
+];
+
+const TREND_METRICS: { key: SeriesKey; label: string; color: string }[] = [
+  { key: "users", label: "Users", color: "#fbbf24" },
+  { key: "sessions", label: "Sessions", color: "#38bdf8" },
+  { key: "publicTemplates", label: "Public Templates", color: "#34d399" },
+  { key: "participants", label: "Participants", color: "#f472b6" },
+  { key: "submissions", label: "Submissions", color: "#a78bfa" },
+];
 
 function formatNumber(value: number) {
   return new Intl.NumberFormat().format(value);
@@ -41,6 +89,35 @@ function formatNumber(value: number) {
 
 function formatDate(value: string) {
   return new Date(value).toLocaleString();
+}
+
+function SegmentedToggle<T extends string | number>({
+  options,
+  value,
+  onChange,
+}: {
+  options: { value: T; label: string }[];
+  value: T;
+  onChange: (value: T) => void;
+}) {
+  return (
+    <div className="inline-flex rounded-xl border border-[var(--border-default)] p-0.5">
+      {options.map((option) => (
+        <button
+          type="button"
+          key={String(option.value)}
+          onClick={() => onChange(option.value)}
+          className={`rounded-lg px-3 py-1 text-xs font-medium transition-colors ${
+            value === option.value
+              ? "bg-amber-500 text-neutral-950"
+              : "text-[var(--fg-muted)] hover:text-[var(--fg-primary)]"
+          }`}
+        >
+          {option.label}
+        </button>
+      ))}
+    </div>
+  );
 }
 
 function StatCard({ label, value, hint }: { label: string; value: number; hint?: string }) {
@@ -53,11 +130,92 @@ function StatCard({ label, value, hint }: { label: string; value: number; hint?:
   );
 }
 
+function TrendChart({
+  label,
+  color,
+  days,
+  values,
+  mode,
+  rangeDays,
+}: {
+  label: string;
+  color: string;
+  days: string[];
+  values: number[];
+  mode: TrendMode;
+  rangeDays: number;
+}) {
+  const data = days.map((day, i) => ({ day: day.slice(5), value: values[i] ?? 0 }));
+  const total =
+    mode === "cumulative" ? (values[values.length - 1] ?? 0) : values.reduce((a, b) => a + b, 0);
+  const gradientId = `grad-${label.replace(/\s+/g, "")}`;
+  const tickInterval = Math.max(0, Math.ceil(days.length / 6) - 1);
+
+  return (
+    <div className="rounded-2xl border border-[var(--border-default)] bg-[var(--bg-surface)] p-4">
+      <div className="mb-2 flex items-baseline justify-between">
+        <p className="text-sm font-medium text-[var(--fg-primary)]">{label}</p>
+        <p className="text-xs text-[var(--fg-muted)]">
+          {mode === "cumulative" ? "total" : `${rangeDays}d`}: {formatNumber(total)}
+        </p>
+      </div>
+      <div className="h-40">
+        <ResponsiveContainer width="100%" height="100%">
+          <AreaChart data={data} margin={{ top: 4, right: 4, bottom: 0, left: -20 }}>
+            <defs>
+              <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={color} stopOpacity={0.4} />
+                <stop offset="100%" stopColor={color} stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--border-default)" opacity={0.4} />
+            <XAxis
+              dataKey="day"
+              tick={{ fontSize: 10, fill: "var(--fg-muted)" }}
+              interval={tickInterval}
+              tickLine={false}
+              axisLine={{ stroke: "var(--border-default)" }}
+            />
+            <YAxis
+              tick={{ fontSize: 10, fill: "var(--fg-muted)" }}
+              tickLine={false}
+              axisLine={false}
+              width={36}
+              allowDecimals={false}
+            />
+            <Tooltip
+              contentStyle={{
+                background: "var(--bg-elevated)",
+                border: "1px solid var(--border-default)",
+                borderRadius: 12,
+                fontSize: 12,
+              }}
+              labelStyle={{ color: "var(--fg-muted)" }}
+              itemStyle={{ color: "var(--fg-primary)" }}
+              formatter={(v) => [formatNumber(Number(v)), label]}
+            />
+            <Area
+              type="monotone"
+              dataKey="value"
+              stroke={color}
+              strokeWidth={2}
+              fill={`url(#${gradientId})`}
+              animationDuration={300}
+            />
+          </AreaChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  );
+}
+
 export function AdminStatsPage() {
   const [data, setData] = useState<AdminStatsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
+  const [trendMode, setTrendMode] = useState<TrendMode>("created");
+  const [rangeDays, setRangeDays] = useState<RangeDays>(30);
 
   const loadStats = useCallback(async (mode: "initial" | "refresh") => {
     if (mode === "initial") {
@@ -86,16 +244,16 @@ export function AdminStatsPage() {
   }, [loadStats]);
 
   const generatedAtLabel = useMemo(() => (data ? formatDate(data.generatedAt) : "-"), [data]);
-  const windowLabel = useMemo(() => {
-    if (!data) return "-";
-    return `${formatDate(data.windows.last7dStart)} -> ${generatedAtLabel}`;
-  }, [data, generatedAtLabel]);
 
   return (
     <div className="space-y-6">
       <PageHeader
         title="Admin Stats"
-        subtitle="Live platform counters from the local database."
+        subtitle={
+          data
+            ? `Live platform counters · updated ${generatedAtLabel}`
+            : "Live platform counters from the local database."
+        }
         actions={
           <Button
             variant="secondary"
@@ -113,31 +271,68 @@ export function AdminStatsPage() {
         <Loading message="Loading admin stats..." />
       ) : data ? (
         <div className="space-y-6">
-          <section className="rounded-2xl border border-[var(--border-default)] bg-[var(--bg-elevated)] p-4 sm:p-5">
-            <p className="text-sm text-[var(--fg-muted)]">
-              Generated:{" "}
-              <span className="font-medium text-[var(--fg-primary)]">{generatedAtLabel}</span>
-            </p>
-            <p className="mt-1 text-sm text-[var(--fg-muted)]">
-              7-day window:{" "}
-              <span className="font-medium text-[var(--fg-primary)]">{windowLabel}</span>
-            </p>
+          <section>
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+              <h2 className="text-lg font-semibold text-[var(--fg-primary)]">
+                Trends (last {rangeDays} days)
+              </h2>
+              <div className="flex flex-wrap items-center gap-2">
+                <SegmentedToggle
+                  options={RANGE_OPTIONS.map((range) => ({ value: range, label: `${range}d` }))}
+                  value={rangeDays}
+                  onChange={setRangeDays}
+                />
+                <SegmentedToggle
+                  options={TREND_MODE_OPTIONS}
+                  value={trendMode}
+                  onChange={setTrendMode}
+                />
+              </div>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {TREND_METRICS.map((metric) => (
+                <TrendChart
+                  key={metric.key}
+                  label={metric.label}
+                  color={metric.color}
+                  days={data.series.days.slice(-rangeDays)}
+                  values={data.series[metric.key][trendMode].slice(-rangeDays)}
+                  mode={trendMode}
+                  rangeDays={rangeDays}
+                />
+              ))}
+            </div>
           </section>
 
           <section>
             <h2 className="mb-3 text-lg font-semibold text-[var(--fg-primary)]">Totals</h2>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              <StatCard label="Users" value={data.totals.users} />
-              <StatCard label="Active Users (7d)" value={data.totals.usersActive7d} />
               <StatCard
-                label="Public Lists (Available)"
-                value={data.totals.publicTemplatesAvailable}
+                label="Users"
+                value={data.totals.users}
+                hint={`${formatNumber(data.totals.usersActive7d)} active (7d)`}
               />
               <StatCard
-                label="Public Lists (Moderated)"
+                label="Staff"
+                value={data.totals.admins + data.totals.moderators}
+                hint={`${formatNumber(data.totals.admins)} admin / ${formatNumber(data.totals.moderators)} mod`}
+              />
+              <StatCard label="Active Devices (7d)" value={data.totals.activeDevices7d} />
+              <StatCard
+                label="Templates"
+                value={data.totals.templates}
+                hint={`${formatNumber(data.totals.publicTemplatesAvailable)} public`}
+              />
+              <StatCard
+                label="Public Templates (Moderated)"
                 value={data.totals.publicTemplatesModerated}
               />
-              <StatCard label="Sessions" value={data.totals.sessions} />
+              <StatCard label="Spaces" value={data.totals.spaces} />
+              <StatCard
+                label="Sessions"
+                value={data.totals.sessions}
+                hint={`${formatNumber(data.totals.openSessions)} open / ${formatNumber(data.totals.closedSessions)} closed / ${formatNumber(data.totals.archivedSessions)} archived`}
+              />
               <StatCard
                 label="Public Sessions (Available)"
                 value={data.totals.publicSessionsAvailable}
@@ -146,27 +341,18 @@ export function AdminStatsPage() {
                 label="Public Sessions (Moderated)"
                 value={data.totals.publicSessionsModerated}
               />
-              <StatCard label="Open Sessions" value={data.totals.openSessions} />
               <StatCard label="Participants" value={data.totals.participants} />
+              <StatCard label="Votes Cast" value={data.totals.votes} />
             </div>
           </section>
 
           <section>
-            <h2 className="mb-3 text-lg font-semibold text-[var(--fg-primary)]">Recent Activity</h2>
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              <StatCard label="Users Created (24h)" value={data.recent.usersCreated24h} />
-              <StatCard label="Users Created (7d)" value={data.recent.usersCreated7d} />
-              <StatCard
-                label="Public Lists Created (7d)"
-                value={data.recent.publicTemplatesCreated7d}
-              />
-              <StatCard label="Sessions Created (24h)" value={data.recent.sessionsCreated24h} />
-              <StatCard label="Sessions Created (7d)" value={data.recent.sessionsCreated7d} />
-              <StatCard label="Participants Joined (7d)" value={data.recent.participantsJoined7d} />
-              <StatCard
-                label="Participants Submitted (7d)"
-                value={data.recent.participantsSubmitted7d}
-              />
+            <h2 className="mb-3 text-lg font-semibold text-[var(--fg-primary)]">Last 24 hours</h2>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <StatCard label="New Users" value={data.recent.usersCreated24h} />
+              <StatCard label="New Sessions" value={data.recent.sessionsCreated24h} />
+              <StatCard label="Participants Joined" value={data.recent.participantsJoined24h} />
+              <StatCard label="Submissions" value={data.recent.participantsSubmitted24h} />
             </div>
           </section>
         </div>
