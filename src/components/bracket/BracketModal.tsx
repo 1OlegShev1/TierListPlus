@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { MatchupVoter } from "@/components/bracket/MatchupVoter";
+import { ItemSourceModal } from "@/components/items/source-modal/ItemSourceModal";
 import { Button } from "@/components/ui/Button";
 import { ItemArtwork } from "@/components/ui/ItemArtwork";
 import { generateBracket } from "@/lib/bracket-generator";
@@ -17,6 +18,20 @@ interface BracketModalProps {
 export function BracketModal({ items, onComplete, onCancel }: BracketModalProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const itemMap = useMemo(() => new Map(items.map((i) => [i.id, i])), [items]);
+  const [sourceModalItemId, setSourceModalItemId] = useState<string | null>(null);
+  // Source modal is mounted/unmounted, so native dialog focus restoration never
+  // runs; restore focus to the opener ourselves.
+  const sourceTriggerRef = useRef<HTMLElement | null>(null);
+  const wasSourceModalOpenRef = useRef(false);
+
+  useEffect(() => {
+    const isOpen = sourceModalItemId !== null;
+    if (wasSourceModalOpenRef.current && !isOpen) {
+      sourceTriggerRef.current?.focus();
+      sourceTriggerRef.current = null;
+    }
+    wasSourceModalOpenRef.current = isOpen;
+  }, [sourceModalItemId]);
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -123,98 +138,126 @@ export function BracketModal({ items, onComplete, onCancel }: BracketModalProps)
 
   const itemA = currentMatchup?.itemAId ? itemMap.get(currentMatchup.itemAId) : null;
   const itemB = currentMatchup?.itemBId ? itemMap.get(currentMatchup.itemBId) : null;
+  const sourceModalItem = sourceModalItemId ? (itemMap.get(sourceModalItemId) ?? null) : null;
 
   return (
-    <dialog
-      ref={dialogRef}
-      onCancel={(event) => {
-        event.preventDefault();
-        onCancel();
-      }}
-      aria-labelledby="bracket-modal-title"
-      className="fixed inset-0 z-50 m-auto max-h-[calc(100dvh-1rem)] w-[min(calc(100vw-1rem),32rem)] overflow-y-auto rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-elevated)] p-0 text-[var(--fg-primary)] shadow-2xl shadow-black/60 backdrop:bg-[var(--bg-overlay)] focus:outline-none"
-    >
-      <div className="px-3 pt-4 sm:px-6 sm:pt-6">
-        <div className="mb-4 text-center sm:mb-6">
-          <h2 id="bracket-modal-title" className="text-lg font-bold">
-            Head-to-Head Mode
-          </h2>
-          <p className="mt-1 text-xs text-[var(--fg-subtle)]">
-            {isComplete
-              ? "Head-to-head run complete!"
-              : `Round ${currentRound} of ${bracketState.rounds} · ${decidedManualVotes}/${totalManualVotes} face-offs done`}
-          </p>
-          <p className="mt-2 text-[11px] text-[var(--fg-subtle)]">
-            This reshuffles your current placements here. You can still tweak them before you lock
-            them in.
-          </p>
-        </div>
-      </div>
-
-      <div className="px-3 pb-4 sm:px-6 sm:pb-6">
-        {!isComplete && itemA && itemB && (
-          <MatchupVoter itemA={itemA} itemB={itemB} size="sm" onVote={handleVote} />
-        )}
-
-        {isComplete && (
-          <div className="space-y-2">
-            <p className="text-center text-sm text-[var(--fg-muted)]">Your quick ranking:</p>
-            <ol className="space-y-1">
-              {ranked.map((id, i) => {
-                const item = itemMap.get(id);
-                if (!item) return null;
-                return (
-                  <li
-                    key={id}
-                    className="flex items-center gap-3 rounded-lg bg-[var(--bg-surface)] px-3 py-2"
-                  >
-                    <span className="w-6 text-right text-sm font-bold text-[var(--accent-primary)]">
-                      {i + 1}
-                    </span>
-                    <ItemArtwork
-                      src={item.imageUrl}
-                      alt={item.label}
-                      className="h-8 w-8 rounded"
-                      presentation="ambient"
-                      inset="compact"
-                    />
-                    <span className="text-sm">{item.label}</span>
-                  </li>
-                );
-              })}
-            </ol>
+    <>
+      <dialog
+        ref={dialogRef}
+        onCancel={(event) => {
+          event.preventDefault();
+          onCancel();
+        }}
+        aria-labelledby="bracket-modal-title"
+        className="fixed inset-0 z-50 m-auto max-h-[calc(100dvh-1rem)] w-[min(calc(100vw-1rem),32rem)] overflow-y-auto rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-elevated)] p-0 text-[var(--fg-primary)] shadow-2xl shadow-black/60 backdrop:bg-[var(--bg-overlay)] focus:outline-none"
+      >
+        <div className="px-3 pt-4 sm:px-6 sm:pt-6">
+          <div className="mb-4 text-center sm:mb-6">
+            <h2 id="bracket-modal-title" className="text-lg font-bold">
+              Head-to-Head Mode
+            </h2>
+            <p className="mt-1 text-xs text-[var(--fg-subtle)]">
+              {isComplete
+                ? "Head-to-head run complete!"
+                : `Round ${currentRound} of ${bracketState.rounds} · ${decidedManualVotes}/${totalManualVotes} face-offs done`}
+            </p>
+            <p className="mt-2 text-[11px] text-[var(--fg-subtle)]">
+              This reshuffles your current placements here. You can still tweak them before you lock
+              them in.
+            </p>
           </div>
-        )}
-      </div>
-
-      <div className="border-t border-[var(--border-subtle)] bg-[var(--bg-elevated)] px-3 py-3 sm:px-6 sm:py-4">
-        {/* Progress bar */}
-        <div className="h-1 overflow-hidden rounded-full bg-[var(--bg-surface-hover)]">
-          <div
-            className="h-1 rounded-full bg-[var(--action-primary-bg)] transition-all"
-            style={{
-              width: `${totalManualVotes > 0 ? Math.min(100, (decidedManualVotes / totalManualVotes) * 100) : 0}%`,
-            }}
-          />
         </div>
 
-        {/* Actions */}
-        <div className="mt-3 flex justify-end gap-3">
-          <Button
-            variant="secondary"
-            onClick={onCancel}
-            className="px-4 text-sm text-[var(--fg-muted)]"
-          >
-            Cancel
-          </Button>
+        <div className="px-3 pb-4 sm:px-6 sm:pb-6">
+          {!isComplete && itemA && itemB && (
+            <MatchupVoter
+              itemA={itemA}
+              itemB={itemB}
+              size="sm"
+              onVote={handleVote}
+              onOpenSource={(item) => {
+                sourceTriggerRef.current =
+                  document.activeElement instanceof HTMLElement ? document.activeElement : null;
+                setSourceModalItemId(item.id);
+              }}
+            />
+          )}
+
           {isComplete && (
-            <Button onClick={handleFinish} className="px-4 text-sm">
-              Use This Ranking
-            </Button>
+            <div className="space-y-2">
+              <p className="text-center text-sm text-[var(--fg-muted)]">Your quick ranking:</p>
+              <ol className="space-y-1">
+                {ranked.map((id, i) => {
+                  const item = itemMap.get(id);
+                  if (!item) return null;
+                  return (
+                    <li
+                      key={id}
+                      className="flex items-center gap-3 rounded-lg bg-[var(--bg-surface)] px-3 py-2"
+                    >
+                      <span className="w-6 text-right text-sm font-bold text-[var(--accent-primary)]">
+                        {i + 1}
+                      </span>
+                      <ItemArtwork
+                        src={item.imageUrl}
+                        alt={item.label}
+                        className="h-8 w-8 rounded"
+                        presentation="ambient"
+                        inset="compact"
+                      />
+                      <span className="text-sm">{item.label}</span>
+                    </li>
+                  );
+                })}
+              </ol>
+            </div>
           )}
         </div>
-      </div>
-    </dialog>
+
+        <div className="border-t border-[var(--border-subtle)] bg-[var(--bg-elevated)] px-3 py-3 sm:px-6 sm:py-4">
+          {/* Progress bar */}
+          <div className="h-1 overflow-hidden rounded-full bg-[var(--bg-surface-hover)]">
+            <div
+              className="h-1 rounded-full bg-[var(--action-primary-bg)] transition-all"
+              style={{
+                width: `${totalManualVotes > 0 ? Math.min(100, (decidedManualVotes / totalManualVotes) * 100) : 0}%`,
+              }}
+            />
+          </div>
+
+          {/* Actions */}
+          <div className="mt-3 flex justify-end gap-3">
+            <Button
+              variant="secondary"
+              onClick={onCancel}
+              className="px-4 text-sm text-[var(--fg-muted)]"
+            >
+              Cancel
+            </Button>
+            {isComplete && (
+              <Button onClick={handleFinish} className="px-4 text-sm">
+                Use This Ranking
+              </Button>
+            )}
+          </div>
+        </div>
+      </dialog>
+
+      {sourceModalItem && (
+        <ItemSourceModal
+          open
+          itemLabel={sourceModalItem.label || "Untitled item"}
+          itemImageUrl={sourceModalItem.imageUrl}
+          sourceUrl={sourceModalItem.sourceUrl}
+          sourceProvider={sourceModalItem.sourceProvider}
+          sourceNote={sourceModalItem.sourceNote}
+          sourceStartSec={sourceModalItem.sourceStartSec}
+          sourceEndSec={sourceModalItem.sourceEndSec}
+          editable={false}
+          onClose={() => setSourceModalItemId(null)}
+        />
+      )}
+    </>
   );
 }
 

@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { BracketModal } from "@/components/bracket/BracketModal";
 import { ChevronDownIcon, ChevronUpIcon } from "@/components/ui/icons";
 import { useTierListStore } from "@/hooks/useTierList";
+import type { Item } from "@/types";
 import { DraggableItem } from "./DraggableItem";
 import { TierColorPicker } from "./TierColorPicker";
 import { TierRowActions } from "./TierRowActions";
@@ -87,9 +88,7 @@ export function TierRow({
     }
   };
 
-  const bracketItems = items
-    .map((id) => itemMap.get(id))
-    .filter((i): i is { id: string; label: string; imageUrl: string } => !!i);
+  const bracketItems = items.map((id) => itemMap.get(id)).filter((i): i is Item => !!i);
 
   return (
     <div>

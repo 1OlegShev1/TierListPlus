@@ -102,6 +102,7 @@ export function UnrankedDropZone({
               canEditSource={canEditItemSource}
               onRemove={onRemoveItem ? () => onRemoveItem(id) : undefined}
               removing={removingItemId === id}
+              interactionMode="sourceFocus"
             />
           );
         })}
