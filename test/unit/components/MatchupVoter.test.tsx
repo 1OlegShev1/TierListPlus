@@ -58,4 +58,31 @@ describe("MatchupVoter", () => {
     fireEvent.blur(catButton);
     expect(catImage.src).toContain("/uploads/cat.poster.webp");
   });
+
+  it("opens source details without casting a vote", () => {
+    const onVote = vi.fn();
+    const onOpenSource = vi.fn();
+
+    render(
+      <MatchupVoter
+        itemA={{
+          id: "a",
+          label: "Cat",
+          imageUrl: "/uploads/cat.gif",
+          sourceUrl: "https://example.com/cat",
+        }}
+        itemB={{ id: "b", label: "Dog", imageUrl: "/uploads/dog.webp" }}
+        size="sm"
+        onVote={onVote}
+        onOpenSource={onOpenSource}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Open source for Cat" }));
+
+    expect(onOpenSource).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "a", sourceUrl: "https://example.com/cat" }),
+    );
+    expect(onVote).not.toHaveBeenCalled();
+  });
 });

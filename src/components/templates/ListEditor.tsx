@@ -514,6 +514,9 @@ export function ListEditor({
         onCloseItemPreview={(index) => {
           setPreviewingItemIndex((current) => (current === index ? null : current));
         }}
+        onFocusItemPreview={(index) => {
+          setPreviewingItemIndex(index);
+        }}
         onToggleItemPreview={(index) => {
           setPreviewingItemIndex((current) => (current === index ? null : index));
         }}

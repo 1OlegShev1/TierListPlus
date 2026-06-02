@@ -7,6 +7,7 @@ interface ListRankingPreviewItem {
   label: string;
 }
 
+// Caps rendered artworks, which also bounds how many intentionally animate below.
 const PREVIEW_LIMIT = 6;
 const TIER_ROWS = DEFAULT_TIER_CONFIG.slice(0, 3);
 
@@ -63,6 +64,7 @@ export function ListRankingPreviewTeaser({ items }: { items: ListRankingPreviewI
                         className="aspect-square w-full"
                         presentation="ambient"
                         inset="compact"
+                        animate
                         loading="lazy"
                         decoding="async"
                       />
@@ -91,6 +93,7 @@ export function ListRankingPreviewTeaser({ items }: { items: ListRankingPreviewI
                     className="aspect-square w-full"
                     presentation="ambient"
                     inset="compact"
+                    animate
                     loading="lazy"
                     decoding="async"
                   />

@@ -10,7 +10,9 @@ vi.mock("@/components/shared/CombinedAddItemTile", () => ({
 }));
 
 vi.mock("@/components/ui/ItemArtwork", () => ({
-  ItemArtwork: ({ alt }: { alt: string }) => <div>{alt}</div>,
+  ItemArtwork: ({ alt, animate }: { alt: string; animate?: boolean }) => (
+    <div data-animate={animate ? "true" : "false"}>{alt}</div>
+  ),
 }));
 
 const item: TemplateItemData = {
@@ -40,6 +42,7 @@ function renderGrid(overrides?: Partial<ComponentProps<typeof ListEditorItemsGri
       onOpenAddByUrl={vi.fn()}
       onOpenItemSource={vi.fn()}
       onCloseItemPreview={vi.fn()}
+      onFocusItemPreview={vi.fn()}
       onRemoveItem={vi.fn()}
       onToggleItemPreview={vi.fn()}
       onUpdateItemLabel={vi.fn()}
@@ -66,9 +69,63 @@ describe("ListEditorItemsGrid", () => {
 
   it("toggles preview on click", () => {
     const onToggleItemPreview = vi.fn();
-    renderGrid({ onToggleItemPreview });
+    renderGrid({ previewingItemIndex: null, onToggleItemPreview });
 
     fireEvent.click(screen.getByRole("button", { name: "Preview animation for Alpha" }));
     expect(onToggleItemPreview).toHaveBeenCalledWith(0);
+  });
+
+  it("animates focused artwork", () => {
+    renderGrid({ previewingItemIndex: 0 });
+
+    expect(screen.getByText("Alpha").getAttribute("data-animate")).toBe("true");
+  });
+
+  it("opens an existing source from a double-click on artwork", () => {
+    const onOpenItemSource = vi.fn();
+    const onFocusItemPreview = vi.fn();
+    renderGrid({
+      items: [{ ...item, sourceUrl: "https://example.com/alpha" }],
+      onOpenItemSource,
+      onFocusItemPreview,
+    });
+
+    fireEvent.doubleClick(screen.getByRole("button", { name: "Preview animation for Alpha" }));
+
+    expect(onFocusItemPreview).toHaveBeenCalledWith(0);
+    expect(onOpenItemSource).toHaveBeenCalledWith(0);
+  });
+
+  it("opens source editing from a double-click when no source exists", () => {
+    const onOpenItemSource = vi.fn();
+    const onFocusItemPreview = vi.fn();
+    renderGrid({ onOpenItemSource, onFocusItemPreview });
+
+    fireEvent.doubleClick(screen.getByRole("button", { name: "Preview animation for Alpha" }));
+
+    expect(onFocusItemPreview).toHaveBeenCalledWith(0);
+    expect(onOpenItemSource).toHaveBeenCalledWith(0);
+  });
+
+  it("does not toggle preview off after touch double-tap opens source editing", () => {
+    const onOpenItemSource = vi.fn();
+    const onFocusItemPreview = vi.fn();
+    const onToggleItemPreview = vi.fn();
+    renderGrid({
+      previewingItemIndex: null,
+      onOpenItemSource,
+      onFocusItemPreview,
+      onToggleItemPreview,
+    });
+    const button = screen.getByRole("button", { name: "Preview animation for Alpha" });
+
+    fireEvent.pointerUp(button, { pointerType: "touch", timeStamp: 100 });
+    fireEvent.click(button);
+    fireEvent.pointerUp(button, { pointerType: "touch", timeStamp: 250 });
+    fireEvent.click(button);
+
+    expect(onFocusItemPreview).toHaveBeenCalledWith(0);
+    expect(onOpenItemSource).toHaveBeenCalledWith(0);
+    expect(onToggleItemPreview).toHaveBeenCalledTimes(1);
   });
 });
