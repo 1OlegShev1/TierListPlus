@@ -1,11 +1,6 @@
 import path from "node:path";
 import type { PrismaClient } from "@prisma/client";
-import {
-  getArgValue,
-  getArgValues,
-  getYearArgOrCurrent,
-  hasFlag,
-} from "../core/args";
+import { getArgValue, getArgValues, getYearArgOrCurrent, hasFlag } from "../core/args";
 import { writeExportArtifacts } from "../core/export";
 import {
   createPrismaClientFromEnv,
@@ -34,14 +29,25 @@ interface TitleBlock {
   native: string | null;
 }
 
+interface MediaRank {
+  rank: number;
+  type: "RATED" | "POPULAR";
+  season: string | null;
+  year: number | null;
+  allTime: boolean;
+  format: string | null;
+}
+
 interface RawMedia {
   id: number;
   title: TitleBlock;
   source: string | null;
   siteUrl: string | null;
+  popularity: number | null;
   coverImage: {
     extraLarge: string | null;
   };
+  rankings: MediaRank[];
 }
 
 interface SeasonQueryData {
@@ -60,6 +66,8 @@ interface ExportItem {
   imageUrl: string;
   sourceNote: string;
   sourceType: string | null;
+  popularityRank: number | null;
+  popularity: number | null;
   anichartSeasonUrl: string;
   cardTargetUrl: string;
   anilistId: number;
@@ -80,6 +88,7 @@ interface CliOptions {
   creatorId: string | null;
   isPublic: boolean;
   templatePrefix: string;
+  replace: boolean;
 }
 
 const SEASON_QUERY = `
@@ -114,8 +123,17 @@ query (
       }
       source(version: 2)
       siteUrl
+      popularity
       coverImage {
         extraLarge
+      }
+      rankings {
+        rank
+        type
+        season
+        year
+        allTime
+        format
       }
     }
   }
@@ -137,6 +155,8 @@ Options:
   --creator-id <USER_ID>   Optional override for import creator
   --public                 Mark imported templates as public
   --template-prefix <TXT>  Template name prefix (default: AniChart)
+  --replace                Replace existing same-named templates (clean redo).
+                           Skips any that already have sessions.
   --help                   Show help`);
 }
 
@@ -197,6 +217,7 @@ function parseArgs(args: string[]): CliOptions | null {
   const creatorId = getArgValue(args, "--creator-id") ?? null;
   const isPublic = hasFlag(args, "--public");
   const templatePrefix = (getArgValue(args, "--template-prefix") ?? DEFAULT_TEMPLATE_PREFIX).trim();
+  const replace = hasFlag(args, "--replace");
 
   if (!templatePrefix) {
     throw new Error("--template-prefix cannot be empty");
@@ -209,6 +230,7 @@ function parseArgs(args: string[]): CliOptions | null {
     creatorId,
     isPublic,
     templatePrefix,
+    replace,
   };
 }
 
@@ -304,10 +326,26 @@ async function fetchSeasonMedia(season: SeasonSpec): Promise<RawMedia[]> {
   return [...unique.values()];
 }
 
+// The "#N" heart badge on an AniChart season page is the in-season popularity
+// rank (type POPULAR, scoped to that season/year). AniList scopes this rank
+// *per format*, so a TV show and a TV-short can both be "#1". We keep it as a
+// reference field, but order the merged list by raw popularity (what AniChart's
+// popularity-sorted season view actually shows) so formats interleave sanely.
+function pickSeasonPopularityRank(media: RawMedia, season: SeasonSpec): number | null {
+  const target = media.rankings.find(
+    (ranking) =>
+      ranking.type === "POPULAR" &&
+      !ranking.allTime &&
+      ranking.season === season.season.toUpperCase() &&
+      ranking.year === season.year,
+  );
+  return target?.rank ?? null;
+}
+
 function mapSeasonExportItems(season: SeasonSpec, media: RawMedia[]): ExportItem[] {
   const anichartSeasonUrl = `https://anichart.net/${season.slug}`;
 
-  return media
+  const items = media
     .map((entry) => {
       const label = pickLabel(entry.title, entry.id).trim();
       const imageUrl = entry.coverImage.extraLarge?.trim() ?? "";
@@ -319,6 +357,8 @@ function mapSeasonExportItems(season: SeasonSpec, media: RawMedia[]): ExportItem
         sourceUrl,
         imageUrl,
         sourceType: entry.source,
+        popularityRank: pickSeasonPopularityRank(entry, season),
+        popularity: entry.popularity,
         sourceNote: `AniChart ${season.slug}`,
         anichartSeasonUrl,
         cardTargetUrl: sourceUrl,
@@ -326,12 +366,22 @@ function mapSeasonExportItems(season: SeasonSpec, media: RawMedia[]): ExportItem
       } satisfies ExportItem;
     })
     .filter((item): item is ExportItem => item !== null);
+
+  // Most popular first — the order AniChart shows when a season is sorted by
+  // popularity. Ties (and missing counts) fall back to the in-season rank.
+  return items.sort((a, b) => {
+    const popDelta = (b.popularity ?? 0) - (a.popularity ?? 0);
+    if (popDelta !== 0) return popDelta;
+    return (
+      (a.popularityRank ?? Number.MAX_SAFE_INTEGER) - (b.popularityRank ?? Number.MAX_SAFE_INTEGER)
+    );
+  });
 }
 
 async function importSeasonExportsToDb(
   prisma: PrismaClient,
   seasonExports: SeasonExport[],
-  options: { creatorId: string; isPublic: boolean; templatePrefix: string },
+  options: { creatorId: string; isPublic: boolean; templatePrefix: string; replace: boolean },
 ): Promise<void> {
   for (const seasonExport of seasonExports) {
     const published = await publishCollectionAsTemplate(prisma, {
@@ -341,6 +391,7 @@ async function importSeasonExportsToDb(
       templateSuffix: seasonExport.season,
       sourcePage: seasonExport.sourcePage,
       importedAtIso: seasonExport.generatedAt,
+      replace: options.replace,
       items: seasonExport.items.map((item) => ({
         label: item.label,
         imageUrl: item.imageUrl,
@@ -385,6 +436,8 @@ export async function runAniChartImport(args: string[]): Promise<void> {
       jsonPayload: seasonExport,
       items: seasonExport.items,
       csvColumns: [
+        "popularityRank",
+        "popularity",
         "label",
         "sourceUrl",
         "imageUrl",
@@ -408,6 +461,7 @@ export async function runAniChartImport(args: string[]): Promise<void> {
       creatorId: resolvedCreatorId,
       isPublic: options.isPublic,
       templatePrefix: options.templatePrefix,
+      replace: options.replace,
     });
   } finally {
     await prisma.$disconnect();

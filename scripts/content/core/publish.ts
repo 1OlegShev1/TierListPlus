@@ -16,6 +16,13 @@ export interface PublishCollectionAsTemplateInput {
   sourcePage: string;
   items: PublishTemplateItemInput[];
   importedAtIso: string;
+  /**
+   * When true, delete any existing same-named template for this creator before
+   * creating the new one (a clean "redo"), instead of suffixing the name with
+   * " (2)". Refuses to delete templates that already have sessions so live
+   * votes are never destroyed.
+   */
+  replace?: boolean;
 }
 
 async function buildUniqueTemplateName(
@@ -41,12 +48,48 @@ async function buildUniqueTemplateName(
   return `${baseName} (${index})`;
 }
 
+async function deleteReplaceableTemplates(
+  prisma: PrismaClient,
+  creatorId: string,
+  name: string,
+): Promise<number> {
+  const existing = await prisma.template.findMany({
+    where: { creatorId, name },
+    select: { id: true, _count: { select: { sessions: true } } },
+  });
+
+  if (existing.length === 0) return 0;
+
+  const withSessions = existing.filter((template) => template._count.sessions > 0);
+  if (withSessions.length > 0) {
+    throw new Error(
+      `Refusing to replace "${name}": ${withSessions.length} matching template(s) still have sessions. Archive or delete those sessions first, then re-run.`,
+    );
+  }
+
+  // Template delete cascades to its TemplateItems. Safe because none are
+  // referenced by a session (checked above).
+  await prisma.$transaction(
+    existing.map((template) => prisma.template.delete({ where: { id: template.id } })),
+  );
+  return existing.length;
+}
+
 export async function publishCollectionAsTemplate(
   prisma: PrismaClient,
   input: PublishCollectionAsTemplateInput,
 ): Promise<{ id: string; name: string; itemCount: number }> {
   const baseName = `${input.templatePrefix} ${input.templateSuffix}`.slice(0, 100);
-  const templateName = await buildUniqueTemplateName(prisma, input.creatorId, baseName);
+
+  let templateName = baseName;
+  if (input.replace) {
+    const removed = await deleteReplaceableTemplates(prisma, input.creatorId, baseName);
+    if (removed > 0) {
+      console.log(`Replaced ${removed} existing template(s) named "${baseName}"`);
+    }
+  } else {
+    templateName = await buildUniqueTemplateName(prisma, input.creatorId, baseName);
+  }
 
   const template = await prisma.template.create({
     data: {
