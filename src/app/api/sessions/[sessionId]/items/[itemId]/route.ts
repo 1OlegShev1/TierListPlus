@@ -127,10 +127,12 @@ export const PATCH = withHandler(async (request, { params }) => {
   }
 
   const updated = await prisma.$transaction(async (tx) => {
-    await tx.templateItem.update({
-      where: { id: sessionItem.templateItemId },
-      data: updateData,
-    });
+    if (sessionItem.templateItemId) {
+      await tx.templateItem.update({
+        where: { id: sessionItem.templateItemId },
+        data: updateData,
+      });
+    }
 
     return tx.sessionItem.update({
       where: { id: sessionItem.id },
@@ -174,7 +176,9 @@ export const DELETE = withHandler(async (request, { params }) => {
 
   await prisma.$transaction(async (tx) => {
     await tx.sessionItem.delete({ where: { id: sessionItem.id } });
-    await tx.templateItem.delete({ where: { id: sessionItem.templateItemId } });
+    if (sessionItem.templateItemId) {
+      await tx.templateItem.delete({ where: { id: sessionItem.templateItemId } });
+    }
   });
 
   await tryDeleteManagedUploadIfUnreferenced(sessionItem.imageUrl, "session item delete");
