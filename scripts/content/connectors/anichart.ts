@@ -89,6 +89,7 @@ interface CliOptions {
   isPublic: boolean;
   templatePrefix: string;
   replace: boolean;
+  spaceId: string | null;
 }
 
 const SEASON_QUERY = `
@@ -157,6 +158,8 @@ Options:
   --template-prefix <TXT>  Template name prefix (default: AniChart)
   --replace                Replace existing same-named templates (clean redo).
                            Skips any that already have sessions.
+  --space-id <SPACE_ID>    Create templates inside this space (forces non-public).
+                           With --replace, migrates same-named templates in.
   --help                   Show help`);
 }
 
@@ -218,6 +221,7 @@ function parseArgs(args: string[]): CliOptions | null {
   const isPublic = hasFlag(args, "--public");
   const templatePrefix = (getArgValue(args, "--template-prefix") ?? DEFAULT_TEMPLATE_PREFIX).trim();
   const replace = hasFlag(args, "--replace");
+  const spaceId = getArgValue(args, "--space-id") ?? null;
 
   if (!templatePrefix) {
     throw new Error("--template-prefix cannot be empty");
@@ -231,6 +235,7 @@ function parseArgs(args: string[]): CliOptions | null {
     isPublic,
     templatePrefix,
     replace,
+    spaceId,
   };
 }
 
@@ -381,7 +386,13 @@ function mapSeasonExportItems(season: SeasonSpec, media: RawMedia[]): ExportItem
 async function importSeasonExportsToDb(
   prisma: PrismaClient,
   seasonExports: SeasonExport[],
-  options: { creatorId: string; isPublic: boolean; templatePrefix: string; replace: boolean },
+  options: {
+    creatorId: string;
+    isPublic: boolean;
+    templatePrefix: string;
+    replace: boolean;
+    spaceId: string | null;
+  },
 ): Promise<void> {
   for (const seasonExport of seasonExports) {
     const published = await publishCollectionAsTemplate(prisma, {
@@ -392,6 +403,7 @@ async function importSeasonExportsToDb(
       sourcePage: seasonExport.sourcePage,
       importedAtIso: seasonExport.generatedAt,
       replace: options.replace,
+      spaceId: options.spaceId,
       items: seasonExport.items.map((item) => ({
         label: item.label,
         imageUrl: item.imageUrl,
@@ -462,6 +474,7 @@ export async function runAniChartImport(args: string[]): Promise<void> {
       isPublic: options.isPublic,
       templatePrefix: options.templatePrefix,
       replace: options.replace,
+      spaceId: options.spaceId,
     });
   } finally {
     await prisma.$disconnect();

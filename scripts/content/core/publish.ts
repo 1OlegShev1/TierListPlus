@@ -23,6 +23,12 @@ export interface PublishCollectionAsTemplateInput {
    * votes are never destroyed.
    */
   replace?: boolean;
+  /**
+   * When set, the template is scoped to this space (and forced non-public, the
+   * convention for space templates). Combined with `replace`, this migrates an
+   * existing same-named public template into the space. The space must exist.
+   */
+  spaceId?: string | null;
 }
 
 async function buildUniqueTemplateName(
@@ -81,6 +87,16 @@ export async function publishCollectionAsTemplate(
 ): Promise<{ id: string; name: string; itemCount: number }> {
   const baseName = `${input.templatePrefix} ${input.templateSuffix}`.slice(0, 100);
 
+  if (input.spaceId) {
+    const space = await prisma.space.findUnique({
+      where: { id: input.spaceId },
+      select: { id: true },
+    });
+    if (!space) {
+      throw new Error(`Target space "${input.spaceId}" not found.`);
+    }
+  }
+
   let templateName = baseName;
   if (input.replace) {
     const removed = await deleteReplaceableTemplates(prisma, input.creatorId, baseName);
@@ -96,7 +112,10 @@ export async function publishCollectionAsTemplate(
       creatorId: input.creatorId,
       name: templateName,
       description: `Imported from ${input.sourcePage} on ${input.importedAtIso.slice(0, 10)}.`,
-      isPublic: input.isPublic,
+      // Space templates are non-public by convention; only globally-scoped
+      // imports honor the --public flag.
+      isPublic: input.spaceId ? false : input.isPublic,
+      spaceId: input.spaceId ?? null,
       items: {
         createMany: {
           data: input.items.map((item, index) => ({
