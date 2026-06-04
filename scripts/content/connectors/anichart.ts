@@ -1,6 +1,13 @@
 import path from "node:path";
 import type { PrismaClient } from "@prisma/client";
-import { getArgValue, getArgValues, getYearArgOrCurrent, hasFlag } from "../core/args";
+import {
+  getArgValue,
+  getArgValues,
+  getFloatArgInRange,
+  getPositiveIntArg,
+  getYearArgOrCurrent,
+  hasFlag,
+} from "../core/args";
 import { writeExportArtifacts } from "../core/export";
 import {
   createPrismaClientFromEnv,
@@ -12,6 +19,16 @@ const ANILIST_GRAPHQL_URL = "https://graphql.anilist.co/";
 const DEFAULT_OUTPUT_DIR = path.join("scripts", "output", "anichart");
 const DEFAULT_TEMPLATE_PREFIX = "AniChart";
 const FETCH_TIMEOUT_MS = 20_000;
+
+// Filtering defaults. Keep an item if it's popular enough, OR well-rated with a
+// real sample (so a high score from a tiny audience doesn't sneak in). Scores
+// only exist once a show airs, so on unaired seasons the score prong is inert
+// and the popularity floor governs.
+const DEFAULT_POP_FLOOR = 5000;
+const DEFAULT_SCORE_FLOOR = 70; // averageScore, 0-100
+const DEFAULT_MIN_POP_FOR_SCORE = 2000;
+// AniChart categories we never want on a tier-list bench.
+const DROPPED_FORMATS = new Set(["TV_SHORT"]);
 
 const SEASON_NAMES = ["Winter", "Spring", "Summer", "Fall"] as const;
 type SeasonName = (typeof SEASON_NAMES)[number];
@@ -44,6 +61,8 @@ interface RawMedia {
   source: string | null;
   siteUrl: string | null;
   popularity: number | null;
+  averageScore: number | null;
+  format: string | null;
   coverImage: {
     extraLarge: string | null;
   };
@@ -68,6 +87,8 @@ interface ExportItem {
   sourceType: string | null;
   popularityRank: number | null;
   popularity: number | null;
+  averageScore: number | null;
+  format: string | null;
   anichartSeasonUrl: string;
   cardTargetUrl: string;
   anilistId: number;
@@ -90,6 +111,18 @@ interface CliOptions {
   templatePrefix: string;
   replace: boolean;
   spaceId: string | null;
+  popFloor: number;
+  scoreFloor: number;
+  minPopForScore: number;
+  includeLeftovers: boolean;
+  includeTvShorts: boolean;
+}
+
+interface FilterOptions {
+  popFloor: number;
+  scoreFloor: number;
+  minPopForScore: number;
+  dropFormats: Set<string>;
 }
 
 const SEASON_QUERY = `
@@ -125,6 +158,8 @@ query (
       source(version: 2)
       siteUrl
       popularity
+      averageScore
+      format
       coverImage {
         extraLarge
       }
@@ -160,6 +195,11 @@ Options:
                            Skips any that already have sessions.
   --space-id <SPACE_ID>    Create templates inside this space (forces non-public).
                            With --replace, migrates same-named templates in.
+  --pop-floor <N>          Keep items with popularity >= N (default 5000)
+  --score-floor <N>        ...or averageScore >= N% (default 70), with
+  --min-pop-for-score <N>  popularity >= N (default 2000) to avoid tiny samples
+  --include-leftovers      Include shows carried over from the previous season
+  --include-tv-shorts      Include TV_SHORT format (dropped by default)
   --help                   Show help`);
 }
 
@@ -222,6 +262,25 @@ function parseArgs(args: string[]): CliOptions | null {
   const templatePrefix = (getArgValue(args, "--template-prefix") ?? DEFAULT_TEMPLATE_PREFIX).trim();
   const replace = hasFlag(args, "--replace");
   const spaceId = getArgValue(args, "--space-id") ?? null;
+  const popFloor = getPositiveIntArg(
+    getArgValue(args, "--pop-floor"),
+    "--pop-floor",
+    DEFAULT_POP_FLOOR,
+  );
+  const scoreFloor = getFloatArgInRange(
+    getArgValue(args, "--score-floor"),
+    "--score-floor",
+    DEFAULT_SCORE_FLOOR,
+    0,
+    100,
+  );
+  const minPopForScore = getPositiveIntArg(
+    getArgValue(args, "--min-pop-for-score"),
+    "--min-pop-for-score",
+    DEFAULT_MIN_POP_FOR_SCORE,
+  );
+  const includeLeftovers = hasFlag(args, "--include-leftovers");
+  const includeTvShorts = hasFlag(args, "--include-tv-shorts");
 
   if (!templatePrefix) {
     throw new Error("--template-prefix cannot be empty");
@@ -236,6 +295,11 @@ function parseArgs(args: string[]): CliOptions | null {
     templatePrefix,
     replace,
     spaceId,
+    popFloor,
+    scoreFloor,
+    minPopForScore,
+    includeLeftovers,
+    includeTvShorts,
   };
 }
 
@@ -296,14 +360,25 @@ async function requestAniList<T>(query: string, variables: Record<string, unknow
   }
 }
 
-async function fetchSeasonMedia(season: SeasonSpec): Promise<RawMedia[]> {
-  const previousSeason = getPreviousSeason(season.season, season.year);
-
+async function fetchSeasonMedia(
+  season: SeasonSpec,
+  includeLeftovers: boolean,
+): Promise<RawMedia[]> {
   const variableSets: Array<Record<string, unknown>> = [
     { season: season.season.toUpperCase(), year: season.year, format: "TV" },
     { season: season.season.toUpperCase(), year: season.year, excludeFormat: "TV" },
-    { season: previousSeason.season.toUpperCase(), year: previousSeason.year, minEpisodes: 16 },
   ];
+
+  // "Leftovers": shows that started last season and continue into this one.
+  // Off by default — they were already in the previous season's list.
+  if (includeLeftovers) {
+    const previousSeason = getPreviousSeason(season.season, season.year);
+    variableSets.push({
+      season: previousSeason.season.toUpperCase(),
+      year: previousSeason.year,
+      minEpisodes: 16,
+    });
+  }
 
   const unique = new Map<number, RawMedia>();
 
@@ -347,10 +422,28 @@ function pickSeasonPopularityRank(media: RawMedia, season: SeasonSpec): number |
   return target?.rank ?? null;
 }
 
-function mapSeasonExportItems(season: SeasonSpec, media: RawMedia[]): ExportItem[] {
+// Keep an item if it's popular enough, OR well-rated with a real audience.
+// Dropped formats (e.g. TV shorts) are excluded outright.
+function keepMedia(media: RawMedia, filter: FilterOptions): boolean {
+  if (media.format && filter.dropFormats.has(media.format)) return false;
+  const popularity = media.popularity ?? 0;
+  if (popularity >= filter.popFloor) return true;
+  return (
+    media.averageScore != null &&
+    media.averageScore >= filter.scoreFloor &&
+    popularity >= filter.minPopForScore
+  );
+}
+
+function mapSeasonExportItems(
+  season: SeasonSpec,
+  media: RawMedia[],
+  filter: FilterOptions,
+): ExportItem[] {
   const anichartSeasonUrl = `https://anichart.net/${season.slug}`;
 
   const items = media
+    .filter((entry) => keepMedia(entry, filter))
     .map((entry) => {
       const label = pickLabel(entry.title, entry.id).trim();
       const imageUrl = entry.coverImage.extraLarge?.trim() ?? "";
@@ -364,6 +457,8 @@ function mapSeasonExportItems(season: SeasonSpec, media: RawMedia[]): ExportItem
         sourceType: entry.source,
         popularityRank: pickSeasonPopularityRank(entry, season),
         popularity: entry.popularity,
+        averageScore: entry.averageScore,
+        format: entry.format,
         sourceNote: `AniChart ${season.slug}`,
         anichartSeasonUrl,
         cardTargetUrl: sourceUrl,
@@ -422,16 +517,29 @@ export async function runAniChartImport(args: string[]): Promise<void> {
   const options = parseArgs(args);
   if (!options) return;
 
+  const dropFormats = new Set(options.includeTvShorts ? [] : DROPPED_FORMATS);
+  const filter: FilterOptions = {
+    popFloor: options.popFloor,
+    scoreFloor: options.scoreFloor,
+    minPopForScore: options.minPopForScore,
+    dropFormats,
+  };
+
   console.log(`Seasons: ${options.seasons.map((season) => season.slug).join(", ")}`);
   console.log(`Output: ${options.outputDir}`);
+  console.log(
+    `Filter: keep if popularity >= ${filter.popFloor} OR (score >= ${filter.scoreFloor}% AND popularity >= ${filter.minPopForScore}); ` +
+      `leftovers ${options.includeLeftovers ? "included" : "dropped"}, ` +
+      `dropped formats: ${[...dropFormats].join(", ") || "none"}`,
+  );
   if (options.importDb) console.log("DB import enabled");
 
   const seasonExports: SeasonExport[] = [];
 
   for (const season of options.seasons) {
     console.log(`Fetching ${season.slug}...`);
-    const media = await fetchSeasonMedia(season);
-    const items = mapSeasonExportItems(season, media);
+    const media = await fetchSeasonMedia(season, options.includeLeftovers);
+    const items = mapSeasonExportItems(season, media, filter);
     const seasonExport: SeasonExport = {
       season: season.slug,
       sourcePage: `https://anichart.net/${season.slug}`,
@@ -450,6 +558,8 @@ export async function runAniChartImport(args: string[]): Promise<void> {
       csvColumns: [
         "popularityRank",
         "popularity",
+        "averageScore",
+        "format",
         "label",
         "sourceUrl",
         "imageUrl",
