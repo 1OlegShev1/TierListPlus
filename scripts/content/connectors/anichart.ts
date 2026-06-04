@@ -20,13 +20,15 @@ const DEFAULT_OUTPUT_DIR = path.join("scripts", "output", "anichart");
 const DEFAULT_TEMPLATE_PREFIX = "AniChart";
 const FETCH_TIMEOUT_MS = 20_000;
 
-// Filtering defaults. Keep an item if it's popular enough, OR well-rated with a
-// real sample (so a high score from a tiny audience doesn't sneak in). Scores
-// only exist once a show airs, so on unaired seasons the score prong is inert
-// and the popularity floor governs.
-const DEFAULT_POP_FLOOR = 5000;
-const DEFAULT_SCORE_FLOOR = 70; // averageScore, 0-100
-const DEFAULT_MIN_POP_FOR_SCORE = 2000;
+// Filtering defaults. We keep the top-N most-popular shows per season, which
+// self-adjusts to season maturity (popularity = anticipation before a show
+// airs, real reach after). We also rescue "gems": well-rated shows with a real
+// audience that fall outside the top-N. A low sanity floor drops dead entries
+// so sparse far-future seasons don't scrape the barrel.
+const DEFAULT_TOP_N = 40;
+const DEFAULT_SANITY_FLOOR = 500; // minimum popularity to be eligible at all
+const DEFAULT_SCORE_FLOOR = 70; // gem averageScore, 0-100
+const DEFAULT_MIN_POP_FOR_SCORE = 2000; // gem needs a real sample
 // AniChart categories we never want on a tier-list bench.
 const DROPPED_FORMATS = new Set(["TV_SHORT"]);
 
@@ -111,7 +113,8 @@ interface CliOptions {
   templatePrefix: string;
   replace: boolean;
   spaceId: string | null;
-  popFloor: number;
+  topN: number;
+  sanityFloor: number;
   scoreFloor: number;
   minPopForScore: number;
   includeLeftovers: boolean;
@@ -119,7 +122,8 @@ interface CliOptions {
 }
 
 interface FilterOptions {
-  popFloor: number;
+  topN: number;
+  sanityFloor: number;
   scoreFloor: number;
   minPopForScore: number;
   dropFormats: Set<string>;
@@ -195,9 +199,10 @@ Options:
                            Skips any that already have sessions.
   --space-id <SPACE_ID>    Create templates inside this space (forces non-public).
                            With --replace, migrates same-named templates in.
-  --pop-floor <N>          Keep items with popularity >= N (default 5000)
-  --score-floor <N>        ...or averageScore >= N% (default 70), with
-  --min-pop-for-score <N>  popularity >= N (default 2000) to avoid tiny samples
+  --top-n <N>              Keep the top N by popularity per season (default 40)
+  --sanity-floor <N>       Drop items below N popularity entirely (default 500)
+  --score-floor <N>        Also keep out-of-top-N "gems" rated >= N% (default 70)
+  --min-pop-for-score <N>  ...with popularity >= N (default 2000) to avoid noise
   --include-leftovers      Include shows carried over from the previous season
   --include-tv-shorts      Include TV_SHORT format (dropped by default)
   --help                   Show help`);
@@ -262,10 +267,11 @@ function parseArgs(args: string[]): CliOptions | null {
   const templatePrefix = (getArgValue(args, "--template-prefix") ?? DEFAULT_TEMPLATE_PREFIX).trim();
   const replace = hasFlag(args, "--replace");
   const spaceId = getArgValue(args, "--space-id") ?? null;
-  const popFloor = getPositiveIntArg(
-    getArgValue(args, "--pop-floor"),
-    "--pop-floor",
-    DEFAULT_POP_FLOOR,
+  const topN = getPositiveIntArg(getArgValue(args, "--top-n"), "--top-n", DEFAULT_TOP_N);
+  const sanityFloor = getPositiveIntArg(
+    getArgValue(args, "--sanity-floor"),
+    "--sanity-floor",
+    DEFAULT_SANITY_FLOOR,
   );
   const scoreFloor = getFloatArgInRange(
     getArgValue(args, "--score-floor"),
@@ -295,7 +301,8 @@ function parseArgs(args: string[]): CliOptions | null {
     templatePrefix,
     replace,
     spaceId,
-    popFloor,
+    topN,
+    sanityFloor,
     scoreFloor,
     minPopForScore,
     includeLeftovers,
@@ -422,17 +429,29 @@ function pickSeasonPopularityRank(media: RawMedia, season: SeasonSpec): number |
   return target?.rank ?? null;
 }
 
-// Keep an item if it's popular enough, OR well-rated with a real audience.
-// Dropped formats (e.g. TV shorts) are excluded outright.
-function keepMedia(media: RawMedia, filter: FilterOptions): boolean {
-  if (media.format && filter.dropFormats.has(media.format)) return false;
-  const popularity = media.popularity ?? 0;
-  if (popularity >= filter.popFloor) return true;
+function isGem(media: RawMedia, filter: FilterOptions): boolean {
   return (
     media.averageScore != null &&
     media.averageScore >= filter.scoreFloor &&
-    popularity >= filter.minPopForScore
+    (media.popularity ?? 0) >= filter.minPopForScore
   );
+}
+
+// Select the bench for a season: top-N by popularity, plus any out-of-top-N
+// "gems" (well-rated with a real audience). Dropped formats and entries below
+// the sanity floor are excluded first. Top-N self-adjusts to season maturity:
+// before a show airs, popularity reflects anticipation, not reach.
+function selectSeasonMedia(media: RawMedia[], filter: FilterOptions): RawMedia[] {
+  const eligible = media
+    .filter((m) => !(m.format && filter.dropFormats.has(m.format)))
+    .filter((m) => (m.popularity ?? 0) >= filter.sanityFloor)
+    .sort((a, b) => {
+      const popDelta = (b.popularity ?? 0) - (a.popularity ?? 0);
+      if (popDelta !== 0) return popDelta;
+      return a.id - b.id;
+    });
+
+  return eligible.filter((m, index) => index < filter.topN || isGem(m, filter));
 }
 
 function mapSeasonExportItems(
@@ -442,8 +461,7 @@ function mapSeasonExportItems(
 ): ExportItem[] {
   const anichartSeasonUrl = `https://anichart.net/${season.slug}`;
 
-  const items = media
-    .filter((entry) => keepMedia(entry, filter))
+  const items = selectSeasonMedia(media, filter)
     .map((entry) => {
       const label = pickLabel(entry.title, entry.id).trim();
       const imageUrl = entry.coverImage.extraLarge?.trim() ?? "";
@@ -519,7 +537,8 @@ export async function runAniChartImport(args: string[]): Promise<void> {
 
   const dropFormats = new Set(options.includeTvShorts ? [] : DROPPED_FORMATS);
   const filter: FilterOptions = {
-    popFloor: options.popFloor,
+    topN: options.topN,
+    sanityFloor: options.sanityFloor,
     scoreFloor: options.scoreFloor,
     minPopForScore: options.minPopForScore,
     dropFormats,
@@ -528,7 +547,7 @@ export async function runAniChartImport(args: string[]): Promise<void> {
   console.log(`Seasons: ${options.seasons.map((season) => season.slug).join(", ")}`);
   console.log(`Output: ${options.outputDir}`);
   console.log(
-    `Filter: keep if popularity >= ${filter.popFloor} OR (score >= ${filter.scoreFloor}% AND popularity >= ${filter.minPopForScore}); ` +
+    `Filter: top ${filter.topN} by popularity (min ${filter.sanityFloor}) + gems (score >= ${filter.scoreFloor}% AND popularity >= ${filter.minPopForScore}); ` +
       `leftovers ${options.includeLeftovers ? "included" : "dropped"}, ` +
       `dropped formats: ${[...dropFormats].join(", ") || "none"}`,
   );
