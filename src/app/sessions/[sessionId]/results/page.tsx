@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
+import { canDeleteSession } from "@/lib/api-helpers";
 import { getCookieAuth } from "@/lib/auth";
 import { type ConsensusTier, computeConsensus } from "@/lib/consensus";
 import { prisma } from "@/lib/prisma";
@@ -266,6 +267,12 @@ export default async function ResultsPage({
     joinCode: session.joinCode,
     isLocked: session.isLocked,
     canManageSession: isOwner || isSpaceOwner,
+    canDeleteSession: canDeleteSession({
+      creatorId: session.creatorId,
+      requestUserId,
+      isSpaceOwner,
+      role: auth?.role ?? null,
+    }),
     canLeaveVote: !!currentParticipant && !isOwner,
     currentParticipantId: currentParticipant?.id ?? null,
     currentParticipantNickname: currentParticipant?.nickname ?? null,

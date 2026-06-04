@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { cookies, headers } from "next/headers";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { DeleteVoteButton } from "@/components/sessions/DeleteVoteButton";
 import { QuickStartVoteButton } from "@/components/sessions/QuickStartVoteButton";
 import { ShareVoteButton } from "@/components/sessions/ShareVoteButton";
 import { OpenSpaceMembershipControls } from "@/components/spaces/OpenSpaceMembershipControls";
@@ -18,6 +19,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { VotePreviewSummary } from "@/components/ui/VotePreviewSummary";
+import { canDeleteSession } from "@/lib/api-helpers";
 import { getCookieAuth } from "@/lib/auth";
 import { buildListDisplay } from "@/lib/list-display";
 import { getSuggestedNicknameForUser } from "@/lib/nickname-suggestion";
@@ -455,6 +457,17 @@ export default async function SpaceDetailPage({
                       <Link href={`/sessions/${vote.id}`} className={buttonVariants.secondary}>
                         {vote.status === "OPEN" ? "Open" : "Results"}
                       </Link>
+                      <DeleteVoteButton
+                        sessionId={vote.id}
+                        creatorId={vote.creatorId}
+                        canDeleteOverride={canDeleteSession({
+                          creatorId: vote.creatorId,
+                          requestUserId: userId,
+                          isSpaceOwner: space.isOwner,
+                          role,
+                        })}
+                        redirectTo={`/spaces/${space.id}`}
+                      />
                     </div>
                   </div>
                 );

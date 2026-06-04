@@ -85,6 +85,7 @@ export interface SessionResult {
   joinCode: string;
   isLocked?: boolean;
   canManageSession: boolean;
+  canDeleteSession?: boolean;
   canLeaveVote?: boolean;
   currentParticipantId: string | null;
   currentParticipantNickname: string | null;

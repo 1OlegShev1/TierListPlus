@@ -158,6 +158,28 @@ export function canMutateSpaceResource(
   return canMutateResource({ creatorId, requestUserId, isSpaceOwner, isAdmin });
 }
 
+/** True when the role is MODERATOR or higher (i.e. MODERATOR or ADMIN). */
+export function isModerator(role: UserRole | null | undefined): boolean {
+  return role != null && hasRequiredRole(role, "MODERATOR");
+}
+
+/**
+ * Single source of truth for who may delete an entire ranking: a platform
+ * moderator/admin, the ranking's creator, or the owner of its space. Used by
+ * the DELETE API and by the UI surfaces that show the delete control.
+ */
+export function canDeleteSession(input: {
+  creatorId: string | null;
+  requestUserId: string | null;
+  isSpaceOwner: boolean;
+  role: UserRole | null | undefined;
+}): boolean {
+  return (
+    isModerator(input.role) ||
+    canMutateSpaceResource(input.creatorId, input.requestUserId, input.isSpaceOwner)
+  );
+}
+
 export async function resolveSpaceAccess(request: Request, spaceId: string) {
   const auth = await getRequestAuth(request);
   const requestUserId = auth?.userId ?? null;
