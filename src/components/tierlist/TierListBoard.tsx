@@ -35,8 +35,14 @@ const BracketModal = dynamic(
   { ssr: false },
 );
 
+// Disable horizontal auto-scroll (x: 0). The tier rows and unranked pool both
+// use flex-wrap, so they never need to scroll sideways. The scroll container
+// (`main`) is `overflow-x-hidden`, which only hides the scrollbar — dnd-kit can
+// still set `scrollLeft` programmatically. With a non-zero x threshold, dragging
+// an item near the right edge (toward the Rank/arrow controls) scrolled the whole
+// grid right and pushed the left side out of view. Vertical auto-scroll stays on.
 const VOTE_BOARD_AUTO_SCROLL = {
-  threshold: { x: 0.08, y: 0.28 },
+  threshold: { x: 0, y: 0.28 },
 };
 
 interface TierListBoardProps {
