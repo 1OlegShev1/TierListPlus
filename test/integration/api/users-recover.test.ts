@@ -6,6 +6,7 @@ const mocks = vi.hoisted(() => ({
   },
   requireRequestAuth: vi.fn(),
   mergeAccountIntoTarget: vi.fn(),
+  takeRateLimitToken: vi.fn(),
 }));
 
 vi.mock("@/lib/prisma", () => ({ prisma: mocks.prisma }));
@@ -14,6 +15,9 @@ vi.mock("@/lib/auth", () => ({
 }));
 vi.mock("@/lib/account-linking", () => ({
   mergeAccountIntoTarget: mocks.mergeAccountIntoTarget,
+}));
+vi.mock("@/lib/rate-limit", () => ({
+  takeRateLimitToken: mocks.takeRateLimitToken,
 }));
 
 import { POST } from "@/app/api/users/recover/route";
@@ -35,6 +39,38 @@ describe("users recover route", () => {
       userId: "user_2",
       deviceId: "device_9",
     });
+    mocks.takeRateLimitToken.mockReset().mockReturnValue({
+      allowed: true,
+      retryAfterSeconds: 0,
+    });
+  });
+
+  it("rate-limits recovery attempts per device", async () => {
+    mocks.takeRateLimitToken.mockReturnValue({
+      allowed: false,
+      retryAfterSeconds: 30,
+    });
+
+    const response = await POST(
+      jsonRequest("POST", "https://example.test", {
+        recoveryCode: "abc123",
+        deviceName: "Phone",
+      }),
+      { params: Promise.resolve({}) },
+    );
+
+    expect(response.status).toBe(429);
+    expect(response.headers.get("Retry-After")).toBe("30");
+    await expect(response.json()).resolves.toEqual({
+      error: "Too many recovery attempts. Please wait and try again.",
+    });
+    expect(mocks.takeRateLimitToken).toHaveBeenCalledWith({
+      key: "recover:device_1",
+      maxRequests: 10,
+      windowMs: 15 * 60 * 1000,
+    });
+    expect(mocks.prisma.linkCode.findUnique).not.toHaveBeenCalled();
+    expect(mocks.mergeAccountIntoTarget).not.toHaveBeenCalled();
   });
 
   it("returns not found for missing or expired recovery codes", async () => {
