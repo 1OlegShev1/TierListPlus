@@ -81,6 +81,12 @@ vi.mock("@/components/shared/ImageUploader", () => ({
   ),
 }));
 
+vi.mock("@/components/ui/ItemArtwork", () => ({
+  ItemArtwork: ({ alt, animate }: { alt: string; animate?: boolean }) => (
+    <div data-animate={animate ? "true" : "false"}>{alt}</div>
+  ),
+}));
+
 function resetStore() {
   useTierListStore.setState({
     tiers: {},
@@ -259,14 +265,91 @@ describe("TierListBoard", () => {
       />,
     );
 
-    const itemLabel = screen.getByText("Rust");
-    const spotlightButton = itemLabel.closest("button");
+    const spotlightButton = screen
+      .getAllByText("Rust")
+      .map((label) => label.closest("button"))
+      .find((button) => button?.className.includes("draggable-handle"));
     if (!spotlightButton) {
       throw new Error("Expected spotlight button for tier item");
     }
 
     fireEvent.click(spotlightButton);
     expect(spotlightButton.className.includes("border-[var(--accent-primary-hover)]")).toBe(true);
+  });
+
+  it("uses source focus instead of spotlight for compact unranked items", () => {
+    render(
+      <TierListBoard
+        sessionId="session_1"
+        participantId="participant_1"
+        tierConfig={[
+          { key: "S", label: "S", color: "#ff7f7f", sortOrder: 0 },
+          { key: "A", label: "A", color: "#ffbf7f", sortOrder: 1 },
+        ]}
+        sessionItems={[
+          {
+            id: "item_1",
+            label: "Rust",
+            imageUrl: "/img/rust.webp",
+            sourceUrl: "https://example.com/rust",
+          },
+          { id: "item_2", label: "Go", imageUrl: "/img/go.webp" },
+        ]}
+        seededTiers={{ S: [], A: [] }}
+        onSubmitted={vi.fn()}
+      />,
+    );
+
+    const sourceFocusButton = screen
+      .getAllByText("Rust")
+      .map((label) => label.closest("button"))
+      .find((button) => button?.className.includes("draggable-handle"));
+    if (!sourceFocusButton) {
+      throw new Error("Expected unranked source focus button");
+    }
+
+    fireEvent.click(sourceFocusButton);
+
+    expect(sourceFocusButton.className.includes("border-[var(--accent-primary-hover)]")).toBe(true);
+    expect(sourceFocusButton.closest("[data-peek-item='true']")?.className).not.toContain("z-20");
+    expect(sourceFocusButton.querySelector("[data-animate]")?.getAttribute("data-animate")).toBe(
+      "true",
+    );
+  });
+
+  it("spotlights compact unranked items that have no source on tap", () => {
+    render(
+      <TierListBoard
+        sessionId="session_1"
+        participantId="participant_1"
+        tierConfig={[
+          { key: "S", label: "S", color: "#ff7f7f", sortOrder: 0 },
+          { key: "A", label: "A", color: "#ffbf7f", sortOrder: 1 },
+        ]}
+        sessionItems={[{ id: "item_2", label: "Go", imageUrl: "/img/go.webp" }]}
+        seededTiers={{ S: [], A: [] }}
+        onSubmitted={vi.fn()}
+      />,
+    );
+
+    const noSourceButton = screen
+      .getAllByText("Go")
+      .map((label) => label.closest("button"))
+      .find((button) => button?.className.includes("draggable-handle"));
+    if (!noSourceButton) {
+      throw new Error("Expected unranked no-source button");
+    }
+
+    expect(noSourceButton.querySelector("[data-animate]")?.getAttribute("data-animate")).toBe(
+      "false",
+    );
+
+    fireEvent.click(noSourceButton);
+
+    expect(noSourceButton.className.includes("border-[var(--accent-primary-hover)]")).toBe(true);
+    expect(noSourceButton.querySelector("[data-animate]")?.getAttribute("data-animate")).toBe(
+      "true",
+    );
   });
 
   it("restores stored vote drafts on mount and emits a notice", async () => {

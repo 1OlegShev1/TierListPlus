@@ -14,6 +14,8 @@ interface DeleteVoteButtonProps {
   canDeleteOverride?: boolean;
   className?: string;
   label?: string;
+  /** Where to navigate after a successful delete (default: the rankings list). */
+  redirectTo?: string;
 }
 
 export function DeleteVoteButton({
@@ -22,6 +24,7 @@ export function DeleteVoteButton({
   canDeleteOverride = false,
   className,
   label,
+  redirectTo = "/sessions",
 }: DeleteVoteButtonProps) {
   const { userId } = useUser();
   const router = useRouter();
@@ -36,7 +39,7 @@ export function DeleteVoteButton({
     setError(null);
     try {
       await apiDelete(`/api/sessions/${sessionId}`);
-      router.push("/sessions");
+      router.push(redirectTo);
       router.refresh();
     } catch (err) {
       setError(getErrorMessage(err, "Could not delete this ranking"));

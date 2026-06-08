@@ -4,6 +4,7 @@ import { CombinedAddItemTile } from "@/components/shared/CombinedAddItemTile";
 import type { UploadedImage } from "@/components/shared/ImageUploader";
 import { ItemArtwork } from "@/components/ui/ItemArtwork";
 import { CloseIcon } from "@/components/ui/icons";
+import { useDoubleTap } from "@/hooks/useDoubleTap";
 import { MAX_ITEM_LABEL_LENGTH } from "@/lib/item-source";
 import type { TemplateItemData } from "@/types";
 
@@ -16,6 +17,7 @@ interface ListEditorItemsGridProps {
   onOpenAddByUrl: () => void;
   onOpenItemSource: (index: number) => void;
   onCloseItemPreview: (index: number) => void;
+  onFocusItemPreview: (index: number) => void;
   onRemoveItem: (index: number) => void;
   onToggleItemPreview: (index: number) => void;
   onUpdateItemLabel: (index: number, value: string) => void;
@@ -36,6 +38,7 @@ export function ListEditorItemsGrid({
   onOpenAddByUrl,
   onOpenItemSource,
   onCloseItemPreview,
+  onFocusItemPreview,
   onRemoveItem,
   onToggleItemPreview,
   onUpdateItemLabel,
@@ -46,6 +49,15 @@ export function ListEditorItemsGrid({
   uploadsDisabled,
   userLoading,
 }: ListEditorItemsGridProps) {
+  const focusItemSource = (index: number) => {
+    onFocusItemPreview(index);
+    onOpenItemSource(index);
+  };
+
+  const doubleTap = useDoubleTap<number>({
+    onDoubleTap: (index) => focusItemSource(index),
+  });
+
   return (
     <div>
       <h3 className="mb-3 text-sm font-medium text-[var(--fg-muted)]">Picks ({items.length})</h3>
@@ -56,7 +68,11 @@ export function ListEditorItemsGrid({
             ref={(node) => {
               itemCardRefs.current[index] = node;
             }}
-            className="group relative rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-2"
+            className={`group relative rounded-lg border bg-[var(--bg-surface)] p-2 transition-all ${
+              previewingItemIndex === index
+                ? "border-[var(--accent-primary-hover)] shadow-lg ring-2 ring-[var(--focus-ring)]"
+                : "border-[var(--border-subtle)]"
+            }`}
           >
             <button
               type="button"
@@ -90,7 +106,17 @@ export function ListEditorItemsGrid({
             </button>
             <button
               type="button"
-              onClick={() => onToggleItemPreview(index)}
+              onClick={(event) => {
+                if (doubleTap.shouldIgnoreClick(event)) return;
+                onToggleItemPreview(index);
+              }}
+              onDoubleClick={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                focusItemSource(index);
+              }}
+              onPointerDown={doubleTap.onPointerDown}
+              onPointerUp={(event) => doubleTap.onPointerUp(event, index)}
               onBlur={(event) => {
                 const card = itemCardRefs.current[index];
                 const nextFocused = event.relatedTarget;

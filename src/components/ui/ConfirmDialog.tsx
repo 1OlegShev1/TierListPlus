@@ -2,7 +2,6 @@
 
 import { useEffect, useRef } from "react";
 import { Button } from "@/components/ui/Button";
-import { cn } from "@/lib/utils";
 
 interface ConfirmDialogProps {
   open: boolean;
@@ -56,16 +55,7 @@ export function ConfirmDialog({
         <Button variant="secondary" onClick={onCancel} disabled={loading}>
           Cancel
         </Button>
-        <Button
-          onClick={onConfirm}
-          disabled={loading}
-          className={cn(
-            confirmVariant === "danger" &&
-              "bg-[var(--action-danger-bg)] text-[var(--action-danger-fg)] hover:bg-[var(--action-danger-bg-hover)]",
-            confirmVariant === "primary" &&
-              "bg-[var(--action-primary-bg)] text-[var(--action-primary-fg)] hover:bg-[var(--action-primary-bg-hover)]",
-          )}
-        >
+        <Button variant={confirmVariant} onClick={onConfirm} disabled={loading}>
           {confirmButtonLabel}
         </Button>
       </div>

@@ -11,6 +11,7 @@ const mocks = vi.hoisted(() => ({
   },
   requireSessionAccess: vi.fn(),
   requireSessionOwner: vi.fn(),
+  getRequestAuth: vi.fn(),
   tryDeleteManagedUploadIfUnreferenced: vi.fn(),
 }));
 
@@ -23,18 +24,27 @@ vi.mock("@/lib/api-helpers", async () => {
     requireSessionOwner: mocks.requireSessionOwner,
   };
 });
+vi.mock("@/lib/auth", async () => {
+  const actual = await vi.importActual<typeof import("@/lib/auth")>("@/lib/auth");
+  return { ...actual, getRequestAuth: mocks.getRequestAuth };
+});
 vi.mock("@/lib/upload-gc", () => ({
   tryDeleteManagedUploadIfUnreferenced: mocks.tryDeleteManagedUploadIfUnreferenced,
 }));
 
 import { DELETE, GET, PATCH } from "@/app/api/sessions/[sessionId]/route";
+import { ApiError } from "@/lib/api-helpers";
 import { makeSession, makeSessionItem } from "../../helpers/mocks";
 import { jsonRequest, routeCtx } from "../../helpers/request";
 
 describe("session detail route", () => {
   beforeEach(() => {
+    // GET uses requireSessionAccess; DELETE/PATCH use requireSessionOwner.
     mocks.requireSessionAccess.mockReset().mockResolvedValue({ requestUserId: "user_1" });
     mocks.requireSessionOwner.mockReset().mockResolvedValue(undefined);
+    // Default: a plain signed-in user (not a moderator) → DELETE falls back to
+    // the requireSessionOwner ownership check.
+    mocks.getRequestAuth.mockReset().mockResolvedValue({ userId: "user_1", role: "USER" });
     mocks.prisma.session.findUnique.mockReset();
     mocks.prisma.session.update.mockReset();
     mocks.prisma.session.delete.mockReset();
@@ -207,5 +217,37 @@ describe("session detail route", () => {
       "/one.webp",
       "session delete",
     );
+  });
+
+  it("lets a moderator delete another user's ranking without an ownership check", async () => {
+    mocks.getRequestAuth.mockResolvedValue({ userId: "mod_user", role: "MODERATOR" });
+    mocks.prisma.session.findUnique.mockResolvedValue({
+      items: [],
+      template: { id: "template_1", isHidden: false, items: [], _count: { sessions: 1 } },
+    });
+
+    const response = await DELETE(
+      new Request("https://example.test", { method: "DELETE" }),
+      routeCtx({ sessionId: "s1" }),
+    );
+
+    expect(response.status).toBe(204);
+    // Moderators bypass the owner gate entirely.
+    expect(mocks.requireSessionOwner).not.toHaveBeenCalled();
+    expect(mocks.prisma.session.delete).toHaveBeenCalledWith({ where: { id: "s1" } });
+  });
+
+  it("forbids a non-owner, non-moderator from deleting someone else's ranking", async () => {
+    mocks.getRequestAuth.mockResolvedValue({ userId: "rando_user", role: "USER" });
+    // Non-moderators go through requireSessionOwner, which rejects non-owners.
+    mocks.requireSessionOwner.mockRejectedValueOnce(new ApiError(403, "Not authorized"));
+
+    const response = await DELETE(
+      new Request("https://example.test", { method: "DELETE" }),
+      routeCtx({ sessionId: "s1" }),
+    );
+
+    expect(response.status).toBe(403);
+    expect(mocks.prisma.session.delete).not.toHaveBeenCalled();
   });
 });

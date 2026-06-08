@@ -1,12 +1,14 @@
 import { NextResponse } from "next/server";
 import {
   canManageSessionItems,
+  isModerator,
   notFound,
   requireSessionAccess,
   requireSessionOwner,
   validateBody,
   withHandler,
 } from "@/lib/api-helpers";
+import { getRequestAuth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import {
   SESSION_PARTICIPANT_COUNT_SELECT,
@@ -87,7 +89,14 @@ export const PATCH = withHandler(async (request, { params }) => {
 
 export const DELETE = withHandler(async (request, { params }) => {
   const { sessionId } = await params;
-  await requireSessionOwner(request, sessionId);
+
+  // Moderators and admins can delete any ranking (clean-up of space + public
+  // content) without being gated by session readability. Everyone else must be
+  // the ranking's owner or the space owner.
+  const auth = await getRequestAuth(request);
+  if (!isModerator(auth?.role)) {
+    await requireSessionOwner(request, sessionId);
+  }
 
   const session = await prisma.session.findUnique({
     where: { id: sessionId },

@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from "react";
 import { ItemSourceModal } from "@/components/items/source-modal/ItemSourceModal";
 import { ItemArtwork } from "@/components/ui/ItemArtwork";
 import { CloseIcon } from "@/components/ui/icons";
+import { useDoubleTap } from "@/hooks/useDoubleTap";
 import type { ItemSourceProvider } from "@/types";
 import { EDITABLE_UNRANKED_ITEM_METRICS_CLASS } from "./sizing";
 
@@ -121,6 +122,19 @@ export function EditableUnrankedItemCard({
 
   const labelText = label.trim().length > 0 ? label : "Tap to name";
 
+  const openSource = () => {
+    if (saving || removing) return;
+    setSourceOpen(true);
+  };
+
+  const doubleTap = useDoubleTap<string>({
+    onDoubleTap: () => {
+      setPreviewing(true);
+      openSource();
+    },
+    enabled: () => !saving && !removing,
+  });
+
   useEffect(() => {
     if (!previewing) return;
 
@@ -146,7 +160,11 @@ export function EditableUnrankedItemCard({
         setNodeRef(node);
       }}
       style={style}
-      className={`group relative flex h-[var(--editable-item-height)] w-[var(--editable-item-width)] flex-shrink-0 flex-col rounded-lg border border-[var(--border-default)] bg-[var(--bg-elevated)] p-[var(--editable-item-padding)] ${EDITABLE_UNRANKED_ITEM_METRICS_CLASS}`}
+      className={`group relative flex h-[var(--editable-item-height)] w-[var(--editable-item-width)] flex-shrink-0 flex-col rounded-lg border bg-[var(--bg-elevated)] p-[var(--editable-item-padding)] transition-all ${EDITABLE_UNRANKED_ITEM_METRICS_CLASS} ${
+        previewing
+          ? "border-[var(--accent-primary-hover)] shadow-lg ring-2 ring-[var(--focus-ring)]"
+          : "border-[var(--border-default)]"
+      }`}
     >
       <button
         type="button"
@@ -209,7 +227,21 @@ export function EditableUnrankedItemCard({
           type="button"
           {...attributes}
           {...listeners}
-          onClick={() => setPreviewing((current) => !current)}
+          onClick={(event) => {
+            if (doubleTap.shouldIgnoreClick(event)) return;
+            setPreviewing((current) => !current);
+          }}
+          onDoubleClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            setPreviewing(true);
+            openSource();
+          }}
+          onPointerDown={(event) => {
+            doubleTap.onPointerDown();
+            listeners?.onPointerDown?.(event);
+          }}
+          onPointerUp={(event) => doubleTap.onPointerUp(event, id)}
           onContextMenu={(event) => event.preventDefault()}
           onDragStart={(event) => event.preventDefault()}
           onBlur={(event) => {

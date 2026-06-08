@@ -256,7 +256,7 @@ model SpaceInvite {
 model SessionItem {
   id             String          @id @default(cuid())
   sessionId      String
-  templateItemId String
+  templateItemId String?
   label          String
   imageUrl       String
   sourceUrl      String?
@@ -266,8 +266,11 @@ model SessionItem {
   sourceEndSec   Int?
   sortOrder      Int             @default(0)
 
-  session      Session      @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  templateItem TemplateItem @relation(fields: [templateItemId], references: [id])
+  session      Session       @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  // Soft provenance link to the source/working template item. SetNull (not the
+  // old Restrict) so template items can be edited/deleted freely; the session
+  // keeps its own snapshot (label/image) and votes either way.
+  templateItem TemplateItem? @relation(fields: [templateItemId], references: [id], onDelete: SetNull)
 
   tierVotes TierVote[]
 

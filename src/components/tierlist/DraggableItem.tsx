@@ -3,9 +3,10 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Link2 } from "lucide-react";
-import { useId } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { ItemArtwork } from "@/components/ui/ItemArtwork";
 import { CloseIcon } from "@/components/ui/icons";
+import { useDoubleTap } from "@/hooks/useDoubleTap";
 import type { ItemSourceProvider } from "@/types";
 import { COMPACT_DRAGGABLE_ITEM_METRICS_CLASS } from "./sizing";
 
@@ -28,6 +29,7 @@ interface DraggableItemProps {
   metricsClassName?: string;
   expandedScale?: number;
   compareDifferenceState?: "none" | "same" | "changed";
+  interactionMode?: "spotlight" | "sourceFocus";
 }
 
 export function DraggableItem({
@@ -49,15 +51,21 @@ export function DraggableItem({
   metricsClassName = COMPACT_DRAGGABLE_ITEM_METRICS_CLASS,
   expandedScale = 1.6,
   compareDifferenceState = "none",
+  interactionMode = "spotlight",
 }: DraggableItemProps) {
   const staticId = useId();
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  const [sourceFocused, setSourceFocused] = useState(false);
   const sortableId = overlay || !enableSorting ? `static-${staticId}` : id;
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: sortableId,
     disabled: overlay || !enableSorting,
   });
 
-  const expanded = !overlay && !isDragging && isExpanded;
+  const canOpenSource = !!onOpenSource && (canEditSource || !!sourceUrl);
+  const usesSourceFocus = interactionMode === "sourceFocus";
+  const expanded = !usesSourceFocus && !overlay && !isDragging && isExpanded;
+  const sourceFocusActive = usesSourceFocus && !overlay && !isDragging && sourceFocused;
   const dndTransform = CSS.Transform.toString(transform);
   const composedTransform = [dndTransform, expanded ? `scale(${expandedScale})` : null]
     .filter(Boolean)
@@ -82,10 +90,47 @@ export function DraggableItem({
     : expanded
       ? "opacity-100"
       : "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100";
+  const openSource = () => {
+    if (!canOpenSource || overlay) return;
+    onOpenSource(id);
+  };
+  const doubleTap = useDoubleTap<string>({
+    onDoubleTap: () => {
+      setSourceFocused(true);
+      openSource();
+    },
+    enabled: () => canOpenSource && !overlay,
+  });
+
+  useEffect(() => {
+    if (canOpenSource) return;
+    setSourceFocused(false);
+  }, [canOpenSource]);
+
+  useEffect(() => {
+    if (!sourceFocused) return;
+
+    const clearSourceFocus = (event: PointerEvent) => {
+      if (
+        rootRef.current &&
+        event.target instanceof Node &&
+        rootRef.current.contains(event.target)
+      ) {
+        return;
+      }
+      setSourceFocused(false);
+    };
+
+    document.addEventListener("pointerdown", clearSourceFocus, true);
+    return () => document.removeEventListener("pointerdown", clearSourceFocus, true);
+  }, [sourceFocused]);
 
   return (
     <div
-      ref={overlay || !enableSorting ? undefined : setNodeRef}
+      ref={(node) => {
+        rootRef.current = node;
+        if (!overlay && enableSorting) setNodeRef(node);
+      }}
       style={style}
       data-peek-item={overlay ? undefined : "true"}
       data-draggable-item={overlay ? undefined : "true"}
@@ -159,6 +204,11 @@ export function DraggableItem({
             ? undefined
             : (e) => {
                 e.preventDefault();
+                if (doubleTap.shouldIgnoreClick(e)) return;
+                if (usesSourceFocus) {
+                  setSourceFocused((current) => !current);
+                  return;
+                }
                 if (expanded) {
                   onCollapse?.();
                 } else {
@@ -166,6 +216,26 @@ export function DraggableItem({
                 }
               }
         }
+        onDoubleClick={
+          overlay
+            ? undefined
+            : (event) => {
+                if (!canOpenSource) return;
+                event.preventDefault();
+                event.stopPropagation();
+                setSourceFocused(true);
+                openSource();
+              }
+        }
+        onPointerDown={
+          overlay
+            ? undefined
+            : (e) => {
+                doubleTap.onPointerDown();
+                if (enableSorting) listeners?.onPointerDown?.(e);
+              }
+        }
+        onPointerUp={overlay ? undefined : (e) => doubleTap.onPointerUp(e, id)}
         onDragStart={(event) => event.preventDefault()}
         onContextMenu={overlay ? undefined : (e) => e.preventDefault()}
         className={`draggable-handle relative h-full w-full select-none overflow-hidden rounded-md border bg-transparent p-0 [-webkit-touch-callout:none] ${
@@ -173,7 +243,7 @@ export function DraggableItem({
         } ${
           overlay
             ? "shadow-xl ring-2 ring-[var(--accent-primary)]"
-            : expanded
+            : expanded || sourceFocusActive
               ? "border-[var(--accent-primary-hover)] shadow-2xl ring-2 ring-[var(--focus-ring)]"
               : isDragging
                 ? "border-[var(--accent-primary)] ring-2 ring-[var(--focus-ring)]"
@@ -186,7 +256,7 @@ export function DraggableItem({
           className="h-full w-full"
           presentation="ambient"
           draggable={false}
-          animate={expanded}
+          animate={expanded || sourceFocusActive}
           showAnimatedHint
         />
         <span
