@@ -1,3 +1,5 @@
+import crypto from "node:crypto";
+
 const WORDS = [
   "TIGER",
   "MAPLE",
@@ -54,12 +56,12 @@ export function generateRecoveryCode(): string {
   const picked: string[] = [];
   const used = new Set<number>();
   while (picked.length < 3) {
-    const idx = Math.floor(Math.random() * WORDS.length);
+    const idx = crypto.randomInt(WORDS.length);
     if (!used.has(idx)) {
       used.add(idx);
       picked.push(WORDS[idx]);
     }
   }
-  const num = Math.floor(Math.random() * 90) + 10; // 10-99
+  const num = crypto.randomInt(10, 100);
   return `${picked.join("-")}-${num}`;
 }
