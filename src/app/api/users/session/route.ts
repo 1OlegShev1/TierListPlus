@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { withHandler } from "@/lib/api-helpers";
-import { getRequestAuth, getRequestTokenVersion } from "@/lib/auth";
+import { getRequestAuth, shouldRefreshRequestSessionToken } from "@/lib/auth";
 import {
   createUserSessionToken,
   getClearedUserSessionCookieOptions,
@@ -9,7 +9,7 @@ import {
 } from "@/lib/user-session";
 
 export const GET = withHandler(async (request) => {
-  const tokenVersion = getRequestTokenVersion(request);
+  const shouldRefreshSessionToken = shouldRefreshRequestSessionToken(request);
   const auth = await getRequestAuth(request);
 
   if (!auth) {
@@ -26,7 +26,7 @@ export const GET = withHandler(async (request) => {
     role: auth.role,
   });
 
-  if (tokenVersion === 1) {
+  if (shouldRefreshSessionToken) {
     res.cookies.set(
       USER_SESSION_COOKIE,
       createUserSessionToken(auth.deviceId),

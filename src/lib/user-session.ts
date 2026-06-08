@@ -13,7 +13,14 @@ export type UserSessionToken =
       version: 2;
     };
 
-function getSessionSecret(): string {
+type VerifiedSecret = "current" | "previous";
+
+interface ParsedUserSessionTokenResult {
+  token: UserSessionToken;
+  verifiedWith: VerifiedSecret;
+}
+
+function getCurrentSessionSecret(): string {
   const secret = process.env.SESSION_SECRET;
   if (secret) return secret;
   if (process.env.NODE_ENV === "production") {
@@ -22,8 +29,18 @@ function getSessionSecret(): string {
   return "dev-only-session-secret-change-me";
 }
 
+function getPreviousSessionSecret(): string | null {
+  const secret = process.env.SESSION_SECRET_PREVIOUS;
+  if (!secret || secret === getCurrentSessionSecret()) return null;
+  return secret;
+}
+
+function signWithSecret(value: string, secret: string): string {
+  return crypto.createHmac("sha256", secret).update(value).digest("base64url");
+}
+
 function sign(value: string): string {
-  return crypto.createHmac("sha256", getSessionSecret()).update(value).digest("base64url");
+  return signWithSecret(value, getCurrentSessionSecret());
 }
 
 function parseCookieHeader(cookieHeader: string | null): Record<string, string> {
@@ -48,15 +65,37 @@ export function createUserSessionToken(deviceId: string): string {
   return `${encoded}.${signature}`;
 }
 
-export function parseUserSessionToken(token: string): UserSessionToken | null {
+function verifySignature(
+  encodedPayload: string,
+  signature: string,
+): { isValid: true; verifiedWith: VerifiedSecret } | { isValid: false } {
+  const secrets: Array<{ secret: string; verifiedWith: VerifiedSecret }> = [
+    { secret: getCurrentSessionSecret(), verifiedWith: "current" },
+  ];
+  const previousSecret = getPreviousSessionSecret();
+  if (previousSecret) {
+    secrets.push({ secret: previousSecret, verifiedWith: "previous" });
+  }
+
+  for (const { secret, verifiedWith } of secrets) {
+    const expected = signWithSecret(encodedPayload, secret);
+    if (signature.length !== expected.length) continue;
+
+    const isValid = crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected));
+    if (isValid) return { isValid: true, verifiedWith };
+  }
+
+  return { isValid: false };
+}
+
+export function parseUserSessionTokenWithMetadata(
+  token: string,
+): ParsedUserSessionTokenResult | null {
   const [encodedPayload, signature] = token.split(".");
   if (!encodedPayload || !signature) return null;
 
-  const expected = sign(encodedPayload);
-  if (signature.length !== expected.length) return null;
-
-  const isValid = crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected));
-  if (!isValid) return null;
+  const verification = verifySignature(encodedPayload, signature);
+  if (!verification.isValid) return null;
 
   try {
     const parsed = JSON.parse(Buffer.from(encodedPayload, "base64url").toString("utf8")) as {
@@ -66,16 +105,31 @@ export function parseUserSessionToken(token: string): UserSessionToken | null {
     };
     if (parsed.v === 1) {
       if (typeof parsed.userId !== "string" || parsed.userId.length === 0) return null;
-      return { userId: parsed.userId, version: 1 };
+      return {
+        token: { userId: parsed.userId, version: 1 },
+        verifiedWith: verification.verifiedWith,
+      };
     }
     if (parsed.v === 2) {
       if (typeof parsed.deviceId !== "string" || parsed.deviceId.length === 0) return null;
-      return { deviceId: parsed.deviceId, version: 2 };
+      return {
+        token: { deviceId: parsed.deviceId, version: 2 },
+        verifiedWith: verification.verifiedWith,
+      };
     }
     return null;
   } catch {
     return null;
   }
+}
+
+export function parseUserSessionToken(token: string): UserSessionToken | null {
+  return parseUserSessionTokenWithMetadata(token)?.token ?? null;
+}
+
+export function shouldRefreshUserSessionToken(token: string): boolean {
+  const parsed = parseUserSessionTokenWithMetadata(token);
+  return !!parsed && (parsed.token.version === 1 || parsed.verifiedWith === "previous");
 }
 
 export function readUserSessionTokenFromCookieHeader(cookieHeader: string | null): string | null {

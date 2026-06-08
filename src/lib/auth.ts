@@ -4,6 +4,7 @@ import {
   parseUserSessionToken,
   readUserSessionTokenFromCookieStore,
   readUserSessionTokenFromRequest,
+  shouldRefreshUserSessionToken,
 } from "@/lib/user-session";
 
 const LAST_SEEN_TOUCH_INTERVAL_MS = 5 * 60 * 1000;
@@ -127,6 +128,11 @@ export function getRequestTokenVersion(request: Request): 1 | 2 | null {
   const token = readUserSessionTokenFromRequest(request);
   const parsed = token ? parseUserSessionToken(token) : null;
   return parsed?.version ?? null;
+}
+
+export function shouldRefreshRequestSessionToken(request: Request): boolean {
+  const token = readUserSessionTokenFromRequest(request);
+  return token ? shouldRefreshUserSessionToken(token) : false;
 }
 
 export function getCookieTokenVersion(cookieStore: {

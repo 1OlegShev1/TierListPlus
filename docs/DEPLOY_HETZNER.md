@@ -36,6 +36,7 @@ POSTGRES_DB=tierlistplus
 POSTGRES_USER=tierlistplus
 POSTGRES_PASSWORD=<32-char-random>
 SESSION_SECRET=<64-char-random>
+SESSION_SECRET_PREVIOUS=
 ```
 
 Generate secrets:
@@ -44,6 +45,12 @@ Generate secrets:
 openssl rand -base64 48 | tr -dc 'A-Za-z0-9' | head -c 32; echo
 openssl rand -base64 96 | tr -dc 'A-Za-z0-9' | head -c 64; echo
 ```
+
+To rotate `SESSION_SECRET` without logging everyone out:
+1. Move the old `SESSION_SECRET` value to `SESSION_SECRET_PREVIOUS`.
+2. Generate and set a new `SESSION_SECRET`.
+3. Deploy once so valid old cookies are accepted and re-signed with the new secret.
+4. After the rotation window, remove `SESSION_SECRET_PREVIOUS` and deploy again.
 
 Lock down the file:
 
