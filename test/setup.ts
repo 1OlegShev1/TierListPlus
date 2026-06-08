@@ -61,43 +61,62 @@ function createInMemoryStorage(initial?: Map<string, string>): Storage {
   return storage;
 }
 
-function ensureLocalStorageApi(): void {
-  const root = globalThis as Record<string, unknown>;
-  const current = root.localStorage as (Storage & Record<string, unknown>) | undefined;
+function hasWorkingStorageApi(value: unknown): value is Storage {
+  if (!value || typeof value !== "object") return false;
+  const candidate = value as Record<string, unknown>;
+  return (
+    typeof candidate.getItem === "function" &&
+    typeof candidate.setItem === "function" &&
+    typeof candidate.removeItem === "function" &&
+    typeof candidate.clear === "function" &&
+    typeof candidate.key === "function"
+  );
+}
 
-  if (!current || typeof current !== "object") {
-    Object.defineProperty(root, "localStorage", {
+function readInitialEntries(value: unknown): Map<string, string> {
+  const initial = new Map<string, string>();
+  if (!value || typeof value !== "object") return initial;
+  // A broken Storage may be a Proxy whose get trap returns undefined, so guard each read.
+  try {
+    for (const [key, entry] of Object.entries(value)) {
+      if (STORAGE_API_KEYS.has(key)) continue;
+      if (typeof entry === "string") {
+        initial.set(key, entry);
+      }
+    }
+  } catch {
+    // Ignore: an inaccessible store contributes no entries.
+  }
+  return initial;
+}
+
+// Node 24's experimental Web Storage (enabled by vitest passing `--localstorage-file`
+// with an empty path) installs a broken `localStorage` Proxy whose methods resolve to
+// `undefined`. It shadows jsdom's storage and cannot be patched in place, because a
+// Proxy's get trap ignores any properties we (re)define on it. So when the existing
+// binding lacks a working API, replace the global outright with an in-memory store.
+function ensureStorageApi(name: "localStorage" | "sessionStorage"): void {
+  const targets: Array<Record<string, unknown>> = [globalThis as Record<string, unknown>];
+  const maybeWindow = (globalThis as unknown as { window?: Record<string, unknown> }).window;
+  if (maybeWindow && maybeWindow !== globalThis) {
+    targets.push(maybeWindow);
+  }
+
+  const current = (globalThis as Record<string, unknown>)[name];
+  if (hasWorkingStorageApi(current)) return;
+
+  const replacement = createInMemoryStorage(readInitialEntries(current));
+  for (const target of targets) {
+    Object.defineProperty(target, name, {
       configurable: true,
       writable: true,
-      value: createInMemoryStorage(),
+      value: replacement,
     });
-    return;
-  }
-
-  const hasStorageApi =
-    typeof current.getItem === "function" &&
-    typeof current.setItem === "function" &&
-    typeof current.removeItem === "function" &&
-    typeof current.clear === "function" &&
-    typeof current.key === "function";
-
-  if (hasStorageApi) return;
-
-  const initial = new Map<string, string>();
-  for (const [key, value] of Object.entries(current)) {
-    if (STORAGE_API_KEYS.has(key)) continue;
-    if (typeof value === "string") {
-      initial.set(key, value);
-    }
-  }
-
-  const patched = createInMemoryStorage(initial);
-  for (const [key, descriptor] of Object.entries(Object.getOwnPropertyDescriptors(patched))) {
-    Object.defineProperty(current, key, descriptor);
   }
 }
 
-ensureLocalStorageApi();
+ensureStorageApi("localStorage");
+ensureStorageApi("sessionStorage");
 
 afterEach(() => {
   vi.restoreAllMocks();

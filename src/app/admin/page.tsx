@@ -9,7 +9,7 @@ export default async function AdminPage() {
   const cookieStore = await cookies();
   const auth = await getCookieAuth(cookieStore);
 
-  if (!auth || auth.role !== "ADMIN") {
+  if (auth?.role !== "ADMIN") {
     notFound();
   }
 
