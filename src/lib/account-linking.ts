@@ -1,4 +1,4 @@
-import type { Participant } from "@prisma/client";
+import type { Draft, Participant } from "@prisma/client";
 import { pickParticipantSurvivor } from "@/lib/account-linking-helpers";
 import { prisma } from "@/lib/prisma";
 
@@ -9,6 +9,20 @@ function fail(status: number, details: string): never {
   error.status = status;
   error.details = details;
   throw error;
+}
+
+function getDraftMergeKey(draft: Pick<Draft, "kind" | "scope">): string {
+  return `${draft.kind}:${draft.scope}`;
+}
+
+function pickDraftSurvivor(drafts: Draft[], preferredUserId: string): Draft {
+  return drafts.slice().sort((a, b) => {
+    const updatedDiff = b.updatedAt.getTime() - a.updatedAt.getTime();
+    if (updatedDiff !== 0) return updatedDiff;
+    if (a.userId === preferredUserId && b.userId !== preferredUserId) return -1;
+    if (b.userId === preferredUserId && a.userId !== preferredUserId) return 1;
+    return a.createdAt.getTime() - b.createdAt.getTime();
+  })[0];
 }
 
 export async function mergeAccountIntoTarget(options: {
@@ -150,6 +164,39 @@ export async function mergeAccountIntoTarget(options: {
       if (duplicateIds.length > 0) {
         await tx.participant.deleteMany({
           where: { id: { in: duplicateIds } },
+        });
+      }
+    }
+
+    const drafts = await tx.draft.findMany({
+      where: { userId: { in: [currentUserId, targetUserId] } },
+      orderBy: [{ kind: "asc" }, { scope: "asc" }, { updatedAt: "desc" }],
+    });
+
+    const draftsByScope = new Map<string, Draft[]>();
+    for (const draft of drafts) {
+      const key = getDraftMergeKey(draft);
+      const bucket = draftsByScope.get(key) ?? [];
+      bucket.push(draft);
+      draftsByScope.set(key, bucket);
+    }
+
+    for (const scopedDrafts of draftsByScope.values()) {
+      const survivor = pickDraftSurvivor(scopedDrafts, targetUserId);
+      const duplicateIds = scopedDrafts
+        .filter((draft) => draft.id !== survivor.id)
+        .map((draft) => draft.id);
+
+      if (duplicateIds.length > 0) {
+        await tx.draft.deleteMany({
+          where: { id: { in: duplicateIds } },
+        });
+      }
+
+      if (survivor.userId !== targetUserId) {
+        await tx.draft.update({
+          where: { id: survivor.id },
+          data: { userId: targetUserId },
         });
       }
     }

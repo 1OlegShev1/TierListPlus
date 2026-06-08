@@ -8,11 +8,6 @@ export default defineConfig({
     environment: "node",
     globals: true,
     setupFiles: ["./test/setup.ts"],
-    // Node's experimental Web Storage (which vitest enables by passing
-    // `--localstorage-file`) installs a broken global `localStorage` that shadows
-    // jsdom's and whose methods resolve to undefined. Disable it so jsdom owns
-    // localStorage in component tests. See vitest #8757 / nodejs #60303.
-    execArgv: ["--no-webstorage"],
     coverage: {
       provider: "v8",
       include: [
