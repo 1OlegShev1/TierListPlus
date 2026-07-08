@@ -8,8 +8,14 @@ DB_DIR="${REMOTE_DIR}/db"
 UPLOADS_DIR="${REMOTE_DIR}/uploads"
 SSH_KEY="/home/tieradmin/.ssh/id_ed25519_mini_backup"
 KEEP_DAYS="${KEEP_DAYS:-21}"
-SSH_RETRY_ATTEMPTS="${SSH_RETRY_ATTEMPTS:-4}"
-SSH_RETRY_DELAY_SEC="${SSH_RETRY_DELAY_SEC:-3}"
+SSH_RETRY_ATTEMPTS="${SSH_RETRY_ATTEMPTS:-18}"
+SSH_RETRY_DELAY_SEC="${SSH_RETRY_DELAY_SEC:-30}"
+SSH_CONNECT_TIMEOUT="${SSH_CONNECT_TIMEOUT:-10}"
+SSH_CONNECTION_ATTEMPTS="${SSH_CONNECTION_ATTEMPTS:-2}"
+TAILSCALE_PREFLIGHT_ATTEMPTS="${TAILSCALE_PREFLIGHT_ATTEMPTS:-6}"
+TAILSCALE_PREFLIGHT_DELAY_SEC="${TAILSCALE_PREFLIGHT_DELAY_SEC:-10}"
+TAILSCALE_PREFLIGHT_COUNT="${TAILSCALE_PREFLIGHT_COUNT:-3}"
+TAILSCALE_PREFLIGHT_TIMEOUT="${TAILSCALE_PREFLIGHT_TIMEOUT:-5s}"
 
 TS="$(date -u +%Y%m%dT%H%M%SZ)"
 DB_BASE="tierlistplus_${TS}.dump"
@@ -24,8 +30,8 @@ SSH_OPTS=(
   -o BatchMode=yes
   -o IdentitiesOnly=yes
   -o StrictHostKeyChecking=accept-new
-  -o ConnectTimeout=10
-  -o ConnectionAttempts=2
+  -o ConnectTimeout="${SSH_CONNECT_TIMEOUT}"
+  -o ConnectionAttempts="${SSH_CONNECTION_ATTEMPTS}"
   -o ServerAliveInterval=5
   -o ServerAliveCountMax=2
   -o IPQoS=none
@@ -60,6 +66,18 @@ fail() {
   exit 1
 }
 
+tailscale_preflight_once() {
+  if ! command -v tailscale >/dev/null 2>&1; then
+    return 0
+  fi
+
+  tailscale ping \
+    --timeout="${TAILSCALE_PREFLIGHT_TIMEOUT}" \
+    --c="${TAILSCALE_PREFLIGHT_COUNT}" \
+    --until-direct=false \
+    "${REMOTE_HOST}" >/dev/null
+}
+
 db_stream_once() {
   sudo -n bash -lc 'cd /opt/tierlistplus && docker compose --profile with-domain --env-file .env.production -f docker-compose.prod.yml exec -T db sh -lc "pg_dump -Fc -U \"\$POSTGRES_USER\" \"\$POSTGRES_DB\""' |
     ssh "${SSH_OPTS[@]}" "${REMOTE_USER}@${REMOTE_HOST}" "cat > '${DB_TMP}'"
@@ -82,6 +100,8 @@ cleanup_partials() {
 }
 trap cleanup_partials EXIT
 
+SSH_RETRY_ATTEMPTS="${TAILSCALE_PREFLIGHT_ATTEMPTS}" SSH_RETRY_DELAY_SEC="${TAILSCALE_PREFLIGHT_DELAY_SEC}" \
+  retry "Tailscale backup target preflight" tailscale_preflight_once || fail "Tailscale backup target preflight failed"
 retry "Backup target setup" remote_run "mkdir -p '${DB_DIR}' '${UPLOADS_DIR}'" || fail "Backup target setup failed"
 
 # 1) Stream PostgreSQL logical backup directly to UM890.

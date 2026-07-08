@@ -150,11 +150,13 @@ function TrendChart({
   const data = days.map((day, i) => ({ day: day.slice(5), value: values[i] ?? 0 }));
   const total =
     mode === "cumulative" ? (values[values.length - 1] ?? 0) : values.reduce((a, b) => a + b, 0);
+  const maxValue = Math.max(0, ...values);
+  const yAxisWidth = Math.max(42, formatNumber(maxValue).length * 8 + 16);
   const gradientId = `grad-${label.replace(/\s+/g, "")}`;
   const tickInterval = Math.max(0, Math.ceil(days.length / 6) - 1);
 
   return (
-    <div className="rounded-2xl border border-[var(--border-default)] bg-[var(--bg-surface)] p-4">
+    <div className="min-w-0 rounded-2xl border border-[var(--border-default)] bg-[var(--bg-surface)] p-4">
       <div className="mb-2 flex items-baseline justify-between">
         <p className="text-sm font-medium text-[var(--fg-primary)]">{label}</p>
         <p className="text-xs text-[var(--fg-muted)]">
@@ -163,7 +165,7 @@ function TrendChart({
       </div>
       <div className="h-40">
         <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={data} margin={{ top: 4, right: 4, bottom: 0, left: -20 }}>
+          <AreaChart data={data} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
             <defs>
               <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor={color} stopOpacity={0.4} />
@@ -180,9 +182,10 @@ function TrendChart({
             />
             <YAxis
               tick={{ fontSize: 10, fill: "var(--fg-muted)" }}
+              tickMargin={8}
               tickLine={false}
               axisLine={false}
-              width={36}
+              width={yAxisWidth}
               allowDecimals={false}
             />
             <Tooltip

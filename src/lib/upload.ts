@@ -28,6 +28,7 @@ const INVALID_IMAGE_ERROR_PATTERNS = [
   "pixel limit",
   "not a known file format",
   "unable to decode",
+  "libpng read error",
 ];
 
 function isInvalidImageProcessingError(error: unknown): boolean {
