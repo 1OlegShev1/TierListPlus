@@ -1,7 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ensureUserIdentity, getLocalDeviceId, getLocalUserId } from "@/lib/device-identity";
+import {
+  ensureUserIdentity,
+  getLocalDeviceId,
+  getLocalUserId,
+  IdentityRecoveryRequiredError,
+  type SessionFailureCode,
+  startFreshIdentity,
+} from "@/lib/device-identity";
 
 /**
  * Hook that ensures a device-level user identity exists.
@@ -13,6 +20,7 @@ export function useUser() {
   const [deviceId, setDeviceId] = useState<string | null>(() => getLocalDeviceId());
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [recoveryReason, setRecoveryReason] = useState<SessionFailureCode | null>(null);
   const [retryTick, setRetryTick] = useState(0);
 
   useEffect(() => {
@@ -20,6 +28,7 @@ export function useUser() {
     let cancelled = false;
     setIsLoading(true);
     setError(null);
+    setRecoveryReason(null);
     ensureUserIdentity()
       .then((identity) => {
         if (!cancelled) {
@@ -28,11 +37,18 @@ export function useUser() {
           setIsLoading(false);
         }
       })
-      .catch(() => {
+      .catch((cause: unknown) => {
         if (!cancelled) {
           setUserId(null);
           setDeviceId(null);
-          setError("Could not initialize your device identity. Please retry.");
+          if (cause instanceof IdentityRecoveryRequiredError) {
+            setRecoveryReason(cause.code);
+            setError(
+              "This browser remembers an existing workspace, but its secure session is missing. Restore it from Devices or explicitly start fresh.",
+            );
+          } else {
+            setError("Could not initialize your device identity. Please retry.");
+          }
           setIsLoading(false);
         }
       });
@@ -46,5 +62,31 @@ export function useUser() {
     setRetryTick((v) => v + 1);
   };
 
-  return { userId, deviceId, isLoading, error, retry };
+  const startFresh = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const identity = await startFreshIdentity();
+      setUserId(identity.userId);
+      setDeviceId(identity.deviceId);
+      setRecoveryReason(null);
+      return identity;
+    } catch {
+      setError("Could not create a fresh workspace. Please retry.");
+      return null;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return {
+    userId,
+    deviceId,
+    isLoading,
+    error,
+    retry,
+    needsRecovery: recoveryReason != null,
+    recoveryReason,
+    startFresh,
+  };
 }

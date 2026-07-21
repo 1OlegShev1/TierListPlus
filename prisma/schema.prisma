@@ -62,6 +62,23 @@ model LinkCode {
   @@index([expiresAt])
 }
 
+/// Append-only operational trail for identity creation, recovery, and merges.
+/// IDs are intentionally not foreign keys so the trail survives account deletion.
+model IdentityEvent {
+  id            String   @id @default(cuid())
+  type          String
+  userId        String?
+  deviceId      String?
+  relatedUserId String?
+  reason        String?
+  metadata      Json?
+  createdAt     DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([deviceId, createdAt])
+  @@index([type, createdAt])
+}
+
 enum DraftKind {
   LIST_EDITOR
   VOTE_BOARD

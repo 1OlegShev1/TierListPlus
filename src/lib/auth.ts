@@ -25,6 +25,16 @@ export interface RequestAuth {
   device: Device;
 }
 
+export type AuthFailureCode =
+  | "SESSION_COOKIE_MISSING"
+  | "SESSION_TOKEN_INVALID"
+  | "SESSION_DEVICE_NOT_FOUND"
+  | "SESSION_DEVICE_REVOKED";
+
+export type RequestAuthResult =
+  | { ok: true; auth: RequestAuth }
+  | { ok: false; code: AuthFailureCode };
+
 async function touchDeviceIfStale(device: Device): Promise<Device> {
   if (Date.now() - device.lastSeenAt.getTime() < LAST_SEEN_TOUCH_INTERVAL_MS) {
     return device;
@@ -36,7 +46,7 @@ async function touchDeviceIfStale(device: Device): Promise<Device> {
   });
 }
 
-async function resolveDeviceAuth(deviceId: string): Promise<RequestAuth | null> {
+async function resolveDeviceAuth(deviceId: string): Promise<RequestAuthResult> {
   const device = await prisma.device.findUnique({
     where: { id: deviceId },
     select: {
@@ -53,23 +63,25 @@ async function resolveDeviceAuth(deviceId: string): Promise<RequestAuth | null> 
     },
   });
 
-  if (!device || device.revokedAt) {
-    return null;
-  }
+  if (!device) return { ok: false, code: "SESSION_DEVICE_NOT_FOUND" };
+  if (device.revokedAt) return { ok: false, code: "SESSION_DEVICE_REVOKED" };
 
   const { user, ...plainDevice } = device;
   const hydratedDevice = await touchDeviceIfStale(plainDevice);
   const role = user.role;
 
   return {
-    userId: hydratedDevice.userId,
-    deviceId: hydratedDevice.id,
-    role,
-    device: hydratedDevice,
+    ok: true,
+    auth: {
+      userId: hydratedDevice.userId,
+      deviceId: hydratedDevice.id,
+      role,
+      device: hydratedDevice,
+    },
   };
 }
 
-async function resolveLegacyUserAuth(userId: string): Promise<RequestAuth | null> {
+async function resolveLegacyUserAuth(userId: string): Promise<RequestAuthResult> {
   const device = await prisma.device.findFirst({
     where: {
       userId,
@@ -92,7 +104,13 @@ async function resolveLegacyUserAuth(userId: string): Promise<RequestAuth | null
   });
 
   if (!device) {
-    return null;
+    const revokedDevice = await prisma.device.findFirst({
+      where: { userId, isMigrationSeed: true },
+      select: { id: true },
+    });
+    return revokedDevice
+      ? { ok: false, code: "SESSION_DEVICE_REVOKED" }
+      : { ok: false, code: "SESSION_DEVICE_NOT_FOUND" };
   }
 
   const { user, ...plainDevice } = device;
@@ -100,21 +118,24 @@ async function resolveLegacyUserAuth(userId: string): Promise<RequestAuth | null
   const role: UserRole = user.role;
 
   return {
-    userId: hydratedDevice.userId,
-    deviceId: hydratedDevice.id,
-    role,
-    device: hydratedDevice,
+    ok: true,
+    auth: {
+      userId: hydratedDevice.userId,
+      deviceId: hydratedDevice.id,
+      role,
+      device: hydratedDevice,
+    },
   };
 }
 
-async function resolveSessionToken(token: string | null): Promise<RequestAuth | null> {
+async function resolveSessionToken(token: string | null): Promise<RequestAuthResult> {
   if (!token) {
-    return null;
+    return { ok: false, code: "SESSION_COOKIE_MISSING" };
   }
 
   const parsed = parseUserSessionToken(token);
   if (!parsed) {
-    return null;
+    return { ok: false, code: "SESSION_TOKEN_INVALID" };
   }
 
   if (parsed.version === 2) {
@@ -144,6 +165,11 @@ export function getCookieTokenVersion(cookieStore: {
 }
 
 export async function getRequestAuth(request: Request): Promise<RequestAuth | null> {
+  const result = await getRequestAuthResult(request);
+  return result.ok ? result.auth : null;
+}
+
+export async function getRequestAuthResult(request: Request): Promise<RequestAuthResult> {
   return resolveSessionToken(readUserSessionTokenFromRequest(request));
 }
 
@@ -158,5 +184,6 @@ export async function requireRequestAuth(request: Request): Promise<RequestAuth>
 export async function getCookieAuth(cookieStore: {
   get(name: string): { value: string } | undefined;
 }): Promise<RequestAuth | null> {
-  return resolveSessionToken(readUserSessionTokenFromCookieStore(cookieStore));
+  const result = await resolveSessionToken(readUserSessionTokenFromCookieStore(cookieStore));
+  return result.ok ? result.auth : null;
 }

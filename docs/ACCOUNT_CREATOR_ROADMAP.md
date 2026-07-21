@@ -16,11 +16,16 @@ The product line is:
 Identity today:
 - First visit creates a `User` and `Device`.
 - A signed httpOnly cookie points to the active `Device`.
+- Local storage is a continuity hint; if it remembers an identity while the cookie is unavailable,
+  the client enters recovery mode instead of silently creating another user.
 - Data ownership hangs off `User`.
 - `Device` rows can be linked/revoked.
-- `LinkCode` recovery can merge one anonymous account into another.
+- `LinkCode` recovery attaches an unauthenticated browser directly or merges an authenticated
+  anonymous account when it already contains work.
 - `mergeAccountIntoTarget` now preserves drafts and resolves duplicate draft scopes.
+- Account merges preserve the higher platform role.
 - `SESSION_SECRET_PREVIOUS` allows safe secret rotation.
+- `IdentityEvent` records user creation, device linking, and account merges.
 
 Important product constraint:
 - Anonymous creation and voting are a competitive advantage.
@@ -113,10 +118,14 @@ Shipped hardening:
 - Session secret rotation support.
 - Cryptographic recovery-code randomness.
 - Per-device recovery redemption rate limiting.
+- No silent user recreation when a remembered browser loses its session cookie.
+- Direct link-code recovery without a temporary user.
+- Structured session failure reasons and identity audit events.
+- Platform-role preservation during account merge.
 
 Remaining possible hardening:
 - DB-backed rate limits for auth-sensitive flows instead of process-local memory limits.
-- Audit events for account merge, email link, device revoke, and suspicious throttling.
+- Additional audit events for email link, device revoke, and suspicious throttling.
 - Cleanup job for expired verification tokens and old link codes.
 
 ## Stage 1: Optional Email Persistence

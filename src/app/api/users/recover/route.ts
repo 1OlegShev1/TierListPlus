@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { z } from "zod/v4";
-import { mergeAccountIntoTarget } from "@/lib/account-linking";
-import { badRequest, notFound, validateBody, withHandler } from "@/lib/api-helpers";
-import { requireRequestAuth } from "@/lib/auth";
+import { linkDeviceToTarget, mergeAccountIntoTarget } from "@/lib/account-linking";
+import { notFound, validateBody, withHandler } from "@/lib/api-helpers";
+import { getRequestAuth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { takeRateLimitToken } from "@/lib/rate-limit";
+import { getRequestClientKey } from "@/lib/request-client-key";
 import {
   createUserSessionToken,
   getUserSessionCookieOptions,
@@ -20,9 +21,11 @@ const recoverSchema = z.object({
 });
 
 export const POST = withHandler(async (request) => {
-  const auth = await requireRequestAuth(request);
+  const auth = await getRequestAuth(request);
   const rateLimit = takeRateLimitToken({
-    key: `recover:${auth.deviceId}`,
+    key: auth
+      ? `recover:device:${auth.deviceId}`
+      : getRequestClientKey(request, "recover-anonymous"),
     maxRequests: RECOVERY_ATTEMPT_RATE_LIMIT_MAX_REQUESTS,
     windowMs: RECOVERY_ATTEMPT_RATE_LIMIT_WINDOW_MS,
   });
@@ -48,17 +51,19 @@ export const POST = withHandler(async (request) => {
     notFound("No account found with that recovery code");
   }
 
-  if (auth.device.revokedAt) {
-    badRequest("Current device is not active");
-  }
-
-  const result = await mergeAccountIntoTarget({
-    currentDeviceId: auth.deviceId,
-    currentUserId: auth.userId,
-    targetUserId: linkCode.userId,
-    deviceName,
-    linkCodeId: linkCode.id,
-  });
+  const result = auth
+    ? await mergeAccountIntoTarget({
+        currentDeviceId: auth.deviceId,
+        currentUserId: auth.userId,
+        targetUserId: linkCode.userId,
+        deviceName,
+        linkCodeId: linkCode.id,
+      })
+    : await linkDeviceToTarget({
+        targetUserId: linkCode.userId,
+        deviceName,
+        linkCodeId: linkCode.id,
+      });
 
   const res = NextResponse.json({ userId: result.userId, deviceId: result.deviceId });
   res.cookies.set(

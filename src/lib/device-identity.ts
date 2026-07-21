@@ -6,6 +6,29 @@ export interface StoredIdentity {
   deviceId: string;
 }
 
+export type SessionFailureCode =
+  | "SESSION_COOKIE_MISSING"
+  | "SESSION_TOKEN_INVALID"
+  | "SESSION_DEVICE_NOT_FOUND"
+  | "SESSION_DEVICE_REVOKED";
+
+const SESSION_FAILURE_CODES = new Set<SessionFailureCode>([
+  "SESSION_COOKIE_MISSING",
+  "SESSION_TOKEN_INVALID",
+  "SESSION_DEVICE_NOT_FOUND",
+  "SESSION_DEVICE_REVOKED",
+]);
+
+export class IdentityRecoveryRequiredError extends Error {
+  constructor(
+    public code: SessionFailureCode,
+    public rememberedIdentity: StoredIdentity | null,
+  ) {
+    super("This browser remembers an existing workspace, but its secure session is missing.");
+    this.name = "IdentityRecoveryRequiredError";
+  }
+}
+
 function getLegacyLocalUserId(): string | null {
   if (typeof window === "undefined") return null;
   return localStorage.getItem(LEGACY_STORAGE_KEY);
@@ -48,8 +71,12 @@ export function clearLocalIdentity() {
 }
 
 /** Create a new user on the server and persist the identity locally. */
-async function createUser(): Promise<StoredIdentity> {
-  const res = await fetch("/api/users", { method: "POST" });
+async function createUser(reason: "FIRST_VISIT" | "EXPLICIT_FRESH_START"): Promise<StoredIdentity> {
+  const res = await fetch("/api/users", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ reason }),
+  });
   if (!res.ok) throw new Error("Failed to create user");
   const data = (await res.json()) as {
     id?: unknown;
@@ -74,9 +101,18 @@ async function createUser(): Promise<StoredIdentity> {
 }
 
 /** Validate that a signed user session cookie exists and return its identity. */
-async function getSessionIdentity(): Promise<StoredIdentity | null> {
+async function getSessionIdentity(): Promise<
+  { ok: true; identity: StoredIdentity } | { ok: false; code: SessionFailureCode }
+> {
   const res = await fetch("/api/users/session", { cache: "no-store" });
-  if (res.status === 401) return null;
+  if (res.status === 401) {
+    const data = (await res.json().catch(() => null)) as { code?: unknown } | null;
+    const code =
+      typeof data?.code === "string" && SESSION_FAILURE_CODES.has(data.code as SessionFailureCode)
+        ? (data.code as SessionFailureCode)
+        : "SESSION_TOKEN_INVALID";
+    return { ok: false, code };
+  }
   if (!res.ok) throw new Error("Failed to validate user session");
   const data = (await res.json()) as { id?: unknown; userId?: unknown; deviceId?: unknown };
   const userId =
@@ -90,7 +126,7 @@ async function getSessionIdentity(): Promise<StoredIdentity | null> {
 
   if (!userId || !deviceId) throw new Error("Failed to validate user session");
 
-  return { userId, deviceId };
+  return { ok: true, identity: { userId, deviceId } };
 }
 
 /** Singleton promise to prevent concurrent user creation. */
@@ -103,10 +139,12 @@ let pending: Promise<StoredIdentity> | null = null;
  */
 export function ensureUserIdentity(): Promise<StoredIdentity> {
   const existing = getLocalIdentity();
+  const hasRememberedIdentity = existing != null || getLegacyLocalUserId() != null;
   if (!pending) {
     pending = (async () => {
-      const sessionIdentity = await getSessionIdentity();
-      if (sessionIdentity) {
+      const sessionResult = await getSessionIdentity();
+      if (sessionResult.ok) {
+        const sessionIdentity = sessionResult.identity;
         if (
           !existing ||
           sessionIdentity.userId !== existing.userId ||
@@ -116,8 +154,23 @@ export function ensureUserIdentity(): Promise<StoredIdentity> {
         }
         return sessionIdentity;
       }
-      return createUser();
+
+      if (hasRememberedIdentity) {
+        throw new IdentityRecoveryRequiredError(sessionResult.code, existing);
+      }
+
+      return createUser("FIRST_VISIT");
     })().finally(() => {
+      pending = null;
+    });
+  }
+  return pending;
+}
+
+export function startFreshIdentity(): Promise<StoredIdentity> {
+  clearLocalIdentity();
+  if (!pending) {
+    pending = createUser("EXPLICIT_FRESH_START").finally(() => {
       pending = null;
     });
   }

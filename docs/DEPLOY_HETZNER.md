@@ -167,6 +167,10 @@ ssh tieradmin@100.120.76.1 "sudo docker compose --profile with-domain --env-file
 ssh tieradmin@100.120.76.1 "sudo docker compose --profile with-domain --env-file /opt/tierlistplus/.env.production -f /opt/tierlistplus/docker-compose.prod.yml logs -f caddy"
 ```
 
+For lost ownership, unexpected user recreation, or missing administrator access, follow the
+[identity incident operator runbook](IDENTITY_INCIDENT_2026-07-19.md) before changing roles or
+deleting users.
+
 ## Monitoring
 
 Install the built-in healthcheck timer from your local machine:

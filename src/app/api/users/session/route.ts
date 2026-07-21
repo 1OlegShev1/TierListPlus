@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { withHandler } from "@/lib/api-helpers";
-import { getRequestAuth, shouldRefreshRequestSessionToken } from "@/lib/auth";
+import { getRequestAuthResult, shouldRefreshRequestSessionToken } from "@/lib/auth";
 import {
   createUserSessionToken,
   getClearedUserSessionCookieOptions,
@@ -10,13 +10,18 @@ import {
 
 export const GET = withHandler(async (request) => {
   const shouldRefreshSessionToken = shouldRefreshRequestSessionToken(request);
-  const auth = await getRequestAuth(request);
+  const authResult = await getRequestAuthResult(request);
 
-  if (!auth) {
-    const res = NextResponse.json({ error: "User identity required" }, { status: 401 });
+  if (!authResult.ok) {
+    const res = NextResponse.json(
+      { error: "User identity required", code: authResult.code },
+      { status: 401 },
+    );
     res.cookies.set(USER_SESSION_COOKIE, "", getClearedUserSessionCookieOptions());
     return res;
   }
+
+  const { auth } = authResult;
 
   const res = NextResponse.json({
     id: auth.userId,

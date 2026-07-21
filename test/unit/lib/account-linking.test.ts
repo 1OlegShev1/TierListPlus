@@ -6,7 +6,7 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("@/lib/prisma", () => ({ prisma: mocks.prisma }));
 
-import { mergeAccountIntoTarget } from "@/lib/account-linking";
+import { linkDeviceToTarget, mergeAccountIntoTarget } from "@/lib/account-linking";
 
 function makeDraft(overrides: Record<string, unknown> = {}) {
   return {
@@ -52,10 +52,12 @@ describe("mergeAccountIntoTarget", () => {
       user: {
         findUnique: vi
           .fn()
-          .mockResolvedValueOnce({ id: "source" })
-          .mockResolvedValueOnce({ id: "target" }),
+          .mockResolvedValueOnce({ id: "source", role: "ADMIN", nickname: "Source Admin" })
+          .mockResolvedValueOnce({ id: "target", role: "USER", nickname: null }),
+        update: vi.fn().mockResolvedValue({}),
         delete: vi.fn().mockResolvedValue({}),
       },
+      identityEvent: { create: vi.fn().mockResolvedValue({}) },
       template: { updateMany: vi.fn().mockResolvedValue({ count: 0 }) },
       session: { updateMany: vi.fn().mockResolvedValue({ count: 0 }) },
       space: { updateMany: vi.fn().mockResolvedValue({ count: 0 }) },
@@ -118,5 +120,59 @@ describe("mergeAccountIntoTarget", () => {
       data: { userId: "target" },
     });
     expect(tx.user.delete).toHaveBeenCalledWith({ where: { id: "source" } });
+    expect(tx.user.update).toHaveBeenCalledWith({
+      where: { id: "target" },
+      data: { role: "ADMIN", nickname: "Source Admin" },
+    });
+    expect(tx.identityEvent.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        type: "ACCOUNT_MERGED",
+        userId: "target",
+        relatedUserId: "source",
+        metadata: expect.objectContaining({ survivingRole: "ADMIN" }),
+      }),
+    });
+  });
+
+  it("links a browser directly to the target when no source session exists", async () => {
+    const tx = {
+      linkCode: {
+        findUnique: vi.fn().mockResolvedValue({
+          id: "link_1",
+          userId: "target",
+          expiresAt: new Date(Date.now() + 60_000),
+          consumedAt: null,
+        }),
+        updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+      },
+      user: {
+        findUnique: vi.fn().mockResolvedValue({ id: "target" }),
+      },
+      device: {
+        create: vi.fn().mockResolvedValue({ id: "device_new" }),
+      },
+      identityEvent: { create: vi.fn().mockResolvedValue({}) },
+    };
+    mocks.prisma.$transaction.mockImplementation((fn) => fn(tx));
+
+    await expect(
+      linkDeviceToTarget({
+        targetUserId: "target",
+        deviceName: "Restored Chrome",
+        linkCodeId: "link_1",
+      }),
+    ).resolves.toEqual({ userId: "target", deviceId: "device_new" });
+
+    expect(tx.device.create).toHaveBeenCalledWith({
+      data: { userId: "target", displayName: "Restored Chrome" },
+    });
+    expect(tx.identityEvent.create).toHaveBeenCalledWith({
+      data: {
+        type: "DEVICE_LINKED",
+        userId: "target",
+        deviceId: "device_new",
+        reason: "LINK_CODE_WITHOUT_SESSION",
+      },
+    });
   });
 });

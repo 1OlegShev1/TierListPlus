@@ -1,8 +1,14 @@
-import type { Draft, Participant } from "@prisma/client";
+import type { Draft, Participant, UserRole } from "@prisma/client";
 import { pickParticipantSurvivor } from "@/lib/account-linking-helpers";
 import { prisma } from "@/lib/prisma";
 
 export const LINK_CODE_TTL_MS = 15 * 60 * 1000;
+
+const ROLE_RANK: Record<UserRole, number> = {
+  USER: 0,
+  MODERATOR: 1,
+  ADMIN: 2,
+};
 
 function fail(status: number, details: string): never {
   const error = new Error(details) as Error & { status: number; details: string };
@@ -23,6 +29,65 @@ function pickDraftSurvivor(drafts: Draft[], preferredUserId: string): Draft {
     if (b.userId === preferredUserId && a.userId !== preferredUserId) return 1;
     return a.createdAt.getTime() - b.createdAt.getTime();
   })[0];
+}
+
+function pickHigherRole(sourceRole: UserRole, targetRole: UserRole): UserRole {
+  return ROLE_RANK[sourceRole] > ROLE_RANK[targetRole] ? sourceRole : targetRole;
+}
+
+export async function linkDeviceToTarget(options: {
+  targetUserId: string;
+  deviceName: string;
+  linkCodeId: string;
+}) {
+  const { targetUserId, deviceName, linkCodeId } = options;
+
+  return prisma.$transaction(async (tx) => {
+    const [linkCode, targetUser] = await Promise.all([
+      tx.linkCode.findUnique({ where: { id: linkCodeId } }),
+      tx.user.findUnique({ where: { id: targetUserId }, select: { id: true } }),
+    ]);
+    const now = new Date();
+
+    if (
+      !linkCode ||
+      linkCode.userId !== targetUserId ||
+      linkCode.consumedAt ||
+      linkCode.expiresAt <= now
+    ) {
+      fail(400, "Link code is invalid or expired");
+    }
+    if (!targetUser) fail(404, "User not found");
+
+    const consumed = await tx.linkCode.updateMany({
+      where: {
+        id: linkCodeId,
+        userId: targetUserId,
+        consumedAt: null,
+        expiresAt: { gt: now },
+      },
+      data: { consumedAt: now },
+    });
+    if (consumed.count !== 1) fail(400, "Link code is invalid or expired");
+
+    const device = await tx.device.create({
+      data: {
+        userId: targetUserId,
+        displayName: deviceName,
+      },
+    });
+
+    await tx.identityEvent.create({
+      data: {
+        type: "DEVICE_LINKED",
+        userId: targetUserId,
+        deviceId: device.id,
+        reason: "LINK_CODE_WITHOUT_SESSION",
+      },
+    });
+
+    return { userId: targetUserId, deviceId: device.id };
+  });
 }
 
 export async function mergeAccountIntoTarget(options: {
@@ -72,10 +137,31 @@ export async function mergeAccountIntoTarget(options: {
         data: { consumedAt: now },
       });
 
+      await tx.identityEvent.create({
+        data: {
+          type: "DEVICE_LINKED",
+          userId: targetUserId,
+          deviceId: renamedDevice.id,
+          reason: "LINK_CODE_EXISTING_SESSION",
+        },
+      });
+
       return {
         userId: targetUserId,
         deviceId: renamedDevice.id,
       };
+    }
+
+    const survivingRole = pickHigherRole(sourceUser.role, targetUser.role);
+    const survivingNickname = targetUser.nickname ?? sourceUser.nickname;
+    if (survivingRole !== targetUser.role || survivingNickname !== targetUser.nickname) {
+      await tx.user.update({
+        where: { id: targetUserId },
+        data: {
+          role: survivingRole,
+          nickname: survivingNickname,
+        },
+      });
     }
 
     await tx.template.updateMany({
@@ -222,6 +308,21 @@ export async function mergeAccountIntoTarget(options: {
     await tx.linkCode.update({
       where: { id: linkCodeId },
       data: { consumedAt: now },
+    });
+
+    await tx.identityEvent.create({
+      data: {
+        type: "ACCOUNT_MERGED",
+        userId: targetUserId,
+        deviceId: renamedDevice.id,
+        relatedUserId: currentUserId,
+        reason: "LINK_CODE",
+        metadata: {
+          sourceRole: sourceUser.role,
+          targetRole: targetUser.role,
+          survivingRole,
+        },
+      },
     });
 
     await tx.user.delete({

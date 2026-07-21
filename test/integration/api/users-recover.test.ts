@@ -4,17 +4,19 @@ const mocks = vi.hoisted(() => ({
       findUnique: vi.fn(),
     },
   },
-  requireRequestAuth: vi.fn(),
+  getRequestAuth: vi.fn(),
   mergeAccountIntoTarget: vi.fn(),
+  linkDeviceToTarget: vi.fn(),
   takeRateLimitToken: vi.fn(),
 }));
 
 vi.mock("@/lib/prisma", () => ({ prisma: mocks.prisma }));
 vi.mock("@/lib/auth", () => ({
-  requireRequestAuth: mocks.requireRequestAuth,
+  getRequestAuth: mocks.getRequestAuth,
 }));
 vi.mock("@/lib/account-linking", () => ({
   mergeAccountIntoTarget: mocks.mergeAccountIntoTarget,
+  linkDeviceToTarget: mocks.linkDeviceToTarget,
 }));
 vi.mock("@/lib/rate-limit", () => ({
   takeRateLimitToken: mocks.takeRateLimitToken,
@@ -28,7 +30,7 @@ describe("users recover route", () => {
 
   beforeEach(() => {
     mocks.prisma.linkCode.findUnique.mockReset();
-    mocks.requireRequestAuth.mockReset().mockResolvedValue({
+    mocks.getRequestAuth.mockReset().mockResolvedValue({
       userId: "user_1",
       deviceId: "device_1",
       device: {
@@ -38,6 +40,10 @@ describe("users recover route", () => {
     mocks.mergeAccountIntoTarget.mockReset().mockResolvedValue({
       userId: "user_2",
       deviceId: "device_9",
+    });
+    mocks.linkDeviceToTarget.mockReset().mockResolvedValue({
+      userId: "user_2",
+      deviceId: "device_new",
     });
     mocks.takeRateLimitToken.mockReset().mockReturnValue({
       allowed: true,
@@ -65,7 +71,7 @@ describe("users recover route", () => {
       error: "Too many recovery attempts. Please wait and try again.",
     });
     expect(mocks.takeRateLimitToken).toHaveBeenCalledWith({
-      key: "recover:device_1",
+      key: "recover:device:device_1",
       maxRequests: 10,
       windowMs: 15 * 60 * 1000,
     });
@@ -102,39 +108,14 @@ describe("users recover route", () => {
     expect(response.status).toBe(404);
   });
 
-  it("rejects revoked devices and merges accounts on success", async () => {
+  it("merges an authenticated account into the link-code owner", async () => {
     mocks.prisma.linkCode.findUnique.mockResolvedValue({
       id: "link_1",
       userId: "user_2",
       expiresAt: new Date(now + 86_400_000),
       consumedAt: null,
     });
-    mocks.requireRequestAuth.mockResolvedValueOnce({
-      userId: "user_1",
-      deviceId: "device_1",
-      device: {
-        revokedAt: new Date("2026-03-02T00:00:00.000Z"),
-      },
-    });
-
-    let response = await POST(
-      jsonRequest("POST", "https://example.test", {
-        recoveryCode: "abc123",
-        deviceName: "Phone",
-      }),
-      { params: Promise.resolve({}) },
-    );
-    expect(response.status).toBe(400);
-    await expect(response.json()).resolves.toEqual({ error: "Current device is not active" });
-
-    mocks.requireRequestAuth.mockResolvedValue({
-      userId: "user_1",
-      deviceId: "device_1",
-      device: {
-        revokedAt: null,
-      },
-    });
-    response = await POST(
+    const response = await POST(
       jsonRequest("POST", "https://example.test", {
         recoveryCode: "abc123",
         deviceName: "Phone",
@@ -149,6 +130,45 @@ describe("users recover route", () => {
       targetUserId: "user_2",
       deviceName: "Phone",
       linkCodeId: "link_1",
+    });
+    expect(mocks.linkDeviceToTarget).not.toHaveBeenCalled();
+    expect(response.headers.get("set-cookie")).toContain("tierlistplus_session=");
+  });
+
+  it("links an unauthenticated browser directly without creating a temporary user", async () => {
+    mocks.getRequestAuth.mockResolvedValue(null);
+    mocks.prisma.linkCode.findUnique.mockResolvedValue({
+      id: "link_1",
+      userId: "user_2",
+      expiresAt: new Date(now + 86_400_000),
+      consumedAt: null,
+    });
+
+    const response = await POST(
+      jsonRequest(
+        "POST",
+        "https://example.test",
+        { recoveryCode: "abc123", deviceName: "Restored Chrome" },
+        { "x-forwarded-for": "203.0.113.9" },
+      ),
+      { params: Promise.resolve({}) },
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({
+      userId: "user_2",
+      deviceId: "device_new",
+    });
+    expect(mocks.linkDeviceToTarget).toHaveBeenCalledWith({
+      targetUserId: "user_2",
+      deviceName: "Restored Chrome",
+      linkCodeId: "link_1",
+    });
+    expect(mocks.mergeAccountIntoTarget).not.toHaveBeenCalled();
+    expect(mocks.takeRateLimitToken).toHaveBeenCalledWith({
+      key: "recover-anonymous:ip:203.0.113.9",
+      maxRequests: 10,
+      windowMs: 15 * 60 * 1000,
     });
     expect(response.headers.get("set-cookie")).toContain("tierlistplus_session=");
   });

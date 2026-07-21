@@ -2,13 +2,13 @@ const mocks = vi.hoisted(() => ({
   prisma: {
     $transaction: vi.fn(),
   },
-  getRequestAuth: vi.fn(),
+  getRequestAuthResult: vi.fn(),
   shouldRefreshRequestSessionToken: vi.fn(),
 }));
 
 vi.mock("@/lib/prisma", () => ({ prisma: mocks.prisma }));
 vi.mock("@/lib/auth", () => ({
-  getRequestAuth: mocks.getRequestAuth,
+  getRequestAuthResult: mocks.getRequestAuthResult,
   shouldRefreshRequestSessionToken: mocks.shouldRefreshRequestSessionToken,
 }));
 
@@ -19,7 +19,7 @@ import { makeDevice, makeUser } from "../../helpers/mocks";
 describe("user routes", () => {
   beforeEach(() => {
     mocks.prisma.$transaction.mockReset();
-    mocks.getRequestAuth.mockReset();
+    mocks.getRequestAuthResult.mockReset();
     mocks.shouldRefreshRequestSessionToken.mockReset().mockReturnValue(false);
   });
 
@@ -28,6 +28,7 @@ describe("user routes", () => {
       fn({
         user: { create: vi.fn().mockResolvedValue(makeUser()) },
         device: { create: vi.fn().mockResolvedValue(makeDevice()) },
+        identityEvent: { create: vi.fn().mockResolvedValue({}) },
       }),
     );
 
@@ -45,20 +46,29 @@ describe("user routes", () => {
   });
 
   it("returns 401 for missing auth and refreshes stale session tokens", async () => {
-    mocks.getRequestAuth.mockResolvedValue(null);
+    mocks.getRequestAuthResult.mockResolvedValue({
+      ok: false,
+      code: "SESSION_COOKIE_MISSING",
+    });
 
     let response = await getSession(new Request("https://example.test"), {
       params: Promise.resolve({}),
     });
     expect(response.status).toBe(401);
-    await expect(response.json()).resolves.toEqual({ error: "User identity required" });
+    await expect(response.json()).resolves.toEqual({
+      error: "User identity required",
+      code: "SESSION_COOKIE_MISSING",
+    });
 
     mocks.shouldRefreshRequestSessionToken.mockReturnValue(true);
-    mocks.getRequestAuth.mockResolvedValue({
-      userId: "user_1",
-      deviceId: "device_1",
-      role: "USER",
-      device: makeDevice(),
+    mocks.getRequestAuthResult.mockResolvedValue({
+      ok: true,
+      auth: {
+        userId: "user_1",
+        deviceId: "device_1",
+        role: "USER",
+        device: makeDevice(),
+      },
     });
     response = await getSession(new Request("https://example.test"), {
       params: Promise.resolve({}),

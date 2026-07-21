@@ -6,6 +6,7 @@ import {
   LinkedBrowsersSection,
 } from "@/components/dashboard/LinkedBrowsersSection";
 import { Button } from "@/components/ui/Button";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { ErrorMessage } from "@/components/ui/ErrorMessage";
 import { Input } from "@/components/ui/Input";
 import { clearAllParticipants } from "@/hooks/useParticipant";
@@ -19,7 +20,7 @@ interface LinkCodePayload {
 }
 
 export function RecoverySection() {
-  const { userId, isLoading: userLoading } = useUser();
+  const { userId, isLoading: userLoading, error: userError, needsRecovery, startFresh } = useUser();
   const [activeLinkCode, setActiveLinkCode] = useState<ActiveLinkCodeSummary | null>(null);
 
   const [generating, setGenerating] = useState(false);
@@ -41,6 +42,8 @@ export function RecoverySection() {
   const [linking, setLinking] = useState(false);
   const [linkError, setLinkError] = useState("");
   const [linked, setLinked] = useState(false);
+  const [showStartFreshConfirm, setShowStartFreshConfirm] = useState(false);
+  const [startingFresh, setStartingFresh] = useState(false);
 
   useEffect(() => {
     const rawLinkCode = new URLSearchParams(window.location.search).get("linkCode");
@@ -216,48 +219,111 @@ export function RecoverySection() {
     }
   };
 
+  const confirmStartFresh = async () => {
+    setStartingFresh(true);
+    const identity = await startFresh();
+    if (identity) {
+      clearAllParticipants();
+      setShowStartFreshConfirm(false);
+      window.location.reload();
+      return;
+    }
+    setStartingFresh(false);
+  };
+
   return (
     <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface)] p-4 sm:p-6">
+      {needsRecovery ? (
+        <section className="mb-4 rounded-xl border border-[var(--accent-primary)]/45 bg-[var(--accent-primary)]/10 p-4 sm:p-5">
+          <h2 className="text-base font-semibold text-[var(--fg-primary)]">
+            Restore this browser&apos;s workspace
+          </h2>
+          <p className="mt-1 text-sm text-[var(--fg-muted)]">
+            This Chrome profile remembers an existing workspace, but its secure session cookie is
+            missing or no longer valid. TierList+ has not created a replacement account.
+          </p>
+          <p className="mt-2 text-sm text-[var(--fg-muted)]">
+            Generate a one-time link code from another linked browser, then enter it below. If you
+            intentionally want an empty workspace, you can start fresh.
+          </p>
+          <div className="mt-3">
+            <Button
+              variant="ghost"
+              onClick={() => setShowStartFreshConfirm(true)}
+              className="text-[var(--state-danger-fg)] hover:text-[var(--action-danger-bg-hover)]"
+            >
+              Start with a new empty workspace
+            </Button>
+          </div>
+          {userError ? <ErrorMessage message={userError} /> : null}
+        </section>
+      ) : null}
+
       <h2 className="mb-3 text-base font-semibold text-[var(--fg-secondary)] sm:mb-4 sm:text-lg">
         Link Another Browser
       </h2>
 
-      <section className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-elevated)] p-4 sm:p-5">
-        <h3 className="text-sm font-semibold text-[var(--fg-secondary)]">
-          1. Generate Code (Current Browser)
-        </h3>
-        <p className="mt-1 text-sm text-[var(--fg-muted)]">
-          Create a one-time code here, then use it in another browser within 15 minutes.
-        </p>
-        <div className="mt-3">
-          {activeLinkCode ? (
-            <div className="space-y-3 rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface)] p-4">
-              <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                <p className="text-xs uppercase tracking-wider text-[var(--fg-subtle)]">
-                  One-time code
-                </p>
+      {!needsRecovery ? (
+        <section className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-elevated)] p-4 sm:p-5">
+          <h3 className="text-sm font-semibold text-[var(--fg-secondary)]">
+            1. Generate Code (Current Browser)
+          </h3>
+          <p className="mt-1 text-sm text-[var(--fg-muted)]">
+            Create a one-time code here, then use it in another browser within 15 minutes.
+          </p>
+          <div className="mt-3">
+            {activeLinkCode ? (
+              <div className="space-y-3 rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface)] p-4">
+                <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                  <p className="text-xs uppercase tracking-wider text-[var(--fg-subtle)]">
+                    One-time code
+                  </p>
+                  <p className="text-xs text-[var(--fg-subtle)]">
+                    Expires{" "}
+                    {new Date(activeLinkCode.expiresAt).toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </p>
+                </div>
+                <code className="block rounded-lg bg-[var(--bg-surface-hover)] px-3 py-2 text-center font-mono text-sm tracking-wide text-[var(--accent-primary)] sm:px-4 sm:py-2.5 sm:text-lg sm:tracking-wider sm:text-left">
+                  {activeLinkCode.linkCode}
+                </code>
+                <div className="flex flex-wrap gap-2">
+                  <Button variant="secondary" onClick={copyCode} className="!px-4 !py-2 !text-sm">
+                    {copied ? "Copied!" : "Copy Code"}
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    onClick={generateCode}
+                    disabled={generating || !userId}
+                    className="!px-4 !py-2 !text-sm"
+                  >
+                    {generating ? "Refreshing..." : "Generate New Code"}
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    onClick={openQrModal}
+                    disabled={qrLoading || !userId}
+                    className="!px-4 !py-2 !text-sm"
+                  >
+                    {qrLoading ? "Preparing QR..." : "Show QR for Phone"}
+                  </Button>
+                </div>
                 <p className="text-xs text-[var(--fg-subtle)]">
-                  Expires{" "}
-                  {new Date(activeLinkCode.expiresAt).toLocaleTimeString([], {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
+                  Phone shortcut: scan QR with your camera. It opens TierList+ in your phone&apos;s
+                  default browser and links that browser profile only.
                 </p>
               </div>
-              <code className="block rounded-lg bg-[var(--bg-surface-hover)] px-3 py-2 text-center font-mono text-sm tracking-wide text-[var(--accent-primary)] sm:px-4 sm:py-2.5 sm:text-lg sm:tracking-wider sm:text-left">
-                {activeLinkCode.linkCode}
-              </code>
+            ) : (
               <div className="flex flex-wrap gap-2">
-                <Button variant="secondary" onClick={copyCode} className="!px-4 !py-2 !text-sm">
-                  {copied ? "Copied!" : "Copy Code"}
-                </Button>
                 <Button
                   variant="secondary"
                   onClick={generateCode}
                   disabled={generating || !userId}
                   className="!px-4 !py-2 !text-sm"
                 >
-                  {generating ? "Refreshing..." : "Generate New Code"}
+                  {generating ? "Generating..." : "Generate Link Code"}
                 </Button>
                 <Button
                   variant="secondary"
@@ -268,39 +334,18 @@ export function RecoverySection() {
                   {qrLoading ? "Preparing QR..." : "Show QR for Phone"}
                 </Button>
               </div>
-              <p className="text-xs text-[var(--fg-subtle)]">
-                Phone shortcut: scan QR with your camera. It opens TierList+ in your phone&apos;s
-                default browser and links that browser profile only.
-              </p>
-            </div>
-          ) : (
-            <div className="flex flex-wrap gap-2">
-              <Button
-                variant="secondary"
-                onClick={generateCode}
-                disabled={generating || !userId}
-                className="!px-4 !py-2 !text-sm"
-              >
-                {generating ? "Generating..." : "Generate Link Code"}
-              </Button>
-              <Button
-                variant="secondary"
-                onClick={openQrModal}
-                disabled={qrLoading || !userId}
-                className="!px-4 !py-2 !text-sm"
-              >
-                {qrLoading ? "Preparing QR..." : "Show QR for Phone"}
-              </Button>
-            </div>
-          )}
-        </div>
-        {generateError && <ErrorMessage message={generateError} />}
-        {copyError && <ErrorMessage message={copyError} />}
-        {qrError && <ErrorMessage message={qrError} />}
-      </section>
+            )}
+          </div>
+          {generateError && <ErrorMessage message={generateError} />}
+          {copyError && <ErrorMessage message={copyError} />}
+          {qrError && <ErrorMessage message={qrError} />}
+        </section>
+      ) : null}
 
       <section className="mt-4 rounded-xl border border-[var(--border-default)] bg-[var(--bg-elevated)] p-4 sm:p-5">
-        <h3 className="text-sm font-semibold text-[var(--fg-secondary)]">2. Link This Browser</h3>
+        <h3 className="text-sm font-semibold text-[var(--fg-secondary)]">
+          {needsRecovery ? "Restore This Browser" : "2. Link This Browser"}
+        </h3>
         <p className="mt-1 text-sm text-[var(--fg-muted)]">
           Enter a one-time code manually, or open this page from a QR link to pre-fill it.
         </p>
@@ -345,10 +390,24 @@ export function RecoverySection() {
         {linkError && <ErrorMessage message={linkError} />}
       </section>
 
-      <LinkedBrowsersSection
-        userId={userId}
-        userLoading={userLoading}
-        onActiveLinkCodeChange={setActiveLinkCode}
+      {!needsRecovery ? (
+        <LinkedBrowsersSection
+          userId={userId}
+          userLoading={userLoading}
+          onActiveLinkCodeChange={setActiveLinkCode}
+        />
+      ) : null}
+
+      <ConfirmDialog
+        open={showStartFreshConfirm}
+        title="Start a new empty workspace?"
+        description="This explicitly creates a new anonymous account in this browser. It will not delete the remembered account, but you will need a link code or future recovery method to return to it."
+        confirmLabel="Start Fresh"
+        loadingLabel="Creating..."
+        confirmVariant="danger"
+        loading={startingFresh}
+        onConfirm={confirmStartFresh}
+        onCancel={() => setShowStartFreshConfirm(false)}
       />
 
       <dialog
