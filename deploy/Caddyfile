@@ -14,3 +14,23 @@
 
     reverse_proxy app:3000
 }
+
+asterlink.tierlistplus.com {
+    encode zstd gzip
+
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "SAMEORIGIN"
+        Referrer-Policy "strict-origin-when-cross-origin"
+    }
+
+    @matrix path /_matrix/* /_synapse/*
+    handle @matrix {
+        reverse_proxy 172.17.0.1:18008
+    }
+
+    handle {
+        reverse_proxy 172.17.0.1:13100
+    }
+}
