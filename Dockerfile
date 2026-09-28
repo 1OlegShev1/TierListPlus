@@ -25,11 +25,14 @@ RUN apk add --no-cache openssl libc6-compat
 RUN addgroup -g 10001 -S appuser && adduser -S -D -H -u 10001 -G appuser appuser
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
-COPY package.json ./package.json
-RUN PRISMA_CLI_VERSION="$(node -p 'require("./package.json").dependencies.prisma')" \
-  && npm install -g "prisma@${PRISMA_CLI_VERSION}" \
+COPY package.json /tmp/app-package.json
+# Not `npm install -g`: global installs ignore package.json overrides, which patch the CLI's pinned deps.
+RUN mkdir -p /opt/prisma-cli && cd /opt/prisma-cli \
+  && node -e 'const p=require("/tmp/app-package.json");require("fs").writeFileSync("package.json",JSON.stringify({private:true,dependencies:{prisma:p.dependencies.prisma},overrides:p.overrides}))' \
+  && npm install --omit=dev --no-audit --no-fund \
   && npm cache clean --force \
-  && rm -rf /root/.npm /root/.cache
+  && rm -rf /root/.npm /root/.cache /tmp/app-package.json
+ENV PATH=/opt/prisma-cli/node_modules/.bin:$PATH
 COPY --chown=appuser:appuser prisma ./prisma
 COPY --chown=appuser:appuser prisma.config.migrate.ts ./prisma.config.migrate.ts
 USER appuser
